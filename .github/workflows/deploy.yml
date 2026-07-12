@@ -1,4 +1,4 @@
-name: Deploy to cPanel (test folder)
+name: Deploy via FTP
 
 on:
   push:
@@ -13,21 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy via SFTP (SSH key)
-        uses: appleboy/scp-action@v0.1.7
+      - name: Upload via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          host: ${{ secrets.FTP_SERVER }}
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 22
+          password: ${{ secrets.FTP_PASSWORD }}
 
-          source: "./*"
-          target: public_html/test/
-
-          # Required for your older cPanel SSH server
-          use_insecure_cipher: true
-
-          # Optional but helpful 
-          timeout: 60s
-          command_timeout: 30s
-          overwrite: true
+          local-dir: ./
+          server-dir: public_html/test/
