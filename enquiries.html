@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Enquiries</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="btb_app.css">
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">Enquiries</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="app" id="mainApp" style="display:none">
+  <div class="header">
+    <div style="text-align:center;padding:4px 0 2px">
+      <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">ENQUIRIES</div>
+    </div>
+    <div class="header-sub" id="headerSub">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px">
+      <span class="auth-badge" id="authBadge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span> · Sign out</span>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="btb_app.html" class="nav-btn" style="text-decoration:none"><i class="ti ti-calendar"></i>Calendar</a>
+    <span class="nav-btn active" style="cursor:default"><i class="ti ti-users"></i>Enquiries</span>
+    <a href="pos.html" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#059669 0%,#047857 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(5,150,105,.3)"><span style="font-size:15px;font-weight:850;color:#fff;padding:4px 16px;display:inline-block;letter-spacing:0.5px">POS</span></a>
+    <a href="waiver.html" target="_blank" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(124,58,237,.3)"><span style="font-size:14px;font-weight:700;color:#fff">Waiver</span></a>
+  </nav>
+  <div id="leads" class="section active">
+    <p class="sec-title">Enquiries & contact messages</p>
+    <button class="add-trigger" onclick="toggleEnqForm()"><i class="ti ti-plus"></i> Add enquiry</button>
+    <div class="form-wrap" id="enqForm" style="display:none">
+      <div class="form-title"><i class="ti ti-user-plus"></i> New enquiry</div>
+      <div class="form-2col">
+        <div><div class="form-label">First name</div><input class="form-input" type="text" id="eqFirst" placeholder="Sarah"></div>
+        <div><div class="form-label">Last name</div><input class="form-input" type="text" id="eqLast" placeholder="Robinson"></div>
+      </div>
+      <div class="form-2col">
+        <div><div class="form-label">Phone</div><input class="form-input" type="tel" id="eqPhone" placeholder="021 123 4567"></div>
+        <div><div class="form-label">Email</div><input class="form-input" type="email" id="eqEmail" placeholder="sarah@example.com"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Game of interest</div>
+        <select class="form-select" id="eqGame">
+          <option value="">Any / not sure</option>
+        </select>
+      </div>
+      <div class="form-2col">
+        <div><div class="form-label">Preferred date</div><input class="form-input" type="date" id="eqDate"></div>
+        <div><div class="form-label">Players</div><input class="form-input" type="number" id="eqPlayers" placeholder="e.g. 4" min="1" max="30"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Occasion</div>
+        <select class="form-select" id="eqOccasion">
+          <option value="">None / not specified</option>
+          <option value="Birthday">Birthday 🎂</option>
+          <option value="Team building">Team building 💼</option>
+          <option value="Date night">Date night 💑</option>
+          <option value="Family outing">Family outing 👨‍👩‍👧</option>
+          <option value="School group">School group 🎒</option>
+          <option value="Hen/Stag do">Hen/Stag do 🥂</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-row"><div class="form-label">Experience level</div>
+        <select class="form-select" id="eqExperience">
+          <option value="">Unknown</option>
+          <option value="First time">First time</option>
+          <option value="Beginner">Beginner (1–2 rooms)</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Experienced">Experienced</option>
+          <option value="Expert">Expert</option>
+        </select>
+      </div>
+      <div class="form-row"><div class="form-label">Notes</div><input class="form-input" type="text" id="eqDetail" placeholder="Anything else to note…"></div>
+      <div class="form-2col">
+        <div><div class="form-label">Status</div><select class="form-select" id="eqStatus"></select></div>
+        <div><div class="form-label">Entered by</div><select class="form-select" id="eqEnteredBy"></select></div>
+      </div>
+      <div class="form-btns">
+        <button class="form-cancel" onclick="toggleEnqForm()">Cancel</button>
+        <button class="form-submit" onclick="submitEnquiry()">Save</button>
+      </div>
+    </div>
+    <div class="filter-row" id="enqFilterRow"></div>
+    <div id="enqList"></div>
+  </div>
+</div>
+<script>
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const H=(k=SB_ANON)=>({'Content-Type':'application/json','Authorization':`Bearer ${k}`,'apikey':k});
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+
+// DEFAULT DATA — matches btb_app.html defaults, overwritten by loadSettings() below
+let games=[
+  {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
+  {id:'g2',name:'Saving Christmas',duration:60,pricingType:'per_person_tiered',icon:'🎄',bookable:true,category:'escape'},
+  {id:'g3',name:'Gregg in the Box',duration:45,pricingType:'per_person_tiered',icon:'📦',bookable:true,category:'escape'},
+  {id:'g4',name:'VR Hour',duration:60,pricingType:'per_hour_flat',icon:'🥽',bookable:true,category:'vr'},
+  {id:'g5',name:'Board Game Cafe',duration:60,pricingType:'per_person_per_hour',icon:'🎲',bookable:true,category:'cafe'},
+];
+let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepaid',colorIdx:0},{id:'vip',label:'VIP',colorIdx:4},{id:'allergy',label:'Allergy',colorIdx:5}];
+let statuses=[{id:'new',label:'New',emoji:'🔵'},{id:'followup',label:'Follow up',emoji:'🟡'},{id:'hot',label:'Hot',emoji:'🔥'},{id:'converted',label:'Converted',emoji:'✅'}];
+let staff=[],enquiries=[];
+let activeEnqStatus=null,enqOpen=false;
+let currentUser=null;
+
+function initials(n){return n.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+
+// SETTINGS — only the keys Enquiries actually needs (games/tags/statuses)
+async function loadSettings(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/settings`,{headers:H()});
+    const rows=await r.json();
+    rows.forEach(row=>{
+      try{
+        const d=JSON.parse(row.value);
+        if(row.key==='btb_games'&&Array.isArray(d))games=d;
+        if(row.key==='btb_tags'&&Array.isArray(d))tags=d;
+        if(row.key==='btb_statuses'&&Array.isArray(d))statuses=d;
+      }catch(e){}
+    });
+  }catch(e){console.error('Settings load:',e)}
+}
+
+// STAFF — trimmed: no training data, no renderPersonList (Settings-only concerns)
+async function loadStaff(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&order=name`,{headers:H()});
+    const rows=await r.json();
+    if(rows&&rows.length>0)staff=rows;
+  }catch(e){console.error('Staff load:',e)}
+}
+
+// ENQUIRIES
+async function loadEnquiries(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?status=eq.enquiry&order=created_at.desc&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const rows=await r.json();
+    enquiries=rows.map(row=>{
+      const nameParts=row.notes_when_booked?.split('·')||[];
+      const name=nameParts[0]?.trim()||'Unknown';
+      return{
+        id:row.id,name,
+        detail:row.notes_when_booked||'',
+        game:row.game_name,date:row.booking_date,
+        players:row.players_booked,
+        phone:row.clients?.phone||'',
+        email:row.clients?.email||'',
+        occasion:row.occasion||'',
+        experience:row.experience||'',
+        source:row.source||'online',
+        notes:JSON.parse(row.staff_notes||'[]'),
+        created_at:row.created_at,
+        status:row.enquiry_status||'new',
+        initials:'??',
+      };
+    });
+    enquiries.forEach(e=>{e.initials=initials(e.name)});
+  }catch(e){console.error('Enquiries load:',e)}
+}
+function toggleEnqForm(){
+  enqOpen=!enqOpen;document.getElementById('enqForm').style.display=enqOpen?'':'none';
+  if(enqOpen){
+    document.getElementById('eqStatus').innerHTML=statuses.map(s=>`<option value="${s.id}">${s.emoji} ${s.label}</option>`).join('');
+    document.getElementById('eqEnteredBy').innerHTML=staff.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    const gameEl=document.getElementById('eqGame');
+    if(gameEl)gameEl.innerHTML='<option value="">Any / not sure</option>'+games.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+    document.getElementById('eqFirst').focus();
+  }
+}
+async function submitEnquiry(){
+  const first=document.getElementById('eqFirst').value.trim();
+  const last=document.getElementById('eqLast').value.trim();
+  const name=[first,last].filter(Boolean).join(' ');
+  if(!first){document.getElementById('eqFirst').focus();return}
+  const phone=document.getElementById('eqPhone').value.trim();
+  const email=document.getElementById('eqEmail').value.trim();
+  const gameId=document.getElementById('eqGame').value;
+  const gameName=gameId?games.find(g=>g.id===gameId)?.name||'Enquiry':'Enquiry';
+  const eqDate=document.getElementById('eqDate').value||new Date().toISOString().slice(0,10);
+  const players=parseInt(document.getElementById('eqPlayers').value)||1;
+  const occasion=document.getElementById('eqOccasion').value;
+  const experience=document.getElementById('eqExperience').value;
+  const detail=document.getElementById('eqDetail').value.trim();
+  const statusId=document.getElementById('eqStatus').value;
+  // Auto-add experience tag if matches a tag name
+  const autoTags=[];
+  if(occasion){const ot=tags.find(t=>t.label.toLowerCase().includes(occasion.toLowerCase().split(' ')[0]));if(ot)autoTags.push(ot.id)}
+  try{
+    // Find or create client
+    let clientId=null;
+    if(email||phone){
+      const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
+      const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
+      const ex=await cr.json();
+      if(ex.length>0){clientId=ex[0].id}
+      else{
+        const nr=await fetch(`${SB_URL}/rest/v1/clients`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({first_name:first,last_name:last||null,email:email||null,phone:phone||null,source:'staff'})});
+        const nc=await nr.json();clientId=nc[0]?.id;
+      }
+    }
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({
+        client_id:clientId,
+        game_id:gameId||'enquiry',game_name:gameName,
+        booking_date:eqDate,slot_time:'12:00:00',
+        players_booked:players,
+        occasion:occasion||null,experience:experience||null,
+        status:'enquiry',source:'staff',
+        notes_when_booked:`${name}${phone?' · '+phone:''}${email?' · '+email:''}${detail?' · '+detail:''}`,
+        tags:JSON.stringify(autoTags),staff_notes:JSON.stringify([]),
+        assigned_staff_ids:JSON.stringify([]),
+        enquiry_status:statusId,
+      })
+    });
+    if(r.ok){
+      enqOpen=false;document.getElementById('enqForm').style.display='none';
+      ['eqFirst','eqLast','eqPhone','eqEmail','eqPlayers','eqDetail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+      const gameEl=document.getElementById('eqGame');if(gameEl)gameEl.value='';
+      const occEl=document.getElementById('eqOccasion');if(occEl)occEl.value='';
+      const expEl=document.getElementById('eqExperience');if(expEl)expEl.value='';
+      await loadEnquiries();renderEnquiries();updateHeader();
+    }else{alert('Error: '+await r.text())}
+  }catch(e){alert('Error: '+e.message)}
+}
+function renderEnquiries(){
+  const list=document.getElementById('enqList');
+  let filtered=[...enquiries];
+  if(activeEnqStatus)filtered=filtered.filter(e=>e.status===activeEnqStatus);
+  if(!filtered.length){list.innerHTML='<div class="empty-state">No enquiries.</div>';return}
+  list.innerHTML=filtered.map(e=>{
+    const statusBtns=statuses.map(s=>`<button class="enq-status-btn ${e.status===s.id?'active':''}" onclick="setEnqStatus('${e.id}','${s.id}')">${s.emoji} ${s.label}</button>`).join('');
+    const noteLines=(e.notes||[]).map(n=>{
+      if(typeof n==='object'&&n.text) return `<div class="note-line">📝 ${n.text}<span style="font-size:10px;color:#9ca3af;margin-left:6px">${n.by||''}${n.at?' · '+new Date(n.at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span></div>`;
+      return `<div class="note-line">📝 ${n}</div>`;
+    }).join('');
+    const srcBadge=e.source==='online'?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:1px 7px;border-radius:99px;font-weight:600">🌐 Online</span>':'<span style="font-size:10px;background:#e0f7f9;color:#07b4c5;padding:1px 7px;border-radius:99px;font-weight:600">Staff</span>';
+    return`<div class="enq-card ${e.source==='online'?'online':''}">
+      <div style="display:flex;align-items:flex-start;gap:9px">
+        <div class="enq-avatar">${e.initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <div class="enq-name">${e.name}</div>
+            ${srcBadge}
+          </div>
+          <div class="enq-detail" style="margin-top:2px">${e.detail||''}</div>
+          ${e.phone?`<div style="font-size:11px;color:#6b7280;margin-top:2px">📞 ${e.phone}</div>`:''}
+          ${e.email?`<div style="font-size:11px;color:#6b7280">✉️ ${e.email}</div>`:''}
+          ${e.game&&e.game!=='Enquiry'?`<div style="font-size:11px;color:#6b7280;margin-top:2px">🎮 ${e.game}${e.players>1?' · '+e.players+' players':''}${e.date?' · '+e.date:''}</div>`:''}
+          ${e.occasion?`<div style="font-size:11px;color:#6b7280">🎉 ${e.occasion}</div>`:''}
+          ${e.experience?`<div style="font-size:11px;color:#6b7280">⭐ ${e.experience}</div>`:''}
+          ${noteLines?`<div style="margin-top:5px">${noteLines}</div>`:''}
+          <div class="note-input-row" style="margin-top:7px">
+            <input class="note-input" type="text" placeholder="Add note…" data-enq="${e.id}">
+            <button class="note-save-btn" onclick="saveEnqNote('${e.id}',this)">Save</button>
+          </div>
+          <div class="enq-status-row">${statusBtns}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderEnqFilters(){
+  document.getElementById('enqFilterRow').innerHTML=`<button class="filter-chip ${!activeEnqStatus?'active':''}" onclick="setEnqStatusFilter(null)">All</button>`+statuses.map(s=>`<button class="filter-chip ${activeEnqStatus===s.id?'active':''}" onclick="setEnqStatusFilter('${s.id}')">${s.emoji} ${s.label}</button>`).join('');
+}
+function setEnqStatusFilter(id){activeEnqStatus=id;renderEnqFilters();renderEnquiries()}
+async function setEnqStatus(id,statusId){
+  const e=enquiries.find(x=>x.id===id);if(!e)return;e.status=statusId;
+  try{await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({enquiry_status:statusId})})}catch(ex){}
+  renderEnquiries();
+}
+async function saveEnqNote(id,btnEl){
+  const input=btnEl?btnEl.previousElementSibling:null;const text=input?input.value.trim():'';if(!text)return;
+  const e=enquiries.find(x=>x.id===id);if(!e)return;
+  const noteObj={text,by:currentUser?.name||'Staff',at:new Date().toISOString()};
+  (e.notes=e.notes||[]).push(noteObj);if(input)input.value='';
+  try{await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({staff_notes:JSON.stringify(e.notes)})})}catch(ex){}
+  renderEnquiries();
+}
+
+function updateHeader(){
+  document.getElementById('headerSub').textContent=`${enquiries.length} enquir${enquiries.length!==1?'ies':'y'}`;
+}
+
+// AUTH — identical login/token logic to btb_app.html
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token)
+      .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
+      || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
+    let staffId=userId;
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    currentUser={id:userId,staffId,email,token,name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
+    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));showApp();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function parseAllowedTabs(raw){
+  if(!raw) return ['calendar'];
+  if(Array.isArray(raw)) return raw;
+  try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
+  catch(e){ return ['calendar']; }
+}
+function doLogout(){currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+// showApp — trimmed: no Settings-only elements (settingsGroupSetup/cardConfig/cardRoles) exist on this page.
+// Adds an allowedTabs check for 'leads', matching the access control already enforced by showTab() in btb_app.html.
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
+  document.getElementById('authName').textContent=currentUser.name;
+  if(currentUser.allowedTabs && !currentUser.allowedTabs.includes('leads')){
+    document.getElementById('mainApp').innerHTML='<div style="padding:40px 20px;text-align:center;color:#6b7280">You don\'t have access to Enquiries. Contact an admin.</div>';
+  }
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  await loadSettings();
+  await Promise.all([loadStaff(), loadEnquiries()]);
+  const saved=sessionStorage.getItem('btb_user');
+  if(saved){
+    try{ currentUser=JSON.parse(saved); showApp(); }catch(e){}
+  }
+  renderEnqFilters();renderEnquiries();updateHeader();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTB Game Master Control Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1035;
+            color: #ffffff;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .accent-color { color: #07b4c5; }
+        .bg-accent { background-color: #07b4c5; }
+        .border-accent { border-color: #07b4c5; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-[#110a24] border-b border-purple-900/40 px-6 py-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🔮</span>
+            <h1 class="text-xl font-bold tracking-wider text-white">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
+        </div>
+<div id="active-room-display" class="hidden items-center gap-3">
+            <span class="px-3 py-1 rounded-full bg-purple-950 border border-purple-500 text-sm font-semibold tracking-wide" id="current-room-badge">No Booking</span>
+            <button onclick="exitRoom()" class="text-sm text-gray-400 hover:text-red-400 transition">&larr; Change Session</button>
+        </div>
+        <button onclick="openTimersPinPrompt()" class="text-sm px-3 py-1.5 rounded-full bg-purple-950 border border-purple-700 hover:border-accent transition">⏱️ All Timers</button>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center justify-center p-4 md:p-6 max-w-7xl w-full mx-auto">
+        
+<section id="room-selection-screen" class="w-full max-w-2xl text-center">
+            <h2 class="text-3xl font-extrabold mb-2">Welcome, Gamemaster</h2>
+            <p class="text-gray-400 mb-6">Pick a date, then select the booking you're managing:</p>
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <button onclick="shiftPickerDate(-1)" class="px-3 py-2 rounded-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 text-sm font-bold">&larr;</button>
+                <input type="date" id="picker-date" class="bg-[#231647] border border-purple-800/60 rounded-lg px-4 py-2 text-white text-sm font-semibold focus:outline-none focus:border-accent" onchange="onPickerDateChange()">
+                <button onclick="shiftPickerDate(1)" class="px-3 py-2 rounded-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 text-sm font-bold">&rarr;</button>
+            </div>
+            <div class="grid grid-cols-1 gap-3 text-left" id="room-buttons-container">
+                <div class="text-gray-500 text-sm text-center">Loading bookings…</div>
+            </div>
+        </section>
+
+        <section id="loading-game-screen" class="hidden text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent mx-auto mb-4"></div>
+            <p class="text-gray-300">Searching for today's active session data...</p>
+        </section>
+
+        <section id="no-game-screen" class="hidden text-center py-12 max-w-md bg-[#231647] border border-purple-900/60 p-8 rounded-2xl shadow-xl">
+            <span class="text-5xl block mb-4">💤</span>
+            <h3 class="text-xl font-bold mb-2">No Active Booking Found</h3>
+            <p class="text-gray-400 mb-6 text-sm">There are no bookings for this room today in Supabase right now.</p>
+            <button onclick="checkActiveBooking()" class="px-5 py-2.5 rounded-lg bg-accent text-slate-900 font-bold hover:opacity-90 transition text-sm">Retry Scanning Database</button>
+        </section>
+
+        <section id="booking-picker-screen" class="hidden text-center py-8 max-w-lg w-full bg-[#231647] border border-purple-900/60 p-8 rounded-2xl shadow-xl">
+            <span class="text-4xl block mb-3">🗓️</span>
+            <h3 class="text-xl font-bold mb-2">Multiple Bookings Today</h3>
+            <p class="text-gray-400 mb-6 text-sm">Select which session to manage:</p>
+            <div class="space-y-3" id="booking-picker-list"></div>
+        </section>
+
+        <section id="gm-dashboard" class="hidden w-full grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            
+            <div class="lg:col-span-2 space-y-6">
+                <div class="p-5 rounded-2xl bg-[#231647] border border-purple-900/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
+                    <div>
+                        <div class="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1" id="game-slot-display">Slot: --:--</div>
+                        <h3 class="text-2xl font-black flex items-center gap-2">
+                            <span id="game-team-name">Loading Team...</span>
+                            <span id="birthday-flag" class="hidden text-xl" title="Birthday Party Celebration!">🎂</span>
+                        </h3>
+                        <p class="text-sm text-gray-400 mt-1" id="game-meta-details">Booked: 0 players • Booking Source: --</p>
+                    </div>
+                    <button id="help-btn" onclick="triggerHelpAlert()" class="w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3 animate-pulse">
+                        <span class="text-xl">🚨</span> REPORT EMERGENCY HELP
+                    </button>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-[#1d123d] border border-purple-950 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <span class="text-3xl">⏱️</span>
+                        <div>
+                            <div class="text-xs uppercase tracking-widest text-gray-400 font-semibold">Game Timer</div>
+                            <div class="text-4xl font-mono font-extrabold" id="timer-countdown">60:00</div>
+                        </div>
+                    </div>
+<div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="adjustTimer(-1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">-1 min</button>
+                        <button onclick="adjustTimer(1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+1 min</button>
+                        <button id="timer-toggle-btn" onclick="toggleTimer()" class="flex-grow sm:flex-grow-0 px-5 py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 transition">▶ Start</button>
+                        <button onclick="resetTimer()" class="px-5 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">↺ Reset</button>
+                    </div>
+                </div>
+
+                <div id="booking-notes-box" class="hidden p-5 rounded-xl bg-purple-950/40 border border-purple-900/40">
+                    <h4 class="text-xs font-bold uppercase text-[#07b4c5] tracking-wider mb-2">Front Desk & Intake Booking Notes:</h4>
+                    <p class="text-sm text-purple-200 italic" id="booking-notes-content">None</p>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-[#1d123d] border border-purple-950 p-6 shadow-md space-y-6">
+                    <div class="border-b border-purple-900/40 pb-3 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-200 flex items-center gap-2">📝 Session Logging Details</h3>
+                        <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-medium border border-amber-500/30">In-Room Entry</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Actual Players in Room</label>
+                            <input type="number" id="input-players" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Clues Given</label>
+                            <input type="number" id="input-clues" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Time Taken (Total Minutes)</label>
+                            <input type="number" id="input-time" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0" max="60" placeholder="e.g. 56">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Review Status</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-review" onclick="toggleReviewFlag()" class="flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-purple-950/40 border-purple-800 text-purple-300">
+                                    ⭐ Prompt Review Sequence
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Gamemaster Log & Room Reset Notes</label>
+                        <textarea id="input-gm-notes" rows="3" placeholder="How did it go? Notable highlights, puzzle hitches, or maintenance details..." class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none text-sm"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                        <p class="text-xs text-gray-500 italic flex items-center">No-show flagging is handled on the front-desk app.</p>
+                        <button onclick="saveAndFinalizeSession()" class="flex-grow px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                            💾 Save & Complete Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="p-5 rounded-2xl bg-[#231647] border border-purple-900/60 shadow-md text-center">
+                    <span class="text-4xl block mb-2">📸</span>
+                    <h3 class="text-lg font-bold mb-1">Player Photo Backdrop</h3>
+                    <p class="text-xs text-gray-400 mb-4">Transform this tablet/monitor screen into a customized display canvas for group photographs!</p>
+                    <button onclick="enterPhotoMode()" class="w-full py-3 bg-purple-900 hover:bg-purple-800 border border-purple-700 text-white font-bold rounded-xl transition text-sm">
+                        🖥️ Launch Team Photo Canvas
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="photo-mode-canvas" class="hidden fixed inset-0 bg-[#0c071a] flex flex-col items-center justify-center text-center p-6 z-50 animate-fade-in">
+            <button onclick="exitPhotoMode()" class="absolute top-6 right-6 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-semibold tracking-wide text-gray-400 hover:text-white transition">
+                &times; Close Backdrop Canvas View
+            </button>
+            
+            <div class="space-y-8 max-w-3xl">
+                <div class="text-7xl md:text-8xl drop-shadow-lg" id="photo-room-emoji">🕵️‍♂️</div>
+                
+                <div class="space-y-2">
+                    <h1 class="text-4xl md:text-6xl font-black uppercase tracking-wider text-white" id="photo-room-name">SHERLOCK</h1>
+                    <p class="text-lg md:text-xl font-medium uppercase tracking-widest text-accent-color opacity-80" id="photo-team-name">The Codebreakers</p>
+                </div>
+
+                <div class="inline-flex flex-col items-center justify-center p-6 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-md px-12 shadow-2xl">
+                    <span class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Official Escape Time</span>
+                    <span class="text-5xl md:text-7xl font-extrabold text-emerald-400 font-mono tracking-tight" id="photo-time-display">56:00</span>
+                    <span class="text-xs text-gray-400 mt-2 tracking-wide font-medium uppercase" id="photo-clues-display">Clues Used: 2</span>
+                </div>
+
+                <div class="pt-4">
+                    <p class="text-sm tracking-widest font-bold uppercase text-purple-400/60">Beyond the Box Escape Rooms</p>
+                </div>
+            </div>
+        </section>
+
+</main>
+
+    <div id="timers-pin-overlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div class="bg-[#231647] border border-purple-800/60 rounded-2xl p-6 w-full max-w-xs text-center">
+            <h3 class="text-lg font-bold mb-3">Enter PIN</h3>
+            <input type="password" id="timers-pin-input" class="w-full bg-[#110a24] border border-purple-900/60 rounded-lg px-4 py-2 text-white text-center text-xl tracking-widest focus:outline-none focus:border-accent" maxlength="6" inputmode="numeric">
+            <p id="timers-pin-error" class="hidden text-red-400 text-xs mt-2">Incorrect PIN</p>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeTimersPinPrompt()" class="flex-grow py-2 rounded-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 text-sm">Cancel</button>
+                <button onclick="submitTimersPin()" class="flex-grow py-2 rounded-lg bg-accent text-slate-900 font-bold text-sm hover:opacity-90">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <section id="all-timers-screen" class="hidden fixed inset-0 bg-[#0c071a] p-6 z-40 overflow-y-auto">
+        <div class="max-w-3xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black">All Running Timers</h2>
+                <button onclick="closeAllTimersScreen()" class="text-sm text-gray-400 hover:text-white transition">&times; Close</button>
+            </div>
+            <div id="all-timers-list" class="space-y-3"></div>
+        </div>
+    </section>
+
+    <script>
+        // ==========================================
+        // 🛠️ SUPABASE CONNECTION — same wrapper as btb_app.html / pos.html
+        // ==========================================
+        const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
+        const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+        const H = (k=SB_ANON) => ({'Content-Type':'application/json','Authorization':`Bearer ${k}`,'apikey':k});
+
+// Core App Control Variables
+        let currentRoom = "";
+        let currentBooking = null;
+        let askForReviewFlag = false;
+        let escapeGames = [];           // Loaded from settings (btb_games), category === 'escape'
+        let todaysRoomBookings = [];    // All bookings (any room) for the picked date
+        let timerInterval = null;       // Local interval for live countdown display
+let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the picker screen
+        let controlRoomPin = null;      // Loaded from settings (btb_control_room_pin)
+
+        function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
+        function getElapsed(b){
+            if(b.timer_running && b.timer_started_at) return (b.timer_sec||0) + Math.floor((Date.now()-new Date(b.timer_started_at).getTime())/1000);
+            return b.timer_sec||0;
+        }
+
+        // ==========================================
+        // 🎮 LOAD ESCAPE ROOMS FROM SETTINGS (dynamic, matches btb_app.html)
+        // ==========================================
+        async function loadEscapeGames(){
+            try{
+                const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games`, {headers:H()});
+                const rows = await r.json();
+                if(rows[0]){
+                    const all = JSON.parse(rows[0].value);
+                    if(Array.isArray(all)) escapeGames = all.filter(g=>g.category==='escape');
+                }
+            }catch(e){ console.error('Failed to load games:', e); }
+            if(!escapeGames.length){
+                // Fallback so the screen isn't empty if settings hasn't loaded yet
+escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Christmas',icon:'🎄'},{id:'g3',name:'Gregg in the Box',icon:'📦'}];
+            }
+        }
+
+        function renderRoomButtons(){
+            const el = document.getElementById('room-buttons-container');
+            if(!el) return;
+            el.innerHTML = escapeGames.map(g => `
+                <button onclick="selectRoom('${g.name.replace(/'/g,"\\'")}')" class="p-6 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 text-left transition transform hover:-translate-y-1 shadow-md group">
+                    <div class="text-2xl mb-2">${g.icon||'🚪'}</div>
+                    <div class="text-xl font-bold group-hover:text-[#07b4c5] transition">${g.name}</div>
+                    <div class="text-xs text-gray-400 mt-1">Manage live game & clues</div>
+                </button>`).join('');
+        }
+
+        const BUILD_VERSION = 1; // increment this each shipped update — check browser console to confirm you're on the latest build
+        console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+        // Initialize App on DOM Load
+document.addEventListener("DOMContentLoaded", async () => {
+            await loadEscapeGames();
+            initDatePicker();
+            loadControlRoomPin();
+        });
+
+        async function loadControlRoomPin() {
+            try {
+                const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_control_room_pin`, {headers:H()});
+                const rows = await r.json();
+                controlRoomPin = rows[0] ? JSON.parse(rows[0].value) : null;
+            } catch(e) { console.error('Failed to load control room PIN:', e); }
+        }
+
+function openTimersPinPrompt() {
+            document.getElementById('timers-pin-input').value = '';
+            document.getElementById('timers-pin-error').classList.add('hidden');
+            document.getElementById('timers-pin-overlay').classList.remove('hidden');
+            setTimeout(() => document.getElementById('timers-pin-input').focus(), 50);
+        }
+        function closeTimersPinPrompt() {
+            document.getElementById('timers-pin-overlay').classList.add('hidden');
+        }
+        function submitTimersPin() {
+            const entered = document.getElementById('timers-pin-input').value;
+            if (controlRoomPin && entered === controlRoomPin) {
+                closeTimersPinPrompt();
+                openAllTimersScreen();
+            } else {
+                document.getElementById('timers-pin-error').classList.remove('hidden');
+            }
+        }
+let allRunningTimers = [];
+        let allTimersInterval = null;
+
+        async function openAllTimersScreen() {
+            document.getElementById('all-timers-screen').classList.remove('hidden');
+            await loadAllRunningTimers();
+            clearInterval(allTimersInterval);
+            allTimersInterval = setInterval(updateAllTimersDisplay, 1000);
+        }
+        function closeAllTimersScreen() {
+            document.getElementById('all-timers-screen').classList.add('hidden');
+            clearInterval(allTimersInterval);
+        }
+
+        async function loadAllRunningTimers() {
+            const list = document.getElementById('all-timers-list');
+            list.innerHTML = `<div class="text-gray-500 text-sm text-center py-6">Loading…</div>`;
+            try {
+                const r = await fetch(
+                    `${SB_URL}/rest/v1/game_bookings?timer_running=eq.true&order=booking_date,slot_time&select=*,clients(first_name,last_name)`,
+                    {headers:H()}
+                );
+                if(!r.ok) throw new Error(await r.text());
+                allRunningTimers = await r.json() || [];
+                renderAllTimersList();
+            } catch(e) {
+                console.error('Failed to load running timers:', e);
+                list.innerHTML = `<div class="text-red-400 text-sm text-center py-6">Failed to load timers.</div>`;
+            }
+        }
+
+        function renderAllTimersList() {
+            const list = document.getElementById('all-timers-list');
+            if (!allRunningTimers.length) {
+                list.innerHTML = `<div class="text-gray-500 text-sm text-center py-6">No timers currently running.</div>`;
+                return;
+            }
+            list.innerHTML = allRunningTimers.map(b => {
+                const name = bookingCustomerName(b);
+                return `<div class="p-4 rounded-xl bg-[#231647] border border-purple-800/40 flex justify-between items-center" data-booking-id="${b.id}">
+                    <div>
+                        <div class="font-bold">${b.game_name}</div>
+                        <div class="text-xs text-gray-400">${name} · ${b.booking_date} ${b.slot_time ? b.slot_time.substring(0,5) : ''}</div>
+                    </div>
+                    <div class="text-2xl font-mono font-extrabold" id="all-timer-value-${b.id}">--:--</div>
+                </div>`;
+            }).join('');
+            updateAllTimersDisplay();
+        }
+
+        function updateAllTimersDisplay() {
+            allRunningTimers.forEach(b => {
+                const el = document.getElementById(`all-timer-value-${b.id}`);
+                if (!el) return;
+                const dur = gameDurationFor(b);
+                const rem = dur*60 - getElapsed(b);
+                el.textContent = fmtTimer(rem);
+                el.className = "text-2xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < 300 ? "text-amber-400" : "text-emerald-400");
+            });
+        }
+
+        function todayStr() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        }
+        function initDatePicker() {
+            pickerDate = todayStr();
+            document.getElementById('picker-date').value = pickerDate;
+            checkActiveBooking();
+        }
+        function onPickerDateChange() {
+            pickerDate = document.getElementById('picker-date').value;
+            checkActiveBooking();
+        }
+        function shiftPickerDate(days) {
+            const d = new Date(pickerDate);
+            d.setDate(d.getDate() + days);
+            pickerDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            document.getElementById('picker-date').value = pickerDate;
+            checkActiveBooking();
+        }
+
+        // ==========================================
+        // 🧭 WORKFLOW SCREEN & ROUTING LOGIC
+        // ==========================================
+        function selectRoom(roomName) {
+            currentRoom = roomName;
+            localStorage.setItem('btb_gm_room', roomName);
+            
+            // UI Toggle States
+            document.getElementById("room-selection-screen").classList.add("hidden");
+            document.getElementById("active-room-display").classList.remove("hidden");
+            document.getElementById("current-room-badge").innerText = roomName;
+            
+            checkActiveBooking();
+        }
+
+function exitRoom() {
+            currentRoom = "";
+            currentBooking = null;
+            clearInterval(timerInterval);
+
+            document.getElementById("active-room-display").classList.add("hidden");
+            document.getElementById("gm-dashboard").classList.add("hidden");
+            checkActiveBooking();
+        }
+
+        // ==========================================
+        // 🛰️ SUPABASE QUERY OPERATIONS (READ/WRITE)
+        // ==========================================
+async function checkActiveBooking() {
+            if (!pickerDate) pickerDate = todayStr();
+
+            document.getElementById("gm-dashboard").classList.add("hidden");
+            document.getElementById("loading-game-screen").classList.remove("hidden");
+            document.getElementById("room-selection-screen").classList.add("hidden");
+
+            try {
+                // Fetch ALL bookings (any room) for the picked date — active AND completed,
+                // since completed sessions can still be reopened to add notes.
+                const r = await fetch(
+                    `${SB_URL}/rest/v1/game_bookings?booking_date=eq.${pickerDate}&status=neq.cancelled&status=neq.enquiry&order=slot_time&select=*,clients(first_name,last_name,phone,email)`,
+                    {headers:H()}
+                );
+                if(!r.ok) throw new Error(await r.text());
+                const data = await r.json();
+
+                todaysRoomBookings = data || [];
+
+                document.getElementById("loading-game-screen").classList.add("hidden");
+                document.getElementById("room-selection-screen").classList.remove("hidden");
+                renderBookingListForDate(todaysRoomBookings);
+
+            } catch (err) {
+                console.error("Database initialization fault:", err.message);
+                document.getElementById("loading-game-screen").classList.add("hidden");
+                document.getElementById("room-selection-screen").classList.remove("hidden");
+                alert("Error connecting to Supabase database: " + err.message);
+            }
+        }
+
+        // Lists every booking for the picked date — click one to open its dashboard
+        function renderBookingListForDate(bookings) {
+            const el = document.getElementById('room-buttons-container');
+            if (!bookings.length) {
+                el.innerHTML = `<div class="text-gray-500 text-sm text-center py-6">No bookings found for this date.</div>`;
+                return;
+            }
+            el.innerHTML = bookings.map((b, i) => {
+                const time = b.slot_time ? b.slot_time.substring(0,5) : '--:--';
+                const name = bookingCustomerName(b);
+                const statusBadge = b.status === 'completed'
+                    ? '<span class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">Completed</span>'
+                    : '<span class="text-xs px-2 py-0.5 rounded bg-emerald-700/40 text-emerald-300">Active</span>';
+                return `<button onclick="selectBookingFromList(${i})" class="w-full text-left p-4 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 transition flex justify-between items-center">
+                    <div>
+                        <div class="font-bold">${time} — ${b.game_name}</div>
+                        <div class="text-xs text-gray-400">${name} · ${b.players_booked||0} players</div>
+                    </div>
+                    ${statusBadge}
+                </button>`;
+            }).join('');
+        }
+        function selectBookingFromList(idx) {
+            currentBooking = todaysRoomBookings[idx];
+            currentRoom = currentBooking.game_name;
+            document.getElementById("room-selection-screen").classList.add("hidden");
+            document.getElementById("active-room-display").classList.remove("hidden");
+            document.getElementById("current-room-badge").innerText = `${pickerDate} · ${currentRoom}`;
+            populateDashboard(currentBooking);
+        }
+
+        function bookingCustomerName(booking){
+            if (booking.clients) {
+                const c = booking.clients;
+                const n = [c.first_name, c.last_name].filter(Boolean).join(' ');
+                if (n) return n;
+            }
+            if (booking.notes_when_booked) return booking.notes_when_booked.split('·')[0].trim();
+            return 'Active Team Session';
+        }
+
+        function populateDashboard(booking) {
+            // Hide picker/no-game screens, show dashboard
+            document.getElementById("booking-picker-screen").classList.add("hidden");
+            document.getElementById("no-game-screen").classList.add("hidden");
+            document.getElementById("gm-dashboard").classList.remove("hidden");
+
+            document.getElementById("game-team-name").innerText = bookingCustomerName(booking);
+
+            // Format slot presentation output text
+            const timeString = booking.slot_time ? booking.slot_time.substring(0, 5) : "--:--";
+            document.getElementById("game-slot-display").innerText = `Slot: ${timeString}${booking.status==='completed' ? ' · Completed' : ''}`;
+
+            document.getElementById("game-meta-details").innerText = `Booked: ${booking.players_booked || '0'} players • Booking Source: ${booking.source || 'Direct'}`;
+
+            // Handle Birthday indicators validation
+            if (booking.occasion && booking.occasion.toLowerCase().includes('birth')) {
+                document.getElementById("birthday-flag").classList.remove("hidden");
+            } else {
+                document.getElementById("birthday-flag").classList.add("hidden");
+            }
+
+            // Notes — staff_notes is stored as a JSON array string in the real schema
+            let staffNotesText = '';
+            try {
+                const parsed = JSON.parse(booking.staff_notes || '[]');
+                if (Array.isArray(parsed) && parsed.length) staffNotesText = parsed.join(' · ');
+            } catch(e) { staffNotesText = booking.staff_notes || ''; }
+            const combinedNotes = (booking.notes_when_booked || '') + staffNotesText;
+            if (combinedNotes.trim().length > 0) {
+                document.getElementById("booking-notes-box").classList.remove("hidden");
+                document.getElementById("booking-notes-content").innerText = `${booking.notes_when_booked || ''}${staffNotesText ? '  [Staff notes]: ' + staffNotesText : ''}`;
+            } else {
+                document.getElementById("booking-notes-box").classList.add("hidden");
+            }
+
+            // Autofill metrics capture input modules configuration defaults
+            document.getElementById("input-players").value = booking.players_actual || booking.players_booked || 0;
+            document.getElementById("input-clues").value = booking.clues_given || 0;
+            document.getElementById("input-time").value = booking.time_taken || "";
+            document.getElementById("input-gm-notes").value = booking.gm_notes || "";
+
+            askForReviewFlag = booking.ask_for_review || false;
+            updateReviewButtonUI();
+
+            // Timer — control_room.html OWNS the timer; btb_app.html reads it read-only
+            initTimerUI(booking);
+        }
+
+        // ==========================================
+        // ⏱️ GAME TIMER — control_room.html is the OWNER (writes to DB).
+        // btb_app.html only displays this read-only via realtime.
+        // ==========================================
+        function gameDurationFor(booking){
+            const g = escapeGames.find(x => x.name === booking.game_name || x.id === booking.game_id);
+            return (g && g.duration) ? g.duration : 60;
+        }
+        function initTimerUI(booking){
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            updateTimerButtonUI();
+            if (booking.timer_running) {
+                timerInterval = setInterval(updateTimerDisplay, 1000);
+            }
+        }
+        function updateTimerDisplay(){
+            if (!currentBooking) return;
+            const dur = gameDurationFor(currentBooking);
+            const rem = dur*60 - getElapsed(currentBooking);
+            const el = document.getElementById('timer-countdown');
+            el.textContent = fmtTimer(rem);
+            el.className = "text-4xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < 300 ? "text-amber-400" : "text-emerald-400");
+        }
+        function updateTimerButtonUI(){
+            const btn = document.getElementById('timer-toggle-btn');
+            if (!currentBooking) return;
+            if (currentBooking.timer_running) {
+                btn.className = "flex-grow sm:flex-grow-0 px-5 py-3 rounded-xl font-bold text-sm bg-amber-600 hover:bg-amber-700 transition";
+                btn.innerHTML = "⏸ Pause";
+            } else {
+                btn.className = "flex-grow sm:flex-grow-0 px-5 py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 transition";
+                btn.innerHTML = "▶ Start";
+            }
+        }
+        async function toggleTimer(){
+            if (!currentBooking) return;
+            const b = currentBooking;
+            if (b.timer_running) {
+                // Pause — freeze elapsed time
+                b.timer_sec = getElapsed(b);
+                b.timer_running = false;
+                b.timer_started_at = null;
+                clearInterval(timerInterval);
+            } else {
+                // Start/resume
+                b.timer_running = true;
+                b.timer_started_at = new Date().toISOString();
+                clearInterval(timerInterval);
+                timerInterval = setInterval(updateTimerDisplay, 1000);
+            }
+            updateTimerButtonUI();
+            updateTimerDisplay();
+            await saveTimerState(b);
+        }
+async function resetTimer(){
+            if (!currentBooking) return;
+            if (!confirm("Reset the timer to 0?")) return;
+            const b = currentBooking;
+            clearInterval(timerInterval);
+            b.timer_running = false;
+            b.timer_sec = 0;
+            b.timer_started_at = null;
+            updateTimerButtonUI();
+            updateTimerDisplay();
+            await saveTimerState(b);
+        }
+        async function adjustTimer(minutes){
+            if (!currentBooking) return;
+            const b = currentBooking;
+            b.timer_sec = Math.max(0, getElapsed(b) - (minutes * 60));
+            if (b.timer_running) b.timer_started_at = new Date().toISOString();
+            updateTimerDisplay();
+            await saveTimerState(b);
+        }
+        async function saveTimerState(b){
+            try{
+                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, {
+                    method:'PATCH', headers:H(),
+                    body: JSON.stringify({
+                        timer_running: b.timer_running,
+                        timer_sec: b.timer_sec,
+                        timer_started_at: b.timer_started_at,
+                        updated_at: new Date().toISOString()
+                    })
+                });
+            }catch(e){ console.error('Timer save failed:', e); }
+        }
+
+        // Handle Review Sequence Trigger Flags toggle configuration
+        function toggleReviewFlag() {
+            askForReviewFlag = !askForReviewFlag;
+            updateReviewButtonUI();
+        }
+
+        function updateReviewButtonUI() {
+            const btn = document.getElementById("btn-review");
+            if (askForReviewFlag) {
+                btn.className = "flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-emerald-950/40 border-emerald-500 text-emerald-400";
+                btn.innerHTML = "✅ Review Request Sequence Armed";
+            } else {
+                btn.className = "flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-purple-950/40 border-purple-800 text-purple-300";
+                btn.innerHTML = "⭐ Prompt Review Sequence";
+            }
+        }
+
+        // ==========================================
+        // 📢 REALTIME PANIC ALERTS INTER ACTION
+        // ==========================================
+        async function triggerHelpAlert() {
+            if (!currentRoom) return;
+            
+            const btn = document.getElementById("help-btn");
+            btn.disabled = true;
+            btn.innerText = "🚨 SUBMITTING HELP REQUEST...";
+
+            try {
+                const r = await fetch(`${SB_URL}/rest/v1/help_alerts`, {
+                    method:'POST', headers:H(),
+                    body: JSON.stringify({ room: currentRoom, dismissed: false })
+                });
+                if(!r.ok) throw new Error(await r.text());
+
+                btn.className = "w-full md:w-auto px-6 py-4 bg-amber-600 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3";
+                btn.innerText = "🔊 FLOOR MANAGER NOTIFIED";
+                
+                setTimeout(() => {
+                    btn.className = "w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3 animate-pulse";
+                    btn.innerText = "🚨 REPORT EMERGENCY HELP";
+                    btn.disabled = false;
+                }, 5000);
+
+            } catch (err) {
+                console.error("Alerting routing failure:", err.message);
+                alert("Failed to report help alert to database: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "🚨 REPORT EMERGENCY HELP";
+            }
+        }
+
+        // ==========================================
+        // 💾 SAVE WORK DATA SUBMISSIONS
+        // ==========================================
+        async function saveAndFinalizeSession() {
+            if (!currentBooking) return;
+
+            const pActual = parseInt(document.getElementById("input-players").value) || 0;
+            const cGiven = parseInt(document.getElementById("input-clues").value) || 0;
+            const tTaken = parseInt(document.getElementById("input-time").value) || 0;
+            const notes = document.getElementById("input-gm-notes").value;
+
+            try {
+                const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${currentBooking.id}`, {
+                    method:'PATCH', headers:H(),
+                    body: JSON.stringify({
+                        players_actual: pActual,
+                        clues_given: cGiven,
+                        time_taken: tTaken,
+                        gm_notes: notes,
+                        ask_for_review: askForReviewFlag,
+                        status: 'completed', // marks session complete — front desk greys this out but keeps it editable
+                        updated_at: new Date().toISOString()
+                    })
+                });
+                if(!r.ok) throw new Error(await r.text());
+
+                alert("Session saved and marked complete!");
+                checkActiveBooking(); // Refresh state for this room
+
+            } catch (err) {
+                console.error("Save operational hitch:", err.message);
+                alert("Failed to save session details to Supabase: " + err.message);
+            }
+        }
+
+        // ==========================================
+        // 🖥️ PLAYER-FACING PHOTO OVERLAY VIEWPORTS
+        // ==========================================
+        function enterPhotoMode() {
+            const emojiMap = {
+                "Sherlock": "🕵️‍♂️",
+                "Gregg in the Box": "📦",
+                "Saving Christmas": "🎄",
+                "Spies R Us": "🕵️‍♀️"
+            };
+
+            const tName = document.getElementById("input-time").value || "60";
+            const cCount = document.getElementById("input-clues").value || "0";
+            const team = document.getElementById("game-team-name").innerText;
+
+            document.getElementById("photo-room-emoji").innerText = emojiMap[currentRoom] || "🔮";
+            document.getElementById("photo-room-name").innerText = currentRoom;
+            document.getElementById("photo-team-name").innerText = team;
+            document.getElementById("photo-time-display").innerText = `${tName}:00`;
+            document.getElementById("photo-clues-display").innerText = `Clues Used: ${cCount}`;
+
+            // Reveal Canvas Cover Block
+            document.getElementById("photo-mode-canvas").classList.remove("hidden");
+        }
+
+        function exitPhotoMode() {
+            document.getElementById("photo-mode-canvas").classList.add("hidden");
+        }
+    </script>
+</body>
+</html>

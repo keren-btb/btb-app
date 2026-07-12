@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Reports</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#1d9e75;
+  --amber:#ef9f27;--red:#dc2626;--purple:#7c3aed;
+  --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;
+  --text:#111827;--muted:#6b7280;--light:#f9fafb;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* LOGIN */
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-logo{font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.login-sub{font-size:13px;color:#8a9bb5;margin-bottom:32px}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-title{font-size:16px;font-weight:700;color:#111827;margin-bottom:18px}
+.login-field{margin-bottom:12px}
+.login-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.login-input{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.login-input:focus{outline:none;border-color:var(--teal)}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.login-btn:hover{background:var(--teal2)}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
+
+/* LAYOUT */
+.app-wrap{display:flex;flex:1;min-height:100vh}
+.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-logo{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-brand{font-size:15px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:7px}
+.sidebar-sub{font-size:11px;color:#8a9bb5;margin-top:3px}
+.sidebar-user{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px;color:#8a9bb5;display:flex;justify-content:space-between;align-items:center}
+.sidebar-logout{color:#8a9bb5;cursor:pointer;font-size:11px;text-decoration:underline}
+.sidebar-logout:hover{color:var(--teal)}
+.sidebar-back{display:block;padding:8px 16px;font-size:12px;color:#8a9bb5;text-decoration:none;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-back:hover{color:var(--teal)}
+.sidebar-section{padding:14px 16px 6px;font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:#a0b0c8;cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{color:#fff;background:rgba(7,180,197,.15);border-left-color:var(--teal)}
+.nav-item i{font-size:16px;flex-shrink:0}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.topbar-title{font-size:18px;font-weight:700;color:var(--text);flex:1}
+.date-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.range-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit}
+.range-btn:hover{border-color:var(--teal);color:var(--teal)}
+.range-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.custom-range{display:flex;align-items:center;gap:6px}
+.date-input{font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--text);background:#f9fafb}
+.date-input:focus{outline:none;border-color:var(--teal)}
+.btn-apply{font-size:12px;padding:5px 14px;border-radius:8px;border:none;background:var(--teal);color:#fff;cursor:pointer;font-family:inherit}
+.btn-apply:hover{background:var(--teal2)}
+.btn-csv{font-size:12px;padding:5px 14px;border-radius:8px;border:1px solid var(--green);background:#fff;color:var(--green);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s}
+.btn-csv:hover{background:var(--green);color:#fff}
+
+.content{padding:20px 24px;overflow-y:auto;flex:1}
+
+/* REPORT PANELS */
+.report-panel{display:none}
+.report-panel.active{display:block}
+
+/* STAT CARDS */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600}
+.stat-value{font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.amber .stat-value{color:var(--amber)}
+.stat-card.red .stat-value{color:var(--red)}
+.stat-card.teal .stat-value{color:var(--teal)}
+.stat-card.purple .stat-value{color:var(--purple)}
+
+/* CHARTS */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px}
+.chart-wrap{position:relative;height:220px}
+
+/* TABLES */
+.table-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);margin-bottom:20px}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.table-title{font-size:13px;font-weight:700;color:var(--text)}
+.table-filter{font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text);background:#f9fafb}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:#f9fafb;padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 14px;font-size:13px;color:var(--text);border-bottom:1px solid #f3f4f6;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-amber{background:#fef3c7;color:#d97706}
+.badge-red{background:#fee2e2;color:#dc2626}
+.badge-teal{background:#e0f7f9;color:#07b4c5}
+.badge-gray{background:#f3f4f6;color:#6b7280}
+.badge-purple{background:#ede9fe;color:#7c3aed}
+
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;margin-top:4px}
+
+/* method pills */
+.method-pill{font-size:10px;padding:1px 7px;border-radius:99px;font-weight:600}
+.mp-cash{background:#f3f4f6;color:#374151}
+.mp-eftpos{background:#e0f7f9;color:#07b4c5}
+.mp-stripe{background:#ede9fe;color:#7c3aed}
+.mp-bank{background:#dcfce7;color:#15803d}
+.mp-poli{background:#dbeafe;color:#1d4ed8}
+.mp-invoice{background:#fef3c7;color:#d97706}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">Reports</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="app-wrap" id="appWrap" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-brand"><i class="ti ti-box"></i> Beyond the Box</div>
+      <div class="sidebar-sub">Reports <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5;letter-spacing:0.5px;vertical-align:middle"></span></div>
+    </div>
+    <div class="sidebar-user">
+      <span id="sidebarUser">—</span>
+      <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
+    </div>
+    <a class="sidebar-back" href="staff_app.html"><i class="ti ti-chevron-left"></i> Staff App</a>
+
+    <div class="sidebar-section">Revenue</div>
+    <div class="nav-item active" onclick="showReport('revenue',this)"><i class="ti ti-currency-dollar"></i> Revenue Overview</div>
+    <div class="nav-item" onclick="showReport('outstanding',this)"><i class="ti ti-clock-dollar"></i> Outstanding Balances</div>
+    <div class="nav-item" onclick="showReport('payments',this)"><i class="ti ti-credit-card"></i> Payment Methods</div>
+
+    <div class="sidebar-section">Bookings</div>
+    <div class="nav-item" onclick="showReport('bookings',this)"><i class="ti ti-calendar"></i> Bookings List</div>
+    <div class="nav-item" onclick="showReport('byDay',this)"><i class="ti ti-chart-bar"></i> By Day of Week</div>
+    <div class="nav-item" onclick="showReport('bySlot',this)"><i class="ti ti-clock"></i> By Time Slot</div>
+    <div class="nav-item" onclick="showReport('occasions',this)"><i class="ti ti-confetti"></i> Occasions</div>
+    <div class="nav-item" onclick="showReport('noShows',this)"><i class="ti ti-user-off"></i> No-Shows</div>
+
+    <div class="sidebar-section">Customers</div>
+    <div class="nav-item" onclick="showReport('customers',this)"><i class="ti ti-users"></i> Customer List</div>
+    <div class="nav-item" onclick="showReport('sources',this)"><i class="ti ti-antenna"></i> Booking Sources</div>
+
+    <div class="sidebar-section">Staff</div>
+    <div class="nav-item" onclick="showReport('staffBookings',this)"><i class="ti ti-id-badge"></i> Bookings per GM</div>
+
+    <div class="sidebar-section">Vouchers</div>
+    <div class="nav-item" onclick="showReport('vouchers',this)"><i class="ti ti-ticket"></i> Voucher Summary</div>
+
+    <div class="sidebar-section">Quick Sales</div>
+    <div class="nav-item" onclick="showReport('quickSales',this)"><i class="ti ti-shopping-cart"></i> Sales Summary</div>
+    <div class="nav-item" onclick="showReport('products',this)"><i class="ti ti-package"></i> Products Sold</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="reportTitle">Revenue Overview</div>
+      <div class="date-range">
+        <button class="range-btn" onclick="setRange('week',this)">This week</button>
+        <button class="range-btn active" onclick="setRange('month',this)">This month</button>
+        <button class="range-btn" onclick="setRange('last_month',this)">Last month</button>
+        <button class="range-btn" onclick="setRange('year',this)">This year</button>
+        <div class="custom-range">
+          <input class="date-input" type="date" id="dateFrom">
+          <span style="color:var(--muted);font-size:12px">to</span>
+          <input class="date-input" type="date" id="dateTo">
+          <button class="btn-apply" onclick="applyCustomRange()">Apply</button>
+        </div>
+        <button class="btn-csv" onclick="exportCurrentCSV()"><i class="ti ti-download" style="font-size:13px"></i> CSV</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- REVENUE OVERVIEW -->
+      <div class="report-panel active" id="panel-revenue">
+        <div class="stat-row" id="rev-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card full"><div class="chart-title">Revenue by week</div><div class="chart-wrap"><canvas id="revWeekChart"></canvas></div></div>
+        </div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Revenue by game</div><div class="chart-wrap"><canvas id="revGameChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Payment methods</div><div class="chart-wrap"><canvas id="revMethodChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- OUTSTANDING BALANCES -->
+      <div class="report-panel" id="panel-outstanding">
+        <div class="stat-row" id="out-stats"></div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Bookings with outstanding balance</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Game</th><th>Customer</th><th>Players</th><th>Total</th><th>Collected</th><th>Owing</th><th>Deposit</th></tr></thead><tbody id="out-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- PAYMENT METHODS -->
+      <div class="report-panel" id="panel-payments">
+        <div class="stat-row" id="pay-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Revenue by payment method</div><div class="chart-wrap"><canvas id="payMethodChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Transaction count by method</div><div class="chart-wrap"><canvas id="payCountChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">All payment transactions</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Booking</th><th>Game</th><th>Customer</th><th>Method</th><th>Amount</th><th>Type</th></tr></thead><tbody id="pay-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- BOOKINGS LIST -->
+      <div class="report-panel" id="panel-bookings">
+        <div class="stat-row" id="bk-stats"></div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">All bookings</span>
+            <select class="table-filter" id="bk-game-filter" onchange="renderBookingsTable()">
+              <option value="">All games</option>
+            </select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Time</th><th>Game</th><th>Customer</th><th>Players</th><th>Occasion</th><th>Source</th><th>Status</th><th>Total</th><th>Collected</th></tr></thead><tbody id="bk-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- BY DAY OF WEEK -->
+      <div class="report-panel" id="panel-byDay">
+        <div class="stat-row" id="day-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Bookings by day of week</div><div class="chart-wrap"><canvas id="dayCountChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Revenue by day of week</div><div class="chart-wrap"><canvas id="dayRevChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Day breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Day</th><th>Bookings</th><th>Players</th><th>Revenue</th><th>Avg per booking</th><th>No-shows</th></tr></thead><tbody id="day-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- BY TIME SLOT -->
+      <div class="report-panel" id="panel-bySlot">
+        <div class="stat-row" id="slot-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card full"><div class="chart-title">Bookings by time slot</div><div class="chart-wrap"><canvas id="slotChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Time slot breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Slot</th><th>Bookings</th><th>Players</th><th>Revenue</th><th>Most popular game</th></tr></thead><tbody id="slot-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- OCCASIONS -->
+      <div class="report-panel" id="panel-occasions">
+        <div class="stat-row" id="occ-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Bookings by occasion</div><div class="chart-wrap"><canvas id="occChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Revenue by occasion</div><div class="chart-wrap"><canvas id="occRevChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Occasion breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Occasion</th><th>Bookings</th><th>% of total</th><th>Revenue</th><th>Avg players</th></tr></thead><tbody id="occ-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- NO SHOWS -->
+      <div class="report-panel" id="panel-noShows">
+        <div class="stat-row" id="ns-stats"></div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">No-show & cancelled bookings</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Game</th><th>Customer</th><th>Players</th><th>Status</th><th>Revenue lost</th><th>Deposit paid</th></tr></thead><tbody id="ns-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="report-panel" id="panel-customers">
+        <div class="stat-row" id="cust-stats"></div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Customer list</span>
+            <input type="text" class="table-filter" id="cust-search" placeholder="Search name/email…" oninput="renderCustomersTable()" style="width:180px">
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Bookings</th><th>Last booking</th><th>Total spent</th><th>Source</th></tr></thead><tbody id="cust-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- SOURCES -->
+      <div class="report-panel" id="panel-sources">
+        <div class="stat-row" id="src-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Bookings by source</div><div class="chart-wrap"><canvas id="srcChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Revenue by source</div><div class="chart-wrap"><canvas id="srcRevChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Source breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Source</th><th>Bookings</th><th>% of total</th><th>Revenue</th><th>Avg players</th></tr></thead><tbody id="src-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- STAFF BOOKINGS -->
+      <div class="report-panel" id="panel-staffBookings">
+        <div class="stat-row" id="st-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card full"><div class="chart-title">Bookings per gamemaster</div><div class="chart-wrap"><canvas id="stChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Gamemaster breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Name</th><th>Bookings assigned</th><th>Players hosted</th><th>Games run</th></tr></thead><tbody id="st-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- VOUCHERS -->
+      <div class="report-panel" id="panel-vouchers">
+        <div class="stat-row" id="v-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Vouchers by status</div><div class="chart-wrap"><canvas id="vStatusChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Vouchers issued over time</div><div class="chart-wrap"><canvas id="vTimeChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">All vouchers</span>
+            <select class="table-filter" id="v-status-filter" onchange="renderVouchersTable()">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="used">Used</option>
+              <option value="expired">Expired</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Paid</th><th>Status</th><th>Issued</th><th>Used</th><th>Purchased by</th></tr></thead><tbody id="v-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- QUICK SALES SUMMARY -->
+      <div class="report-panel" id="panel-quickSales">
+        <div class="stat-row" id="qs-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card"><div class="chart-title">Sales by payment method</div><div class="chart-wrap"><canvas id="qsMethodChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Sales over time</div><div class="chart-wrap"><canvas id="qsTimeChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Quick sales transactions</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Method</th><th>Total</th><th>Sold by</th><th>Status</th></tr></thead><tbody id="qs-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS SOLD -->
+      <div class="report-panel" id="panel-products">
+        <div class="stat-row" id="prod-stats"></div>
+        <div class="chart-row">
+          <div class="chart-card full"><div class="chart-title">Top products by revenue</div><div class="chart-wrap"><canvas id="prodChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Products sold breakdown</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Units sold</th><th>Revenue</th><th>Avg per sale</th></tr></thead><tbody id="prod-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app-wrap -->
+
+<script>
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+// SECURITY: H() now sends the real logged-in staff member's session token
+// for every data request (falls back to the anon key only if nobody is
+// logged in yet, e.g. requests that fire before login completes).
+// apikey always stays as the project anon key (Supabase requirement,
+// separate from Authorization) — matches the pattern used in staff_portal.html / pos.html / btb_app.html / enquiries.html.
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+
+// BUILD VERSION — bump this each time this file is shipped, so you can
+// confirm in the header (and browser console) which copy you're looking at.
+const BUILD_VERSION = '1.0.0';
+console.log(`%cReports — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const METHOD_LABELS={cash:'Cash',eftpos:'Eftpos',stripe:'Stripe',bank_transfer:'Bank',poli:'PoLi',invoice:'Invoice'};
+const METHOD_COLORS={cash:'#6b7280',eftpos:'#07b4c5',stripe:'#7c3aed',bank_transfer:'#1d9e75',poli:'#1d4ed8',invoice:'#d97706'};
+
+let currentUser=null;
+let currentReport='revenue';
+let dateFrom='',dateTo='';
+let allBookings=[],allClients=[],allStaff=[],allVouchers=[],allQuickSales=[],allSettings={};
+let currentCharts={};
+let lastCSVData=[];
+let lastCSVFilename='report';
+
+// ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+// Login tokens expire (Supabase default ~1 hour). Without this, whoever's
+// looking at reports could get silently logged out or start seeing errors
+// mid-session. This quietly renews the token in the background before it expires.
+let tokenRefreshTimer = null;
+
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge error ${r.status}`)}
+  return r.json();
+}
+
+function parseAllowedTabs(raw){
+  if(!raw)return['calendar'];
+  if(Array.isArray(raw))return raw;
+  try{const p=JSON.parse(raw);return Array.isArray(p)?p:['calendar']}catch{return['calendar']}
+}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginError');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();
+    if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const token=data.access_token;
+    const roleData=await callEdgeFunction('get_my_role',{},token).catch(()=>null);
+    if(!roleData||!['admin','manager'].includes(roleData.role)){
+      errEl.textContent='Access denied — reports require admin or manager role.';return;
+    }
+    currentUser={id:data.user.id,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:roleData.name,role:roleData.role};
+    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    showApp();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+
+function doLogout(){
+  clearTimeout(tokenRefreshTimer);
+  currentUser=null;sessionStorage.removeItem('btb_user');
+  document.getElementById('appWrap').style.display='none';
+  document.getElementById('loginScreen').classList.add('active');
+  document.getElementById('loginPass').value='';
+}
+
+// ── DATE RANGE ────────────────────────────────────────────────
+function setRange(type,btn){
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const now=new Date();
+  const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  if(type==='week'){
+    const dow=(now.getDay()+6)%7;
+    const mon=new Date(y,m,d-dow);
+    dateFrom=toStr(mon);dateTo=toStr(now);
+  } else if(type==='month'){
+    dateFrom=`${y}-${String(m+1).padStart(2,'0')}-01`;dateTo=toStr(now);
+  } else if(type==='last_month'){
+    const lm=new Date(y,m,0);
+    dateFrom=`${lm.getFullYear()}-${String(lm.getMonth()+1).padStart(2,'0')}-01`;
+    dateTo=toStr(lm);
+  } else if(type==='year'){
+    dateFrom=`${y}-01-01`;dateTo=toStr(now);
+  }
+  document.getElementById('dateFrom').value=dateFrom;
+  document.getElementById('dateTo').value=dateTo;
+  loadAndRender();
+}
+
+function applyCustomRange(){
+  dateFrom=document.getElementById('dateFrom').value;
+  dateTo=document.getElementById('dateTo').value;
+  if(!dateFrom||!dateTo){alert('Please select both dates.');return}
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  loadAndRender();
+}
+
+function toStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmtDate(s){if(!s)return'—';const d=new Date(s+'T12:00');return d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear()}
+function fmt12(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`}
+function fmtMoney(n){return'$'+(parseFloat(n)||0).toFixed(2)}
+
+// ── DATA LOADING ──────────────────────────────────────────────
+async function loadData(){
+  const[bRows,cRows,sRows,vRows,qRows]=await Promise.all([
+    fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${dateFrom}&booking_date=lte.${dateTo}&order=booking_date.desc,slot_time.asc&select=*,clients(first_name,last_name,email,phone,source)`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SB_URL}/rest/v1/clients?order=created_at.desc`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SB_URL}/rest/v1/staff?active=eq.true&order=name`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SB_URL}/rest/v1/vouchers?order=issued_at.desc`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SB_URL}/rest/v1/quick_sales?sold_at=gte.${dateFrom}T00:00:00&sold_at=lte.${dateTo}T23:59:59&order=sold_at.desc`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+  ]);
+  allBookings=Array.isArray(bRows)?bRows:[];
+  allClients=Array.isArray(cRows)?cRows:[];
+  allStaff=Array.isArray(sRows)?sRows:[];
+  allVouchers=Array.isArray(vRows)?vRows:[];
+  allQuickSales=Array.isArray(qRows)?qRows:[];
+}
+
+// Helper: calculate collected for a booking
+function calcCollected(b){
+  const payments=safeJSON(b.payments)||[];
+  const dep=b.deposit_paid?(parseFloat(b.deposit_amount)||0):0;
+  const payTotal=payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+  return dep+payTotal;
+}
+
+function safeJSON(v){
+  if(!v)return null;
+  if(typeof v==='object')return v;
+  try{return JSON.parse(v)}catch{return null}
+}
+
+function customerName(b){
+  if(b.clients){return[b.clients.first_name,b.clients.last_name].filter(Boolean).join(' ')}
+  return b.notes_when_booked?.split('·')[0]?.trim()||'—';
+}
+
+function destroyChart(id){if(currentCharts[id]){currentCharts[id].destroy();delete currentCharts[id]}}
+
+function makeChart(id,type,labels,datasets,opts={}){
+  destroyChart(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  currentCharts[id]=new Chart(ctx,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:opts.legend||false}},scales:type==='bar'||type==='line'?{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:11}}}}:undefined,...opts.extra}});
+}
+
+// ── SHOW APP ──────────────────────────────────────────────────
+async function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('appWrap').style.display='flex';
+  document.getElementById('sidebarUser').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  setRange('month',document.querySelector('.range-btn.active'));
+}
+
+async function loadAndRender(){
+  await loadData();
+  renderReport(currentReport);
+}
+
+function showReport(id,el){
+  currentReport=id;
+  document.querySelectorAll('.report-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const titles={revenue:'Revenue Overview',outstanding:'Outstanding Balances',payments:'Payment Methods',bookings:'Bookings List',byDay:'Bookings by Day of Week',bySlot:'Bookings by Time Slot',occasions:'Occasions',noShows:'No-Shows & Cancellations',customers:'Customer List',sources:'Booking Sources',staffBookings:'Bookings per Gamemaster',vouchers:'Voucher Summary',quickSales:'Quick Sales Summary',products:'Products Sold'};
+  document.getElementById('reportTitle').textContent=titles[id]||id;
+  renderReport(id);
+}
+
+function renderReport(id){
+  if(id==='revenue')renderRevenue();
+  else if(id==='outstanding')renderOutstanding();
+  else if(id==='payments')renderPayments();
+  else if(id==='bookings')renderBookings();
+  else if(id==='byDay')renderByDay();
+  else if(id==='bySlot')renderBySlot();
+  else if(id==='occasions')renderOccasions();
+  else if(id==='noShows')renderNoShows();
+  else if(id==='customers')renderCustomers();
+  else if(id==='sources')renderSources();
+  else if(id==='staffBookings')renderStaffBookings();
+  else if(id==='vouchers')renderVouchers();
+  else if(id==='quickSales')renderQuickSales();
+  else if(id==='products')renderProducts();
+}
+
+// ── REVENUE ───────────────────────────────────────────────────
+function renderRevenue(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry');
+  const totalRevenue=confirmed.reduce((s,b)=>s+(parseFloat(b.total_amount)||0),0);
+  const totalCollected=confirmed.reduce((s,b)=>s+calcCollected(b),0);
+  const outstanding=Math.max(0,totalRevenue-totalCollected);
+  const bookingCount=confirmed.filter(b=>b.status!=='no_show').length;
+  const avgValue=bookingCount?totalRevenue/bookingCount:0;
+
+  document.getElementById('rev-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total revenue</div><div class="stat-value">${fmtMoney(totalRevenue)}</div><div class="stat-sub">${bookingCount} bookings</div></div>
+    <div class="stat-card green"><div class="stat-label">Collected</div><div class="stat-value">${fmtMoney(totalCollected)}</div><div class="stat-sub">${totalRevenue?Math.round(totalCollected/totalRevenue*100):0}% of total</div></div>
+    <div class="stat-card amber"><div class="stat-label">Outstanding</div><div class="stat-value">${fmtMoney(outstanding)}</div><div class="stat-sub">across ${confirmed.filter(b=>{const c=calcCollected(b);const t=parseFloat(b.total_amount)||0;return t>0&&c<t}).length} bookings</div></div>
+    <div class="stat-card"><div class="stat-label">Avg booking value</div><div class="stat-value">${fmtMoney(avgValue)}</div><div class="stat-sub">per confirmed booking</div></div>
+  `;
+
+  // Weekly revenue chart
+  const byWeek={};
+  confirmed.forEach(b=>{
+    const d=new Date(b.booking_date+'T12:00');
+    const dow=(d.getDay()+6)%7;
+    const mon=new Date(d);mon.setDate(d.getDate()-dow);
+    const k=toStr(mon);
+    byWeek[k]=(byWeek[k]||0)+(parseFloat(b.total_amount)||0);
+  });
+  const wks=Object.keys(byWeek).sort();
+  makeChart('revWeekChart','bar',wks.map(k=>{const d=new Date(k+'T12:00');return d.getDate()+' '+MONTHS[d.getMonth()]}),[{label:'Revenue',data:wks.map(k=>byWeek[k]),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
+
+  // By game
+  const byGame={};
+  confirmed.forEach(b=>{const n=b.game_name||'Unknown';byGame[n]=(byGame[n]||0)+(parseFloat(b.total_amount)||0)});
+  const gs=Object.entries(byGame).sort((a,b)=>b[1]-a[1]);
+  makeChart('revGameChart','bar',gs.map(g=>g[0]),[{data:gs.map(g=>g[1]),backgroundColor:['#07b4c5','#1d9e75','#7c3aed','#ef9f27','#dc2626','#1d4ed8'].slice(0,gs.length),borderRadius:4}]);
+
+  // By method
+  const byMethod={};
+  confirmed.forEach(b=>{
+    const payments=safeJSON(b.payments)||[];
+    if(b.deposit_paid&&b.deposit_amount){const m=b.deposit_method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(b.deposit_amount)||0)}
+    payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).forEach(p=>{byMethod[p.method]=(byMethod[p.method]||0)+(parseFloat(p.amount)||0)});
+  });
+  const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
+  makeChart('revMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
+
+  lastCSVData=confirmed.map(b=>({Date:b.booking_date,Game:b.game_name,Customer:customerName(b),Players:b.players_booked,Total:parseFloat(b.total_amount)||0,Collected:calcCollected(b).toFixed(2),Outstanding:Math.max(0,(parseFloat(b.total_amount)||0)-calcCollected(b)).toFixed(2),Status:b.status}));
+  lastCSVFilename='revenue_'+dateFrom+'_'+dateTo;
+}
+
+// ── OUTSTANDING ───────────────────────────────────────────────
+function renderOutstanding(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show');
+  const owing=confirmed.filter(b=>{const t=parseFloat(b.total_amount)||0;return t>0&&calcCollected(b)<t});
+  const totalOwing=owing.reduce((s,b)=>s+Math.max(0,(parseFloat(b.total_amount)||0)-calcCollected(b)),0);
+  const depositUnpaid=confirmed.filter(b=>!b.deposit_paid&&b.status==='confirmed').length;
+
+  document.getElementById('out-stats').innerHTML=`
+    <div class="stat-card red"><div class="stat-label">Total outstanding</div><div class="stat-value">${fmtMoney(totalOwing)}</div><div class="stat-sub">across ${owing.length} bookings</div></div>
+    <div class="stat-card amber"><div class="stat-label">Deposits unpaid</div><div class="stat-value">${depositUnpaid}</div><div class="stat-sub">confirmed bookings</div></div>
+    <div class="stat-card"><div class="stat-label">Fully paid</div><div class="stat-value">${confirmed.length-owing.length}</div><div class="stat-sub">bookings settled</div></div>
+  `;
+
+  const tbody=document.getElementById('out-tbody');
+  if(!owing.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">No outstanding balances in this period.</td></tr>';
+  } else {
+    tbody.innerHTML=owing.map(b=>{
+      const t=parseFloat(b.total_amount)||0;const c=calcCollected(b);const ow=Math.max(0,t-c);
+      return`<tr>
+        <td>${fmtDate(b.booking_date)}</td>
+        <td>${b.game_name}</td>
+        <td>${customerName(b)}</td>
+        <td>${b.players_booked}</td>
+        <td>${fmtMoney(t)}</td>
+        <td>${fmtMoney(c)}</td>
+        <td><strong style="color:var(--red)">${fmtMoney(ow)}</strong></td>
+        <td>${b.deposit_paid?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-red">Unpaid</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  lastCSVData=owing.map(b=>({Date:b.booking_date,Game:b.game_name,Customer:customerName(b),Players:b.players_booked,Total:(parseFloat(b.total_amount)||0).toFixed(2),Collected:calcCollected(b).toFixed(2),Outstanding:Math.max(0,(parseFloat(b.total_amount)||0)-calcCollected(b)).toFixed(2),DepositPaid:b.deposit_paid?'Yes':'No'}));
+  lastCSVFilename='outstanding_'+dateFrom+'_'+dateTo;
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────────
+function renderPayments(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry');
+  const txns=[];
+  confirmed.forEach(b=>{
+    if(b.deposit_paid&&b.deposit_amount){
+      txns.push({date:b.booking_date,booking:b.id,game:b.game_name,customer:customerName(b),method:b.deposit_method||'unknown',amount:parseFloat(b.deposit_amount)||0,type:'Deposit'});
+    }
+    const payments=safeJSON(b.payments)||[];
+    payments.forEach(p=>{
+      txns.push({date:b.booking_date,booking:b.id,game:b.game_name,customer:customerName(b),method:p.method||'unknown',amount:parseFloat(p.amount)||0,type:p.method==='invoice'&&p.status==='pending'?'Invoice (pending)':'Payment'});
+    });
+  });
+
+  const byMethod={};const countByMethod={};
+  txns.forEach(t=>{
+    if(t.type==='Invoice (pending)')return;
+    byMethod[t.method]=(byMethod[t.method]||0)+t.amount;
+    countByMethod[t.method]=(countByMethod[t.method]||0)+1;
+  });
+
+  const totalCollected=Object.values(byMethod).reduce((s,v)=>s+v,0);
+
+  document.getElementById('pay-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total collected</div><div class="stat-value">${fmtMoney(totalCollected)}</div><div class="stat-sub">${txns.filter(t=>t.type!=='Invoice (pending)').length} transactions</div></div>
+    ${Object.entries(byMethod).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([m,v])=>`<div class="stat-card"><div class="stat-label">${METHOD_LABELS[m]||m}</div><div class="stat-value">${fmtMoney(v)}</div><div class="stat-sub">${countByMethod[m]} txns</div></div>`).join('')}
+  `;
+
+  const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
+  makeChart('payMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
+  makeChart('payCountChart','bar',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>countByMethod[m[0]]||0),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af'),borderRadius:4}]);
+
+  document.getElementById('pay-tbody').innerHTML=txns.length?txns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<tr>
+    <td>${fmtDate(t.date)}</td>
+    <td style="font-size:11px;color:var(--muted)">${t.booking.slice(0,8)}…</td>
+    <td>${t.game}</td>
+    <td>${t.customer}</td>
+    <td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
+    <td>${fmtMoney(t.amount)}</td>
+    <td><span class="badge ${t.type==='Invoice (pending)'?'badge-amber':'badge-green'}">${t.type}</span></td>
+  </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No transactions in this period.</td></tr>';
+
+  lastCSVData=txns.map(t=>({Date:t.date,Game:t.game,Customer:t.customer,Method:METHOD_LABELS[t.method]||t.method,Amount:t.amount.toFixed(2),Type:t.type}));
+  lastCSVFilename='payments_'+dateFrom+'_'+dateTo;
+}
+
+// ── BOOKINGS LIST ─────────────────────────────────────────────
+let _bookingsData=[];
+function renderBookings(){
+  const confirmed=allBookings.filter(b=>b.status!=='enquiry');
+  _bookingsData=confirmed;
+
+  const sel=document.getElementById('bk-game-filter');
+  const games=[...new Set(confirmed.map(b=>b.game_name))].sort();
+  sel.innerHTML='<option value="">All games</option>'+games.map(g=>`<option value="${g}">${g}</option>`).join('');
+
+  const total=confirmed.length;
+  const completed=confirmed.filter(b=>b.status==='completed'||b.done).length;
+  const cancelled=confirmed.filter(b=>b.status==='cancelled').length;
+  const totalPlayers=confirmed.filter(b=>b.status!=='cancelled').reduce((s,b)=>s+(b.players_booked||0),0);
+
+  document.getElementById('bk-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total bookings</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card green"><div class="stat-label">Completed</div><div class="stat-value">${completed}</div></div>
+    <div class="stat-card amber"><div class="stat-label">Cancelled</div><div class="stat-value">${cancelled}</div></div>
+    <div class="stat-card"><div class="stat-label">Total players</div><div class="stat-value">${totalPlayers}</div></div>
+  `;
+
+  renderBookingsTable();
+}
+
+function renderBookingsTable(){
+  const gameFilter=document.getElementById('bk-game-filter')?.value||'';
+  let rows=_bookingsData;
+  if(gameFilter)rows=rows.filter(b=>b.game_name===gameFilter);
+  const tbody=document.getElementById('bk-tbody');
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px">No bookings.</td></tr>';return}
+  const statusBadge={confirmed:'badge-teal',completed:'badge-green',cancelled:'badge-gray',no_show:'badge-red',enquiry:'badge-purple'};
+  tbody.innerHTML=rows.map(b=>`<tr>
+    <td>${fmtDate(b.booking_date)}</td>
+    <td>${fmt12((b.slot_time||'').slice(0,5))}</td>
+    <td>${b.game_name}</td>
+    <td>${customerName(b)}</td>
+    <td>${b.players_booked}</td>
+    <td>${b.occasion||'—'}</td>
+    <td>${b.source||'—'}</td>
+    <td><span class="badge ${statusBadge[b.status]||'badge-gray'}">${b.status}</span></td>
+    <td>${fmtMoney(b.total_amount)}</td>
+    <td>${fmtMoney(calcCollected(b))}</td>
+  </tr>`).join('');
+
+  lastCSVData=rows.map(b=>({Date:b.booking_date,Time:(b.slot_time||'').slice(0,5),Game:b.game_name,Customer:customerName(b),Players:b.players_booked,Occasion:b.occasion||'',Source:b.source||'',Status:b.status,Total:(parseFloat(b.total_amount)||0).toFixed(2),Collected:calcCollected(b).toFixed(2)}));
+  lastCSVFilename='bookings_'+dateFrom+'_'+dateTo;
+}
+
+// ── BY DAY ────────────────────────────────────────────────────
+function renderByDay(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show');
+  const DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const byDay=Array(7).fill(null).map(()=>({count:0,players:0,revenue:0,noShows:0}));
+  confirmed.forEach(b=>{
+    const d=new Date(b.booking_date+'T12:00');
+    const idx=(d.getDay()+6)%7; // Mon=0
+    byDay[idx].count++;
+    byDay[idx].players+=(b.players_booked||0);
+    byDay[idx].revenue+=(parseFloat(b.total_amount)||0);
+  });
+  allBookings.filter(b=>b.no_show).forEach(b=>{
+    const d=new Date(b.booking_date+'T12:00');byDay[(d.getDay()+6)%7].noShows++;
+  });
+
+  const busiest=byDay.reduce((best,d,i)=>d.count>byDay[best].count?i:best,0);
+  document.getElementById('day-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Busiest day</div><div class="stat-value" style="font-size:20px">${DAY_NAMES[busiest]}</div><div class="stat-sub">${byDay[busiest].count} bookings</div></div>
+    <div class="stat-card"><div class="stat-label">Avg bookings/day</div><div class="stat-value">${(confirmed.length/7).toFixed(1)}</div></div>
+    <div class="stat-card green"><div class="stat-label">Best revenue day</div><div class="stat-value" style="font-size:20px">${DAY_NAMES[byDay.reduce((b,d,i)=>d.revenue>byDay[b].revenue?i:b,0)]}</div></div>
+  `;
+
+  makeChart('dayCountChart','bar',DAY_NAMES,[{data:byDay.map(d=>d.count),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
+  makeChart('dayRevChart','bar',DAY_NAMES,[{data:byDay.map(d=>d.revenue),backgroundColor:'rgba(29,158,117,0.7)',borderRadius:4}]);
+
+  document.getElementById('day-tbody').innerHTML=DAY_NAMES.map((n,i)=>`<tr>
+    <td><strong>${n}</strong></td>
+    <td>${byDay[i].count}</td>
+    <td>${byDay[i].players}</td>
+    <td>${fmtMoney(byDay[i].revenue)}</td>
+    <td>${byDay[i].count?fmtMoney(byDay[i].revenue/byDay[i].count):'—'}</td>
+    <td>${byDay[i].noShows||0}</td>
+  </tr>`).join('');
+
+  lastCSVData=DAY_NAMES.map((n,i)=>({Day:n,Bookings:byDay[i].count,Players:byDay[i].players,Revenue:byDay[i].revenue.toFixed(2),AvgPerBooking:byDay[i].count?(byDay[i].revenue/byDay[i].count).toFixed(2):'0',NoShows:byDay[i].noShows}));
+  lastCSVFilename='by_day_'+dateFrom+'_'+dateTo;
+}
+
+// ── BY SLOT ───────────────────────────────────────────────────
+function renderBySlot(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show');
+  const bySlot={};
+  confirmed.forEach(b=>{
+    const t=(b.slot_time||'').slice(0,5);if(!t)return;
+    if(!bySlot[t])bySlot[t]={count:0,players:0,revenue:0,games:{}};
+    bySlot[t].count++;bySlot[t].players+=(b.players_booked||0);bySlot[t].revenue+=(parseFloat(b.total_amount)||0);
+    bySlot[t].games[b.game_name]=(bySlot[t].games[b.game_name]||0)+1;
+  });
+  const slots=Object.keys(bySlot).sort();
+
+  document.getElementById('slot-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Slots tracked</div><div class="stat-value">${slots.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Busiest slot</div><div class="stat-value" style="font-size:20px">${slots.length?fmt12(slots.reduce((b,s)=>bySlot[s].count>bySlot[b].count?s:b,slots[0])):'—'}</div></div>
+  `;
+
+  makeChart('slotChart','bar',slots.map(s=>fmt12(s)),[{data:slots.map(s=>bySlot[s].count),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
+
+  document.getElementById('slot-tbody').innerHTML=slots.map(s=>{
+    const topGame=Object.entries(bySlot[s].games).sort((a,b)=>b[1]-a[1])[0];
+    return`<tr>
+      <td><strong>${fmt12(s)}</strong></td>
+      <td>${bySlot[s].count}</td>
+      <td>${bySlot[s].players}</td>
+      <td>${fmtMoney(bySlot[s].revenue)}</td>
+      <td>${topGame?topGame[0]:'—'}</td>
+    </tr>`;
+  }).join('');
+
+  lastCSVData=slots.map(s=>({Slot:fmt12(s),Bookings:bySlot[s].count,Players:bySlot[s].players,Revenue:bySlot[s].revenue.toFixed(2)}));
+  lastCSVFilename='by_slot_'+dateFrom+'_'+dateTo;
+}
+
+// ── OCCASIONS ─────────────────────────────────────────────────
+function renderOccasions(){
+  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry');
+  const byOcc={};
+  confirmed.forEach(b=>{
+    const o=b.occasion||'No occasion';
+    if(!byOcc[o])byOcc[o]={count:0,revenue:0,players:0};
+    byOcc[o].count++;byOcc[o].revenue+=(parseFloat(b.total_amount)||0);byOcc[o].players+=(b.players_booked||0);
+  });
+  const total=confirmed.length;
+  const withOcc=confirmed.filter(b=>b.occasion).length;
+  const topOcc=Object.entries(byOcc).sort((a,b)=>b[1].count-a[1].count)[0];
+
+  document.getElementById('occ-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">With occasion</div><div class="stat-value">${withOcc}</div><div class="stat-sub">${total?Math.round(withOcc/total*100):0}% of bookings</div></div>
+    <div class="stat-card"><div class="stat-label">Top occasion</div><div class="stat-value" style="font-size:18px">${topOcc?topOcc[0]:'—'}</div></div>
+  `;
+
+  const occs=Object.entries(byOcc).sort((a,b)=>b[1].count-a[1].count);
+  const COLORS=['#07b4c5','#1d9e75','#7c3aed','#ef9f27','#dc2626','#1d4ed8','#9ca3af'];
+  makeChart('occChart','doughnut',occs.map(o=>o[0]),[{data:occs.map(o=>o[1].count),backgroundColor:COLORS.slice(0,occs.length)}],{legend:true});
+  makeChart('occRevChart','bar',occs.map(o=>o[0]),[{data:occs.map(o=>o[1].revenue),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
+
+  document.getElementById('occ-tbody').innerHTML=occs.map(([o,d])=>`<tr>
+    <td>${o}</td><td>${d.count}</td>
+    <td>${total?Math.round(d.count/total*100):0}%</td>
+    <td>${fmtMoney(d.revenue)}</td>
+    <td>${d.count?(d.players/d.count).toFixed(1):'—'}</td>
+  </tr>`).join('');
+
+  lastCSVData=occs.map(([o,d])=>({Occasion:o,Bookings:d.count,Pct:total?Math.round(d.count/total*100):0,Revenue:d.revenue.toFixed(2),AvgPlayers:d.count?(d.players/d.count).toFixed(1):'0'}));
+  lastCSVFilename='occasions_'+dateFrom+'_'+dateTo;
+}
+
+// ── NO SHOWS ──────────────────────────────────────────────────
+function renderNoShows(){
+  const ns=allBookings.filter(b=>b.no_show||b.status==='no_show'||b.status==='cancelled');
+  const noShowCount=ns.filter(b=>b.no_show||b.status==='no_show').length;
+  const cancelCount=ns.filter(b=>b.status==='cancelled').length;
+  const lostRevenue=ns.filter(b=>b.status!=='cancelled').reduce((s,b)=>s+(parseFloat(b.total_amount)||0),0);
+
+  document.getElementById('ns-stats').innerHTML=`
+    <div class="stat-card red"><div class="stat-label">No-shows</div><div class="stat-value">${noShowCount}</div></div>
+    <div class="stat-card amber"><div class="stat-label">Cancelled</div><div class="stat-value">${cancelCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue lost (no-shows)</div><div class="stat-value">${fmtMoney(lostRevenue)}</div></div>
+  `;
+
+  document.getElementById('ns-tbody').innerHTML=ns.length?ns.map(b=>`<tr>
+    <td>${fmtDate(b.booking_date)}</td>
+    <td>${b.game_name}</td>
+    <td>${customerName(b)}</td>
+    <td>${b.players_booked}</td>
+    <td><span class="badge ${b.status==='cancelled'?'badge-gray':'badge-red'}">${b.no_show||b.status==='no_show'?'No-show':'Cancelled'}</span></td>
+    <td>${fmtMoney(b.total_amount)}</td>
+    <td>${b.deposit_paid?'<span class="badge badge-green">Yes</span>':'<span class="badge badge-gray">No</span>'}</td>
+  </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No no-shows or cancellations in this period.</td></tr>';
+
+  lastCSVData=ns.map(b=>({Date:b.booking_date,Game:b.game_name,Customer:customerName(b),Players:b.players_booked,Status:b.no_show?'No-show':'Cancelled',RevenueLost:(parseFloat(b.total_amount)||0).toFixed(2),DepositPaid:b.deposit_paid?'Yes':'No'}));
+  lastCSVFilename='noshows_'+dateFrom+'_'+dateTo;
+}
+
+// ── CUSTOMERS ─────────────────────────────────────────────────
+let _customersData=[];
+function renderCustomers(){
+  // Build per-client stats from allBookings
+  const byClient={};
+  allBookings.filter(b=>b.client_id&&b.status!=='enquiry').forEach(b=>{
+    if(!byClient[b.client_id])byClient[b.client_id]={count:0,total:0,lastDate:''};
+    byClient[b.client_id].count++;
+    byClient[b.client_id].total+=(parseFloat(b.total_amount)||0);
+    if(b.booking_date>byClient[b.client_id].lastDate)byClient[b.client_id].lastDate=b.booking_date;
+  });
+
+  const returning=Object.values(byClient).filter(c=>c.count>1).length;
+  document.getElementById('cust-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total clients</div><div class="stat-value">${allClients.length}</div></div>
+    <div class="stat-card green"><div class="stat-label">Returning clients</div><div class="stat-value">${returning}</div><div class="stat-sub">2+ bookings</div></div>
+    <div class="stat-card"><div class="stat-label">New this period</div><div class="stat-value">${allClients.filter(c=>c.created_at>=dateFrom&&c.created_at<=dateTo+'T23:59').length}</div></div>
+  `;
+
+  _customersData=allClients.map(c=>({...c,...(byClient[c.id]||{count:0,total:0,lastDate:''})}));
+  renderCustomersTable();
+}
+
+function renderCustomersTable(){
+  const q=(document.getElementById('cust-search')?.value||'').toLowerCase();
+  let rows=_customersData;
+  if(q)rows=rows.filter(c=>([c.first_name,c.last_name,c.email,c.phone].filter(Boolean).join(' ').toLowerCase().includes(q)));
+  rows=rows.sort((a,b)=>b.count-a.count);
+
+  const tbody=document.getElementById('cust-tbody');
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No customers found.</td></tr>';return}
+  tbody.innerHTML=rows.map(c=>`<tr>
+    <td><strong>${[c.first_name,c.last_name].filter(Boolean).join(' ')}</strong></td>
+    <td>${c.email||'—'}</td>
+    <td>${c.phone||'—'}</td>
+    <td>${c.count}</td>
+    <td>${c.lastDate?fmtDate(c.lastDate):'—'}</td>
+    <td>${fmtMoney(c.total)}</td>
+    <td><span class="badge badge-teal">${c.source||'—'}</span></td>
+  </tr>`).join('');
+
+  lastCSVData=rows.map(c=>({FirstName:c.first_name||'',LastName:c.last_name||'',Email:c.email||'',Phone:c.phone||'',Bookings:c.count,LastBooking:c.lastDate||'',TotalSpent:c.total.toFixed(2),Source:c.source||''}));
+  lastCSVFilename='customers_'+dateFrom+'_'+dateTo;
+}
+
+// ── SOURCES ───────────────────────────────────────────────────
+function renderSources(){
+  const confirmed=allBookings.filter(b=>b.status!=='enquiry'&&b.status!=='cancelled');
+  const bySrc={};
+  confirmed.forEach(b=>{
+    const s=b.source||'unknown';
+    if(!bySrc[s])bySrc[s]={count:0,revenue:0,players:0};
+    bySrc[s].count++;bySrc[s].revenue+=(parseFloat(b.total_amount)||0);bySrc[s].players+=(b.players_booked||0);
+  });
+  const total=confirmed.length;
+  const COLORS=['#07b4c5','#1d9e75','#7c3aed','#ef9f27','#dc2626'];
+  const srcs=Object.entries(bySrc).sort((a,b)=>b[1].count-a[1].count);
+
+  document.getElementById('src-stats').innerHTML=srcs.map(([s,d],i)=>`<div class="stat-card"><div class="stat-label">${s}</div><div class="stat-value">${d.count}</div><div class="stat-sub">${total?Math.round(d.count/total*100):0}%</div></div>`).join('');
+
+  makeChart('srcChart','doughnut',srcs.map(s=>s[0]),[{data:srcs.map(s=>s[1].count),backgroundColor:COLORS.slice(0,srcs.length)}],{legend:true});
+  makeChart('srcRevChart','bar',srcs.map(s=>s[0]),[{data:srcs.map(s=>s[1].revenue),backgroundColor:COLORS.slice(0,srcs.length),borderRadius:4}]);
+
+  document.getElementById('src-tbody').innerHTML=srcs.map(([s,d])=>`<tr>
+    <td><strong>${s}</strong></td><td>${d.count}</td>
+    <td>${total?Math.round(d.count/total*100):0}%</td>
+    <td>${fmtMoney(d.revenue)}</td>
+    <td>${d.count?(d.players/d.count).toFixed(1):'—'}</td>
+  </tr>`).join('');
+
+  lastCSVData=srcs.map(([s,d])=>({Source:s,Bookings:d.count,Pct:total?Math.round(d.count/total*100):0,Revenue:d.revenue.toFixed(2),AvgPlayers:d.count?(d.players/d.count).toFixed(1):'0'}));
+  lastCSVFilename='sources_'+dateFrom+'_'+dateTo;
+}
+
+// ── STAFF BOOKINGS ────────────────────────────────────────────
+function renderStaffBookings(){
+  const confirmed=allBookings.filter(b=>b.status!=='enquiry'&&b.status!=='cancelled');
+  const byStaff={};
+  allStaff.forEach(s=>{byStaff[s.id]={name:s.name,count:0,players:0,games:{}}});
+
+  confirmed.forEach(b=>{
+    const ids=safeJSON(b.assigned_staff_ids)||[];
+    ids.forEach(sid=>{
+      if(!byStaff[sid])byStaff[sid]={name:sid,count:0,players:0,games:{}};
+      byStaff[sid].count++;
+      byStaff[sid].players+=(b.players_booked||0);
+      byStaff[sid].games[b.game_name]=(byStaff[sid].games[b.game_name]||0)+1;
+    });
+  });
+
+  const rows=Object.values(byStaff).filter(s=>s.count>0).sort((a,b)=>b.count-a.count);
+
+  document.getElementById('st-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Active GMs</div><div class="stat-value">${rows.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Top GM</div><div class="stat-value" style="font-size:18px">${rows[0]?.name||'—'}</div><div class="stat-sub">${rows[0]?.count||0} bookings</div></div>
+  `;
+
+  makeChart('stChart','bar',rows.map(r=>r.name),[{data:rows.map(r=>r.count),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
+
+  document.getElementById('st-tbody').innerHTML=rows.length?rows.map(r=>`<tr>
+    <td><strong>${r.name}</strong></td>
+    <td>${r.count}</td>
+    <td>${r.players}</td>
+    <td>${Object.entries(r.games).sort((a,b)=>b[1]-a[1]).map(([g,c])=>`${g} (${c})`).join(', ')}</td>
+  </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px">No staff bookings data.</td></tr>';
+
+  lastCSVData=rows.map(r=>({Name:r.name,Bookings:r.count,Players:r.players,Games:Object.entries(r.games).map(([g,c])=>`${g}:${c}`).join('|')}));
+  lastCSVFilename='staff_bookings_'+dateFrom+'_'+dateTo;
+}
+
+// ── VOUCHERS ──────────────────────────────────────────────────
+let _vouchersData=[];
+function renderVouchers(){
+  _vouchersData=allVouchers;
+  const active=allVouchers.filter(v=>v.status==='active');
+  const used=allVouchers.filter(v=>v.status==='used');
+  const liability=active.reduce((s,v)=>s+(parseFloat(v.value)||0),0);
+  const revenue=allVouchers.reduce((s,v)=>s+(parseFloat(v.paid_amount)||0),0);
+
+  document.getElementById('v-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total issued</div><div class="stat-value">${allVouchers.length}</div></div>
+    <div class="stat-card green"><div class="stat-label">Active</div><div class="stat-value">${active.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Redeemed</div><div class="stat-value">${used.length}</div><div class="stat-sub">${allVouchers.length?Math.round(used.length/allVouchers.length*100):0}% redemption</div></div>
+    <div class="stat-card amber"><div class="stat-label">Outstanding liability</div><div class="stat-value">${fmtMoney(liability)}</div><div class="stat-sub">if all active redeemed</div></div>
+    <div class="stat-card green"><div class="stat-label">Revenue from vouchers</div><div class="stat-value">${fmtMoney(revenue)}</div></div>
+  `;
+
+  const statusCounts={active:active.length,used:used.length,expired:allVouchers.filter(v=>v.status==='expired').length,cancelled:allVouchers.filter(v=>v.status==='cancelled').length};
+  makeChart('vStatusChart','doughnut',Object.keys(statusCounts).map(s=>s.charAt(0).toUpperCase()+s.slice(1)),[{data:Object.values(statusCounts),backgroundColor:['#07b4c5','#1d9e75','#9ca3af','#dc2626']}],{legend:true});
+
+  // Issued over time
+  const byWeek={};
+  allVouchers.forEach(v=>{
+    if(!v.issued_at)return;
+    const d=new Date(v.issued_at);const dow=(d.getDay()+6)%7;
+    const mon=new Date(d);mon.setDate(d.getDate()-dow);
+    const k=toStr(mon);byWeek[k]=(byWeek[k]||0)+1;
+  });
+  const wks=Object.keys(byWeek).sort().slice(-12);
+  makeChart('vTimeChart','line',wks.map(k=>{const d=new Date(k+'T12:00');return d.getDate()+' '+MONTHS[d.getMonth()]}),[{data:wks.map(k=>byWeek[k]),borderColor:'#07b4c5',backgroundColor:'rgba(7,180,197,0.1)',tension:0.3,fill:true}]);
+
+  renderVouchersTable();
+}
+
+function renderVouchersTable(){
+  const statusFilter=document.getElementById('v-status-filter')?.value||'';
+  let rows=_vouchersData;
+  if(statusFilter)rows=rows.filter(v=>v.status===statusFilter);
+  const statusBadge={active:'badge-teal',used:'badge-green',expired:'badge-gray',cancelled:'badge-red'};
+  document.getElementById('v-tbody').innerHTML=rows.length?rows.map(v=>`<tr>
+    <td><code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:12px">${v.code}</code></td>
+    <td>${v.type}</td>
+    <td>${fmtMoney(v.value)}${v.type==='players'?` (${v.players}p${v.game_name?' '+v.game_name:''})`:''}${v.personalised?'<span class="badge badge-purple" style="margin-left:4px">✨ Personal</span>':''}</td>
+    <td>${fmtMoney(v.paid_amount)}</td>
+    <td><span class="badge ${statusBadge[v.status]||'badge-gray'}">${v.status}</span></td>
+    <td>${v.issued_at?fmtDate(v.issued_at.slice(0,10)):'—'}</td>
+    <td>${v.used_at?fmtDate(v.used_at.slice(0,10)):'—'}</td>
+    <td>${v.purchased_by||'—'}</td>
+  </tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">No vouchers found.</td></tr>';
+
+  lastCSVData=rows.map(v=>({Code:v.code,Type:v.type,Value:(parseFloat(v.value)||0).toFixed(2),PaidAmount:(parseFloat(v.paid_amount)||0).toFixed(2),Status:v.status,Issued:v.issued_at?.slice(0,10)||'',Used:v.used_at?.slice(0,10)||'',PurchasedBy:v.purchased_by||'',Game:v.game_name||''}));
+  lastCSVFilename='vouchers_'+dateFrom+'_'+dateTo;
+}
+
+// ── QUICK SALES ───────────────────────────────────────────────
+function renderQuickSales(){
+  const total=allQuickSales.reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0);
+  const paid=allQuickSales.filter(q=>q.status==='paid');
+  const inv=allQuickSales.filter(q=>q.status==='invoice_pending');
+
+  document.getElementById('qs-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Total sales revenue</div><div class="stat-value">${fmtMoney(total)}</div></div>
+    <div class="stat-card green"><div class="stat-label">Paid transactions</div><div class="stat-value">${paid.length}</div></div>
+    <div class="stat-card amber"><div class="stat-label">Invoices pending</div><div class="stat-value">${inv.length}</div><div class="stat-sub">${fmtMoney(inv.reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0))}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg sale value</div><div class="stat-value">${allQuickSales.length?fmtMoney(total/allQuickSales.length):'—'}</div></div>
+  `;
+
+  const byMethod={};
+  allQuickSales.forEach(q=>{const m=q.method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(q.total_amount)||0)});
+  const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
+  makeChart('qsMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
+
+  // Over time
+  const byDay2={};
+  allQuickSales.forEach(q=>{const d=(q.sold_at||'').slice(0,10);byDay2[d]=(byDay2[d]||0)+(parseFloat(q.total_amount)||0)});
+  const days=Object.keys(byDay2).sort();
+  makeChart('qsTimeChart','line',days.map(d=>fmtDate(d)),[{data:days.map(d=>byDay2[d]),borderColor:'#1d9e75',backgroundColor:'rgba(29,158,117,0.1)',tension:0.3,fill:true}]);
+
+  document.getElementById('qs-tbody').innerHTML=allQuickSales.length?allQuickSales.map(q=>{
+    const items=safeJSON(q.items)||[];
+    const itemStr=items.map(i=>`${i.name}${i.qty>1?' ×'+i.qty:''}`).join(', ');
+    return`<tr>
+      <td>${fmtDate((q.sold_at||'').slice(0,10))}</td>
+      <td>${q.customer_name||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${itemStr}">${itemStr||'—'}</td>
+      <td><span class="method-pill mp-${q.method}">${METHOD_LABELS[q.method]||q.method||'—'}</span></td>
+      <td>${fmtMoney(q.total_amount)}</td>
+      <td>${q.sold_by||'—'}</td>
+      <td><span class="badge ${q.status==='paid'?'badge-green':'badge-amber'}">${q.status}</span></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No quick sales in this period.</td></tr>';
+
+  lastCSVData=allQuickSales.map(q=>{
+    const items=safeJSON(q.items)||[];
+    return{Date:(q.sold_at||'').slice(0,10),Customer:q.customer_name||'',Items:items.map(i=>`${i.name}x${i.qty||1}`).join('|'),Method:q.method||'',Total:(parseFloat(q.total_amount)||0).toFixed(2),SoldBy:q.sold_by||'',Status:q.status};
+  });
+  lastCSVFilename='quick_sales_'+dateFrom+'_'+dateTo;
+}
+
+// ── PRODUCTS SOLD ─────────────────────────────────────────────
+function renderProducts(){
+  const byProd={};
+  // From quick_sales
+  allQuickSales.forEach(q=>{
+    const items=safeJSON(q.items)||[];
+    items.forEach(i=>{
+      const k=i.name||'Unknown';
+      if(!byProd[k])byProd[k]={name:k,category:i.category||'',units:0,revenue:0};
+      byProd[k].units+=(i.qty||1);
+      byProd[k].revenue+=(parseFloat(i.price||0))*(i.qty||1);
+    });
+  });
+  // From booking addons
+  allBookings.forEach(b=>{
+    const addons=safeJSON(b.addons)||[];
+    addons.forEach(a=>{
+      if(!a.label||!a.amount||a.amount<=0)return;
+      if(!byProd[a.label])byProd[a.label]={name:a.label,category:'Booking addon',units:0,revenue:0};
+      byProd[a.label].units++;byProd[a.label].revenue+=(parseFloat(a.amount)||0);
+    });
+  });
+
+  const rows=Object.values(byProd).sort((a,b)=>b.revenue-a.revenue);
+  const totalRev=rows.reduce((s,r)=>s+r.revenue,0);
+  const totalUnits=rows.reduce((s,r)=>s+r.units,0);
+
+  document.getElementById('prod-stats').innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Products sold</div><div class="stat-value">${rows.length}</div><div class="stat-sub">unique items</div></div>
+    <div class="stat-card green"><div class="stat-label">Units sold</div><div class="stat-value">${totalUnits}</div></div>
+    <div class="stat-card"><div class="stat-label">Product revenue</div><div class="stat-value">${fmtMoney(totalRev)}</div></div>
+  `;
+
+  const top10=rows.slice(0,10);
+  makeChart('prodChart','bar',top10.map(r=>r.name),[{data:top10.map(r=>r.revenue),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}],{extra:{indexAxis:'y'}});
+
+  document.getElementById('prod-tbody').innerHTML=rows.length?rows.map(r=>`<tr>
+    <td><strong>${r.name}</strong></td>
+    <td>${r.category||'—'}</td>
+    <td>${r.units}</td>
+    <td>${fmtMoney(r.revenue)}</td>
+    <td>${r.units?fmtMoney(r.revenue/r.units):'—'}</td>
+  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:24px">No product sales in this period.</td></tr>';
+
+  lastCSVData=rows.map(r=>({Product:r.name,Category:r.category||'',UnitsSold:r.units,Revenue:r.revenue.toFixed(2),AvgPerSale:r.units?(r.revenue/r.units).toFixed(2):'0'}));
+  lastCSVFilename='products_'+dateFrom+'_'+dateTo;
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────
+function exportCurrentCSV(){
+  if(!lastCSVData.length){alert('No data to export.');return}
+  const headers=Object.keys(lastCSVData[0]);
+  const rows=lastCSVData.map(row=>headers.map(h=>{
+    const v=row[h]??'';
+    const s=String(v);
+    return s.includes(',')|| s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`  :s;
+  }).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=lastCSVFilename+'.csv';
+  a.click();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  const saved=sessionStorage.getItem('btb_user');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(currentUser.refreshToken){
+        // Always refresh the token eagerly on page load — don't assume the
+        // stored token is still valid.
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null.
+      } else {
+        // Old-format cached session with no refresh token — can't safely
+        // trust it's still valid. Sign out for a fresh login.
+        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+        doLogout();
+      }
+      if(currentUser){
+        scheduleTokenRefresh();
+        let roleData=null;
+        try{
+          roleData=await callEdgeFunction('get_my_role',{},currentUser.token);
+        }catch(err){
+          // Token looked fine locally but Supabase rejected it — don't
+          // silently carry on with a broken session, sign out instead.
+          console.error('Session validation failed — signing out:',err);
+          doLogout();
+        }
+        if(currentUser&&(!roleData||!['admin','manager'].includes(roleData.role))){
+          // Role no longer qualifies for reports access (or lookup failed) —
+          // sign out rather than silently showing stale cached data.
+          console.warn('Access denied on session restore — signing out.');
+          doLogout();
+        } else if(currentUser){
+          currentUser.name=roleData.name;
+          currentUser.role=roleData.role;
+          sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+          showApp();
+        }
+      }
+    }catch(e){
+      console.error('Session restore failed — signing out:',e);
+      doLogout();
+    }
+  } else {
+    document.getElementById('loginScreen').classList.add('active');
+  }
+});
+</script>
+</body>
+</html>

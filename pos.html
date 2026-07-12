@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — POS</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+/* ── Reset ─────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
+
+/* ── Login ──────────────────────────────────────── */
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:#1a1035;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-logo{font-size:22px;font-weight:800;color:#07b4c5;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.login-sub{font-size:13px;color:#8a9bb5;margin-bottom:32px}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-title{font-size:16px;font-weight:700;color:#111827;margin-bottom:18px}
+.login-field{margin-bottom:12px}
+.login-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.login-input{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.login-input:focus{outline:none;border-color:#07b4c5}
+.login-btn{width:100%;background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.login-btn:hover{background:#059aaa}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
+
+/* ── App Shell ──────────────────────────────────── */
+#mainApp{display:none;flex-direction:column;height:100vh;overflow:hidden}
+.app-header{background:#1a1035;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.logo{font-size:15px;font-weight:700;color:#07b4c5;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.header-center{font-size:13px;color:#a0b0c8;flex:1;text-align:center}
+.auth-badge{font-size:11px;color:#8a9bb5;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
+.auth-badge:hover{color:#07b4c5}
+.back-app-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#07b4c5;background:rgba(7,180,197,0.12);border:1px solid #07b4c5;border-radius:99px;padding:2px 10px;text-decoration:none;white-space:nowrap}
+
+/* ── Main content area ──────────────────────────── */
+.app-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── HOME SCREEN ──────────────────────────────── */
+#posHome{padding:16px;overflow-y:auto;flex:1}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.home-tile{border:none;border-radius:14px;padding:24px 12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:110px;justify-content:center;color:#fff;transition:opacity .15s}
+.home-tile:hover{opacity:.88}
+.home-tile i,.home-tile .tile-icon{font-size:28px}
+
+/* ── PRODUCT SALE SECTION ───────────────────────── */
+#posProdSection{display:none;flex-direction:column;flex:1;overflow:hidden}
+.prod-sale-scroll{overflow-y:auto;flex:1;padding:12px 14px}
+.prod-sale-footer{border-top:2px solid #f3f4f6;padding:12px 14px;background:#fff;flex-shrink:0}
+
+/* ── BOOKINGS VIEW — split layout ───────────────── */
+#posSection{display:none;flex:1;overflow:hidden}
+
+/* Desktop: two-column */
+.pos-layout{display:flex;height:100%;overflow:hidden}
+.pos-list-col{flex:0 0 62%;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e5e7eb}
+.pos-panel-col{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc}
+
+/* List header */
+.pos-list-header{padding:10px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#fff}
+.pos-list-scroll{overflow-y:auto;flex:1}
+
+/* Compact booking rows */
+.brow{display:grid;grid-template-columns:minmax(80px, max-content) 1fr auto;align-items:center;gap:0;padding:9px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background .1s;background:#fff;border-left:3px solid transparent}
+.brow:hover{background:#f0fafb}
+.brow.active{background:#07b4c5;border-left:6px solid #059aaa}
+.brow.active .brow-name{color:#fff}
+.brow.active .brow-meta{color:rgba(255,255,255,0.75)}
+.brow.active .brow-time{color:#fff}
+.brow.active .brow-status.owing{color:#fde68a}
+.brow.active .brow-status.full{color:#d1fae5}
+.brow.active .brow-waiver.done{color:#d1fae5}
+.brow.active .brow-waiver.missing{color:rgba(255,255,255,0.55)}
+.brow.morning{border-left-color:#93c5fd}
+.brow.afternoon{border-left-color:#fcd34d}
+.brow.active.morning,.brow.active.afternoon{border-left-color:#07b4c5}
+.brow-time{font-size:14px;font-weight:700;color:#374151;white-space:nowrap;padding-right:8px}
+.brow-time span { font-size: 10px; font-weight: 500; margin-left: 2px; }
+.brow-mid{min-width:0;padding-right:8px}
+.brow-name{font-size:14px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow-meta{font-size:13px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.brow-status{font-size:14px;font-weight:700;white-space:nowrap}
+.brow-status.owing{color:#ef9f27}
+.brow-status.full{color:#1d9e75}
+.brow-waiver{font-size:12px;font-weight:600;white-space:nowrap}
+.brow-waiver.done{color:#1d9e75}
+.brow-waiver.missing{color:#9ca3af}
+
+/* Right action panel (desktop) */
+.pos-panel-col .panel-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9ca3af;gap:8px;font-size:13px}
+.pos-panel-col .panel-empty i{font-size:32px;opacity:.4}
+
+/* Action panel content */
+.action-panel{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.action-panel-header{padding:12px 16px;border-bottom:1px solid #e5e7eb;background:#fff;flex-shrink:0}
+.action-panel-scroll{overflow-y:auto;flex:1;padding:14px 16px}
+.panel-close-btn{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;padding:0;line-height:1}
+.panel-close-btn:hover{color:#374151}
+
+/* Panel sections */
+.panel-section{margin-bottom:16px}
+.panel-section-title{font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e0f7f9}
+
+/* Receipt line items */
+.receipt-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
+.receipt-row:last-child{border-bottom:none}
+.receipt-label{color:#374151;flex:1}
+.receipt-amount{font-weight:600;color:#1f2937}
+.receipt-amount.negative{color:#d97706}
+.receipt-total-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;font-size:15px;font-weight:700;color:#111827;margin-top:4px;border-top:2px solid #e5e7eb}
+
+/* Player counter */
+.player-counter{display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;padding:2px 8px;border-radius:20px}
+.player-counter button{width:24px;height:24px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;flex-shrink:0}
+.player-counter button:last-child{color:#07b4c5}
+.player-counter span{font-size:13px;font-weight:700;color:#111827;min-width:20px;text-align:center}
+
+/* Addon product grid */
+.addon-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.addon-btn{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px;cursor:pointer;text-align:left;font-family:inherit;transition:border-color .12s}
+.addon-btn:hover{border-color:#07b4c5}
+.addon-btn-name{font-size:11px;font-weight:600;color:#374151;line-height:1.3}
+.addon-btn-price{font-size:11px;color:#07b4c5;font-weight:700;margin-top:2px}
+.addon-chip{display:inline-flex;align-items:center;gap:3px;background:#f3f4f6;border-radius:6px;padding:2px 8px;margin:0 3px 4px 0;font-size:11px;color:#374151}
+.addon-chip.discount{background:#fef3c7;color:#d97706}
+.addon-chip-remove{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:13px;padding:0;line-height:1}
+
+/* Payment section */
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px}
+.method-btn{font-size:11px;padding:6px 4px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;text-align:center;font-family:inherit;transition:all .12s}
+.method-btn.active{border-color:#07b4c5;color:#07b4c5;background:#e0f7f9;font-weight:600}
+.pay-row{display:flex;gap:8px;align-items:center}
+.pay-input{flex:1;font-size:15px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-weight:600;min-width:0}
+.pay-input:focus{outline:none;border-color:#07b4c5}
+.pay-btn{background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0}
+.pay-btn:hover{background:#178a64}
+
+/* Payment history */
+.pay-hist-row{display:flex;align-items:center;padding:4px 0;font-size:14px;border-bottom:1px solid #f3f4f6}
+.pay-hist-row:last-child{border-bottom:none}
+.pay-hist-label{flex:1;color:#6b7280}
+.pay-hist-amt{font-weight:600;margin-right:6px}
+.pay-hist-amt.collected{color:#1d9e75}
+.pay-hist-amt.pending{color:#d97706}
+.pay-undo-btn{background:none;border:none;color:#d1d5db;cursor:pointer;font-size:12px;padding:0 2px}
+.pay-undo-btn:hover{color:#6b7280}
+
+/* Quick bank checkboxes */
+.quick-pay-label{display:flex;align-items:center;gap:8px;font-size:12px;color:#374151;cursor:pointer;padding:4px 0}
+.quick-pay-label input{accent-color:#07b4c5;width:15px;height:15px;flex-shrink:0}
+
+/* Split view */
+.split-person{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.split-person.paying{border-color:#07b4c5;background:#f0fafb}
+.split-person-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.split-person-name-input{font-size:13px;font-weight:700;color:#374151;background:none;border:none;border-bottom:1px dashed #d1d5db;width:120px;outline:none}
+.split-person-total{font-size:14px;font-weight:700;color:#07b4c5}
+/* New split item buttons */
+.split-item-btn{background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 10px;cursor:pointer;text-align:left;font-family:inherit;transition:all .12s;margin:0 4px 6px 0}
+.split-item-btn:hover{border-color:#07b4c5}
+.split-item-btn.selected{background:#07b4c5;border-color:#07b4c5;color:#fff}
+.split-item-btn.selected .split-item-price{color:rgba(255,255,255,0.85)}
+.split-item-btn.done{background:#f3f4f6;border-color:#e5e7eb;opacity:.45;cursor:default}
+.split-item-label{font-size:12px;font-weight:600;color:#374151;line-height:1.3}
+.split-item-price{font-size:12px;color:#07b4c5;font-weight:700;margin-top:2px}
+.split-item-btn.selected .split-item-label{color:#fff}
+/* Action tiles */
+.pos-action-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px}
+.pos-action-tile{border:none;border-radius:14px;padding:20px 10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:7px;min-height:90px;justify-content:center;color:#fff;transition:opacity .15s;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.pos-action-tile:hover{opacity:.88}
+.pos-action-tile .tile-icon{font-size:24px}
+/* Always-visible cart summary */
+.pos-cart-summary{padding:12px 16px;border-bottom:2px solid #f3f4f6;background:#fff;flex-shrink:0}
+/* Section back bar */
+.pos-section-back{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc;flex-shrink:0}
+.pos-section-back-btn{background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#07b4c5;font-family:inherit;display:flex;align-items:center;gap:4px;padding:0}
+.pos-section-title{font-size:13px;font-weight:700;color:#374151}
+
+/* Voucher section */
+.voucher-row{display:flex;gap:6px;margin-bottom:8px}
+.voucher-input{flex:1;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb;text-transform:uppercase}
+.voucher-input:focus{outline:none;border-color:#07b4c5}
+.voucher-apply-btn{background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* Waiver button */
+.waiver-btn{width:100%;background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.waiver-btn:hover{background:#6d28d9}
+
+/* Status pill */
+.status-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;display:inline-block}
+.status-paid{background:#dcfce7;color:#15803d}
+.status-owing{background:#fef3c7;color:#d97706}
+.status-full{background:#dcfce7;color:#15803d}
+
+/* Date group header in schedule */
+.brow-date-header{padding:9px 14px 7px;background:#cbd5e1;border-bottom:1px solid #e5e7eb;border-top:3px solid #d1d5db;border-left:5px solid #d1d5db;font-size:13px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.7px;position:sticky;top:0;z-index:1}
+.brow-date-header.past{background:#f4f4f5;border-left-color:#d1d5db;color:#9ca3af}
+.brow-date-header.today{background:#e0f7f9;color:#07b4c5;border-top-color:#07b4c5;border-left-color:#07b4c5}
+.brow-date-header.future{background:#f8fafc;border-left-color:#e5e7eb;color:#374151}
+.load-earlier-btn{width:100%;padding:10px;font-size:12px;color:#07b4c5;background:#f0fafb;border:none;border-bottom:1px solid #e5e7eb;cursor:pointer;font-family:inherit;font-weight:600}
+.load-earlier-btn:hover{background:#e0f7f9}
+
+/* Totals bar (admin only) */
+.pos-totals-bar{background:#1a1035;padding:10px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;flex-shrink:0}
+.totals-label{font-size:9px;color:#8a9bb5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.totals-value{font-size:17px;font-weight:700;color:#fff}
+.totals-value.green{color:#1d9e75}
+.totals-value.amber{color:#ef9f27}
+
+/* Empty state */
+.empty-state{text-align:center;padding:32px 0;font-size:13px;color:#9ca3af}
+
+/* ── MOBILE DRAWER ──────────────────────────────── */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;z-index:501;max-height:92vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1)}
+.drawer.open{transform:translateY(0)}
+.drawer-handle{width:40px;height:4px;background:#d1d5db;border-radius:2px;margin:10px auto 6px;flex-shrink:0}
+.drawer-header{padding:0 16px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.drawer-title{font-size:15px;font-weight:700;color:#111827}
+.drawer-close{background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;line-height:1;padding:4px}
+.drawer-scroll{overflow-y:auto;flex:1;padding:14px 16px 24px}
+
+/* ── QUICK SALE OVERLAY ─────────────────────────── */
+.qs-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:flex-end;justify-content:center}
+.qs-overlay.open{display:flex}
+.qs-sheet{background:#fff;border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:600px;max-height:88vh;display:flex;flex-direction:column}
+.qs-cart-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
+.qs-cart-item:last-child{border-bottom:none}
+
+/* ── Shared utils ───────────────────────────────── */
+.avail-slot{font-size:11px;padding:3px 9px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
+.avail-slot.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
+.avail-tab{font-size:12px;padding:5px 13px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
+.avail-tab.active{background:#07b4c5;color:#fff;border-color:#07b4c5;font-weight:600}
+.avail-toggle{font-size:11px;padding:3px 10px;border-radius:99px;border:none;cursor:pointer;font-weight:600}
+.avail-toggle.on{background:#dcfce7;color:#15803d}
+.avail-toggle.off{background:#f3f4f6;color:#9ca3af}
+.manage-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6}
+.manage-row:last-child{border-bottom:none}
+.row-label{flex:1;font-size:13px;color:#374151}
+.row-sub{font-size:11px;color:#9ca3af}
+.icon-btn{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:17px;padding:4px;border-radius:7px}
+.icon-btn:hover{background:#f3f4f6;color:#374151}
+.icon-btn.danger:hover{color:#dc2626;background:#fee2e2}
+.form-select{width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px}
+.add-input{flex:1;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 11px}
+.add-btn{background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit}
+.hint{font-size:12px;color:#9ca3af;margin-top:6px}
+.pos-method-badge{font-size:10px;padding:1px 7px;border-radius:99px;font-weight:600;margin-left:3px;display:inline-block}
+.method-stripe{background:#ede9fe;color:#7c3aed}
+.method-poli{background:#dbeafe;color:#1d4ed8}
+.method-bank{background:#dcfce7;color:#15803d}
+.method-cash{background:#f3f4f6;color:#374151}
+.method-eftpos{background:#e0f7f9;color:#07b4c5}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Responsive: mobile hides desktop right panel ── */
+@media(max-width:680px){
+  .pos-panel-col{display:none}
+  .pos-list-col{flex:1;border-right:none}
+}
+/* ── Responsive: desktop hides drawer ──────────── */
+@media(min-width:681px){
+  .drawer-overlay,.drawer{display:none!important}
+}
+/* ── Desktop: larger fonts ──────────────────────── */
+@media(min-width:681px){
+  /* Booking list rows */
+  .brow-time{font-size:16px}
+  .brow-name{font-size:16px}
+  .brow-meta{font-size:14px}
+  .brow-status{font-size:15px}
+  .brow-waiver{font-size:13px}
+  .brow-date-header{font-size:14px}
+  /* Action panel header */
+  .action-panel-header div div:first-child{font-size:17px}
+  .action-panel-header div div:last-child{font-size:13px}
+  /* Receipt rows */
+  .receipt-row{font-size:15px}
+  .receipt-label{font-size:15px}
+  .receipt-amount{font-size:15px}
+  .receipt-total-row{font-size:17px}
+  /* Action tiles */
+  .pos-action-tile{font-size:16px;min-height:105px}
+  .pos-action-tile .tile-icon{font-size:28px}
+  /* Payment section */
+  .method-btn{font-size:13px}
+  .pay-input{font-size:17px}
+  .pay-btn{font-size:15px}
+  /* Panel section titles */
+  .panel-section-title{font-size:11px}
+  /* Home tiles */
+  .home-tile{font-size:18px;min-height:125px}
+  .home-tile i,.home-tile .tile-icon{font-size:32px}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════════ -->
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">POS</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════ -->
+<div id="mainApp" style="display:none;flex-direction:column;height:100vh;overflow:hidden">
+
+  <!-- Header -->
+  <div class="app-header">
+    <span class="logo"><i class="ti ti-box"></i> BtB <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5;letter-spacing:0.5px;vertical-align:middle"></span></span>
+    <span class="header-center" id="headerSub">POS</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="btb_app.html" class="back-app-link">← App</a>
+      <span class="auth-badge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span></span>
+    </div>
+  </div>
+
+  <!-- ── HOME SCREEN ─────────────────────────────── -->
+  <div id="posHome" style="padding:16px;overflow-y:auto;flex:1">
+    <div class="home-grid" id="posHomeGrid"></div>
+  </div>
+
+  <!-- ── BOOKINGS VIEW ──────────────────────────── -->
+  <div id="posSection" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+
+    <!-- Split layout -->
+    <div class="pos-layout" style="flex:1;overflow:hidden">
+
+      <!-- LEFT: compact list -->
+      <div class="pos-list-col">
+        <div class="pos-list-scroll" id="posList"></div>
+        <!-- Admin totals bar -->
+        <div class="pos-totals-bar" id="posTotals" style="display:none">
+          <div><div class="totals-label">Due</div><div class="totals-value" id="posTotalDue">$0</div></div>
+          <div><div class="totals-label">Collected</div><div class="totals-value green" id="posTotalCollected">$0</div></div>
+          <div><div class="totals-label">Outstanding</div><div class="totals-value amber" id="posTotalOutstanding">$0</div></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: action panel (desktop only) -->
+      <div class="pos-panel-col" id="desktopActionPanel">
+        <div class="panel-empty" id="panelEmpty">
+          <i class="ti ti-hand-click"></i>
+          <span>Select a booking</span>
+        </div>
+        <div class="action-panel" id="desktopPanelContent" style="display:none">
+          <!-- filled by renderActionPanel(b) -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── PRODUCT SALE VIEW ──────────────────────── -->
+  <div id="posProdSection" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+    <div class="prod-sale-scroll">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="posProdCatTabs"></div>
+      <div style="position:relative;margin-bottom:10px">
+        <input type="text" id="prodSaleSearch" placeholder="Search products…" oninput="renderProdSaleGrid()" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px 8px 32px;background:#f9fafb">
+        <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px"></i>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px" id="prodSaleGrid"></div>
+    </div>
+    <div class="prod-sale-footer">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700;color:#374151">Cart <span id="prodSaleCartCount" style="color:#9ca3af"></span></div>
+        <button onclick="clearProdSaleCart()" style="font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer">Clear</button>
+      </div>
+      <div id="prodSaleCart" style="margin-bottom:8px;max-height:120px;overflow-y:auto"></div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:#111827;margin-bottom:8px">
+        <span>Total</span><span style="color:#07b4c5" id="prodSaleTotal">$0.00</span>
+      </div>
+      <input type="text" id="prodSaleCustomer" placeholder="Customer name (optional)" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb;margin-bottom:8px">
+      <div class="method-grid" id="prodSaleMethodBtns">
+        <button class="method-btn" onclick="setProdSaleMethod('cash',this)">Cash</button>
+        <button class="method-btn" onclick="setProdSaleMethod('eftpos',this)">Eftpos</button>
+        <button class="method-btn" onclick="setProdSaleMethod('stripe',this)">Stripe</button>
+        <button class="method-btn" onclick="setProdSaleMethod('bank_transfer',this)">Bank</button>
+        <button class="method-btn" onclick="setProdSaleMethod('invoice',this)">Invoice</button>
+      </div>
+      <div id="prodSaleInvoiceWrap" style="display:none;margin-bottom:8px">
+        <input type="email" id="prodSaleInvoiceEmail" placeholder="Email for invoice…" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb">
+      </div>
+      <button onclick="completeProdSale()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Complete sale →</button>
+      <div id="prodSaleMsg" style="font-size:12px;margin-top:6px;text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- ── VOUCHERS VIEW ──────────────────────────── -->
+  <div id="posVoucherSection" style="display:none;flex:1;overflow-y:auto;flex-direction:column;padding:14px">
+
+    <!-- Issue new voucher -->
+    <div style="background:#f0fafb;border:1px solid #07b4c5;border-radius:12px;padding:13px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:#07b4c5;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="ti ti-plus"></i> Issue new voucher</div>
+
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button id="vtab-amount" class="avail-toggle on" onclick="setVoucherTab('amount')" style="flex:1;border-radius:8px;padding:7px">$ Dollar amount</button>
+        <button id="vtab-players" class="avail-toggle off" onclick="setVoucherTab('players')" style="flex:1;border-radius:8px;padding:7px">👥 Number of players</button>
+      </div>
+
+      <div id="vfields-amount">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Value ($)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" id="vAmt" placeholder="50" min="1"></div>
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Paid by customer ($)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" id="vPaid" placeholder="50" min="0"></div>
+        </div>
+      </div>
+
+      <div id="vfields-players" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Game</div><select style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px" id="vGame" onchange="calcVPlayerPrice()"></select></div>
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Players</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" id="vPlayers" placeholder="4" min="1" max="30" oninput="calcVPlayerPrice()"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Value ($) <span style="color:#9ca3af;font-weight:400">auto</span></div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" id="vPlayersAmt" placeholder="—" min="0"></div>
+          <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Paid by customer ($)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" id="vPlayersPaid" placeholder="—" min="0"></div>
+        </div>
+      </div>
+
+      <!-- Personalisation toggle -->
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer" onclick="toggleVoucherPersonalised()">
+        <div id="vPersonalisedToggle" style="width:36px;height:20px;border-radius:99px;background:#e5e7eb;position:relative;transition:background .2s;flex-shrink:0">
+          <div id="vPersonalisedDot" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#374151">Personalised voucher</div>
+          <div style="font-size:11px;color:#9ca3af">Add recipient name, message & from</div>
+        </div>
+      </div>
+
+      <div id="vPersonalisedFields" style="display:none;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Recipient name</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vRecipient" placeholder="e.g. Emma"></div>
+        <div style="margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Message on voucher</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vMessage" placeholder='e.g. "Happy birthday! 🎉"'></div>
+        <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">From</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vFrom" placeholder="e.g. Mum & Dad"></div>
+      </div>
+
+      <div style="margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Purchased by (optional)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vBuyer" placeholder="Name or phone"></div>
+      <div style="margin-bottom:8px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">How paid</div>
+        <select style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px" id="vHowPaid">
+          <option value="cash">Cash</option>
+          <option value="eftpos">Eftpos</option>
+          <option value="stripe">Card (Stripe)</option>
+          <option value="bank_transfer">Bank transfer</option>
+          <option value="invoice">Invoice</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Notes (optional)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vNotes" placeholder="e.g. Christmas gift, expires 1 year"></div>
+
+      <button onclick="issueVoucher()" style="width:100%;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-ticket"></i> Issue voucher</button>
+      <div id="vIssueMsg" style="font-size:12px;margin-top:6px;text-align:center;min-height:18px"></div>
+    </div>
+
+    <!-- Find a voucher -->
+    <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">Find a voucher</div>
+    <div style="display:flex;gap:7px;margin-bottom:10px">
+      <input class="voucher-input" type="text" id="vSearch" placeholder="Code or buyer name…" onkeydown="if(event.key==='Enter')searchVouchers()" style="text-transform:none">
+      <button onclick="searchVouchers()" style="background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit"><i class="ti ti-search"></i></button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="avail-slot on" id="vf-all" onclick="setVoucherFilter('all',this)" style="font-size:11px;padding:3px 9px">All</button>
+      <button class="avail-slot" id="vf-requested" onclick="setVoucherFilter('requested',this)" style="font-size:11px;padding:3px 9px">Requested</button>
+      <button class="avail-slot" id="vf-active" onclick="setVoucherFilter('active',this)" style="font-size:11px;padding:3px 9px">Active</button>
+      <button class="avail-slot" id="vf-used" onclick="setVoucherFilter('used',this)" style="font-size:11px;padding:3px 9px">Used</button>
+      <button class="avail-slot" id="vf-expired" onclick="setVoucherFilter('expired',this)" style="font-size:11px;padding:3px 9px">Expired</button>
+    </div>
+    <div id="voucherList"><div class="empty-state">Search above or tap a filter to load vouchers.</div></div>
+  </div>
+
+</div><!-- /#mainApp -->
+
+<!-- ════════════════════════════════════════════════
+     MOBILE DRAWER (booking action panel)
+════════════════════════════════════════════════ -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="bookingDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <div class="drawer-title" id="drawerTitle">Booking</div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-scroll" id="drawerContent">
+    <!-- filled by renderActionPanel(b) -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     QUICK SALE OVERLAY
+════════════════════════════════════════════════ -->
+<div class="qs-overlay" id="qsOverlay">
+  <div class="qs-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:16px;font-weight:700;color:#111827">🛍️ Quick sale</div>
+      <button onclick="closeQuickSale()" style="background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer">✕</button>
+    </div>
+    <div style="position:relative;margin-bottom:8px">
+      <input type="text" id="qsSearch" placeholder="Search products…" oninput="renderQSProducts()" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px 8px 32px;background:#f9fafb">
+      <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px"></i>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="qsCatTabs">
+      <button class="avail-slot on" style="font-size:11px;padding:3px 9px" onclick="setQSCat('All',this)">All</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Food/Drink',this)">Food/Drink</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Escape Room',this)">Escape Room</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Boardgame',this)">Boardgame</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Book',this)">Book</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('VR',this)">VR</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Other',this)">Other</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="qsProdGrid"></div>
+    </div>
+    <div style="border-top:2px solid #f3f4f6;padding-top:10px">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px">Cart <span id="qsCartCount" style="color:#9ca3af"></span></div>
+      <div id="qsCart" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:15px;font-weight:700;color:#111827">Total: <span id="qsTotal" style="color:#07b4c5">$0.00</span></div>
+        <button onclick="clearQSCart()" style="font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer">Clear cart</button>
+      </div>
+      <input type="text" id="qsCustomer" placeholder="Customer name (optional)" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb;margin-bottom:8px">
+      <div class="method-grid" id="qsMethodBtns">
+        <button class="method-btn" onclick="setQSMethod('cash',this)">Cash</button>
+        <button class="method-btn" onclick="setQSMethod('eftpos',this)">Eftpos</button>
+        <button class="method-btn" onclick="setQSMethod('stripe',this)">Stripe</button>
+        <button class="method-btn" onclick="setQSMethod('bank_transfer',this)">Bank</button>
+        <button class="method-btn" onclick="setQSMethod('invoice',this)">Invoice</button>
+      </div>
+      <div id="qsInvoiceEmailWrap" style="display:none;margin-bottom:8px">
+        <input type="email" id="qsInvoiceEmail" placeholder="Email to send invoice to…" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb">
+      </div>
+      <button onclick="completeQuickSale()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Complete sale →</button>
+      <div id="qsMsg" style="font-size:12px;margin-top:6px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+// SECURITY: H() now sends the real logged-in staff member's session token
+// for every data request (falls back to the anon key only if nobody is
+// logged in yet, e.g. requests that fire before login completes).
+// apikey always stays as the project anon key (Supabase requirement,
+// separate from Authorization) — matches the pattern used in staff_portal.html.
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+
+// BUILD VERSION — bump this each time this file is shipped, so you can
+// confirm in the header (and browser console) which copy you're looking at.
+const BUILD_VERSION = '1.2.0';
+console.log(`%cPOS — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const _n=new Date();
+const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
+
+// ── State ──────────────────────────────────────────
+let games=[
+  {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
+  {id:'g2',name:'Saving Christmas',duration:60,pricingType:'per_person_tiered',icon:'🎄',bookable:true,category:'escape'},
+  {id:'g3',name:'Gregg in the Box',duration:45,pricingType:'per_person_tiered',icon:'📦',bookable:true,category:'escape'},
+  {id:'g4',name:'VR Hour',duration:60,pricingType:'per_hour_flat',icon:'🥽',bookable:true,category:'vr'},
+  {id:'g5',name:'Board Game Cafe',duration:60,pricingType:'per_person_per_hour',icon:'🎲',bookable:true,category:'cafe'},
+];
+let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepaid',colorIdx:0},{id:'vip',label:'VIP',colorIdx:4},{id:'allergy',label:'Allergy',colorIdx:5}];
+let statuses=[],trainingStatuses=[];
+let bookingConfig={
+  openingHours:[],slotTimes:{},gamePriceTiers:{},gameFlatPrice:{},gamePerPersonPerHour:{},gamePlayerLimits:{},
+  callToBookCutoffHours:3,depositAmount:35,
+};
+let staff=[],staffTraining=[],bookings=[],vouchers=[];
+let products=[];
+let posCategories=[
+  {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
+  {id:'vr_casual',label:'VR Casual',icon:'ti-vr',color:'#8b5cf6',type:'products',filter:'VR'},
+  {id:'escape',label:'Escape Room',icon:'ti-door',color:'#ef4444',type:'products',filter:'Escape Room'},
+  {id:'vr_hour',label:'VR Hour',icon:'ti-headset',color:'#0ea5e9',type:'products',filter:'VR'},
+  {id:'food',label:'General Sale',icon:'ti-coffee',color:'#f97316',type:'products',filter:'Food/Drink'},
+  {id:'boardgame',label:'Boardgame',icon:'ti-puzzle',color:'#1d9e75',type:'products',filter:'Boardgame'},
+];
+let currentUser=null;
+let posRangeStart=new Date(); // earliest date loaded (go back by 14 days at a time)
+let selectedBookingId=null;
+// per-booking state keyed by id
+let openPOSHistory=new Set();
+let prodSaleCart=[],prodSaleMethod='',prodSaleCat='All',currentPOSCat=null;
+let qsCart=[],qsMethod='',qsCat='All';
+let voucherPersonalised=false,voucherType='amount',voucherStatusFilter='all';
+
+// ── Helpers ────────────────────────────────────────
+function toDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmt12(t){if(!t)return'';const[h,m]=t.split(":").map(Number);return`${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`}
+function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`${r},${g},${b}`}
+function catEmoji(cat){return{Food:'🍔','Food/Drink':'🍔','Escape Room':'🔐','Boardgame':'🎲','Book':'📚','VR':'🥽','Other':'📦'}[cat]||'📦'}
+
+// ── Settings ───────────────────────────────────────
+async function loadSettings(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/settings`,{headers:H()});
+    const rows=await r.json();
+    rows.forEach(row=>{
+      try{
+        const d=JSON.parse(row.value);
+        if(row.key==='btb_games'&&Array.isArray(d))games=d;
+        if(row.key==='btb_tags'&&Array.isArray(d))tags=d;
+        if(row.key==='btb_statuses'&&Array.isArray(d))statuses=d;
+        if(row.key==='btb_training_statuses'&&Array.isArray(d))trainingStatuses=d;
+        if(row.key==='btb_booking_config'&&typeof d==='object'&&!Array.isArray(d))bookingConfig={...bookingConfig,...d};
+        if(row.key==='btb_pos_categories'&&Array.isArray(d))posCategories=d;
+      }catch(e){}
+    });
+  }catch(e){console.error('Settings load:',e)}
+}
+async function saveSetting(key,data){
+  await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
+}
+const saveGames=()=>saveSetting('btb_games',games);
+const saveTags=()=>saveSetting('btb_tags',tags);
+const saveStatuses=()=>saveSetting('btb_statuses',statuses);
+const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
+const saveBookingConfigSetting=()=>saveSetting('btb_booking_config',bookingConfig);
+
+// ── Staff & Training ───────────────────────────────
+async function loadStaff(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&order=name`,{headers:H()});const rows=await r.json();if(rows&&rows.length>0)staff=rows;}catch(e){console.error('Staff load:',e)}
+  await loadTraining();
+}
+async function loadTraining(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff_game_training`,{headers:H()});staffTraining=await r.json()}
+  catch(e){staffTraining=[]}
+}
+
+// ── Bookings loader ────────────────────────────────
+// Waiver lookup: booking_id → true/false
+let waiverBookingIds=new Set();
+
+async function loadBookingsForRange(fromDateStr, toDateStr){
+  try{
+    const [bookR, waiverR] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromDateStr}&booking_date=lte.${toDateStr}&status=neq.cancelled&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/waivers?select=booking_id&booking_id=not.is.null`,{headers:H()})
+    ]);
+    const rows=await bookR.json();
+    const waivers=await waiverR.json().catch(()=>[]);
+    waiverBookingIds=new Set((waivers||[]).map(w=>w.booking_id).filter(Boolean));
+    bookings=rows.map(row=>{
+      const d=new Date(row.booking_date+'T12:00');
+      return{
+        id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),
+        dateStr:row.booking_date,
+        name:row.game_name,game_id:row.game_id,
+        customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),
+        customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',
+        time:(row.slot_time||'').slice(0,5),
+        duration:games.find(g=>g.id===row.game_id)?.duration||60,
+        meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,
+        players_booked:row.players_booked,
+        status:row.status,source:row.source||'',
+        total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,
+        deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,
+        payments:row.payments||null,addons:row.addons||null,
+        isEnquiry:row.status==='enquiry',
+        splitMode:false,splitPersons:null,_currentMethod:'',
+      };
+    });
+  }catch(e){console.error('Bookings load:',e);bookings=[];}
+}
+
+// ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+// Login tokens expire (Supabase default ~1 hour). Without this, staff
+// could get silently logged out or start seeing errors mid-shift.
+// This quietly renews the token in the background before it expires.
+let tokenRefreshTimer = null;
+
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+// Bundles the three data loads that need a real (not anon) token once the
+// staff table is locked down to authenticated-only. Called after login
+// succeeds and after session restore succeeds — never before.
+async function loadAppData(){
+  await loadSettings();
+  await Promise.all([loadStaff(),loadProducts()]);
+}
+
+// ── Auth ───────────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))||{name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
+    let staffId=userId;
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
+    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    await loadAppData();
+    showApp();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function parseAllowedTabs(raw){
+  if(!raw)return['calendar'];if(Array.isArray(raw))return raw;
+  try{const p=JSON.parse(raw);return Array.isArray(p)?p:['calendar']}catch(e){return['calendar']}
+}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainApp').style.display='flex';
+  document.getElementById('authName').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  showPOSHome();
+}
+
+// ── HOME SCREEN ────────────────────────────────────
+function renderPOSHome(){
+  const grid=document.getElementById('posHomeGrid');if(!grid)return;
+  grid.innerHTML=posCategories.map(cat=>`
+    <button class="home-tile" onclick="${cat.type==='bookings'?'showBookings()':'showProductCat(\''+cat.id+'\')'}"
+      style="background:${cat.color};box-shadow:0 3px 12px rgba(${hexToRgb(cat.color)},0.3)">
+      ${cat.emoji?`<span class="tile-icon">${cat.emoji}</span>`:`<i class="ti ${cat.icon}"></i>`}
+      <span>${cat.label}</span>
+    </button>`).join('')
+  +`<button class="home-tile" onclick="showVouchers()" style="background:#f59e0b;box-shadow:0 3px 12px rgba(245,158,11,0.3)">
+      <span class="tile-icon">🎟️</span><span>Vouchers</span>
+    </button>
+    <button class="home-tile" onclick="openWaiver()" style="background:#7c3aed;box-shadow:0 3px 12px rgba(124,58,237,0.3)">
+      <span class="tile-icon">📋</span><span>Waivers</span>
+    </button>`;
+}
+function openWaiver(bookingId){const url=bookingId?`waiver.html?booking_id=${bookingId}`:'waiver.html';window.open(url,'_blank')}
+function showPOSHome(){
+  document.getElementById('posHome').style.display='';
+  document.getElementById('posSection').style.display='none';
+  document.getElementById('posProdSection').style.display='none';
+  document.getElementById('posVoucherSection').style.display='none';
+  document.getElementById('headerSub').innerHTML='POS';
+  renderPOSHome();
+}
+function showVouchers(){
+  document.getElementById('posHome').style.display='none';
+  document.getElementById('posSection').style.display='none';
+  document.getElementById('posProdSection').style.display='none';
+  document.getElementById('posVoucherSection').style.display='flex';
+  document.getElementById('headerSub').innerHTML='<span onclick="showPOSHome()" style="cursor:pointer;color:#07b4c5">← Home</span> · Vouchers';
+  // Reset form state
+  voucherType='amount';
+  voucherPersonalised=false;
+  document.getElementById('vfields-amount').style.display='';
+  document.getElementById('vfields-players').style.display='none';
+  document.getElementById('vPersonalisedFields').style.display='none';
+  const tog=document.getElementById('vPersonalisedToggle');const dot=document.getElementById('vPersonalisedDot');
+  if(tog)tog.style.background='#e5e7eb';if(dot)dot.style.left='2px';
+  document.getElementById('vtab-amount').className='avail-toggle on';
+  document.getElementById('vtab-players').className='avail-toggle off';
+  renderVGameSelect();
+}
+
+// ── BOOKINGS VIEW ──────────────────────────────────
+function showBookings(){
+  document.getElementById('posHome').style.display='none';
+  document.getElementById('posSection').style.display='flex';
+  document.getElementById('posProdSection').style.display='none';
+  document.getElementById('posVoucherSection').style.display='none';
+  document.getElementById('headerSub').innerHTML='<span onclick="showPOSHome()" style="cursor:pointer;color:#07b4c5">← Home</span> · Bookings';
+  const totals=document.getElementById('posTotals');
+  if(totals)totals.style.display=currentUser?.role==='admin'?'':'none';
+  // Reset to today + 14 days forward
+  posRangeStart=new Date();
+  posRangeStart.setHours(0,0,0,0);
+  renderPOS();
+}
+
+async function loadEarlier(){
+  const btn=document.querySelector('.load-earlier-btn');
+  if(btn){btn.textContent='Loading…';btn.disabled=true;}
+  const newStart=new Date(posRangeStart);
+  newStart.setDate(newStart.getDate()-14);
+  newStart.setHours(0,0,0,0);
+  const rangeEnd=new Date(posRangeStart);
+  rangeEnd.setDate(rangeEnd.getDate()-1);
+  const fromStr=toDateStr(newStart);
+  const toStr=toDateStr(rangeEnd);
+  posRangeStart=newStart;
+  // Fetch earlier bookings and prepend
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const rows=await r.json();
+    const earlier=rows.map(row=>{
+      const d=new Date(row.booking_date+'T12:00');
+      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
+    });
+    bookings=[...earlier,...bookings];
+  }catch(e){console.error('Load earlier error:',e);}
+  renderBookingRows(bookings.filter(b=>!b.isEnquiry&&b.status!=='cancelled'));
+}
+
+async function renderPOS(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const fromStr=toDateStr(posRangeStart);
+  const futureEnd=new Date(today);futureEnd.setDate(futureEnd.getDate()+27);
+  const toStr=toDateStr(futureEnd);
+  await loadBookingsForRange(fromStr,toStr);
+  const visible=bookings.filter(b=>!b.isEnquiry&&b.status!=='cancelled');
+  renderBookingRows(visible);
+  updatePOSTotals(visible);
+  if(selectedBookingId){
+    const b=bookings.find(x=>x.id===selectedBookingId);
+    if(b)renderActionPanel(b,'desktop');
+    else{selectedBookingId=null;showPanelEmpty();}
+  }
+  // Scroll to today's section
+  setTimeout(()=>{
+    const todayHeader=document.querySelector('.brow-date-header.today');
+    if(todayHeader)todayHeader.scrollIntoView({block:'start'});
+  },50);
+}
+
+function renderBookingRows(visibleBookings){
+  const list=document.getElementById('posList');
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=toDateStr(today);
+
+  // Group by date
+  const byDate={};
+  visibleBookings.forEach(b=>{
+    if(!byDate[b.dateStr])byDate[b.dateStr]=[];
+    byDate[b.dateStr].push(b);
+  });
+  const dates=Object.keys(byDate).sort();
+
+  if(!dates.length){list.innerHTML='<div class="empty-state">No upcoming bookings.</div>';return;}
+
+  let html=`<button class="load-earlier-btn" onclick="loadEarlier()">↑ Load earlier dates</button>`;
+
+  dates.forEach(dateStr=>{
+    const d=new Date(dateStr+'T12:00');
+    const isToday=dateStr===todayStr;
+    const isPast=dateStr<todayStr;
+    const dayName=DAYS[d.getDay()];
+    const dateLabel=`${dayName} ${d.getDate()} ${MONTHS[d.getMonth()]}${isPast?' · Past':''}`;
+const headerClass=isToday?'today':isPast?'past':'future';
+html+=`<div class="brow-date-header ${headerClass}">${isToday?'Today · ':''}${dateLabel}</div>`;
+
+    byDate[dateStr].forEach(b=>{
+      const players=b.players_booked||1;
+      const total=b.total_amount??calcPrice(b.game_id,players);
+      const dep=b.deposit_amount??calcDeposit(total);
+      const payments=b.payments?JSON.parse(b.payments):[];
+      const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+      const balance=Math.max(0,total-collected);
+      const hour=parseInt((b.time||'12:00').split(':')[0]);
+      const timeClass=hour<12?'morning':'afternoon';
+      const isActive=selectedBookingId===b.id;
+      const hasWaiver=waiverBookingIds.has(b.id);
+      html+=`<div class="brow ${timeClass}${isActive?' active':''}" data-bid="${b.id}" onclick="selectBooking('${b.id}')">
+        <div class="brow-time">${(fmt12(b.time||'00:00')).replace(/(AM|PM)/g, '<span>$1</span>')}</div>
+        <div class="brow-mid">
+          <div class="brow-name">${b.customer||'—'}</div>
+          <div class="brow-meta">${b.name} · ${players}p</div>
+        </div>
+        <div class="brow-right">
+          <div class="brow-status ${balance===0?'full':'owing'}">${balance===0?'✓ Paid':'$'+balance.toFixed(0)+' owing'}</div>
+          <div class="brow-waiver ${hasWaiver?'done':'missing'}">${hasWaiver?'✓ Waiver':'No waiver'}</div>
+        </div>
+      </div>`;
+    });
+  });
+
+  list.innerHTML=html;
+}
+
+function selectBooking(id){
+  selectedBookingId=id;
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  // Update row highlights
+  document.querySelectorAll('.brow').forEach(r=>r.classList.toggle('active',r.dataset.bid===id));
+  // Desktop: fill right panel
+  const isDesktop=window.innerWidth>680;
+  if(isDesktop){
+    renderActionPanel(b,'desktop');
+  } else {
+    openDrawer(b);
+  }
+}
+
+function showPanelEmpty(){
+  document.getElementById('panelEmpty').style.display='flex';
+  document.getElementById('desktopPanelContent').style.display='none';
+}
+
+// ── ACTION PANEL ───────────────────────────────────
+// Track which section is open per booking: null = tiles view
+let openPanelSection={};
+
+function buildCartSummaryHTML(b){
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const total=b.total_amount??calcPrice(b.game_id,players);
+  const dep=b.deposit_amount??calcDeposit(total);
+  const depPaid=b.deposit_paid||false;
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const collected=(depPaid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+  const balance=Math.max(0,total-collected);
+  const gamePrice=calcPrice(b.game_id,players);
+  // When splitting between people, the split view below already lists the
+  // players/add-ons being paid for — so the itemised breakdown here
+  // collapses to just the total and payment history, to avoid duplication.
+  // (Note: this also hides the player +/- adjuster while split mode is on;
+  // close split mode first if you need to change the player count.)
+  const splitMode=b.splitMode===true;
+  const itemRowsHTML = splitMode ? '' : `
+    <div class="receipt-row">
+      <div class="receipt-label">
+        <span style="font-weight:600">${b.name}</span>
+        <div class="player-counter" style="display:inline-flex;margin-left:8px">
+          <button onclick="adjustPOSPlayers('${b.id}',-1)">−</button>
+          <span id="pos-players-${b.id}">${players}</span>
+          <button onclick="adjustPOSPlayers('${b.id}',1)">+</button>
+        </div>
+      </div>
+      <span class="receipt-amount">$${gamePrice.toFixed(2)}</span>
+    </div>
+${(() => {
+  const grouped = [];
+  addons.forEach((item, originalIndex) => {
+    const existing = grouped.find(g => g.label === item.label && g.amount === item.amount);
+    if (existing) {
+      existing.qty += 1;
+      existing.indices.push(originalIndex);
+    } else {
+      grouped.push({ ...item, qty: 1, indices: [originalIndex] });
+    }
+  });
+
+  return grouped.map(a => `
+    <div class="receipt-row">
+      <span class="receipt-label">
+        ${a.qty > 1 ? `<strong style="color: #07b4c5; margin-right: 4px;">${a.qty} x</strong>` : ''}${a.label}
+      </span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span class="receipt-amount ${a.amount < 0 ? 'negative' : ''}">
+          $${Math.abs(parseFloat(a.amount || 0) * a.qty).toFixed(2)}
+        </span>
+        <button onclick="removeAddon('${b.id}',${a.indices[a.indices.length - 1]})" class="addon-chip-remove" title="Remove">×</button>
+      </div>
+    </div>
+  `).join('');
+})()}`;
+  return`<div class="pos-cart-summary">
+    ${itemRowsHTML}
+<div class="receipt-total-row" style="display: flex; justify-content: space-between; align-items: flex-start;">
+  <span>Total</span>
+  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+    <span>$${total.toFixed(2)}</span>
+    ${balance === 0 ? `<div style="font-size:12px; color:#1d9e75; font-weight:600; margin-top:2px;">✓ Fully paid</div>` : ''}
+  </div>
+</div>
+${(()=>{
+  const methodLabels={cash:'Cash',eftpos:'Eftpos',stripe:'Stripe',poli:'PoLi',bank_transfer:'Bank',invoice:'Invoice'};
+  const fmtDate=ts=>{if(!ts)return'';const d=new Date(ts);return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]};
+  if(!depPaid&&!payments.length) return balance>0?`<div style="margin-top:8px;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:'';
+  return `<div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
+    ${depPaid?`<div class="pay-hist-row"><span class="pay-hist-label">Deposit${b.deposit_method?' · '+methodLabels[b.deposit_method]:''}</span><span class="pay-hist-amt collected">-$${dep.toFixed(0)}</span><button class="pay-undo-btn" onclick="toggleDepositPaid('${b.id}',false)" title="Undo">↩</button></div>`:''}
+    ${payments.map((p,i)=>{const dateStr=fmtDate(p.at);return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}${p.splitPerson?` <span style="color:#9ca3af">(${p.splitPerson})</span>`:''}${p.invoice_email?`<span style="color:#9ca3af;font-size:11px"> · ${p.invoice_email}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="removePayment('${b.id}',${i})" title="Undo">↩</button></div>`}).join('')}
+    ${balance>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid #f3f4f6;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:''}
+  </div>`;
+})()}
+</div>`
+}
+
+function buildActionTilesHTML(b){
+  return`<div class="pos-action-tiles">
+    <button class="pos-action-tile" style="background:#07b4c5;box-shadow:0 2px 8px rgba(7,180,197,.3)" onclick="openPanelSect('${b.id}','products')">
+      <span class="tile-icon">🛒</span><span>Add a product</span>
+    </button>
+    <button class="pos-action-tile" style="background:#1d9e75;box-shadow:0 2px 8px rgba(29,158,117,.3)" onclick="openPanelSect('${b.id}','pay')">
+      <span class="tile-icon">💳</span><span>Ready to pay</span>
+    </button>
+    <button class="pos-action-tile" style="background:#d97706;box-shadow:0 2px 8px rgba(217,119,6,.3)" onclick="openPanelSect('${b.id}','voucher')">
+      <span class="tile-icon">🎟️</span><span>Use voucher</span>
+    </button>
+    <button class="pos-action-tile" style="background:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,.3)" onclick="openWaiver('${b.id}')">
+      <span class="tile-icon">📋</span><span>Open waiver</span>
+    </button>
+    <button class="pos-action-tile" style="background:#dc2626;box-shadow:0 2px 8px rgba(220,38,38,.3);grid-column:1/-1" onclick="openPanelSect('${b.id}','discount')">
+      <span class="tile-icon">💸</span><span>Take money off</span>
+    </button>
+  </div>`;
+}
+
+function buildSectionHTML(b,sect){
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const total=b.total_amount??calcPrice(b.game_id,players);
+  const dep=b.deposit_amount??calcDeposit(total);
+  const depPaid=b.deposit_paid||false;
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const collected=(depPaid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+  const balance=Math.max(0,total-collected);
+  const methodLabels={cash:'Cash',eftpos:'Eftpos',stripe:'Stripe',poli:'PoLi',bank_transfer:'Bank',invoice:'Invoice'};
+  const showHistory=openPOSHistory.has(b.id);
+
+  const backBar=(label)=>`<div class="pos-section-back">
+    <button class="pos-section-back-btn" onclick="closePanelSect('${b.id}')">← Back</button>
+    <span class="pos-section-title">${label}</span>
+  </div>`;
+
+  if(sect==='products'){
+    return backBar('Add a product')+`
+    <div class="action-panel-scroll">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="pos-cat-tabs-${b.id}">
+        ${['Favourites','All','Food/Drink','VR','Boardgame','Other'].map((c,i)=>`<button class="avail-slot${i===0?' on':''}" style="font-size:10px;padding:2px 7px" onclick="setPOSCatFilter('${b.id}','${c}',this)">${c}</button>`).join('')}
+      </div>
+      <div style="position:relative;margin-bottom:6px">
+        <input type="text" placeholder="Search add-ons…" oninput="filterPOSProds('${b.id}',this.value)" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px 5px 26px;background:#f9fafb">
+        <i class="ti ti-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:12px"></i>
+      </div>
+      <div class="addon-grid" id="pos-prod-grid-${b.id}">${buildPOSProductGrid(b.id,'Favourites')}</div>
+      <button onclick="addCustomAddon('${b.id}')" style="font-size:11px;padding:4px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit;margin-top:2px">+ Custom item</button>
+    </div>`;
+  }
+
+  if(sect==='voucher'){
+    return backBar('Use voucher')+`
+    <div class="action-panel-scroll" style="padding:14px 16px">
+      <div class="voucher-row">
+        <input type="text" id="voucher-${b.id}" class="voucher-input" placeholder="VOUCHER CODE" oninput="this.value=this.value.toUpperCase()">
+        <button class="voucher-apply-btn" onclick="applyVoucher('${b.id}')">Apply</button>
+      </div>
+      <div id="voucher-msg-${b.id}" style="font-size:11px;min-height:16px"></div>
+    </div>`;
+  }
+
+  if(sect==='discount'){
+    return backBar('Take money off')+`
+    <div class="action-panel-scroll" style="padding:14px 16px">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:12px">Reduce this booking's total — e.g. a late start, an issue during the game, or a goodwill gesture. This shows on the receipt with your reason.</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Reason</label>
+        <input type="text" id="discount-reason-${b.id}" placeholder="e.g. Started late — fixing a prop" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#f9fafb">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to take off ($)</label>
+        <input type="number" id="discount-amt-${b.id}" min="0" step="0.01" placeholder="0"
+          style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #dc2626;border-radius:8px;font-weight:700;background:#fef2f2;color:#b91c1c;outline:none;">
+      </div>
+      <button onclick="applyDiscount('${b.id}')" style="width:100%;padding:11px;font-size:15px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Apply discount →</button>
+      <div id="discount-msg-${b.id}" style="font-size:12px;margin-top:6px;text-align:center;font-weight:500"></div>
+    </div>`;
+  }
+
+if(sect==='pay'){
+    const quickChecks=(!depPaid||balance>0)?`
+      <div style="margin-bottom:8px">
+        ${!depPaid?`<label class="quick-pay-label"><input type="checkbox" onchange="if(this.checked)toggleDepositBank('${b.id}')"> Deposit via bank <span style="color:#9ca3af">($${dep.toFixed(0)})</span></label>`:''}
+        ${balance>0?`<label class="quick-pay-label"><input type="checkbox" onchange="if(this.checked)markFullBank('${b.id}')"> Full balance via bank <span style="color:#9ca3af">($${balance.toFixed(0)})</span></label>`:''}
+      </div>`:'';
+    const splitMode=b.splitMode||false;
+    const currentMethod=b._currentMethod||'';
+
+    // The single-payment recording controls (amount/method/record button) are
+    // only useful when NOT mid-split — once split mode is on, all recording
+    // happens through the split view below, so this whole block collapses.
+    const singlePaymentUI = splitMode ? '' : `
+      <div style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to record ($)</label>
+        <input type="number" id="pay-amt-${b.id}" class="pay-input" value="${balance>0?balance.toFixed(0):''}" min="0"
+          style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none;"
+          placeholder="0">
+      </div>
+
+      ${quickChecks}
+
+      <div id="method-btns-${b.id}" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+        ${[['cash','Cash','#374151','#f8fafc','#cbd5e1'],['eftpos','Eftpos','#0369a1','#f0f9ff','#bae6fd'],['stripe','Stripe','#6d28d9','#f5f3ff','#ddd6fe'],['poli','PoLi','#c2410c','#fff7ed','#fed7aa'],['bank_transfer','Bank','#15803d','#f0fdf4','#bbf7d0'],['invoice','Invoice','#be185d','#fdf2f8','#fbcfe8']].map(([m,label,color,bg,border])=>`
+          <button data-method="${m}" onclick="selectPayMethod('${b.id}','${m}')"
+            style="font-size:12px;padding:7px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:7px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
+            ${label}
+          </button>`).join('')}
+      </div>
+
+      <div id="invoice-email-wrap-${b.id}" style="display:${currentMethod==='invoice'?'':'none'};margin-bottom:8px">
+<input type="email" id="invoice-email-${b.id}" placeholder="Email for invoice..." value="${b.customerEmail||''}" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #fbbf24;border-radius:8px;padding:7px 10px;background:#fffbeb">
+</div>
+
+      <button onclick="recordPayment('${b.id}')" style="width:100%;padding:11px;font-size:15px;background:#10b981;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Record →</button>
+      <div id="pay-msg-${b.id}" style="font-size:12px;margin-top:6px;min-height:18px;text-align:center;font-weight:500"></div>
+    `;
+
+    return backBar('Ready to pay') + `
+    <div class="action-panel-scroll" style="padding:14px 16px">
+      <div style="font-size:15px;font-weight:700;color:${balance===0?'#1d9e75':'#ef9f27'};margin-bottom:10px">${balance===0?'✓ Fully paid':'$'+balance.toFixed(0)+' owing'}</div>
+
+      ${singlePaymentUI}
+
+      <button onclick="toggleSplitView('${b.id}')" style="width:100%;margin-top:12px;font-size:12px;padding:7px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit">
+        ${splitMode?'✕ Close split':'↔ Split between people'}
+      </button>
+      <div id="split-wrap-${b.id}" style="display:${splitMode?'block':'none'};margin-top:8px">${splitMode?buildSplitView(b):''}</div>
+    </div>`;
+  }
+  return '';
+}
+
+function buildActionPanelHTML(b){
+  const sect=openPanelSection[b.id]||null;
+  const cartHTML=buildCartSummaryHTML(b);
+  if(sect){
+    return cartHTML+buildSectionHTML(b,sect);
+  }
+  return cartHTML+buildActionTilesHTML(b);
+}
+
+function openPanelSect(id,sect){
+  openPanelSection[id]=sect;
+  refreshPanel();
+}
+function closePanelSect(id){
+  delete openPanelSection[id];
+  refreshPanel();
+}
+
+function renderActionPanel(b,target='desktop'){
+  const html=buildActionPanelHTML(b);
+  if(target==='desktop'){
+    document.getElementById('panelEmpty').style.display='none';
+    const pc=document.getElementById('desktopPanelContent');
+    pc.style.display='flex';
+pc.innerHTML=`
+      <div class="action-panel-header">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#111827">${b.customer||'—'}</div>
+          <div style="font-size:11px;color:#9ca3af">${fmt12(b.time)} · ${b.name}</div>
+        </div>
+      </div>
+      ${html}`;
+  } else {
+    document.getElementById('drawerContent').innerHTML=html;
+  }
+}
+
+// ── MOBILE DRAWER ──────────────────────────────────
+function openDrawer(b){
+  document.getElementById('drawerTitle').textContent=`${b.customer||'—'} · ${fmt12(b.time)}`;
+  renderActionPanel(b,'drawer');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('bookingDrawer').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('bookingDrawer').classList.remove('open');
+}
+
+// ── PRODUCT GRIDS ──────────────────────────────────
+function buildPOSProductGrid(bookingId,cat){
+  const active=products.filter(p=>p.active&&(cat==='All'||cat===p.category));
+  if(!active.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products.</div>';
+  return active.map(p=>`
+    <button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')">
+      <div class="addon-btn-name">${catEmoji(p.category)} ${p.name}</div>
+      <div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
+    </button>`).join('');
+}
+function setPOSCatFilter(bookingId,cat,btn){
+  const grid=document.getElementById('pos-prod-grid-'+bookingId);
+  const tabs=document.getElementById('pos-cat-tabs-'+bookingId);
+  if(grid){grid.innerHTML=buildPOSProductGrid(bookingId,cat);grid.dataset.cat=cat;}
+  if(tabs)tabs.querySelectorAll('button').forEach(b=>{b.classList.remove('on');if(b.textContent===cat)b.classList.add('on')});
+}
+function filterPOSProds(bookingId,query){
+  const grid=document.getElementById('pos-prod-grid-'+bookingId);if(!grid)return;
+  const q=query.toLowerCase().trim();const cat=grid.dataset.cat||'All';
+  const filtered=products.filter(p=>p.active&&(cat==='All'||p.category===cat)&&(!q||p.name.toLowerCase().includes(q)));
+  if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
+  grid.innerHTML=filtered.map(p=>`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${catEmoji(p.category)} ${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
+}
+
+// ── Booking data mutations ──────────────────────────
+function calcPrice(gameId,players){
+  const game=games.find(g=>g.id===gameId);if(!game)return 0;
+  const type=game.pricingType||'per_person_tiered';
+  if(type==='per_hour_flat')return(bookingConfig.gameFlatPrice||{})[gameId]??0;
+  if(type==='per_person_per_hour')return((bookingConfig.gamePerPersonPerHour||{})[gameId]??0)*players;
+  const tiers=(bookingConfig.gamePriceTiers||{})[gameId]||[{min:1,max:99,pp:35}];
+  const tier=tiers.find(t=>players>=t.min&&players<=t.max)||tiers[tiers.length-1];
+  return(tier?tier.pp:35)*players;
+}
+function calcDeposit(total){
+  const type=bookingConfig.depositType||'fixed';const amt=bookingConfig.depositAmount??35;
+  if(type==='percent')return Math.round(total*amt/100*100)/100;
+  return Math.min(amt,total);
+}
+function calcPriceNum(gameId,players){return calcPrice(gameId,players);}
+
+async function savePOSData(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  try{await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({total_amount:b.total_amount,deposit_amount:b.deposit_amount,deposit_paid:b.deposit_paid||false,deposit_method:b.deposit_method||null,payments:b.payments||null,addons:b.addons||null,players_booked:b.players_booked,updated_at:new Date().toISOString()})})}catch(e){console.error('POS save error:',e)}
+}
+
+async function addProductToBooking(bookingId,productId){
+  const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+  const p=products.find(x=>x.id===productId);if(!p)return;
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  addons.push({label:p.name,amount:parseFloat(p.sell_price||0),productId:p.id,at:new Date().toISOString()});
+  b.addons=JSON.stringify(addons);
+  b.total_amount=(b.total_amount??calcPrice(b.game_id,players))+parseFloat(p.sell_price||0);
+  await savePOSData(bookingId);
+  if(p.stock_qty!=null&&p.stock_qty>0){p.stock_qty--;try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${productId}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:p.stock_qty})})}catch(e){}}
+  refreshPanel();
+}
+
+async function removeAddon(bookingId,idx){
+  const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const removed=addons.splice(idx,1)[0];
+  if(removed.amount)b.total_amount=(b.total_amount??calcPrice(b.game_id,players))-removed.amount;
+  b.addons=JSON.stringify(addons);
+  await savePOSData(bookingId);refreshPanel();
+}
+
+async function adjustPOSPlayers(id,delta){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const limits=(bookingConfig.gamePlayerLimits||{})[b.game_id]||{min:1,max:20};
+  const current=b.players_booked||1;
+  const next=Math.max(limits.min||1,Math.min(limits.max||20,current+delta));
+  if(next===current)return;
+  const oldBase=calcPrice(b.game_id,current);const newBase=calcPrice(b.game_id,next);
+  b.players_booked=next;b.total_amount=(b.total_amount??oldBase)+(newBase-oldBase);
+  await savePOSData(id);refreshPanel();
+}
+
+function selectPayMethod(bookingId,method){
+  const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+  b._currentMethod=method;
+  const colorMap={cash:['#374151','#f8fafc','#cbd5e1'],eftpos:['#0369a1','#f0f9ff','#bae6fd'],stripe:['#6d28d9','#f5f3ff','#ddd6fe'],poli:['#c2410c','#fff7ed','#fed7aa'],bank_transfer:['#15803d','#f0fdf4','#bbf7d0'],invoice:['#be185d','#fdf2f8','#fbcfe8']};
+  document.querySelectorAll(`#method-btns-${bookingId} button[data-method]`).forEach(btn=>{
+    const m=btn.dataset.method;const [col,bg,bdr]=colorMap[m]||['#374151','#f9fafb','#e5e7eb'];
+    const active=m===method;
+    btn.style.background=active?col:bg;
+    btn.style.color=active?'#fff':col;
+    btn.style.borderColor=active?col:bdr;
+  });
+  const iw=document.getElementById('invoice-email-wrap-'+bookingId);
+  if(iw)iw.style.display=method==='invoice'?'':'none';
+}
+
+async function recordPayment(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const amtEl=document.getElementById('pay-amt-'+id);
+  const amt=parseFloat(amtEl?.value)||0;
+  const method=b._currentMethod||'';
+  const msgEl=document.getElementById('pay-msg-'+id);
+  if(!amt){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an amount.'}return}
+  if(!method){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.'}return}
+  let invoiceEmail=null;
+  if(method==='invoice'){invoiceEmail=document.getElementById('invoice-email-'+id)?.value.trim();if(!invoiceEmail){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address for the invoice.'}return}}
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const total=b.total_amount??calcPrice(b.game_id,players);
+  const dep=b.deposit_amount??calcDeposit(total);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const alreadyCollected=(b.deposit_paid?dep:0)+payments.reduce((s,p)=>s+p.amount,0);
+  const maxAllowed=Math.max(0,total-alreadyCollected);
+  if(maxAllowed===0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already paid in full.'}return}
+  const toRecord=Math.min(amt,maxAllowed);
+  const payEntry={amount:toRecord,method,at:new Date().toISOString()};
+  if(invoiceEmail)payEntry.invoice_email=invoiceEmail;
+  if(method==='invoice')payEntry.status='pending';
+  payments.push(payEntry);b.payments=JSON.stringify(payments);
+  if(amtEl)amtEl.value='';
+  if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
+  await savePOSData(id);
+  setTimeout(()=>refreshPanel(),600);
+}
+
+// Records a discount/adjustment as a negative-amount addon with a required
+// reason (e.g. "Started late — fixing a prop"). Reduces the booking's
+// total_amount immediately, same mechanism as a voucher discount.
+async function applyDiscount(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const reasonEl=document.getElementById('discount-reason-'+id);
+  const amtEl=document.getElementById('discount-amt-'+id);
+  const msgEl=document.getElementById('discount-msg-'+id);
+  const reason=reasonEl?.value.trim();
+  const amt=parseFloat(amtEl?.value)||0;
+  if(!reason){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Please enter a reason.'}return}
+  if(!amt||amt<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an amount greater than $0.'}return}
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  addons.push({label:`Discount: ${reason}`,amount:-Math.abs(amt),at:new Date().toISOString()});
+  b.addons=JSON.stringify(addons);
+  b.total_amount=Math.max(0,(b.total_amount??calcPrice(b.game_id,players))-Math.abs(amt));
+  await savePOSData(id);
+  if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ $${amt.toFixed(2)} taken off`}
+  setTimeout(()=>closePanelSect(id),700);
+}
+
+async function removePayment(id,idx){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const payments=b.payments?JSON.parse(b.payments):[];payments.splice(idx,1);b.payments=JSON.stringify(payments);
+  await savePOSData(id);refreshPanel();
+}
+
+function togglePOSHistory(id){
+  if(openPOSHistory.has(id))openPOSHistory.delete(id);else openPOSHistory.add(id);
+  refreshPanel();
+}
+
+async function toggleDepositBank(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;b.deposit_paid=true;b.deposit_method='bank_transfer';await savePOSData(id);refreshPanel();
+}
+async function markFullBank(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const total=b.total_amount??calcPrice(b.game_id,players);const dep=b.deposit_amount??calcDeposit(total);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const alreadyCollected=(b.deposit_paid?dep:0)+payments.reduce((s,p)=>s+p.amount,0);
+  const remaining=Math.max(0,total-alreadyCollected);if(remaining<=0){refreshPanel();return}
+  payments.push({amount:remaining,method:'bank_transfer',at:new Date().toISOString()});b.payments=JSON.stringify(payments);
+  await savePOSData(id);refreshPanel();
+}
+async function toggleDepositPaid(id,paid){
+  const b=bookings.find(x=>x.id===id);if(!b)return;b.deposit_paid=paid;if(!paid)b.deposit_method=null;await savePOSData(id);refreshPanel();
+}
+
+// Helper: re-render panel without full list reload
+function refreshPanel(){
+  if(!selectedBookingId)return;
+  const b=bookings.find(x=>x.id===selectedBookingId);if(!b)return;
+  const isDesktop=window.innerWidth>680;
+  if(isDesktop)renderActionPanel(b,'desktop');
+  else renderActionPanel(b,'drawer');
+  // update row status badge
+  const players=b.players_booked||1;const total=b.total_amount??calcPrice(b.game_id,players);const dep=b.deposit_amount??calcDeposit(total);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+  const balance=Math.max(0,total-collected);
+  const row=document.querySelector(`.brow[data-bid="${selectedBookingId}"] .brow-status`);
+  if(row){row.className=`brow-status ${balance===0?'full':'owing'}`;row.textContent=balance===0?'✓ Paid':'$'+balance.toFixed(0)+' owing'}
+  updatePOSTotals(bookings.filter(b=>!b.isEnquiry&&b.status!=='cancelled'));
+}
+
+// ── SPLIT PAYMENTS ─────────────────────────────────
+function buildSplitView(b){
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const gamePrice=calcPrice(b.game_id,players);
+  const ppPrice=players>0?gamePrice/players:gamePrice;
+  const sel=b._splitSel||{players:0,addonIdxs:[],method:'',personName:''};
+  const state=b.splitState||{playersPaid:0,addonsPaid:[],personNum:1};
+  const remainingPlayers=players-state.playersPaid;
+  const personNum=state.personNum||1;
+  const colorMap={cash:['Cash','#374151','#f8fafc','#cbd5e1'],eftpos:['Eftpos','#0369a1','#f0f9ff','#bae6fd'],stripe:['Stripe','#6d28d9','#f5f3ff','#ddd6fe'],bank_transfer:['Bank','#15803d','#f0fdf4','#bbf7d0'],invoice:['Invoice','#be185d','#fdf2f8','#fbcfe8']};
+
+  // Player buttons — deposit already paid counts as 1 player for person 1 silently
+  let playerBtns='';
+  if(remainingPlayers>0){
+    playerBtns=`<div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:4px">Players (${remainingPlayers} remaining)</div>
+    <div id="split-player-btns-${b.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+    for(let n=1;n<=remainingPlayers;n++){
+      const active=sel.players===n;
+      playerBtns+=`<button data-players="${n}" onclick="splitTogglePlayers('${b.id}',${n})"
+        style="padding:5px 12px;border-radius:8px;border:2px solid ${active?'#07b4c5':'#e5e7eb'};background:${active?'#07b4c5':'#fff'};color:${active?'#fff':'#374151'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        ${n}p · $${(n*ppPrice).toFixed(0)}
+      </button>`;
+    }
+    playerBtns+='</div>';
+  } else {
+    playerBtns=`<div style="font-size:11px;color:#1d9e75;font-weight:600;margin-bottom:8px">✓ All players paid</div>`;
+  }
+
+  // Addon buttons (only unpaid addons with positive amounts)
+  const unpaidAddons=addons.map((a,i)=>({...a,origIdx:i})).filter(a=>!state.addonsPaid.includes(a.origIdx)&&a.amount>0);
+  let addonBtns='';
+  if(unpaidAddons.length){
+    addonBtns=`<div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:4px">Add-ons</div>
+    <div id="split-addon-btns-${b.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+    unpaidAddons.forEach(a=>{
+      const active=sel.addonIdxs.includes(a.origIdx);
+      addonBtns+=`<button data-addidx="${a.origIdx}" onclick="splitToggleAddon('${b.id}',${a.origIdx})"
+        style="padding:5px 10px;border-radius:8px;border:2px solid ${active?'#07b4c5':'#e5e7eb'};background:${active?'#07b4c5':'#fff'};color:${active?'#fff':'#374151'};font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">
+        ${a.label} · $${parseFloat(a.amount).toFixed(0)}
+      </button>`;
+    });
+    addonBtns+='</div>';
+  }
+
+  // Running total for this person's selection
+  const selTotal=(sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i]?.amount||0),0);
+
+  // Method buttons — inline styles so highlighting works without class dependency
+  const methodBtns=Object.entries(colorMap).map(([m,[label,col,bg,bdr]])=>{
+    const active=sel.method===m;
+    return `<button data-splitmethod="${m}" onclick="selectSplitMethod('${b.id}','${m}')"
+      style="font-size:11px;padding:6px 4px;border:2px solid ${active?col:bdr};border-radius:7px;background:${active?col:bg};color:${active?'#fff':col};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">${label}</button>`;
+  }).join('');
+
+  return `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px">
+    <div style="margin-bottom:10px">
+      <input id="split-name-${b.id}" type="text" value="${sel.personName||''}" placeholder="Person ${personNum} name (optional)"
+        oninput="splitUpdateName('${b.id}',this.value)"
+        style="width:100%;font-size:13px;font-weight:700;color:#07b4c5;background:none;border:none;border-bottom:1.5px dashed #07b4c5;outline:none;padding:2px 0;font-family:inherit">
+    </div>
+    ${playerBtns}
+    ${addonBtns}
+    <div id="split-method-btns-${b.id}" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px">${methodBtns}</div>
+    <div id="split-invoice-wrap-${b.id}" style="display:${sel.method==='invoice'?'':'none'};margin-bottom:6px">
+      <input type="email" id="split-invoice-email-${b.id}" placeholder="Email for invoice…" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #fbbf24;border-radius:8px;padding:6px 10px;background:#fffbeb">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">This person ($)</label>
+      <div id="split-total-${b.id}" style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;">$${selTotal.toFixed(2)}</div>
+    </div>
+    <button onclick="recordSplitPaymentNew('${b.id}')" style="width:100%;padding:11px;font-size:15px;background:#1d9e75;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Record →</button>
+    <div id="split-msg-${b.id}" style="font-size:11px;margin-top:6px;min-height:14px;color:#dc2626;text-align:center"></div>
+    ${state.playersPaid>0?`<div style="font-size:10px;color:#9ca3af;margin-top:6px">${state.playersPaid} of ${players} players done</div>`:''}
+  </div>`;
+}
+
+function toggleSplitView(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  b.splitMode=!b.splitMode;
+  if(b.splitMode){
+    // If deposit already paid, silently count it as 1 player covered
+    const depAlreadyPaid=b.deposit_paid||false;
+    b.splitState={playersPaid:depAlreadyPaid?1:0,addonsPaid:[],personNum:1};
+    b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  } else {
+    b.splitState=null;
+    b._splitSel=null;
+  }
+  refreshPanel();
+}
+function splitTogglePlayers(id,n){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!b._splitSel)b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  b._splitSel.players=b._splitSel.players===n?0:n;
+  // Surgical: update player button styles
+  document.querySelectorAll(`#split-player-btns-${id} button[data-players]`).forEach(btn=>{
+    const active=parseInt(btn.dataset.players)===b._splitSel.players;
+    btn.style.background=active?'#07b4c5':'#fff';
+    btn.style.borderColor=active?'#07b4c5':'#e5e7eb';
+    btn.style.color=active?'#fff':'#374151';
+  });
+  splitUpdateTotal(id);
+}
+function splitToggleAddon(id,origIdx){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!b._splitSel)b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  const i=b._splitSel.addonIdxs.indexOf(origIdx);
+  if(i===-1)b._splitSel.addonIdxs.push(origIdx);
+  else b._splitSel.addonIdxs.splice(i,1);
+  // Surgical: update addon button styles
+  document.querySelectorAll(`#split-addon-btns-${id} button[data-addidx]`).forEach(btn=>{
+    const active=b._splitSel.addonIdxs.includes(parseInt(btn.dataset.addidx));
+    btn.style.background=active?'#07b4c5':'#fff';
+    btn.style.borderColor=active?'#07b4c5':'#e5e7eb';
+    btn.style.color=active?'#fff':'#374151';
+  });
+  splitUpdateTotal(id);
+}
+function splitClearSel(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  b._splitSel={players:0,addonIdxs:[],method:'',personName:b._splitSel?.personName||''};
+  refreshPanel();
+}
+function selectSplitMethod(id,method){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!b._splitSel)b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  b._splitSel.method=method;
+  // Surgical: update method button styles using same colorMap as buildSplitView
+  const colorMap={cash:['#374151','#f8fafc','#cbd5e1'],eftpos:['#0369a1','#f0f9ff','#bae6fd'],stripe:['#6d28d9','#f5f3ff','#ddd6fe'],bank_transfer:['#15803d','#f0fdf4','#bbf7d0'],invoice:['#be185d','#fdf2f8','#fbcfe8']};
+  document.querySelectorAll(`#split-method-btns-${id} button[data-splitmethod]`).forEach(btn=>{
+    const m=btn.dataset.splitmethod;
+    const [col,bg,bdr]=colorMap[m]||['#374151','#f9fafb','#e5e7eb'];
+    const active=m===method;
+    btn.style.background=active?col:bg;
+    btn.style.color=active?'#fff':col;
+    btn.style.borderColor=active?col:bdr;
+  });
+  const iw=document.getElementById('split-invoice-wrap-'+id);
+  if(iw)iw.style.display=method==='invoice'?'':'none';
+  splitUpdateTotal(id);
+}
+function splitUpdateName(id,val){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!b._splitSel)b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  b._splitSel.personName=val;
+}
+function splitUpdateTotal(id){
+  const b=bookings.find(x=>x.id===id);if(!b||!b._splitSel)return;
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const gamePrice=calcPrice(b.game_id,players);
+  const ppPrice=players>0?gamePrice/players:gamePrice;
+  const sel=b._splitSel;
+  const selTotal=(sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i]?.amount||0),0);
+  const el=document.getElementById('split-total-'+id);
+  if(el)el.textContent='$'+selTotal.toFixed(2);
+}
+async function recordSplitPaymentNew(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const sel=b._splitSel||{players:0,addonIdxs:[],method:'',personName:''};
+  const msgEl=document.getElementById('split-msg-'+id);
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const gamePrice=calcPrice(b.game_id,players);
+  const ppPrice=players>0?gamePrice/players:gamePrice;
+  if(!sel.players&&!sel.addonIdxs.length){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select at least one item.'}return}
+  if(!sel.method){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.'}return}
+  let invoiceEmail=null;
+  if(sel.method==='invoice'){invoiceEmail=document.getElementById('split-invoice-email-'+id)?.value.trim();if(!invoiceEmail){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email for the invoice.'}return}}
+  const amt=parseFloat(((sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i].amount||0),0)).toFixed(2));
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const personLabel=sel.personName?.trim()||(b.splitState?.personNum?`Person ${b.splitState.personNum}`:'Person 1');
+  const entry={amount:amt,method:sel.method,at:new Date().toISOString(),splitPerson:personLabel};
+  if(invoiceEmail)entry.invoice_email=invoiceEmail;
+  payments.push(entry);b.payments=JSON.stringify(payments);
+  if(!b.splitState)b.splitState={playersPaid:0,addonsPaid:[],personNum:1};
+  b.splitState.playersPaid+=sel.players;
+  sel.addonIdxs.forEach(i=>b.splitState.addonsPaid.push(i));
+  b.splitState.personNum++;
+  b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
+  await savePOSData(id);
+  const remPlayers=players-b.splitState.playersPaid;
+  const remAddons=addons.filter((_,i)=>!b.splitState.addonsPaid.includes(i)&&addons[i].amount>0);
+  if(remPlayers===0&&remAddons.length===0){
+    delete openPanelSection[id];
+    b.splitMode=false;
+  }
+  refreshPanel();
+}
+
+// ── VOUCHER APPLICATION ────────────────────────────
+async function applyVoucher(bookingId){
+  const input=document.getElementById('voucher-'+bookingId);
+  const msgEl=document.getElementById('voucher-msg-'+bookingId);
+  const code=input?.value.trim().toUpperCase();
+  if(!code){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter a voucher code.'}return}
+  const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  if(addons.find(a=>a.voucher===code)){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already applied.'}return}
+  if(msgEl){msgEl.style.color='#6b7280';msgEl.textContent='Looking up…'}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/vouchers?code=eq.${code}&select=*`,{headers:H()});
+    const rows=await r.json();
+    if(!rows.length){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Code not found.'}return}
+    const v=rows[0];
+    if(v.status==='used'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already used.'}return}
+    if(v.status==='expired'||v.status==='cancelled'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Voucher is '+v.status+'.'}return}
+    let discount=0,label='';
+    if(v.type==='amount'){discount=parseFloat(v.value)||0;label=`Voucher ${code} ($${discount} off)`}
+    else{const pl=parseInt(v.players)||1;discount=parseFloat(v.value)||calcPrice(v.game_id,pl)||0;label=`Voucher ${code} (${pl}p${v.game_name?' — '+v.game_name:''})`}
+    if(discount<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Could not calculate value.'}return}
+    addons.push({label,amount:-discount,voucher:code,voucherId:v.id,at:new Date().toISOString()});
+    b.addons=JSON.stringify(addons);
+    const curPlayers=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+    b.total_amount=Math.max(0,(b.total_amount??calcPrice(b.game_id,curPlayers))-discount);
+    if(input)input.value='';
+    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${v.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'used',used_at:new Date().toISOString(),used_on_booking:bookingId})});
+    await savePOSData(bookingId);
+    if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ ${label}`}
+    setTimeout(()=>refreshPanel(),600);
+  }catch(e){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}console.error(e)}
+}
+
+async function addCustomAddon(id){
+  const label=prompt('Add-on description:');if(!label)return;
+  const amtStr=prompt('Amount ($) — 0 for no charge, negative to discount:');const amount=parseFloat(amtStr)||0;
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  addons.push({label,amount:amount||null,at:new Date().toISOString()});
+  b.addons=JSON.stringify(addons);
+  if(amount)b.total_amount=Math.max(0,(b.total_amount??calcPrice(b.game_id,players))+amount);
+  await savePOSData(id);refreshPanel();
+}
+
+// ── TOTALS BAR ─────────────────────────────────────
+function updatePOSTotals(dayBookings){
+  let totalDue=0,totalCollected=0;
+  dayBookings.forEach(b=>{
+    const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+    const total=b.total_amount??calcPrice(b.game_id,players);
+    const dep=b.deposit_amount??calcDeposit(total);
+    const payments=b.payments?JSON.parse(b.payments):[];
+    const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    totalDue+=total;totalCollected+=collected;
+  });
+  const outstanding=Math.max(0,totalDue-totalCollected);
+  const fmt=v=>'$'+Math.round(v);
+  const e1=document.getElementById('posTotalDue');if(e1)e1.textContent=fmt(totalDue);
+  const e2=document.getElementById('posTotalCollected');if(e2)e2.textContent=fmt(totalCollected);
+  const e3=document.getElementById('posTotalOutstanding');if(e3)e3.textContent=fmt(outstanding);
+}
+
+// ── PRODUCTS ───────────────────────────────────────
+let prodCatFilter='All';
+const PROD_CATS=['All','Food/Drink','Escape Room','Boardgame','Book','VR','Other'];
+
+async function loadProducts(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/products?order=favourite.desc,category,name`,{headers:H()});if(!r.ok)return;const rows=await r.json();if(Array.isArray(rows))products=rows}
+  catch(e){console.error('Products load:',e)}
+}
+
+function renderProdCatTabs(){
+  const el=document.getElementById('prodCatTabs');if(!el)return;
+  el.innerHTML=PROD_CATS.map(c=>`<button class="avail-tab ${c===prodCatFilter?'active':''}" onclick="setProdFilter('${c}')">${c}</button>`).join('');
+}
+function setProdFilter(cat){prodCatFilter=cat;renderProdCatTabs();renderProdList()}
+function renderProdList(){
+  const el=document.getElementById('prodList');if(!el)return;
+  const filtered=prodCatFilter==='All'?products:products.filter(p=>p.category===prodCatFilter);
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No products.</div>';return}
+  el.innerHTML=filtered.map(p=>`<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <div style="display:flex;align-items:center;gap:8px;width:100%">
+      <div style="width:28px;height:28px;border-radius:8px;background:#f0fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${catEmoji(p.category)}</div>
+      <div style="flex:1;min-width:0"><div class="row-label" style="${!p.active?'color:#9ca3af;text-decoration:line-through':''}">${p.name}</div><div class="row-sub">${p.category}${p.stock_qty!=null?' · Stock: '+p.stock_qty:''}</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:#07b4c5">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div>
+      <button class="avail-toggle ${p.favourite?'on':'off'}" onclick="toggleProdFavourite('${p.id}')" title="Favourite">${p.favourite?'⭐':'☆'}</button>
+      <button class="avail-toggle ${p.active?'on':'off'}" onclick="toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
+      <button class="icon-btn danger" onclick="deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
+    </div>
+    ${p.notes?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">📝 ${p.notes}</div>`:''}
+  </div>`).join('');
+}
+async function addProduct(){
+  const name=document.getElementById('newProdName').value.trim();const cat=document.getElementById('newProdCat').value;
+  const sell=parseFloat(document.getElementById('newProdSell').value)||0;const stock=parseInt(document.getElementById('newProdStock').value)||null;
+  const notes=document.getElementById('newProdNotes').value.trim();const msgEl=document.getElementById('prodAddMsg');
+  if(!name){msgEl.style.color='#dc2626';msgEl.textContent='Please enter a product name.';return}
+  msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
+  try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,category:cat,sell_price:sell,stock_qty:stock,notes:notes||null,active:true,favourite:false})});
+  if(!r.ok)throw new Error(await r.text());const rows=await r.json();if(rows[0])products.push(rows[0]);
+  ['newProdName','newProdSell','newProdStock','newProdNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  msgEl.style.color='#15803d';msgEl.textContent='✓ Added!';setTimeout(()=>{msgEl.textContent=''},2000);renderProdList()}
+  catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}
+}
+async function deleteProduct(id){if(!confirm('Delete this product?'))return;products=products.filter(p=>p.id!==id);renderProdList();try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()})}catch(e){}}
+async function toggleProdActive(id){const p=products.find(x=>x.id===id);if(!p)return;p.active=!p.active;renderProdList();try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})})}catch(e){}}
+async function toggleProdFavourite(id){const p=products.find(x=>x.id===id);if(!p)return;p.favourite=!p.favourite;renderProdList();try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({favourite:p.favourite})})}catch(e){}}
+function exportProductsCSV(){const headers=['name','category','sell_price','purchase_price','rrp','stock_qty','notes','active','favourite'];const rows=products.map(p=>headers.map(h=>{const val=p[h]??'';return typeof val==='string'&&val.includes(',')?`"${val}"`:val}).join(','));const csv=[headers.join(','),...rows].join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='btb_products_'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
+async function importProductsCSV(input){const file=input.files[0];if(!file)return;const msgEl=document.getElementById('csvMsg');msgEl.style.color='#6b7280';msgEl.textContent='Reading file…';const text=await file.text();const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);if(lines.length<2){msgEl.style.color='#dc2626';msgEl.textContent='CSV appears empty.';return}const headerRow=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/['"]/g,''));const idx=h=>headerRow.indexOf(h);const parseRow=line=>{const cols=[];let cur='',inQ=false;for(const ch of line){if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){cols.push(cur.trim());cur=''}else cur+=ch}cols.push(cur.trim());return cols};const normCat=raw=>{const s=(raw||'').trim().toLowerCase();if(s==='boardgame'||s==='board game'||s==='boardgames')return'Boardgame';if(s==='food/drink'||s==='food & drink'||s==='food'||s==='drink')return'Food/Drink';if(s==='escape room'||s==='escaperoom')return'Escape Room';if(s==='book'||s==='books')return'Book';if(s==='vr')return'VR';return'Other'};const toImport=[];for(let i=1;i<lines.length;i++){const cols=parseRow(lines[i]);const get=h=>{const j=idx(h);return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''};const name=get('name');if(!name)continue;const activeVal=get('active').toUpperCase();const favVal=get('favourite').toUpperCase();toImport.push({name,category:normCat(get('category')),sell_price:parseFloat(get('sell_price'))||0,purchase_price:parseFloat(get('purchase_price'))||null,rrp:parseFloat(get('rrp'))||null,stock_qty:get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,notes:get('notes')||null,active:activeVal==='FALSE'||activeVal==='0'?false:true,favourite:favVal==='TRUE'||favVal==='1'?true:false})}if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return}msgEl.textContent=`Importing ${toImport.length} products…`;try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(toImport)});if(!r.ok)throw new Error(await r.text());const saved=await r.json();saved.forEach(p=>{if(!products.find(x=>x.id===p.id))products.push(p)});msgEl.style.color='#15803d';msgEl.textContent=`✓ Imported ${saved.length} products!`;renderProdList()}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Import failed: '+e.message}input.value=''}
+
+// ── PRODUCT GRIDS ──────────────────────────────────
+function buildPOSProductGrid(bookingId,cat){
+  const active=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat));
+  if(!active.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products.</div>';
+  return active.map(p=>`
+    <button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')">
+      <div class="addon-btn-name">${p.favourite?'⭐ ':''}${catEmoji(p.category)} ${p.name}</div>
+      <div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
+    </button>`).join('');
+}
+function setPOSCatFilter(bookingId,cat,btn){
+  const grid=document.getElementById('pos-prod-grid-'+bookingId);
+  const tabs=document.getElementById('pos-cat-tabs-'+bookingId);
+  if(grid){grid.innerHTML=buildPOSProductGrid(bookingId,cat);grid.dataset.cat=cat;}
+  if(tabs)tabs.querySelectorAll('button').forEach(b=>{b.classList.remove('on');if(b.textContent.trim()===cat)b.classList.add('on')});
+}
+function filterPOSProds(bookingId,query){
+  const grid=document.getElementById('pos-prod-grid-'+bookingId);if(!grid)return;
+  const q=query.toLowerCase().trim();const cat=grid.dataset.cat||'Favourites';
+  const filtered=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat)&&(!q||p.name.toLowerCase().includes(q)));
+  if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
+  grid.innerHTML=filtered.map(p=>`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${p.favourite?'⭐ ':''}${catEmoji(p.category)} ${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
+}
+
+// ── PRODUCT SALE (category tile flow) ─────────────
+function showProductCat(catId){
+  const cat=posCategories.find(c=>c.id===catId)||posCategories[0];currentPOSCat=cat;
+  prodSaleCart=[];prodSaleMethod='';prodSaleCat=cat.filter||'All';
+  document.getElementById('posHome').style.display='none';
+  document.getElementById('posSection').style.display='none';
+  document.getElementById('posProdSection').style.display='flex';
+  document.getElementById('posVoucherSection').style.display='none';
+  document.getElementById('headerSub').innerHTML=`<span onclick="showPOSHome()" style="cursor:pointer;color:#07b4c5">← Home</span> · ${cat.label}`;
+  const tabs=document.getElementById('posProdCatTabs');
+  const allCats=['All','Food/Drink','Escape Room','Boardgame','Book','VR','Other'];
+  tabs.innerHTML=allCats.map(c=>`<button class="avail-slot${c===prodSaleCat?' on':''}" style="font-size:11px;padding:3px 9px" onclick="setProdSaleCat('${c}',this)">${c}</button>`).join('');
+  renderProdSaleGrid();renderProdSaleCart();
+}
+function setProdSaleCat(cat,btn){prodSaleCat=cat;document.querySelectorAll('#posProdCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderProdSaleGrid()}
+function renderProdSaleGrid(){
+  const q=(document.getElementById('prodSaleSearch')?.value||'').toLowerCase().trim();
+  const grid=document.getElementById('prodSaleGrid');if(!grid)return;
+  const filtered=products.filter(p=>p.active&&(prodSaleCat==='All'||p.category===prodSaleCat)&&(!q||p.name.toLowerCase().includes(q)));
+  if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}
+  const btnColor=currentPOSCat?.color||'#07b4c5';const rgb=hexToRgb(btnColor);
+  grid.innerHTML=filtered.map(p=>`<button onclick="addToProdSaleCart('${p.id}')" style="background:${btnColor};color:#fff;border:none;border-radius:14px;padding:18px 10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(${rgb},0.3);min-height:90px;justify-content:center;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><div style="font-size:14px;font-weight:700;text-align:center;line-height:1.3">${p.favourite?'⭐ ':''}${p.name}</div>${p.notes?`<div style="font-size:11px;opacity:.8;text-align:center">${p.notes}</div>`:''}<div style="font-size:16px;font-weight:700;opacity:.9">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
+}
+function addToProdSaleCart(productId){const p=products.find(x=>x.id===productId);if(!p)return;const ex=prodSaleCart.find(x=>x.id===productId);if(ex)ex.qty++;else prodSaleCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderProdSaleCart()}
+function removeFromProdSaleCart(productId){const idx=prodSaleCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(prodSaleCart[idx].qty>1)prodSaleCart[idx].qty--;else prodSaleCart.splice(idx,1);renderProdSaleCart()}
+function clearProdSaleCart(){prodSaleCart=[];renderProdSaleCart()}
+function renderProdSaleCart(){
+  const total=prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0);
+  const el=document.getElementById('prodSaleCart');const totalEl=document.getElementById('prodSaleTotal');const countEl=document.getElementById('prodSaleCartCount');
+  if(totalEl)totalEl.textContent='$'+total.toFixed(2);if(countEl)countEl.textContent=prodSaleCart.length?`(${prodSaleCart.reduce((s,i)=>s+i.qty,0)} items)`:'';
+  if(!el)return;if(!prodSaleCart.length){el.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:4px 0">Empty</div>';return}
+  el.innerHTML=prodSaleCart.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px"><span style="flex:1;color:#374151">${item.name}</span><button onclick="removeFromProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#6b7280">−</button><span style="font-size:13px;font-weight:600;color:#374151;min-width:16px;text-align:center">${item.qty}</span><button onclick="addToProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#07b4c5">+</button><span style="font-size:13px;font-weight:700;color:#07b4c5;min-width:48px;text-align:right">$${(item.price*item.qty).toFixed(2)}</span></div>`).join('');
+}
+function setProdSaleMethod(method,btn){prodSaleMethod=method;document.querySelectorAll('#prodSaleMethodBtns .method-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('prodSaleInvoiceWrap').style.display=method==='invoice'?'':'none'}
+async function completeProdSale(){
+  const msgEl=document.getElementById('prodSaleMsg');if(!prodSaleCart.length){msgEl.style.color='#dc2626';msgEl.textContent='Cart is empty.';return}if(!prodSaleMethod){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.';return}
+  let invoiceEmail=null;if(prodSaleMethod==='invoice'){invoiceEmail=document.getElementById('prodSaleInvoiceEmail')?.value.trim();if(!invoiceEmail){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address.';return}}
+  const total=prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0);const customer=document.getElementById('prodSaleCustomer')?.value.trim()||null;msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
+  try{const r=await fetch(`${SB_URL}/rest/v1/quick_sales`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify({items:JSON.stringify(prodSaleCart),total_amount:total,method:prodSaleMethod,invoice_email:invoiceEmail,customer_name:customer,status:prodSaleMethod==='invoice'?'invoice_pending':'paid',sold_at:new Date().toISOString(),sold_by:currentUser?.name||null})});if(!r.ok)throw new Error(await r.text());
+  for(const item of prodSaleCart){const p=products.find(x=>x.id===item.id);if(p&&p.stock_qty!=null&&p.stock_qty>0){p.stock_qty=Math.max(0,p.stock_qty-item.qty);try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:p.stock_qty})})}catch(e){}}}
+  msgEl.style.color='#1d9e75';msgEl.textContent=prodSaleMethod==='invoice'?`✓ Invoice recorded — $${total.toFixed(2)} awaiting payment`:`✓ Sale complete — $${total.toFixed(2)}`;
+  prodSaleCart=[];renderProdSaleCart();if(document.getElementById('prodSaleCustomer'))document.getElementById('prodSaleCustomer').value='';setTimeout(()=>{msgEl.textContent=''},3000)}
+  catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}
+}
+
+// ── QUICK SALE ─────────────────────────────────────
+function openQuickSale(){qsCart=[];qsMethod='';qsCat='All';document.getElementById('qsOverlay').classList.add('open');document.getElementById('qsSearch').value='';renderQSProducts();renderQSCart()}
+function closeQuickSale(){document.getElementById('qsOverlay').classList.remove('open')}
+function setQSCat(cat,btn){qsCat=cat;document.querySelectorAll('#qsCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderQSProducts()}
+function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||p.category===qsCat)&&(!q||p.name.toLowerCase().includes(q)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>`<button onclick="addToQSCart('${p.id}')" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.borderColor='#07b4c5';this.style.background='#f0fafb'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb'"><div style="font-size:13px;font-weight:600;color:#374151;line-height:1.3">${catEmoji(p.category)} ${p.name}</div>${p.notes?`<div style="font-size:11px;color:#9ca3af;margin-top:2px">${p.notes}</div>`:''}<div style="font-size:14px;font-weight:700;color:#07b4c5;margin-top:4px">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('')}
+function addToQSCart(productId){const p=products.find(x=>x.id===productId);if(!p)return;const existing=qsCart.find(x=>x.id===productId);if(existing)existing.qty++;else qsCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderQSCart()}
+function removeFromQSCart(productId){const idx=qsCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(qsCart[idx].qty>1)qsCart[idx].qty--;else qsCart.splice(idx,1);renderQSCart()}
+function clearQSCart(){qsCart=[];renderQSCart()}
+function renderQSCart(){const el=document.getElementById('qsCart');if(!el)return;const total=qsCart.reduce((s,i)=>s+(i.price*i.qty),0);document.getElementById('qsTotal').textContent='$'+total.toFixed(2);document.getElementById('qsCartCount').textContent=qsCart.length?`(${qsCart.reduce((s,i)=>s+i.qty,0)} items)`:'';if(!qsCart.length){el.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:6px 0">Cart empty — tap products to add.</div>';return}el.innerHTML=qsCart.map(item=>`<div class="qs-cart-item"><span style="flex:1;color:#374151">${catEmoji(item.category)} ${item.name}</span><div style="display:flex;align-items:center;gap:6px"><button onclick="removeFromQSCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:#6b7280">−</button><span style="font-size:13px;font-weight:600;color:#374151;min-width:16px;text-align:center">${item.qty}</span><button onclick="addToQSCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:#07b4c5">+</button><span style="font-size:13px;font-weight:700;color:#07b4c5;min-width:48px;text-align:right">$${(item.price*item.qty).toFixed(2)}</span></div></div>`).join('')}
+function setQSMethod(method,btn){qsMethod=method;document.querySelectorAll('#qsMethodBtns .method-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('qsInvoiceEmailWrap').style.display=method==='invoice'?'':'none'}
+async function completeQuickSale(){const msgEl=document.getElementById('qsMsg');if(!qsCart.length){msgEl.style.color='#dc2626';msgEl.textContent='Cart is empty.';return}if(!qsMethod){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.';return}let invoiceEmail=null;if(qsMethod==='invoice'){invoiceEmail=document.getElementById('qsInvoiceEmail')?.value.trim();if(!invoiceEmail){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address.';return}}const total=qsCart.reduce((s,i)=>s+(i.price*i.qty),0);const customer=document.getElementById('qsCustomer')?.value.trim()||null;msgEl.style.color='#6b7280';msgEl.textContent='Saving…';try{const r=await fetch(`${SB_URL}/rest/v1/quick_sales`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify({items:JSON.stringify(qsCart),total_amount:total,method:qsMethod,invoice_email:invoiceEmail,customer_name:customer,status:qsMethod==='invoice'?'invoice_pending':'paid',sold_at:new Date().toISOString(),sold_by:currentUser?.name||null})});if(!r.ok)throw new Error(await r.text());for(const item of qsCart){const p=products.find(x=>x.id===item.id);if(p&&p.stock_qty!=null&&p.stock_qty>0){p.stock_qty=Math.max(0,p.stock_qty-item.qty);try{await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:p.stock_qty})})}catch(e){}}}msgEl.style.color='#1d9e75';msgEl.textContent=qsMethod==='invoice'?`✓ Invoice recorded — $${total.toFixed(2)} awaiting payment from ${invoiceEmail}`:`✓ Sale complete — $${total.toFixed(2)}`;qsCart=[];renderQSCart();document.getElementById('qsCustomer').value='';document.getElementById('qsInvoiceEmail').value='';setTimeout(()=>{msgEl.textContent=''},3000)}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}}
+
+// ── VOUCHERS (standalone management) ──────────────
+function generateVoucherCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='BTB-';for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];return code}
+function setVoucherTab(type){voucherType=type;document.getElementById('vfields-amount').style.display=type==='amount'?'':'none';document.getElementById('vfields-players').style.display=type==='players'?'':'none';document.getElementById('vtab-amount').className='avail-toggle'+(type==='amount'?' on':' off');document.getElementById('vtab-players').className='avail-toggle'+(type==='players'?' on':' off');if(type==='players')renderVGameSelect()}
+function renderVGameSelect(){const el=document.getElementById('vGame');if(!el)return;const bookable=games.filter(g=>g.category==='escape'&&g.bookable!==false);el.innerHTML=bookable.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');el.onchange=()=>calcVPlayerPrice();calcVPlayerPrice()}
+function calcVPlayerPrice(){const gameId=document.getElementById('vGame')?.value;const players=parseInt(document.getElementById('vPlayers')?.value)||0;if(!gameId||!players)return;const price=calcPriceNum(gameId,players);const amtEl=document.getElementById('vPlayersAmt');const paidEl=document.getElementById('vPlayersPaid');if(amtEl)amtEl.value=price.toFixed(2);if(paidEl&&!paidEl.value)paidEl.value=price.toFixed(2)}
+function toggleVoucherPersonalised(){voucherPersonalised=!voucherPersonalised;document.getElementById('vPersonalisedFields').style.display=voucherPersonalised?'':'none';const tog=document.getElementById('vPersonalisedToggle');const dot=document.getElementById('vPersonalisedDot');if(tog)tog.style.background=voucherPersonalised?'#07b4c5':'#e5e7eb';if(dot)dot.style.left=voucherPersonalised?'18px':'2px'}
+async function issueVoucher(){const msgEl=document.getElementById('vIssueMsg');msgEl.style.color='#6b7280';msgEl.textContent='Saving…';const code=generateVoucherCode();let value=0,players=null,gameId=null,gameName=null;if(voucherType==='amount'){value=parseFloat(document.getElementById('vAmt').value)||0;if(!value){msgEl.style.color='#dc2626';msgEl.textContent='Enter a dollar value.';return}}else{gameId=document.getElementById('vGame').value;players=parseInt(document.getElementById('vPlayers').value)||0;value=parseFloat(document.getElementById('vPlayersAmt').value)||calcPriceNum(gameId,players);gameName=games.find(g=>g.id===gameId)?.name||'';if(!players){msgEl.style.color='#dc2626';msgEl.textContent='Enter number of players.';return}}const paid=parseFloat(document.getElementById(voucherType==='amount'?'vPaid':'vPlayersPaid').value)||value;const buyer=document.getElementById('vBuyer').value.trim()||null;const howPaid=document.getElementById('vHowPaid').value;const notes=document.getElementById('vNotes').value.trim()||null;const recipient=voucherPersonalised?document.getElementById('vRecipient').value.trim()||null:null;const message=voucherPersonalised?document.getElementById('vMessage').value.trim()||null:null;const from_name=voucherPersonalised?document.getElementById('vFrom').value.trim()||null:null;try{const r=await fetch(`${SB_URL}/rest/v1/vouchers`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({code,type:voucherType,value,players,game_id:gameId,game_name:gameName,paid_amount:paid,purchased_by:buyer,how_paid:howPaid,personalised:voucherPersonalised,recipient,message,from_name,notes,status:'active',issued_at:new Date().toISOString()})});if(!r.ok)throw new Error(await r.text());const saved=await r.json();if(saved[0])vouchers.unshift(saved[0]);msgEl.style.color='#15803d';msgEl.innerHTML=`✓ Voucher issued! Code: <strong style="font-family:monospace;font-size:14px;letter-spacing:1px;background:#dcfce7;padding:2px 8px;border-radius:6px">${code}</strong>`;['vAmt','vPaid','vPlayers','vPlayersAmt','vPlayersPaid','vBuyer','vNotes','vRecipient','vMessage','vFrom'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});if(voucherPersonalised)toggleVoucherPersonalised();renderVoucherList();setTimeout(()=>{msgEl.innerHTML=''},5000)}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}}
+function setVoucherFilter(f,btn){voucherStatusFilter=f;['vf-all','vf-requested','vf-active','vf-used','vf-expired'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='avail-slot'});if(btn)btn.className='avail-slot on';loadAndRenderVouchers()}
+async function searchVouchers(){const q=document.getElementById('vSearch').value.trim();await loadAndRenderVouchers(q)}
+async function loadAndRenderVouchers(search=''){const listEl=document.getElementById('voucherList');if(!listEl)return;listEl.innerHTML='<div class="empty-state">Loading…</div>';try{let url=`${SB_URL}/rest/v1/vouchers?order=issued_at.desc&limit=50`;if(voucherStatusFilter!=='all')url+=`&status=eq.${voucherStatusFilter}`;if(search)url+=`&or=(code.ilike.*${search}*,purchased_by.ilike.*${search}*,recipient.ilike.*${search}*)`;const r=await fetch(url,{headers:H()});vouchers=await r.json();renderVoucherList()}catch(e){listEl.innerHTML='<div class="empty-state">Error loading vouchers.</div>'}}
+function renderVoucherList(){const listEl=document.getElementById('voucherList');if(!listEl)return;if(!vouchers.length){listEl.innerHTML='<div class="empty-state">No vouchers found.</div>';return}const statusStyle={requested:'background:#dbeafe;color:#1d4ed8',active:'background:#dcfce7;color:#15803d',used:'background:#f3f4f6;color:#9ca3af',expired:'background:#fee2e2;color:#dc2626',cancelled:'background:#fee2e2;color:#dc2626'};listEl.innerHTML=vouchers.map(v=>{const valLabel=v.type==='players'?`${v.players} player${v.players!==1?'s':''} ${v.game_name?'— '+v.game_name:''} ($${parseFloat(v.value||0).toFixed(0)} value)`:`$${parseFloat(v.value||0).toFixed(0)}`;const issued=v.issued_at?new Date(v.issued_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'';const usedDate=v.used_at?new Date(v.used_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):'';return`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:11px 13px;margin-bottom:8px"><div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px"><div style="flex:1"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-family:monospace;font-size:14px;font-weight:700;color:#07b4c5;letter-spacing:1px;background:#e0f7f9;padding:2px 8px;border-radius:6px">${v.code}</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;${statusStyle[v.status]||''}">${v.status}</span>${v.personalised?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:99px;font-weight:600">✨ Personalised</span>':''}</div><div style="font-size:13px;font-weight:600;color:#374151;margin-top:4px">${valLabel}</div>${v.purchased_by?`<div style="font-size:12px;color:#6b7280">Bought by: ${v.purchased_by}</div>`:''} ${v.recipient?`<div style="font-size:12px;color:#6b7280">For: ${v.recipient}${v.from_name?' · From: '+v.from_name:''}</div>`:''} ${v.message?`<div style="font-size:12px;color:#6b7280;font-style:italic">"${v.message}"</div>`:''}<div style="font-size:11px;color:#9ca3af;margin-top:3px">Issued ${issued}${v.paid_amount?' · Paid $'+parseFloat(v.paid_amount).toFixed(0):''}${v.how_paid?' · '+v.how_paid:''}${usedDate?' · Used '+usedDate:''}</div>${v.notes?`<div style="font-size:11px;color:#9ca3af">${v.notes}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">${v.status==='requested'?`<button onclick="activateVoucher('${v.id}')" class="icon-btn" title="Activate" style="color:#15803d"><i class="ti ti-check"></i></button>`:''} ${v.status==='active'?`<button onclick="cancelVoucher('${v.id}')" class="icon-btn danger" title="Cancel"><i class="ti ti-ban"></i></button>`:''} ${v.status==='used'?`<button onclick="reinstateVoucher('${v.id}')" class="icon-btn" title="Reinstate" style="color:#d97706"><i class="ti ti-refresh"></i></button>`:''}</div></div></div>`}).join('')}
+async function activateVoucher(id){
+  const v=vouchers.find(x=>x.id===id);if(!v)return;
+  const defaultAmt=v.value!=null?String(v.value):'';
+  const paidStr=prompt('Amount paid ($):',defaultAmt);
+  if(paidStr===null)return; // staff cancelled
+  const paid=parseFloat(paidStr);
+  if(!paid||paid<=0){alert('Please enter a valid amount.');return}
+  const howPaid=prompt('How was it paid? (cash / eftpos / stripe / bank_transfer / invoice)','eftpos');
+  if(howPaid===null)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',paid_amount:paid,how_paid:howPaid.trim()||null})});
+    Object.assign(v,{status:'active',paid_amount:paid,how_paid:howPaid.trim()||null});
+    renderVoucherList();
+  }catch(e){alert('Failed to activate: '+e.message)}
+}
+async function cancelVoucher(id){if(!confirm('Cancel this voucher?'))return;await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'cancelled'})});const v=vouchers.find(x=>x.id===id);if(v)v.status='cancelled';renderVoucherList()}
+async function reinstateVoucher(id){await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',used_at:null,used_on_booking:null})});const v=vouchers.find(x=>x.id===id);if(v){v.status='active';v.used_at=null}renderVoucherList()}
+
+// ── INIT ───────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  const saved=sessionStorage.getItem('btb_user');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(currentUser.refreshToken){
+        // Always refresh the token eagerly on page load — don't assume the
+        // stored token is still valid.
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null and we stop.
+        if(!currentUser) return;
+      } else {
+        // Old-format cached session from before token auto-refresh was added
+        // — no refresh token means we can't safely trust it's still valid.
+        // Sign out cleanly and let them log in fresh, rather than silently
+        // continuing with what could be an already-expired access token.
+        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+        doLogout();
+        return;
+      }
+      scheduleTokenRefresh();
+      let roleData;
+      try{
+        roleData=await callEdgeFunction('get_my_role',{},currentUser.token);
+      }catch(err){
+        // The token looked fine locally but Supabase rejected it — don't
+        // silently carry on with a broken session, sign out instead.
+        console.error('Session validation failed — signing out:',err);
+        doLogout();
+        return;
+      }
+      if(roleData){currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);currentUser.role=roleData.role;currentUser.name=roleData.name}
+      sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+      await loadAppData();
+      showApp();
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+  }
+});
+</script>
+</body>
+</html>

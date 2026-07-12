@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gift a Voucher — Beyond the Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#07b4c5;--teal2:#059aaa;--teal-dim:rgba(7,180,197,0.12);--teal-glow:rgba(7,180,197,0.25);
+  --dark:#0a0f1e;--dark2:#111827;--dark3:#1a2235;--card:#161e2e;--card2:#1c2540;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#dde4f0;--muted:#6b7a99;--green:#1d9e75;--red:#dc2626;
+  --head:'DM Sans',sans-serif;--body:'DM Sans',sans-serif;
+}
+body{
+  background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(7,180,197,0.08) 0%,transparent 60%),
+    linear-gradient(rgba(7,180,197,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(7,180,197,0.02) 1px,transparent 1px);
+  background-size:100% 100%,48px 48px,48px 48px;
+}
+.page{max-width:560px;margin:0 auto;padding:28px 16px 80px}
+.hdr{text-align:center;padding:8px 0 28px}
+.hdr-eyebrow{font-family:var(--head);font-weight:700;font-size:11px;letter-spacing:4px;color:var(--teal);margin-bottom:12px}
+.hdr-title{font-family:var(--head);font-weight:700;font-size:32px;line-height:1.05;color:#fff;margin-bottom:10px;letter-spacing:0.5px}
+.hdr-title span{color:var(--teal)}
+.hdr-sub{font-size:13px;color:var(--muted);letter-spacing:0.3px;line-height:1.6}
+
+.sec-label{font-family:var(--head);font-weight:700;font-size:13px;letter-spacing:2px;color:var(--teal);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.toggle-opt{background:var(--card);border:1.5px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;text-align:center;transition:all .2s}
+.toggle-opt:hover{border-color:rgba(7,180,197,0.35)}
+.toggle-opt.active{border-color:var(--teal);background:var(--card2)}
+.toggle-opt-label{font-family:var(--head);font-weight:700;font-size:15px;color:#fff}
+.toggle-opt-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+.field{margin-bottom:16px}
+.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px}
+.field-label .req{color:var(--red)}
+.field-input{width:100%;background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:14px;color:var(--text);transition:border-color .2s;-webkit-appearance:none}
+.field-input:focus{outline:none;border-color:var(--teal)}
+.field-input::placeholder{color:var(--muted)}
+.field-input:disabled{opacity:0.6}
+.field-select{width:100%;background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:14px;color:var(--text);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a99' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.field-select:focus{outline:none;border-color:var(--teal)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
+
+.price-box{background:var(--dark3);border:1px solid var(--border2);border-radius:13px;padding:16px;margin-bottom:20px;text-align:center}
+.price-box-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.price-box-val{font-family:var(--head);font-weight:700;font-size:28px;color:var(--teal)}
+
+.more-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1.5px dashed rgba(7,180,197,0.35);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:18px;transition:all .2s;font-size:13px;color:var(--teal)}
+.more-toggle:hover{border-color:var(--teal);background:var(--card2)}
+.more-toggle-arrow{transition:transform .25s;flex-shrink:0;font-size:14px}
+.more-toggle-arrow.open{transform:rotate(180deg)}
+
+.btn{width:100%;padding:15px;border-radius:11px;font-family:var(--head);font-weight:700;font-size:18px;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-primary:hover{background:var(--teal2);box-shadow:0 4px 20px var(--teal-glow)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.btn-loading{position:relative;color:transparent!important}
+.btn-loading::after{content:'';position:absolute;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;top:50%;left:50%;transform:translate(-50%,-50%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.err-msg{background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
+.err-msg.show{display:block}
+
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.confirm-icon{width:76px;height:76px;background:rgba(29,158,117,0.1);border:2px solid rgba(29,158,117,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px}
+.confirm-title{font-family:var(--head);font-weight:700;font-size:32px;color:#fff;text-align:center;margin-bottom:8px;letter-spacing:0.5px}
+.confirm-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px;line-height:1.7}
+.confirm-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px;margin-bottom:16px}
+.confirm-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.confirm-row:last-child{border-bottom:none}
+.confirm-lbl{color:var(--muted)}
+.confirm-val{color:#fff;font-weight:500;text-align:right;max-width:60%}
+.confirm-ref{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+.confirm-ref strong{color:var(--teal);font-family:monospace;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <div class="hdr-eyebrow">Beyond the Box</div>
+    <div class="hdr-title">GIVE THE GIFT OF <span>ADVENTURE</span></div>
+    <div class="hdr-sub">Tell us what you'd like and we'll be in touch to confirm the details and take payment.</div>
+  </div>
+
+  <!-- SCREEN 1: REQUEST FORM -->
+  <div class="screen active" id="s1">
+    <div class="err-msg" id="formErr"></div>
+
+    <div class="sec-label">Voucher type</div>
+    <div class="toggle-row">
+      <div class="toggle-opt active" id="toggle-amount" onclick="setType('amount')">
+        <div class="toggle-opt-label">$ Dollar amount</div>
+        <div class="toggle-opt-sub">A gift card for any amount</div>
+      </div>
+      <div class="toggle-opt" id="toggle-players" onclick="setType('players')">
+        <div class="toggle-opt-label">👥 Players & game</div>
+        <div class="toggle-opt-sub">Covers a specific game</div>
+      </div>
+    </div>
+
+    <!-- Amount fields -->
+    <div id="fields-amount">
+      <div class="field">
+        <div class="field-label">Voucher value ($) <span class="req">*</span></div>
+        <input class="field-input" type="number" id="vAmt" placeholder="e.g. 100" min="1">
+      </div>
+    </div>
+
+    <!-- Players fields -->
+    <div id="fields-players" style="display:none">
+      <div class="field">
+        <div class="field-label">Which game? <span class="req">*</span></div>
+        <select class="field-select" id="vGame"></select>
+      </div>
+      <div class="field">
+        <div class="field-label">Number of players <span class="req">*</span></div>
+        <input class="field-input" type="number" id="vPlayers" placeholder="e.g. 4" min="1" max="30">
+      </div>
+      <div class="price-box" id="playersPriceBox" style="display:none">
+        <div class="price-box-label">Voucher value</div>
+        <div class="price-box-val" id="playersPriceVal">$0</div>
+      </div>
+    </div>
+
+    <!-- Personalisation -->
+    <div class="sec-label">Personalise it (optional)</div>
+    <div class="field">
+      <div class="field-label">Recipient's name</div>
+      <input class="field-input" type="text" id="vRecipient" placeholder="e.g. Emma">
+    </div>
+    <div class="field">
+      <div class="field-label">Message on the voucher</div>
+      <input class="field-input" type="text" id="vMessage" placeholder='e.g. "Happy birthday! 🎉"'>
+    </div>
+    <div class="field">
+      <div class="field-label">From</div>
+      <input class="field-input" type="text" id="vFrom" placeholder="e.g. Mum & Dad">
+    </div>
+
+    <!-- Contact -->
+    <div class="sec-label">Your details</div>
+    <div class="field">
+      <div class="field-label">Your name <span class="req">*</span></div>
+      <input class="field-input" type="text" id="cName" placeholder="Sarah Robinson">
+    </div>
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field">
+        <div class="field-label">Phone <span class="req">*</span></div>
+        <input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567">
+      </div>
+      <div class="field">
+        <div class="field-label">Email <span class="req">*</span></div>
+        <input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Anything else you'd like on the voucher, or notes for us</div>
+      <input class="field-input" type="text" id="cNotes" placeholder="e.g. needed by Friday, please call don't email">
+    </div>
+
+    <button class="btn btn-primary" id="btnSubmit" onclick="submitRequest()">Request voucher →</button>
+  </div>
+
+  <!-- SCREEN 2: CONFIRMATION -->
+  <div class="screen" id="s2">
+    <div class="confirm-icon">🎁</div>
+    <div class="confirm-title">Request sent!</div>
+    <div class="confirm-sub">Thanks — we'll be in touch shortly to confirm the details and take payment. Your voucher will be ready as soon as that's done.</div>
+    <div class="confirm-card" id="confirmCard"></div>
+    <div class="confirm-ref">Reference: <strong id="confirmRef"></strong></div>
+  </div>
+
+</div>
+
+<script>
+const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
+
+// Defaults — overwritten by Supabase settings on load, same as booking_widget.html
+let games = [
+  {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
+  {id:'g2',name:'Saving Christmas',duration:60,pricingType:'per_person_tiered',icon:'🎄',bookable:true,category:'escape'},
+  {id:'g3',name:'Gregg in the Box',duration:45,pricingType:'per_person_tiered',icon:'📦',bookable:true,category:'escape'},
+];
+let bookingConfig = {
+  gamePriceTiers:{
+    g1:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+    g2:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+    g3:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+  },
+};
+let voucherType = 'amount';
+
+async function init() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/settings`, {headers:SB_H});
+    const rows = await r.json();
+    rows.forEach(row => {
+      try {
+        const d = JSON.parse(row.value);
+        if (row.key === 'btb_games' && Array.isArray(d)) games = d;
+        if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d)) {
+          bookingConfig = {...bookingConfig, ...d};
+        }
+      } catch(e){}
+    });
+  } catch(e) { console.error('Settings load error:', e); }
+  renderGameSelect();
+}
+
+function renderGameSelect() {
+  const sel = document.getElementById('vGame');
+  const escapeGames = games.filter(g => g.category === 'escape' && g.bookable !== false);
+  sel.innerHTML = escapeGames.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+  sel.onchange = calcPlayersPrice;
+  calcPlayersPrice();
+}
+
+function calcPrice(gameId, players) {
+  const tiers = (bookingConfig.gamePriceTiers||{})[gameId] || [{min:1,max:99,pp:35}];
+  const tier = tiers.find(t => players >= t.min && players <= t.max) || tiers[tiers.length-1];
+  return (tier ? tier.pp : 35) * players;
+}
+
+function calcPlayersPrice() {
+  const gameId = document.getElementById('vGame').value;
+  const players = parseInt(document.getElementById('vPlayers').value) || 0;
+  const box = document.getElementById('playersPriceBox');
+  const val = document.getElementById('playersPriceVal');
+  if (!gameId || !players) { box.style.display = 'none'; return; }
+  const price = calcPrice(gameId, players);
+  val.textContent = `$${price}`;
+  box.style.display = '';
+}
+document.getElementById('vPlayers').addEventListener('input', calcPlayersPrice);
+
+function setType(type) {
+  voucherType = type;
+  document.getElementById('toggle-amount').classList.toggle('active', type==='amount');
+  document.getElementById('toggle-players').classList.toggle('active', type==='players');
+  document.getElementById('fields-amount').style.display = type==='amount' ? '' : 'none';
+  document.getElementById('fields-players').style.display = type==='players' ? '' : 'none';
+}
+
+function showErr(msg) {
+  const el = document.getElementById('formErr');
+  el.textContent = msg;
+  el.classList.add('show');
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function generateVoucherCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'BTB-';
+  for (let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function submitRequest() {
+  const errEl = document.getElementById('formErr');
+  errEl.classList.remove('show');
+  const btn = document.getElementById('btnSubmit');
+
+  const name  = document.getElementById('cName').value.trim();
+  const phone = document.getElementById('cPhone').value.trim();
+  const email = document.getElementById('cEmail').value.trim().toLowerCase();
+  const notes = document.getElementById('cNotes').value.trim();
+  const recipient = document.getElementById('vRecipient').value.trim();
+  const message   = document.getElementById('vMessage').value.trim();
+  const fromName  = document.getElementById('vFrom').value.trim();
+
+  if (!name) { showErr('Please enter your name.'); return; }
+  if (!phone) { showErr('Please enter a phone number.'); return; }
+  if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
+
+  let value = 0, players = null, gameId = null, gameName = null;
+  if (voucherType === 'amount') {
+    value = parseFloat(document.getElementById('vAmt').value) || 0;
+    if (!value) { showErr('Please enter a voucher value.'); return; }
+  } else {
+    gameId = document.getElementById('vGame').value;
+    players = parseInt(document.getElementById('vPlayers').value) || 0;
+    if (!players) { showErr('Please enter the number of players.'); return; }
+    gameName = games.find(g => g.id === gameId)?.name || '';
+    value = calcPrice(gameId, players);
+  }
+
+  const code = generateVoucherCode();
+  const personalised = !!(recipient || message || fromName);
+  // Contact details folded into notes — the vouchers table has no dedicated
+  // phone/email columns (matches how enquiries are handled elsewhere in this app).
+  const contactNote = [`Requested online by ${name}`, phone, email, notes].filter(Boolean).join(' · ');
+
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/vouchers`, {
+      method: 'POST',
+      headers: {...SB_H, 'Prefer':'return=representation'},
+      body: JSON.stringify({
+        code, type: voucherType, value, players, game_id: gameId, game_name: gameName,
+        paid_amount: null, purchased_by: name, how_paid: null,
+        personalised, recipient: recipient || null, message: message || null, from_name: fromName || null,
+        notes: contactNote,
+        status: 'requested',
+        issued_at: new Date().toISOString(),
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+
+    const rows = [
+      ['Type', voucherType === 'amount' ? 'Dollar amount' : `${players} players — ${gameName}`],
+      ['Value', `$${value}`],
+      ['Name', name],
+      ['Phone', phone],
+      ['Email', email],
+    ];
+    if (recipient) rows.push(['For', recipient]);
+    if (fromName) rows.push(['From', fromName]);
+    document.getElementById('confirmCard').innerHTML = rows.map(([l,v]) =>
+      `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`
+    ).join('');
+    document.getElementById('confirmRef').textContent = code;
+
+    document.getElementById('s1').classList.remove('active');
+    document.getElementById('s2').classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  } catch(e) {
+    showErr('Something went wrong — please try again or call us.');
+    console.error('Voucher request error:', e);
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

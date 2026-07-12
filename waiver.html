@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Optimizes scaling on mobile tablets, preventing double-tap zooming issues on signature inputs -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Waiver — Beyond the Box</title>
+
+<!-- Fonts from Google Fonts API -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   1. GLOBAL RE-SETS & ROOT DESIGN TOKENS
+   ========================================================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#07b4c5;     /* Main accent color used for buttons, active inputs, and accents */
+  --navy:#1a1035;     /* Core brand color used for backgrounds, headings, and primary buttons */
+  --text:#1f2937;     /* High-contrast slate color for general readability text */
+  --muted:#6b7280;    /* Grey tone for labels, subtitles, and hints */
+  --border:#e5e7eb;   /* Soft grey used for card borders and input boundaries */
+  --bg:#f3f4f6;       /* Page background fallback */
+  --head:'Bebas Neue',sans-serif; /* Impactful font for titles and primary calls-to-action */
+  --body:'DM Sans',sans-serif;    /* Crisp, clean sans-serif for reading dense waiver text */
+}
+
+body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--text);min-height:100vh;padding-bottom:40px}
+
+/* Header Branding Section Styles */
+.hdr{background:var(--navy);padding:20px 24px 18px;text-align:center}
+.hdr-eye{font-family:var(--head);font-size:12px;letter-spacing:3px;color:var(--teal);margin-bottom:6px}
+.hdr-title{font-family:var(--head);font-size:38px;color:#fff;letter-spacing:1px;line-height:1}
+.hdr-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:6px}
+
+/* Page Layout Container */
+.page{max-width:600px;margin:0 auto;padding:20px 16px}
+
+/* Dynamic Booking Reference Banner (Top of page) */
+.booking-bar{background:var(--navy);border-radius:12px;padding:14px 16px;margin-bottom:18px;display:none;align-items:center;gap:12px}
+.booking-bar.show{display:flex}
+.bb-icon{font-size:24px;flex-shrink:0}
+.bb-name{font-weight:600;color:#fff;font-size:14px}
+.bb-detail{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+
+/* Clean UI Cards to separate Section steps */
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:opacity 0.3s ease}
+.card-title{font-family:var(--head);font-size:19px;color:var(--navy);letter-spacing:.5px;margin-bottom:3px}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+
+/* Form inputs & Typography grids */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.field-label .req{color:#ef4444}
+.field-input{width:100%;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:15px;color:var(--text);transition:border-color .2s;-webkit-appearance:none;appearance:none;pointer-events:auto !important;position:relative;z-index:5}
+.field-input:focus{outline:none;border-color:var(--teal);background:#fff}
+
+/* Customized Dropdown arrows built using an optimized inline raw SVG icon */
+.field-select{width:100%;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:15px;color:var(--text);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.field-select:focus{outline:none;border-color:var(--teal)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+
+/* Flat layout container for Master Waiver to combat scroll trapping on tablets */
+.waiver-box{background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:16px;font-size:13px;line-height:1.8;color:#374151;margin-bottom:14px}
+.waiver-box h4{font-family:var(--head);font-size:15px;color:var(--navy);margin-bottom:4px;letter-spacing:.5px}
+.waiver-box p{margin-bottom:6px}
+
+/* Colored accent left-borders for specific liability legal clauses */
+.clause{border-left:3px solid var(--teal);padding-left:12px;margin:12px 0}
+.clause strong{display:block;margin-bottom:2px;color:var(--navy);font-size:13px}
+.clause.danger{border-left-color:#ef4444} /* Destructive/Critical Alert Accent Color (Red) */
+
+/* Modernized Checkbox Containers designed for quick tap-to-toggle thumb gestures */
+.check-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.check-opt:last-child{margin-bottom:0}
+.check-opt.on{border-color:var(--teal);background:rgba(7,180,197,.07)}
+.check-opt input[type=checkbox]{width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--teal);cursor:pointer}
+.check-body{font-size:14px;color:var(--text);line-height:1.5}
+.check-body strong{color:var(--navy)}
+
+/* Canvas Container Wrapper Engine Styling */
+.sig-wrap{border:2px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:10px;position:relative;height:162px}
+.sig-wrap.active{border-color:var(--teal)}
+.sig-hint-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);pointer-events:none;transition:opacity .2s;z-index:1}
+.sig-hint-overlay.hidden{opacity:0}
+#sigCanvas{display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;position:relative;z-index:2}
+.sig-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.sig-label{font-size:12px;color:var(--muted)}
+.btn-clear{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:var(--body)}
+.btn-clear:hover{border-color:#ef4444;color:#ef4444}
+
+/* Error Messages styling */
+.err{background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:11px 14px;font-size:13px;color:#dc2626;margin-bottom:16px;display:none}
+.err.show{display:block}
+
+/* Global Button UI States */
+.btn-submit{width:100%;padding:16px;background:var(--teal);color:#fff;border:none;border-radius:12px;font-family:var(--head);font-size:22px;letter-spacing:1px;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-submit:hover:not(:disabled){background:#059aaa;box-shadow:0 4px 20px rgba(7,180,197,.3)}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed}
+.success{display:none;text-align:center;padding:48px 16px}
+.success.show{display:block}
+.success-icon{font-size:64px;margin-bottom:16px}
+.success-title{font-family:var(--head);font-size:44px;color:var(--navy);margin-bottom:8px;letter-spacing:1px}
+.success-sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:24px}
+.btn-next{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:14px 32px;font-family:var(--head);font-size:18px;letter-spacing:.5px;cursor:pointer;display:none}
+.btn-next:hover{background:#2d1f5e}
+.btn-next.show{display:inline-block}
+
+/* Loading animations spinning vectors */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+
+/* Dynamic Form Step Loop structures */
+.loop-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.btn-secondary{background:var(--navy);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--head);font-size:18px;cursor:pointer;letter-spacing:.5px}
+.minor-container{background:#f9fafb;border:1.5px dashed var(--border);border-radius:10px;padding:14px;margin-top:12px;position:relative;z-index:2}
+.minor-row-title{font-size:12px;font-weight:600;color:var(--teal);text-transform:uppercase;margin-bottom:8px}
+
+/* Live Group Roster Summary Lists layout cards */
+.roster-card {background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+.roster-item {display:flex;align-items:center;justify-content:between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+.roster-item:last-child {border-bottom:none}
+.roster-tag {font-size:11px;font-weight:bold;padding:2px 8px;border-radius:20px;margin-left:auto}
+.tag-adult {background:#e0f2fe;color:#0369a1}
+.tag-child {background:#fef3c7;color:#b45309}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-eye">Beyond the Box</div>
+  <div class="hdr-title">Participant Waiver</div>
+  <div class="hdr-sub">Escape Rooms · VR · Hawkes Bay, New Zealand</div>
+</div>
+
+<div class="page">
+
+  <!-- Booking Details (Hydrated from Supabase API params if present) -->
+  <div class="booking-bar" id="bookingBar">
+    <div class="bb-icon" id="bbIcon">🚪</div>
+    <div>
+      <div class="bb-name" id="bbName"></div>
+      <div class="bb-detail" id="bbDetail"></div>
+    </div>
+  </div>
+
+  <div id="formWrap">
+    <div class="err" id="formErr"></div>
+
+    <!-- ==========================================================================
+         SECTION 1: TEAM LEADER / BOOKER PRIMARY DETAILED ENTRY FORM
+         ========================================================================== -->
+    <div class="card" id="teamSessionCard">
+      <div class="card-title">👑 1. Team Leader / Booker Details</div>
+      <div class="card-sub">Please enter your details first to set up the group registration waiver.</div>
+      
+      <!-- Option for non-playing supervisors/parents checking in kid parties -->
+      <div class="check-opt" id="notPlayingOpt" onclick="toggleCheck('notPlaying')" style="margin-top: 10px; margin-bottom: 15px;">
+        <input type="checkbox" id="notPlaying" onclick="event.stopPropagation()">
+        <div class="check-body"><strong>I am not playing today</strong> but I accept full responsibility for my group.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <div class="field-label">First name <span class="req">*</span></div>
+          <input class="field-input" type="text" id="orgFirst" placeholder="John">
+        </div>
+        <div class="field">
+          <div class="field-label">Last name <span class="req">*</span></div>
+          <input class="field-input" type="text" id="orgLast" placeholder="Smith">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Email <span class="req">*</span></div>
+        <input class="field-input" type="email" id="orgEmail" placeholder="john.smith@example.com">
+      </div>
+
+      <div class="field" id="gameCard" style="margin-top:14px;">
+        <div class="field-label">Game / Activity <span class="req">*</span></div>
+        <select class="field-select" id="fGame">
+          <option value="">— Select Activity —</option>
+        </select>
+      </div>
+
+      <!-- MASTER LIABILITY WAIVER FRAME (Scrollbar completely unpinned to prevent tracking) -->
+      <div class="field" style="margin-top: 15px;">
+        <div class="field-label">⚠️ Master Liability Waiver</div>
+        <div class="waiver-box" style="max-height: none; overflow: visible;">
+          <h4>BEYOND THE BOX — WAIVER OF LIABILITY</h4>
+          
+          <!-- Read-Aloud Directional Callout Block Moved explicitly to Top -->
+          <p style="margin-top: 6px; margin-bottom: 14px; font-style: italic; font-size: 13px; font-weight: 500; color: var(--teal);">
+            📢 Please read these statements aloud to your team before checking the confirmations below.
+          </p>
+
+          <p>I understand that participating in an escape room or VR experience involves physical and mental challenges. I voluntarily assume all risks, including but not limited to: minor injuries, slips, trips, falls, and stress-related reactions.</p>
+          
+          <div class="clause">
+            <strong>🔒 Damage, Breakage &amp; Property</strong>
+            The room and venue contain props, equipment, and structural property that must be treated with care. I may be held financially accountable for any deliberate or reckless damage caused by my group.
+          </div>
+
+          <!-- UPDATED CLAUSE: Code of Conduct & Behaviour Standards -->
+          <div class="clause" style="border-left-color: #f97316;">
+            <strong>📣 Behaviour &amp; Conduct Code</strong>
+            We expect all participants to follow staff instructions and maintain respectful behaviour. Acting aggressively towards staff or team-mates may result in immediate game cancellation without a refund.
+          </div>
+
+          <!-- NEW INTEGRATED CLAUSE: Sobriety Requirement -->
+          <div class="clause" style="border-left-color: #ea580c;">
+            <strong>🍺 Alcohol, Drugs &amp; Sobriety</strong>
+            I confirm that no participant in our group is under the influence of alcohol, drugs, or intoxicating substances. Beyond the Box reserves the right to refuse entry to anyone suspected of intoxication to maintain health and safety.
+          </div>
+
+          <!-- CLAUSE: Explicit Escape Room No-Lock-Picking Policy -->
+          <div class="clause" style="border-left-color: #06b6d4;">
+            <strong>🔑 No Lock Picking or Force Required</strong>
+            All puzzles can be solved using observation and logic. Do not attempt to force elements or pick locks. No tools, lockpicks, or excessive physical force should ever be used on our equipment.
+          </div>
+
+          <div class="clause" style="border-left-color: #a855f7;">
+            <strong>🥽 Virtual Reality (VR) Activity Use</strong>
+            I understand that VR experiences can occasionally induce temporary motion sickness, disorientation, flashing light sensitivities, or dizziness. Participants will immediately remove the headset and notify staff if they feel unwell.
+          </div>
+
+          <div class="clause danger">
+            <strong>⚖️ New Zealand Law</strong>
+            This waiver does not affect my rights under the Consumer Guarantees Act 1993.
+          </div>
+        </div>
+      </div>
+
+      <!-- Explicit Group Confirmation Toggle -->
+      <div class="check-opt" id="agreeOpt" onclick="toggleCheck('agree')">
+        <input type="checkbox" id="agree" onclick="event.stopPropagation()">
+        <div class="check-body"><strong>I have read aloud and our team agrees</strong> to the Liability Waiver rules and policies outlined above.</div>
+      </div>
+
+      <!-- Child Dependents Dynamic Section Selector -->
+      <div class="field" style="margin-top:14px;">
+        <div class="field-label">🧒 Are there any children under 16 in your care today?</div>
+        <select class="field-select" id="orgMinorCount" onchange="generateMinorInputs('org')">
+          <option value="0">No children under 16 in my care</option>
+          <option value="1">1 Child</option>
+          <option value="2">2 Children</option>
+          <option value="3">3 Children</option>
+          <option value="4">4 Children</option>
+          <option value="5">5 Children</option>
+        </select>
+        <div id="orgMinorsContainer"></div>
+      </div>
+      
+      <!-- Twin Workflow Decision buttons: Route based on whether leader has a team or is alone with kids -->
+      <div class="loop-actions" style="margin-top:20px;">
+        <button type="button" class="btn-submit" onclick="lockTeamConfig(false)" style="margin-top:0; font-size:16px; padding:12px; background:var(--navy);">Pass to next adult →</button>
+        <button type="button" class="btn-submit" onclick="lockTeamConfig(true)" style="margin-top:0; font-size:16px; padding:12px;">All players entered ✔</button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         SECTION 2: DYNAMIC ADDITIONAL TEAMMATE LOOP BLOCK (Hidden by default)
+         ========================================================================== -->
+    <div id="playerSection" style="display:none;">
+      <div class="card" style="border-top: 4px solid var(--teal)">
+        <div class="card-title" id="playerSectionTitle">👤 2. Player Details</div>
+        <div class="card-sub" id="playerInstructionText" style="color:var(--teal); font-weight:500;">👉 Please pass the tablet to the next adult teammate to complete their block.</div>
+        
+        <div class="check-opt" id="playerNotPlayingOpt" onclick="toggleCheck('playerNotPlaying')" style="margin-top: 10px; margin-bottom: 15px;">
+          <input type="checkbox" id="playerNotPlaying" onclick="event.stopPropagation()">
+          <div class="check-body"><strong>I am not playing today</strong> but I accept full responsibility for the children in my care.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <div class="field-label">First name <span class="req">*</span></div>
+            <input class="field-input" type="text" id="fFirst" placeholder="Sarah">
+          </div>
+          <div class="field">
+            <div class="field-label">Last name <span class="req">*</span></div>
+            <input class="field-input" type="text" id="fLast" placeholder="Robinson">
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Email <span class="req">*</span></div>
+          <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com">
+        </div>
+        
+        <div class="check-opt" id="understandWaiverOpt" onclick="toggleCheck('understandWaiver')">
+          <input type="checkbox" id="understandWaiver" onclick="event.stopPropagation()">
+          <div class="check-body"><strong>I confirm I understand</strong> the master liability waiver read aloud by our team leader.</div>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <div class="field-label">🧒 Do you have any children under 16 in your care today?</div>
+          <select class="field-select" id="playerMinorCount" onchange="generateMinorInputs('player')">
+            <option value="0">No children under 16 in my care</option>
+            <option value="1">1 Child</option>
+            <option value="2">2 Children</option>
+            <option value="3">3 Children</option>
+            <option value="4">4 Children</option>
+          </select>
+          <div id="playerMinorsContainer"></div>
+        </div>
+
+        <div class="loop-actions">
+          <button type="button" class="btn-submit" onclick="saveActivePlayer()" style="margin-top:0; font-size:16px; padding:12px;">+ Save &amp; Next Adult</button>
+          <button type="button" class="btn-secondary" onclick="closePlayerLoop()">Done Adding Players →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         SECTION 3: ROSTER VERIFICATION & MASTER AUTHORIZATION SIGNATURE
+         ========================================================================== -->
+    <div id="finalSignOffSection" style="display:none;">
+      <div class="card" style="border: 2px solid var(--navy)">
+        <div class="card-title">✍️ 3. Master Group Authorization</div>
+        <div class="card-sub" style="color:#ef4444; font-weight:600; margin-bottom:12px;">🔄 Please pass the tablet back to the Team Leader to authorize.</div>
+        
+        <!-- Live Roster Review List Target Window Box -->
+        <div class="field-label">📋 Registered Group Roster Review:</div>
+        <div class="roster-card" id="rosterReviewList"></div>
+
+        <!-- Canvas Engine Container Object -->
+        <div class="sig-wrap" id="sigWrap">
+          <div class="sig-hint-overlay" id="sigHint">Team Leader signs here ✍️</div>
+          <canvas id="sigCanvas"></canvas>
+        </div>
+        <div class="sig-actions">
+          <span class="sig-label">Draw signature inside box</span>
+          <button class="btn-clear" onclick="clearSig()">Clear</button>
+        </div>
+        
+        <button class="btn-submit" id="btnSubmit" disabled onclick="submitWaiver()">Submit All Waivers →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Registration Success UI Screen state -->
+  <div class="success" id="successScreen">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">All Set!</div>
+    <div class="success-sub" id="successMsg">Thank you. Your team waivers have been recorded successfully.</div>
+    <p style="font-size:15px; font-weight:bold; color:var(--teal); margin-bottom:20px;">👉 Next Step: Please hand the tablet back to the Beyond the Box staff member!</p>
+    <button class="btn-next show" id="btnNext" onclick="window.location.reload()">➕ Next Group Registration</button>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================================
+   2. SUPABASE BACKEND INFRASTRUCTURE CORE SETTINGS
+   ========================================================================== */
+const SB_URL  = 'https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`,'apikey':SB_ANON};
+
+/* Stateful Global Variables tracking entries */
+let games = [];
+let bookingData = null;
+let hasSig = false;
+let globalTeamArray = [];
+let ctx, canvas;
+
+const params    = new URLSearchParams(window.location.search);
+const bookingId = params.get('booking_id') || null;
+
+/* Initializer Bootloader Engine */
+async function init() {
+  await loadGames();
+  if (bookingId) await loadBooking();
+  bindEvents();
+}
+
+/* Fetches custom activities matrix list from API settings engine */
+async function loadGames() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games`, {headers:H});
+    const rows = await r.json();
+    if (rows[0]) {
+      const all = JSON.parse(rows[0].value);
+      games = all.filter(g => g.bookable !== false && g.category !== 'cafe');
+    }
+  } catch(e) {}
+  /* Fallback defaults if API fails */
+  if (!games.length) games = [
+    {id:'g1',name:'Sherlock',icon:'🔍'},
+    {id:'g2',name:'Saving Christmas',icon:'🎄'},
+    {id:'g3',name:'Gregg in the Box',icon:'📦'},
+    {id:'g4',name:'VR Hour',icon:'🥽'},
+  ];
+  const sel = document.getElementById('fGame');
+  games.forEach(g => {
+    const o = document.createElement('option');
+    o.value = g.id;
+    o.textContent = `${g.icon||''} ${g.name}`.trim();
+    sel.appendChild(o);
+  });
+}
+
+/* Populates active customer pre-fill bookings context metadata automatically */
+async function loadBooking() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${bookingId}&select=*,clients(first_name,last_name,phone,email)`, {headers:H});
+    const rows = await r.json();
+    if (!rows[0]) return;
+    bookingData = rows[0];
+    const d = new Date(bookingData.booking_date + 'T12:00');
+    const dateStr = d.toLocaleDateString('en-NZ', {weekday:'short',day:'numeric',month:'short'});
+    const game = games.find(g => g.id === bookingData.game_id);
+    const bar = document.getElementById('bookingBar');
+    bar.classList.add('show');
+    document.getElementById('bbIcon').textContent = game?.icon || '🚪';
+    document.getElementById('bbName').textContent = bookingData.game_name;
+    document.getElementById('bbDetail').textContent = `${dateStr} · ${bookingData.players_booked} player${bookingData.players_booked!==1?'s':''}`;
+    
+    if (bookingData.game_id) {
+      document.getElementById('fGame').value = bookingData.game_id;
+      document.getElementById('gameCard').style.display = 'none';
+    }
+    if (bookingData.clients) {
+      const c = bookingData.clients;
+      document.getElementById('orgFirst').value = c.first_name || '';
+      document.getElementById('orgLast').value  = c.last_name   || '';
+      document.getElementById('orgEmail').value = c.email      || '';
+    }
+  } catch(e) {}
+}
+
+function bindEvents() {
+  document.getElementById('agree').addEventListener('change', validateFormState);
+  document.getElementById('understandWaiver').addEventListener('change', validateFormState);
+}
+
+/* Generates minor text inputs dynamically depending on drop-down selection count value */
+function generateMinorInputs(prefix) {
+  const count = parseInt(document.getElementById(prefix + 'MinorCount').value) || 0;
+  const target = document.getElementById(prefix + 'MinorsContainer');
+  target.innerHTML = '';
+  if (count === 0) return;
+  
+  const box = document.createElement('div');
+  box.className = 'minor-container';
+  box.innerHTML = `<div class="minor-row-title" style="color:#ef4444; font-weight:bold;">⚠️ I confirm I am the adult in charge of these children today and accept full responsibility on their behalf:</div>`;
+    
+  for(let i = 1; i <= count; i++) {
+    box.innerHTML += `
+      <div class="field-row" style="margin-bottom:8px;">
+        <input class="field-input dynamic-child-input" type="text" id="${prefix}ChildFirst_${i}" placeholder="Child ${i} First Name">
+        <input class="field-input dynamic-child-input" type="text" id="${prefix}ChildLast_${i}" placeholder="Child ${i} Last Name">
+      </div>
+    `;
+  }
+  target.appendChild(box);
+
+  // Solves virtual keyboard focus dropouts on iOS/Safari browsers within looped elements
+  const elements = target.querySelectorAll('.dynamic-child-input');
+  elements.forEach(el => {
+    el.addEventListener('click', function(e) { e.stopPropagation(); this.focus(); });
+    el.addEventListener('touchstart', function(e) { e.stopPropagation(); this.focus(); }, {passive: true});
+  });
+}
+
+/* Toggles stylized checkbox backgrounds dynamically */
+function toggleCheck(id) {
+  const cb  = document.getElementById(id);
+  cb.checked = !cb.checked;
+  const opt = document.getElementById(id + 'Opt');
+  if (opt) opt.classList.toggle('on', cb.checked);
+  validateFormState();
+}
+
+/* Processes Section 1 Submission configuration criteria logic */
+function lockTeamConfig(skipPassLoop) {
+  const first = document.getElementById('orgFirst').value.trim();
+  const last = document.getElementById('orgLast').value.trim();
+  const email = document.getElementById('orgEmail').value.trim();
+  const game = document.getElementById('fGame').value || bookingData?.game_id;
+  const agree = document.getElementById('agree').checked;
+  const notPlaying = document.getElementById('notPlaying').checked;
+
+  if (!first || !last || !email || !game || !agree) {
+    alert('Please fill out your name, select an activity, and confirm the waiver agreement.');
+    return;
+  }
+
+  const minorCount = parseInt(document.getElementById('orgMinorCount').value) || 0;
+  let minors = [];
+  for(let i = 1; i <= minorCount; i++) {
+    const cf = document.getElementById(`orgChildFirst_${i}`).value.trim();
+    const cl = document.getElementById(`orgChildLast_${i}`).value.trim();
+    if (!cf || !cl) {
+      alert(`Please fill out names for Child #${i} before submitting.`);
+      return;
+    }
+    minors.push({ first: cf, last: cl });
+  }
+
+  const assignedRole = notPlaying ? 'Organizer (Non-Player)' : 'Organizer & Player';
+  globalTeamArray.push({ first_name: first, last_name: last, email: email, role: assignedRole, minors_list: minors });
+
+  document.getElementById('teamSessionCard').style.opacity = '0.4';
+  document.getElementById('teamSessionCard').style.pointerEvents = 'none';
+
+  if (skipPassLoop) {
+    renderRosterSummary();
+    document.getElementById('finalSignOffSection').style.display = 'block';
+    setupSigPad();
+  } else {
+    document.getElementById('playerSection').style.display = 'block';
+    updateCounterDisplay();
+  }
+}
+
+function updateCounterDisplay() {
+  document.getElementById('playerSectionTitle').textContent = `👤 2. Adult Teammate Details`;
+}
+
+/* Pushes individual teammate profiles into group roster database index arrays */
+function saveActivePlayer() {
+  const first = document.getElementById('fFirst').value.trim();
+  const last = document.getElementById('fLast').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const understood = document.getElementById('understandWaiver').checked;
+  const minorCount = parseInt(document.getElementById('playerMinorCount').value) || 0;
+  const notPlaying = document.getElementById('playerNotPlaying').checked;
+
+  if (!first || !last || !email) {
+    alert('First name, Last name, and Email are required for adults.');
+    return;
+  }
+  if (!understood) {
+    alert('Please check the confirmation checkbox.');
+    return;
+  }
+
+  let minors = [];
+  for(let i = 1; i <= minorCount; i++) {
+    const cf = document.getElementById(`playerChildFirst_${i}`).value.trim();
+    const cl = document.getElementById(`playerChildLast_${i}`).value.trim();
+    if (!cf || !cl) {
+      alert(`Please complete child field information.`);
+      return;
+    }
+    minors.push({ first: cf, last: cl });
+  }
+
+  const assignedRole = notPlaying ? 'Co-Organizer (Non-Player)' : 'Participant';
+  globalTeamArray.push({ first_name: first, last_name: last, email: email, role: assignedRole, minors_list: minors });
+
+  /* Clear dynamic elements clean to prepare form fields for subsequent user checkins */
+  document.getElementById('fFirst').value = '';
+  document.getElementById('fLast').value = '';
+  document.getElementById('fEmail').value = '';
+  document.getElementById('understandWaiver').checked = false;
+  document.getElementById('playerNotPlaying').checked = false;
+  document.getElementById('understandWaiverOpt').classList.remove('on');
+  document.getElementById('playerNotPlayingOpt').classList.remove('on');
+  document.getElementById('playerMinorCount').value = '0';
+  document.getElementById('playerMinorsContainer').innerHTML = '';
+
+  updateCounterDisplay();
+  alert('Teammate details saved successfully!');
+}
+
+function closePlayerLoop() {
+  document.getElementById('playerSection').style.display = 'none';
+  renderRosterSummary();
+  document.getElementById('finalSignOffSection').style.display = 'block';
+  setupSigPad();
+}
+
+/* Renders live overview validation review screen block elements dynamically */
+function renderRosterSummary() {
+  const target = document.getElementById('rosterReviewList');
+  target.innerHTML = '';
+  
+  globalTeamArray.forEach(item => {
+    const adultRow = document.createElement('div');
+    adultRow.className = 'roster-item';
+    adultRow.innerHTML = `<strong>${item.first_name} ${item.last_name}</strong> <span class="roster-tag tag-adult">${item.role}</span>`;
+    target.appendChild(adultRow);
+    
+    item.minors_list.forEach(child => {
+      const childRow = document.createElement('div');
+      childRow.className = 'roster-item';
+      childRow.style.paddingLeft = '20px';
+      childRow.innerHTML = `↳ ${child.first} ${child.last} <span class="roster-tag tag-child">Under 16</span>`;
+      target.appendChild(childRow);
+    });
+  });
+  validateFormState();
+}
+
+function validateFormState() {
+  const submitBtn = document.getElementById('btnSubmit');
+  if (submitBtn) submitBtn.disabled = !hasSig;
+}
+
+/* ==========================================================================
+   3. CANVAS SIGNATURE DRAW ENGINE (Fixes size collapsing behavior)
+   ========================================================================== */
+function setupSigPad() {
+  canvas = document.getElementById('sigCanvas');
+  ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('sigWrap');
+  const hint = document.getElementById('sigHint');
+  let drawing = false;
+
+  /* Dynamically matches element visibility sizing matrices directly on activation execution */
+  function runResize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = 160 * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1a1035';
+  }
+
+  function getXY(e) {
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return {x: src.clientX - rect.left, y: src.clientY - rect.top};
+  }
+
+  /* Core pointer listener registration bindings */
+  canvas.addEventListener('mousedown', e => {
+    e.preventDefault(); drawing = true; const p = getXY(e);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  });
+  canvas.addEventListener('mousemove', e => {
+    e.preventDefault(); if (!drawing) return; const p = getXY(e);
+    ctx.lineTo(p.x, p.y); ctx.stroke();
+    if(!hasSig) { hasSig = true; hint.classList.add('hidden'); validateFormState(); }
+  });
+  window.addEventListener('mouseup', () => { drawing = false; });
+
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault(); drawing = true; const p = getXY(e);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  }, {passive:false});
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!drawing) return; const p = getXY(e);
+    ctx.lineTo(p.x, p.y); ctx.stroke();
+    if(!hasSig) { hasSig = true; hint.classList.add('hidden'); validateFormState(); }
+  }, {passive:false});
+  window.addEventListener('touchend', () => { drawing = false; });
+
+  runResize();
+}
+
+function clearSig() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  hasSig = false;
+  document.getElementById('sigHint').classList.remove('hidden');
+  validateFormState();
+}
+
+/* Transmits group object JSON data package values to backend API */
+async function submitWaiver() {
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Processing Group…';
+
+  const gameId   = document.getElementById('fGame').value || bookingData?.game_id || null;
+  const gameName = games.find(g => g.id === gameId)?.name || bookingData?.game_name || null;
+  const signatureDataURL = canvas.toDataURL('image/png');
+
+  /* Organizes team data cleanly into phone column space payload payload specs */
+  const payload = {
+    booking_id: bookingId || null,
+    first_name: globalTeamArray[0].first_name,
+    last_name: globalTeamArray[0].last_name,
+    email: globalTeamArray[0].email,
+    game_id: gameId,
+    game_name: gameName,
+    agreed_to_terms: true,
+    not_under_influence: true,
+    signature_data: signatureDataURL,
+    source: 'tablet',
+    status: 'signed',
+    phone: JSON.stringify(globalTeamArray) 
+  };
+
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/waivers`, {
+      method: 'POST',
+      headers: {...H, 'Prefer': 'return=minimal'},
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(await r.text());
+
+    document.getElementById('formWrap').style.display = 'none';
+    document.getElementById('successScreen').classList.add('show');
+    window.scrollTo({top:0, behavior:'smooth'});
+  } catch(e) {
+    const err = document.getElementById('formErr');
+    err.textContent = 'Submission error — Please notify a staff member to assist.';
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.innerHTML = 'Submit All Waivers →';
+  }
+}
+
+window.onload = init;
+</script>
+</body>
+</html>

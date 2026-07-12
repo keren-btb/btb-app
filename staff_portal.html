@@ -1,0 +1,3484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Staff Portal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
+
+/* ── APP WRAPPER — sidebar layout ── */
+.app{display:flex;min-height:100vh;flex-direction:column}
+
+/* ── HEADER ── */
+.header{background:#522081;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-title{font-size:18px;font-weight:800;letter-spacing:2px;color:#fff}
+.header-sub{font-size:12px;color:#d4a98a}
+.auth-badge{font-size:11px;color:#d4a98a;display:flex;align-items:center;gap:5px;cursor:pointer}
+.auth-badge:hover{color:#fff}
+
+/* ── BODY = sidebar + content ── */
+.app-body{display:flex;flex:1;min-height:0}
+
+/* ── NAV (sidebar) ── */
+.nav{width:220px;flex-shrink:0;background:#1a1035;display:flex;flex-direction:column;padding:12px 0;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+.nav-btn{display:flex;flex-direction:row;align-items:center;gap:10px;padding:11px 18px;font-size:13px;color:#a0b0c8;background:none;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;width:100%;text-align:left}
+.nav-btn:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-btn.active{color:#fff;background:rgba(146,64,14,.3);border-left-color:#92400e}
+.nav-btn i{font-size:17px;flex-shrink:0}
+.nav-divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
+
+/* ── COLLAPSIBLE SIDEBAR RULES ── */
+.nav.collapsed {
+    width: 0px !important;
+    padding: 12px 0 !important;
+    overflow: hidden !important;
+}
+.header-toggle-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── SECTIONS (main content) ── */
+.content-area{flex:1;min-width:0;overflow-y:auto;height:calc(100vh - 53px)}
+.section{display:none;padding:24px 28px;max-width:1100px}
+.section.active{display:block}
+
+/* ── CLOCK IN BANNER ── */
+.clock-banner{margin-bottom:14px;border-radius:12px;overflow:hidden}
+.clock-banner-in{background:linear-gradient(135deg,#059669,#047857);padding:16px;display:flex;align-items:center;justify-content:space-between}
+.clock-banner-out{background:linear-gradient(135deg,#dc2626,#b91c1c);padding:16px;display:flex;align-items:center;justify-content:space-between}
+.clock-info{color:#fff}
+.clock-label{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.clock-time{font-size:22px;font-weight:800;font-family:monospace}
+.clock-sub{font-size:11px;opacity:.75;margin-top:2px}
+.clock-btn{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.5);color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.clock-btn:hover{background:rgba(255,255,255,.35)}
+.clock-idle{background:#f9fafb;border:2px dashed #e5e7eb;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.clock-idle-label{font-size:13px;color:#6b7280}
+.clock-idle-btn{background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* ── CARDS ── */
+.card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card-title i{color:#07b4c5;font-size:16px}
+
+/* ── WEEKLY TIME SHEET (IMAGE_1D4C77 REPLICA) ── */
+.weekly-sheet-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.sheet-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px;
+  gap: 12px;
+}
+@media(min-width: 768px) {
+  .sheet-meta-grid { grid-template-columns: 2fr 1fr 1fr; }
+}
+.meta-box {
+  display: flex;
+  flex-direction: column;
+}
+.meta-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.meta-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.sheet-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.sheet-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.sheet-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  color: #334155;
+}
+.sheet-table tr:hover td {
+  background: #f8fafc;
+}
+.sheet-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  gap: 20px;
+}
+@media(min-width: 768px) {
+  .sheet-summary-grid { grid-template-columns: 1fr 1.2fr; }
+}
+.summary-payroll-box {
+  border: 1px dashed #cbd5e1;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 14px;
+}
+.pay-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.pay-row:last-child {
+  border-bottom: none;
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 15px;
+}
+.sign-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+.digital-sig-stamp {
+  border: 2px dashed #e2e8f0;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.digital-sig-stamp.signed {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #065f46;
+}
+.digital-sig-stamp.approved {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+/* ── FORM FIELDS ── */
+.field{margin-bottom:10px}
+.field:last-child{margin-bottom:0}
+.field-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.field-label .req{color:#ef4444}
+.field-input{width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;transition:border-color .2s}
+.field-input:focus{outline:none;border-color:#07b4c5}
+.field-input:disabled{background:#f3f4f6;color:#9ca3af}
+.field-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.field-select{width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;cursor:pointer}
+.field-select:focus{outline:none;border-color:#07b4c5}
+.field-hint{font-size:11px;color:#9ca3af;margin-top:3px}
+
+/* ── BUTTONS ── */
+.btn-primary{background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px}
+.btn-primary:hover{background:#059aaa}
+.btn-secondary{background:#fff;color:#374151;border:1px solid #e5e7eb;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px}
+.btn-secondary:hover{border-color:#07b4c5;color:#07b4c5}
+.btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;font-family:inherit}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* ── AVAILABILITY GRID ── */
+.avail-week{margin-bottom:16px}
+.avail-week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.avail-week-label{font-size:13px;font-weight:700;color:#374151}
+.avail-week-nav{display:flex;gap:6px}
+.avail-nav-btn{background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 8px;cursor:pointer;color:#6b7280;font-size:13px}
+.avail-nav-btn:hover{border-color:#07b4c5;color:#07b4c5}
+.avail-grid{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:4px;align-items:center}
+.avail-grid-head{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;text-align:center;padding:3px}
+.avail-day-label{font-size:12px;font-weight:600;color:#374151;padding:4px 6px 4px 0}
+.avail-shift-btn{border-radius:7px;border:1px solid #e5e7eb;background:#fff;padding:6px 4px;cursor:pointer;text-align:center;font-size:11px;color:#6b7280;transition:all .15s;font-family:inherit}
+.avail-shift-btn.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
+.avail-shift-btn.past{opacity:.35;cursor:not-allowed;pointer-events:none}
+.avail-closed{font-size:11px;color:#d1d5db;text-align:center;grid-column:2/-1;padding:4px}
+
+/* ── TRAINING BADGES ── */
+.train-list{display:flex;flex-direction:column;gap:6px}
+.train-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}
+.train-game{flex:1;font-size:13px;color:#374151}
+.train-badge{font-size:11px;padding:2px 9px;border-radius:99px;font-weight:600}
+.train-none{background:#f3f4f6;color:#9ca3af;border:1px solid #e5e7eb}
+.train-qualified{background:#dcfce7;color:#15803d;border:1px solid #4ade80}
+.train-partial{background:#fef3c7;color:#d97706;border:1px solid #fbbf24}
+
+/* ── STAFF TRAINING GRID ── */
+.training-grid-table{border-collapse:collapse;width:100%;background:#fff;border-radius:10px;overflow:hidden}
+.training-grid-table th,.training-grid-table td{border:1px solid #f3f4f6;padding:0;text-align:center}
+.tg-staff-head,.tg-game-head{background:#1a1035;color:#fff;font-size:12px;font-weight:700;padding:10px 12px;white-space:nowrap;position:sticky;top:0}
+.tg-staff-head{text-align:left;position:sticky;left:0;z-index:2}
+.tg-staff-name{background:#f9fafb;font-size:13px;font-weight:600;color:#111827;text-align:left;padding:8px 12px;white-space:nowrap;position:sticky;left:0}
+.tg-cell{min-width:110px}
+.tg-cell-btn{width:100%;height:100%;min-height:40px;border:none;background:none;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;padding:8px 6px;transition:filter .1s}
+.tg-cell-btn:hover{filter:brightness(0.96)}
+.tg-cell-btn.train-none{background:#f9fafb;color:#9ca3af}
+.tg-cell-btn.train-qualified{background:#dcfce7;color:#15803d}
+.tg-cell-btn.train-partial{background:#fef3c7;color:#d97706}
+@media (min-width:900px){
+  .tg-staff-head,.tg-game-head{font-size:14px;padding:12px 16px}
+  .tg-staff-name{font-size:15px;padding:10px 16px}
+  .tg-cell-btn{font-size:13px;padding:10px 8px;min-height:46px}
+}
+
+/* ── TIMESHEETS ── */
+.timesheet-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px}
+.timesheet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.timesheet-date{font-size:13px;font-weight:700;color:#374151}
+.timesheet-status{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600}
+.ts-clocked-in{background:#dbeafe;color:#1d4ed8}
+.ts-pending{background:#fef3c7;color:#d97706}
+.ts-staff-approved{background:#e0f7f9;color:#07b4c5}
+.ts-admin-approved{background:#dcfce7;color:#15803d}
+.ts-queried{background:#fee2e2;color:#dc2626}
+.timesheet-times{font-size:12px;color:#6b7280;margin-bottom:6px}
+.timesheet-hours{font-size:15px;font-weight:700;color:#111827}
+.timesheet-notes{font-size:12px;color:#6b7280;margin-top:5px;background:#f9fafb;border-radius:6px;padding:5px 8px}
+
+/* ── STAFF LIST (admin) ── */
+/* ── STAFF TABLE ── */
+.staff-table-wrap{overflow-x:auto;margin-bottom:16px}
+.staff-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+.staff-table th{background:#f1f5f9;color:#475569;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid #e2e8f0}
+.staff-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#334155;vertical-align:middle}
+.staff-table tr:hover td{background:#f8fafc}
+.staff-table tr.inactive-row td{opacity:.55}
+.staff-inline-input{width:100%;min-width:110px;font-size:13px;font-family:inherit;color:#334155;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 7px}
+.staff-inline-input:hover{border-color:#e2e8f0;background:#f9fafb}
+.staff-inline-input:focus{outline:none;border-color:#07b4c5;background:#fff}
+.staff-role-select{width:100%;min-width:140px;font-size:12px;font-family:inherit;color:#334155;background:#f9fafb;border:1px solid #e2e8f0;border-radius:6px;padding:5px 7px;cursor:pointer}
+.staff-no-login{font-size:11px;color:#9ca3af;font-style:italic}
+.staff-active-toggle{position:relative;width:38px;height:21px;border-radius:99px;border:none;cursor:pointer;transition:background .2s;flex-shrink:0}
+.staff-active-toggle.on{background:#10b981}
+.staff-active-toggle.off{background:#d1d5db}
+.staff-active-toggle::after{content:'';position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.staff-active-toggle.on::after{left:19px}
+
+/* ── STAFF CELEBRATIONS BANNER ── */
+.celebration-card{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.celebration-card.empty{background:#fafafa;border:1px dashed #e5e7eb}
+.celebration-title{font-size:12px;font-weight:700;color:#c2410c;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.celebration-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #ffedd5;font-size:13px}
+.celebration-row:last-child{border-bottom:none}
+.celebration-icon{font-size:16px;flex-shrink:0}
+
+/* ── CENTERED MODAL VARIANT (used for Staff Detail + Add Staff) ── */
+.panel.center-modal{left:0;width:100%;height:100%;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;transform:none;opacity:0;transition:opacity .2s ease}
+.panel.center-modal.open{opacity:1}
+.panel.center-modal .modal-box{background:#fff;border-radius:14px;width:92%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.panel.center-modal .panel-header{background:#92400e;flex-shrink:0;border-radius:14px 14px 0 0}
+.panel.center-modal .panel-body{padding:16px}
+@media(max-width:600px){
+  .panel.center-modal .modal-box{width:96%;max-height:92vh}
+}
+
+/* ── PANEL (slide-in) ── */
+.panel{position:fixed;top:0;left:220px;width:calc(100% - 220px);height:100vh;background:#fff;transition:transform .28s cubic-bezier(.4,0,.2,1);pointer-events:none;display:flex;flex-direction:column;z-index:200;overflow:hidden;transform:translateX(100%)}
+.panel.open{transform:translateX(0);pointer-events:all}
+.panel-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#92400e;flex-shrink:0}
+.panel-back{background:none;border:none;cursor:pointer;color:#07b4c5;font-size:14px;font-weight:600;display:flex;align-items:center;gap:4px;padding:4px 0;font-family:inherit}
+.panel-title{font-size:15px;font-weight:700;color:#fff}
+.panel-body{padding:14px;overflow-y:auto;flex:1}
+
+/* ── WEEK NAV ── */
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.week-nav-label{font-size:14px;font-weight:700;color:#111827}
+.week-nav-btn{background:none;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px;cursor:pointer;color:#6b7280;font-size:14px}
+.week-nav-btn:hover{border-color:#07b4c5;color:#07b4c5}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:28px 0;font-size:13px;color:#9ca3af}
+.empty-state i{font-size:32px;display:block;margin-bottom:8px;color:#d1d5db}
+.sec-title{font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.msg{font-size:12px;margin-top:6px;min-height:16px}
+.msg.ok{color:#15803d}
+.msg.err{color:#dc2626}
+.divider{height:1px;background:#f3f4f6;margin:14px 0}
+.badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600}
+.badge-admin{background:#fee2e2;color:#dc2626}
+.badge-manager{background:#ede9fe;color:#7c3aed}
+.badge-gm{background:#dcfce7;color:#15803d}
+.badge-casual{background:#f3f4f6;color:#6b7280}
+
+/* ── LOGIN ── */
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:#1a1035;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-logo{font-size:22px;font-weight:800;color:#07b4c5;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.login-sub{font-size:13px;color:#8a9bb5;margin-bottom:28px}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-field{margin-bottom:12px}
+.login-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.login-input{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.login-input:focus{outline:none;border-color:#07b4c5}
+.login-btn{width:100%;background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
+
+/* ── TIMESHEET EDIT ── */
+.time-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.time-edit-label{font-size:12px;color:#6b7280;min-width:60px}
+.time-edit-input{font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:5px 8px}
+
+/* ── SHIFTS ── */
+.shift-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:8px}
+.shift-card.open{border-left:4px solid #07b4c5}
+.shift-card.claimed{border-left:4px solid #f59e0b}
+.shift-card.assigned{border-left:4px solid #059669}
+.shift-card.unclaim_requested{border-left:4px solid #dc2626}
+
+/* STANDBY SHIFT OVERRIDE LAYOUT */
+.shift-card.standby-active {
+    border-left: 4px dashed #d97706 !important;
+    background: #fffbeb !important;
+}
+
+.shift-date-header{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #f3f4f6}
+.shift-time{font-size:16px;font-weight:700;color:#111827}
+.shift-duration{font-size:12px;color:#9ca3af;margin-left:6px}
+.shift-status-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600}
+.ss-open{background:#e0f7f9;color:#07b4c5}
+.ss-claimed{background:#fef3c7;color:#d97706}
+.ss-assigned{background:#dcfce7;color:#15803d}
+.ss-unclaim_requested{background:#fee2e2;color:#dc2626}
+.shift-staff-name{font-size:13px;color:#374151;margin-top:4px}
+.shift-notes{font-size:12px;color:#9ca3af;margin-top:3px}
+.shift-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.unclaim-overlay{display:none;position:fixed;inset:0;z-index:9999;background:#dc2626;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.unclaim-overlay.active{display:flex}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:4px}
+
+/* ── ADMIN CLOCK TABLE ── */
+.cc-btn{font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;font-family:inherit;transition:all .15s}
+.cc-btn:hover{border-color:#92400e;color:#92400e}
+.cc-btn.primary{background:#059669;color:#fff;border-color:#059669}
+.cc-btn.primary:hover{background:#047857;border-color:#047857}
+.cc-btn.danger{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
+.cc-btn.danger:hover{background:#dc2626;color:#fff}
+.clock-edit-input{font-size:11px;font-family:inherit;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px;color:#374151;background:#f9fafb;width:140px}
+.clock-table-wrap{overflow-x:auto;margin-bottom:16px}
+.clock-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+.clock-table th{background:#f1f5f9;color:#475569;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid #e2e8f0}
+.clock-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#334155;vertical-align:middle}
+.clock-table tr:hover td{background:#f8fafc}
+.clock-status-pill{font-size:11px;padding:2px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
+.clock-status-pill.in{background:#dcfce7;color:#15803d}
+.clock-status-pill.out{background:#f3f4f6;color:#9ca3af}
+.clock-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">Staff Portal</div>
+  <div class="login-card">
+    <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:18px">Sign in</div>
+    <div class="login-field">
+      <div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field">
+      <div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('mainNav');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+});
+</script>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp" style="display:none">
+  <div class="header">
+    <div class="header-left">
+        <button class="header-toggle-btn" id="sidebarToggle" type="button">☰</button>
+      <div class="header-title">STAFF PORTAL <span id="buildVersionTag" style="font-size:10px;font-weight:400;color:#d4a98a;letter-spacing:0.5px;vertical-align:middle"></span></div>
+      <div class="header-sub" id="headerSub">Loading…</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <a href="btb_app.html" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#fff;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:99px;padding:3px 12px;text-decoration:none">← BtB App</a>
+      <span class="auth-badge" id="authBadge" onclick="doLogout()">
+        <i class="ti ti-user-circle"></i>
+        <span id="authName"></span> · Sign out
+      </span>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <nav class="nav" id="mainNav">
+      <button class="nav-btn active" data-tab="tabHome"   onclick="showTab('tabHome',this)"><i class="ti ti-home"></i>Home</button>
+<button class="nav-btn" data-tab="tabAvail" onclick="showTab('tabAvail',this)"><i class="ti ti-calendar-check"></i>Usual Weekly Routine</button>
+<button class="nav-btn" data-tab="tabSpecificTimeoff" onclick="showTab('tabSpecificTimeoff',this)"><i class="ti ti-calendar-x"></i>Request Specific Time Off</button>
+      <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
+      <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
+      <button class="nav-btn"        data-tab="tabTraining" onclick="showTab('tabTraining',this)"><i class="ti ti-certificate"></i>My Training</button>
+ <button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
+      <!-- Admin-only tabs, hidden for staff -->
+      <div class="nav-divider"></div>
+      <button class="nav-btn admin-only" data-tab="tabClock" onclick="showTab('tabClock',this)" style="display:none"><i class="ti ti-clock-bolt"></i>Clock</button>
+      <button class="nav-btn admin-only" data-tab="tabStaff" onclick="showTab('tabStaff',this)" style="display:none"><i class="ti ti-users"></i>Staff</button>
+      <button class="nav-btn admin-only" data-tab="tabStaffTraining" onclick="showTab('tabStaffTraining',this)" style="display:none"><i class="ti ti-table"></i>Staff Training</button>
+      <button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
+    </nav>
+
+    <div class="content-area">
+
+  <!-- ══ HOME TAB ══ -->
+  <div id="tabHome" class="section active">
+    <!-- Clock in/out -->
+    <div id="clockWidget"></div>
+
+    <!-- Today's summary -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-calendar"></i> Today's bookings</div>
+      <div id="todayBookings"><div class="empty-state" style="padding:10px 0"><i class="ti ti-calendar-off"></i>Loading…</div></div>
+    </div>
+
+    <!-- This week availability summary -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-calendar-check"></i> My availability this week</div>
+      <div id="weekAvailSummary"></div>
+    </div>
+  </div>
+
+  <!-- ══ AVAILABILITY TAB ══ -->
+  <div id="tabAvail" class="section">
+    <div class="week-nav">
+      <button class="week-nav-btn" onclick="navigateAvailWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+<span class="week-nav-label" id="availWeekLabel" style="font-size:18px; font-weight:700; color:#1a1035;">📋 Set Your Usual Availability</span>
+      <button class="week-nav-btn" onclick="navigateAvailWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Tick the shifts you are <strong>usually</strong> available to work each week for the next month. This forms your default master schedule. This doesn't mean you're rostered — we will confirm if you're needed.</p>
+    
+<!-- 4 WEEKS GRID CONTAINER -->
+<div style="display: flex; flex-direction: column; gap: 24px; width: 100%; margin-bottom: 20px;">
+    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 1 of the Month</h4>
+        <div id="availGrid"></div>
+    </div>
+    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 2 of the Month</h4>
+        <div id="availGrid_w2"></div>
+    </div>
+    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 3 of the Month</h4>
+        <div id="availGrid_w3"></div>
+    </div>
+    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
+        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 4 of the Month</h4>
+        <div id="availGrid_w4"></div>
+        <button class="week-nav-btn" type="button" onclick="copyWeek1ToAllWeeks()" style="font-size:12px; padding:8px 14px; background-color:#1a1035; color:#fff; font-weight:700; width:100%; margin-top:10px;">📋 Copy Week 1 setup to Weeks 2, 3 & 4</button>
+    </div><!-- /week4 card -->
+</div><!-- /4 weeks grid container -->
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="saveAvailability()"><i class="ti ti-device-floppy"></i> Save availability</button>
+    </div>
+    <div class="msg" id="availMsg"></div>
+  </div><!-- /tabAvail section -->
+
+  <!-- ══ SPECIFIC TIME OFF TAB ══ -->
+  <div id="tabSpecificTimeoff" class="section">
+    <div class="card" style="padding: 20px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; max-width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 16px; font-weight: 700; color: #991b1b; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">🚫 Request Specific Time Off</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Block out upcoming holidays, exams, appointments, or specific hours you cannot work.</p>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 12px; font-weight: 600; color: #475569;">Which Date?</label>
+                <input type="date" id="excDate" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit;">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 12px; font-weight: 600; color: #475569;">Time-Off Type:</label>
+                <select id="excType" onchange="toggleCustomTimeFields()" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit; background:#fff;">
+                    <option value="all">Whole Day (All Shifts)</option>
+                    <option value="morning">Morning Shift (9am - 1pm)</option>
+                    <option value="afternoon">Afternoon Shift (1pm - 4:30pm)</option>
+                    <option value="evening">Evening Shift (4:30pm onwards)</option>
+                    <option value="custom">Custom Specific Hours...</option>
+                </select>
+            </div>
+            <div id="customTimeFields" style="display: none; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 11px; color: #64748b; font-weight:600;">From:</label>
+                    <input type="time" id="excStartTime" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width:100%;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 11px; color: #64748b; font-weight:600;">To:</label>
+                    <input type="time" id="excEndTime" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width:100%;">
+                </div>
+            </div>
+            <button type="button" onclick="submitTimeOffBlock()" style="background: #dc2626; color: #fff; font-weight: 700; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; font-size:13px;">
+                🔒 Confirm & Block This Time Slot
+            </button>
+        </div>
+        <div id="excFeedback" style="margin-top: 12px; font-size: 13px; font-weight: 600; text-align: center;"></div>
+    </div>
+  </div>
+  
+  <!-- ══ TIMESHEETS TAB ══ -->
+  <div id="tabTs" class="section">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div class="sec-title" style="margin-bottom:0">My Weekly Timesheets</div>
+      <div class="week-nav" style="margin-bottom:0">
+        <button class="week-nav-btn" onclick="navigateTimesheetWeek(-1)"><i class="ti ti-chevron-left"></i> Prev Week</button>
+        <span class="week-nav-label" id="tsWeekLabel" style="font-size:13px; font-weight:700; margin: 0 10px;">Loading week…</span>
+        <button class="week-nav-btn" onclick="navigateTimesheetWeek(1)">Next Week <i class="ti ti-chevron-right"></i></button>
+      </div>
+    </div>
+    
+    <!-- Spreadsheet Style Weekly Timesheet Card (Reflecting image_1d4c77.jpg) -->
+    <div id="weeklyTimesheetReplica"></div>
+    <div class="msg" id="tsSignMsg" style="text-align:center;margin-top:10px"></div>
+  </div>
+
+  <!-- ══ MY PROFILE TAB ══ -->
+  <div id="tabProfile" class="section">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-user-circle"></i> My details</div>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px">Contact admin to update email or date of birth.</p>
+      <div class="field">
+        <div class="field-label">Name</div>
+        <input class="field-input" type="text" id="profileName" disabled>
+      </div>
+      <div class="field">
+        <div class="field-label">Email</div>
+        <input class="field-input" type="email" id="profileEmail" disabled>
+      </div>
+      <div class="field-2col">
+        <div class="field">
+          <div class="field-label">Phone</div>
+          <input class="field-input" type="tel" id="profilePhone" placeholder="021 123 4567">
+        </div>
+        <div class="field">
+          <div class="field-label">Date of birth</div>
+          <input class="field-input" type="date" id="profileDob" disabled>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Address</div>
+        <input class="field-input" type="text" id="profileAddress" placeholder="123 Main St, Napier">
+      </div>
+      <div class="field-2col">
+        <div class="field">
+          <div class="field-label">Emergency contact</div>
+          <input class="field-input" type="text" id="profileEmergencyName" placeholder="Jane Smith">
+        </div>
+        <div class="field">
+          <div class="field-label">Emergency phone</div>
+          <input class="field-input" type="tel" id="profileEmergencyPhone" placeholder="021 999 888">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="saveProfile()"><i class="ti ti-device-floppy"></i> Save</button>
+      </div>
+      <div class="msg" id="profileMsg"></div>
+    </div>
+  </div>
+
+  <!-- ══ MY TRAINING TAB ══ -->
+  <div id="tabTraining" class="section">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-certificate"></i> My training</div>
+      <div class="train-list" id="myTraining"></div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN: CLOCK GRID TAB ══ -->
+  <div id="tabClock" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="sec-title" style="margin-bottom:0">Today's staff — clock in/out</div>
+      <button class="btn-secondary btn-sm" onclick="loadClockGrid()"><i class="ti ti-refresh"></i> Refresh</button>
+    </div>
+    <div id="clockGrid"></div>
+    <div class="divider"></div>
+    <div class="sec-title">Pending timesheet approvals</div>
+    <div id="clockGridTs"></div>
+  </div>
+
+  <!-- ══ ADMIN: STAFF LIST TAB ══ -->
+  <div id="tabStaff" class="section">
+    <div class="sec-title">All staff</div>
+    <div id="staffCelebrations"></div>
+    <button class="btn-primary" style="margin-bottom:12px;width:100%;justify-content:center" onclick="openPanel('panelNewStaff')">
+      <i class="ti ti-plus"></i> Add staff member
+    </button>
+    <div id="adminStaffList"></div>
+  </div>
+
+  <!-- ══ ADMIN: STAFF TRAINING GRID TAB ══ -->
+  <div id="tabStaffTraining" class="section">
+    <div class="sec-title">Staff training — tap a cell to cycle status</div>
+    <div style="overflow-x:auto">
+      <table class="training-grid-table" id="trainingGridTable"></table>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
+  <div id="tabApprove" class="section">
+    <div class="sec-title">Timesheets awaiting approval</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
+      <button class="btn-secondary btn-sm" style="border-color:#07b4c5;color:#07b4c5" onclick="setTsFilter('all',this)">All pending</button>
+      <button class="btn-secondary btn-sm" onclick="setTsFilter('clocked_in',this)">Clocked in</button>
+      <button class="btn-secondary btn-sm" onclick="setTsFilter('staff_approved',this)">Staff approved</button>
+      <button class="btn-secondary btn-sm" onclick="setTsFilter('queried',this)">Queried</button>
+    </div>
+    <div id="adminTsList"></div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#6b7280">Export approved:</span>
+      <input type="date" id="exportFrom" class="time-edit-input">
+      <span style="font-size:12px;color:#9ca3af">to</span>
+      <input type="date" id="exportTo" class="time-edit-input">
+      <button class="btn-primary btn-sm" onclick="exportTimesheets()"><i class="ti ti-download"></i> CSV</button>
+    </div>
+  </div><!-- /tabApprove section -->
+
+  <!-- ══ SHIFTS TAB ══ -->
+  <div id="tabShifts" class="section">
+
+    <!-- ADMIN: Create shift + manage all shifts -->
+    <div id="shiftsAdminView" style="display:none">
+      <div style="display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start">
+
+        <!-- Left: Create shift form -->
+        <div class="card" style="position:sticky;top:80px">
+          <div class="card-title"><i class="ti ti-plus"></i> Create shift</div>
+          <div class="field">
+            <div class="field-label">Date <span class="req">*</span></div>
+            <input class="field-input" type="date" id="newShiftDate">
+          </div>
+          <div class="field-2col">
+            <div class="field">
+              <div class="field-label">Start time <span class="req">*</span></div>
+              <input class="field-input" type="time" id="newShiftStart">
+            </div>
+            <div class="field">
+              <div class="field-label">End time <span class="req">*</span></div>
+              <input class="field-input" type="time" id="newShiftEnd">
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Assign to staff (optional — leave blank to post as open)</div>
+            <select class="field-select" id="newShiftStaff">
+              <option value="">— Post as open shift</option>
+            </select>
+          </div>
+          <!-- 📞 STANDBY/ON-CALL TOGGLE FIELD -->
+          <div class="field" style="margin-top: 14px; margin-bottom: 14px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#475569;cursor:pointer">
+              <input type="checkbox" id="newShiftStandby" style="width:16px;height:16px;accent-color:#d97706;">
+              📞 Mark as On-Call / Standby Shift
+            </label>
+            <p class="field-hint" style="margin-left: 24px; color:#92400e; font-weight: 500;">Staff must stay reachable but shouldn't travel to the venue unless called.</p>
+          </div>
+          <div class="field">
+            <div class="field-label">Notes (optional)</div>
+            <input class="field-input" type="text" id="newShiftNotes" placeholder="e.g. Busy Friday night, need experienced GM">
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="createShift()"><i class="ti ti-plus"></i> Create shift</button>
+          </div>
+          <div class="msg" id="newShiftMsg"></div>
+        </div>
+
+        <!-- Right: All shifts list -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div style="font-size:16px;font-weight:700;color:#111827">All shifts — next 8 weeks</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="shiftFilterBtns">
+              <button class="btn-secondary btn-sm" onclick="setShiftFilter('all',this)" style="border-color:#07b4c5;color:#07b4c5">All</button>
+              <button class="btn-secondary btn-sm" onclick="setShiftFilter('open',this)">Open</button>
+              <button class="btn-secondary btn-sm" onclick="setShiftFilter('claimed',this)">Claimed</button>
+              <button class="btn-secondary btn-sm" onclick="setShiftFilter('assigned',this)">Assigned</button>
+              <button class="btn-secondary btn-sm" onclick="setShiftFilter('unclaim_requested',this)">Unclaim requests</button>
+            </div>
+          </div>
+          <div id="adminShiftsList"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STAFF: View open + my shifts -->
+    <div id="shiftsStaffView" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+
+        <!-- Left: Open shifts to claim -->
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:14px">Open shifts — available to claim</div>
+          <div id="openShiftsList"></div>
+        </div>
+
+        <!-- Right: My shifts -->
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:14px">My upcoming shifts</div>
+          <div id="myShiftsList"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /tabShifts -->
+
+    </div><!-- /content-area -->
+  </div><!-- /app-body -->
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════ -->
+<!-- PANELS (fixed position, outside app)       -->
+<!-- ══════════════════════════════════════════ -->
+
+<!-- Staff detail panel (admin) -->
+<div id="panelStaffDetail" class="panel center-modal">
+ <div class="modal-box">
+  <div class="panel-header">
+    <button class="panel-back" onclick="closePanel('panelStaffDetail')"><i class="ti ti-x"></i> Close</button>
+    <span class="panel-title" id="panelStaffDetailTitle">Staff member</span>
+  </div>
+  <div class="panel-body">
+    <!-- Profile section -->
+    <div class="sec-title">Profile</div>
+    <div class="field"><div class="field-label">Name <span class="req">*</span></div><input class="field-input" type="text" id="adminStaffName"></div>
+    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="adminStaffEmail"></div>
+    <div class="field-2col">
+      <div class="field"><div class="field-label">Phone</div><input class="field-input" type="tel" id="adminStaffPhone"></div>
+      <div class="field"><div class="field-label">Date of birth</div><input class="field-input" type="date" id="adminStaffDob"></div>
+    </div>
+    <div class="field"><div class="field-label">Hire date <span style="color:#9ca3af;font-weight:400;text-transform:none">(for anniversary tracking)</span></div><input class="field-input" type="date" id="adminStaffHireDate"></div>
+    <div class="field"><div class="field-label">Address</div><input class="field-input" type="text" id="adminStaffAddress"></div>
+    <div class="field-2col">
+      <div class="field"><div class="field-label">Emergency contact</div><input class="field-input" type="text" id="adminStaffEmergencyName"></div>
+      <div class="field"><div class="field-label">Emergency phone</div><input class="field-input" type="tel" id="adminStaffEmergencyPhone"></div>
+    </div>
+    <div class="field-2col">
+      <div class="field">
+        <div class="field-label">Employment type</div>
+        <select class="field-select" id="adminStaffEmpType">
+          <option value="casual">Casual</option>
+          <option value="part_time">Part time</option>
+          <option value="full_time">Full time</option>
+        </select>
+      </div>
+      <div class="field"><div class="field-label">Hourly rate $</div><input class="field-input" type="number" id="adminStaffRate" min="0" step="0.50" placeholder="0.00"></div>
+    </div>
+    <div class="field"><div class="field-label">Notes</div><input class="field-input" type="text" id="adminStaffNotes" placeholder="Internal notes…"></div>
+    <div class="field">
+      <div class="field-label">Active</div>
+      <select class="field-select" id="adminStaffActive">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="saveAdminStaff()"><i class="ti ti-device-floppy"></i> Save profile</button>
+    </div>
+    <div class="msg" id="adminStaffMsg"></div>
+
+    <div class="divider"></div>
+
+    <!-- Availability for this staff member -->
+    <div class="sec-title">Availability</div>
+    <div class="week-nav">
+      <button class="week-nav-btn" onclick="navigateAdminStaffWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="week-nav-label" id="adminStaffWeekLabel"></span>
+      <button class="week-nav-btn" onclick="navigateAdminStaffWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div id="adminStaffAvailGrid"></div>
+    <div class="btn-row">
+      <button class="btn-primary btn-sm" onclick="saveAdminStaffAvail()"><i class="ti ti-device-floppy"></i> Save availability</button>
+    </div>
+    <div class="msg" id="adminStaffAvailMsg"></div>
+
+    <div class="divider"></div>
+
+    <!-- Timesheet for this staff member -->
+    <div class="sec-title">Recent timesheets</div>
+    <div id="adminStaffTs"></div>
+  </div>
+ </div>
+</div>
+
+<!-- New staff panel (admin) -->
+<div id="panelNewStaff" class="panel center-modal">
+ <div class="modal-box">
+  <div class="panel-header">
+    <button class="panel-back" onclick="closePanel('panelNewStaff')"><i class="ti ti-x"></i> Close</button>
+    <span class="panel-title">Add staff member</span>
+  </div>
+  <div class="panel-body">
+    <div class="field"><div class="field-label">Name <span class="req">*</span></div><input class="field-input" type="text" id="newStaffName" placeholder="Alex Smith"></div>
+    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="newStaffEmail" placeholder="alex@example.com"></div>
+    <div class="field"><div class="field-label">Phone</div><input class="field-input" type="tel" id="newStaffPhone" placeholder="021 123 4567"></div>
+    <div class="field-2col">
+      <div class="field">
+        <div class="field-label">Employment type</div>
+        <select class="field-select" id="newStaffEmpType">
+          <option value="casual">Casual</option>
+          <option value="part_time">Part time</option>
+          <option value="full_time">Full time</option>
+        </select>
+      </div>
+      <div class="field"><div class="field-label">Hourly rate $</div><input class="field-input" type="number" id="newStaffRate" min="0" step="0.50" placeholder="0.00"></div>
+    </div>
+    <div class="field"><div class="field-label">Hire date <span style="color:#9ca3af;font-weight:400;text-transform:none">(optional)</span></div><input class="field-input" type="date" id="newStaffHireDate"></div>
+    <p class="field-hint" style="margin-bottom:10px">Login credentials are set separately in BtB App → Settings → Logins & Roles.</p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="createStaff()"><i class="ti ti-plus"></i> Add staff member</button>
+      <button class="btn-secondary" onclick="closePanel('panelNewStaff')">Cancel</button>
+    </div>
+    <div class="msg" id="newStaffMsg"></div>
+  </div>
+ </div>
+</div>
+
+<!-- Timesheet detail panel -->
+<div id="panelTsDetail" class="panel">
+  <div class="panel-header">
+    <button class="panel-back" onclick="closePanel('panelTsDetail')"><i class="ti ti-chevron-left"></i> Back</button>
+    <span class="panel-title" id="panelTsTitle">Timesheet</span>
+  </div>
+  <div class="panel-body">
+    <div id="tsDetailBody"></div>
+  </div>
+</div>
+
+<!-- Unclaim request alert overlay -->
+<div class="unclaim-overlay" id="unclaimOverlay">
+  <div style="font-size:72px;margin-bottom:16px;animation:shake .5s infinite">🚨</div>
+  <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:8px">UNCLAIM REQUEST</div>
+  <div style="font-size:18px;color:rgba(255,255,255,.9);margin-bottom:6px"><span id="unclaimStaffName"></span> wants to unclaim a shift</div>
+  <div style="font-size:16px;color:#fff;background:rgba(0,0,0,.2);padding:8px 20px;border-radius:10px;margin-bottom:30px">Reason: <span id="unclaimReason"></span></div>
+  <button style="background:#fff;color:#dc2626;border:none;padding:14px 36px;border-radius:12px;font-size:18px;font-weight:700;cursor:pointer" onclick="dismissUnclaimAlert()">✓ Acknowledged — go to Shifts tab</button>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SB_URL  = 'https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH = `${SB_URL}/auth/v1`;
+const EDGE_FN = `${SB_URL}/functions/v1/btb-admin`;
+// SECURITY: H() now sends the real logged-in staff member's session token
+// for every data request. The matching 'authenticated' RLS policies were
+// added to Supabase on 2026-07-06 before this was re-enabled.
+// apikey always stays as the project anon key (Supabase requirement,
+// separate from Authorization). Falls back to anon key only if nobody
+// is logged in (e.g. a request fires before login completes).
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+
+// BUILD VERSION — bump this every time this file is shipped, so you can confirm
+// in the header (and browser console) which copy you're actually looking at.
+const BUILD_VERSION = '1.5.0';
+console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// Shift definitions — boundaries come from bookingConfig
+const SHIFT_TYPES = ['morning','afternoon','evening'];
+const SHIFT_LABELS = {morning:'Morning',afternoon:'Afternoon',evening:'Evening'};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentUser   = null;
+let allStaff      = [];
+let myStaffRecord = null;
+let games         = [];
+let trainingStatuses = [];
+let bookingConfig  = {
+  shiftBoundary1: '13:00',
+  shiftBoundary2: '16:30',
+  openingHours: [],
+  slotTimes: {}
+};
+let myShifts      = {};  // { 'YYYY-MM-DD_morning': true/false }
+let adminShifts   = {};  // for admin viewing a staff member
+let staffTraining = [];
+let timesheets    = [];
+let adminTs       = [];
+let adminRolesList = []; // user_roles rows, admin only — loaded via list_roles edge action
+const ROLE_LABELS = {
+  gamemaster_own: 'Gamemaster (own)',
+  gamemaster:     'Gamemaster',
+  manager:        'Manager',
+  admin:          'Admin'
+};
+
+let availWeekOffset      = 0;
+let adminStaffWeekOffset = 0;
+let adminViewingStaffId  = null;
+let tsFilter             = 'all';
+
+// Weekly timesheet state tracking
+let timesheetWeekOffset  = 0; 
+
+// ============================================================
+// UTILS
+// ============================================================
+function toDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function getMonday(offset=0) {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  const day = d.getDay(); // 0=Sun
+  const diff = (day === 0) ? -6 : 1 - day; // adjust to Monday
+  d.setDate(d.getDate() + diff + offset * 7);
+  return d;
+}
+
+function fmt12(t) {
+  if (!t) return '—';
+  const [h, m] = t.slice(0,5).split(':').map(Number);
+  return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+}
+
+function fmtFriendlyDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T12:00');
+  const day = d.getDate();
+  const mon = MONTHS[d.getMonth()];
+  const yr = String(d.getFullYear()).slice(-2);
+  return `${day}-${mon}-${yr}`;
+}
+
+function fmtDatetime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short'}) + ' ' +
+    d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+}
+
+function hoursFromClockInOut(inIso, outIso) {
+  if (!inIso || !outIso) return null;
+  const diff = (new Date(outIso) - new Date(inIso)) / 3600000;
+  return Math.round(diff * 100) / 100;
+}
+
+function initials(name) {
+  return (name||'?').trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+}
+
+function shiftRange(type) {
+  const b1 = bookingConfig.shiftBoundary1 || '13:00';
+  const b2 = bookingConfig.shiftBoundary2 || '16:30';
+  if (type === 'morning')   return `9:00 AM – ${fmt12(b1)}`;
+  if (type === 'afternoon') return `${fmt12(b1)} – ${fmt12(b2)}`;
+  if (type === 'evening')   return `${fmt12(b2)} – 8:30 PM`;
+  return '';
+}
+
+function shiftKey(dateStr, shiftType) {
+  return `${dateStr}_${shiftType}`;
+}
+
+function getSlotsForDay(dayIdx) {
+  const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
+  const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
+  return [...slots].sort();
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+async function callEdgeFunction(action, params={}, token=null) {
+  const headers = {'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r = await fetch(EDGE_FN, {method:'POST', headers, body:JSON.stringify({action,...params})});
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error||`Edge error ${r.status}`); }
+  return r.json();
+}
+
+// ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+// Login tokens expire (Supabase default ~1 hour). Without this, a staff
+// member could get silently logged out or start seeing errors mid-shift.
+// This quietly renews the token in the background before it expires.
+let tokenRefreshTimer = null;
+
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  // Refresh 2 minutes before actual expiry; if we're restoring a session
+  // that's already expired/near-expired, this fires almost immediately.
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_portal_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    // Refresh token itself is invalid/expired — the session has genuinely
+    // ended, so sign out cleanly instead of leaving requests silently failing.
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+function parseAllowedTabs(raw) {
+  if (!raw) return ['calendar'];
+  if (Array.isArray(raw)) return raw;
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : ['calendar']; } catch(e) { return ['calendar']; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=password`, {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({email, password:pass})
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.error_description || 'Login failed.'; return; }
+    const userId = data.user.id;
+    const token  = data.access_token;
+    const userRole = await callEdgeFunction('get_my_role', {}, token)
+      .catch(() => ({name: email.split('@')[0], role:'gamemaster', allowed_tabs:'["calendar"]'}))
+      || {name: email.split('@')[0], role:'gamemaster', allowed_tabs:'["calendar"]'};
+    currentUser = {
+      id: userId, email, token,
+      refreshToken: data.refresh_token,
+      expiresAt: Date.now() + ((data.expires_in || 3600) * 1000),
+      name: userRole.name,
+      role: userRole.role,
+      allowedTabs: parseAllowedTabs(userRole.allowed_tabs)
+    };
+    sessionStorage.setItem('btb_portal_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    await initApp();
+  } catch(e) { errEl.textContent = 'Connection error.'; console.error(e); }
+}
+
+function doLogout() {
+  clearTimeout(tokenRefreshTimer);
+  currentUser = null;
+  sessionStorage.removeItem('btb_portal_user');
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginScreen').classList.add('active');
+  document.getElementById('loginPass').value = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function initApp() {
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainApp').style.display = '';
+  document.getElementById('authName').textContent = currentUser.name;
+
+  const isAdmin = ['admin','manager'].includes(currentUser.role);
+
+  // Show admin tabs
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+
+  // Load settings and data in parallel
+  await loadSettings();
+  await Promise.all([loadAllStaff(), loadMyTraining()]);
+  await findMyStaffRecord();
+  await Promise.all([loadMyShifts(), loadMyTimesheets()]);
+
+  renderClockWidget();
+  renderWeekAvailSummary();
+  renderAvailGrid();
+  renderMyTraining();
+  renderMyTimesheets();
+  loadTodayBookings();
+  loadProfile();
+
+  await loadShifts();
+  document.getElementById('shiftsAdminView').style.display = isAdmin ? '' : 'none';
+  document.getElementById('shiftsStaffView').style.display = isAdmin ? 'none' : '';
+  populateShiftStaffDropdown();
+  if (isAdmin) renderAdminShifts(); else renderStaffShifts();
+  updateShiftBadge();
+
+  if (isAdmin) {
+    await loadAdminTimesheets();
+    await loadAdminRoles();
+    renderStaffCelebrations();
+    renderAdminStaffList();
+    loadClockGrid();
+  }
+
+  document.getElementById('headerSub').textContent =
+    `${currentUser.role} · ${new Date().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'long'})}`;
+}
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+async function loadSettings() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/settings`, {headers:H()});
+    const rows = await r.json();
+    rows.forEach(row => {
+      try {
+        const d = JSON.parse(row.value);
+        if (row.key === 'btb_games' && Array.isArray(d)) games = d;
+        if (row.key === 'btb_training_statuses' && Array.isArray(d)) trainingStatuses = d;
+        if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d))
+          bookingConfig = {...bookingConfig, ...d};
+      } catch(e) {}
+    });
+  } catch(e) { console.error('Settings load:', e); }
+}
+
+async function loadAllStaff() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?order=name`, {headers:H()});
+    const rows = await r.json();
+    if (Array.isArray(rows)) allStaff = rows;
+  } catch(e) { console.error('Staff load:', e); }
+}
+
+async function findMyStaffRecord() {
+  myStaffRecord = allStaff.find(s => s.email === currentUser.email) ||
+                  allStaff.find(s => s.user_role_id === currentUser.id) ||
+                  null;
+}
+
+async function loadAdminRoles() {
+  try {
+    const rows = await callEdgeFunction('list_roles', {}, currentUser.token);
+    if (Array.isArray(rows)) adminRolesList = rows;
+  } catch(e) { console.error('Roles load:', e); adminRolesList = []; }
+}
+
+async function loadMyTraining() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_game_training`, {headers:H()});
+    staffTraining = await r.json();
+  } catch(e) { staffTraining = []; }
+}
+
+async function loadMyShifts() {
+  if (!myStaffRecord) return;
+  try {
+    const today = toDateStr(new Date());
+    const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 56);
+    const future = toDateStr(futureDate);
+    const r = await fetch(
+      `${SB_URL}/rest/v1/staff_availability?staff_id=eq.${myStaffRecord.id}&specific_date=gte.${today}&specific_date=lte.${future}&select=specific_date,start_time,available`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    myShifts = {};
+    const b1 = bookingConfig.shiftBoundary1 || '13:00';
+    const b2 = bookingConfig.shiftBoundary2 || '16:30';
+    rows.forEach(row => {
+      if (!row.available || row.available === 'unavailable') return;
+      const t = (row.start_time || '').slice(0,5);
+      if (!t) return;
+      let shiftType;
+      if (t < b1)            shiftType = 'morning';
+      else if (t < b2)       shiftType = 'afternoon';
+      else                   shiftType = 'evening';
+      const key = shiftKey(row.specific_date, shiftType);
+      myShifts[key] = row.available;
+    });
+  } catch(e) { console.error('Shifts load:', e); }
+}
+
+async function loadMyTimesheets() {
+  if (!myStaffRecord) return;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/timesheets?staff_id=eq.${myStaffRecord.id}&order=work_date.desc&limit=50`,
+      {headers:H()}
+    );
+    timesheets = await r.json();
+  } catch(e) { timesheets = []; }
+}
+
+async function loadAdminTimesheets() {
+  try {
+    let url = `${SB_URL}/rest/v1/timesheets?order=work_date.desc&limit=100`;
+    if (tsFilter !== 'all') url += `&status=eq.${tsFilter}`;
+    else url += `&status=neq.admin_approved`;
+    const r = await fetch(url, {headers:H()});
+    adminTs = await r.json();
+    renderAdminTimesheets();
+  } catch(e) { console.error('Admin TS load:', e); }
+}
+
+async function loadTodayBookings() {
+  const today = toDateStr(new Date());
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/game_bookings?booking_date=eq.${today}&status=neq.cancelled&order=slot_time&select=*`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    const el = document.getElementById('todayBookings');
+    if (!rows.length) {
+      el.innerHTML = '<div style="font-size:12px;color:#9ca3af;text-align:center;padding:8px 0">No bookings today.</div>';
+      return;
+    }
+    el.innerHTML = rows.map(b => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px">
+        <span style="font-weight:700;color:#07b4c5;min-width:60px">${fmt12((b.slot_time||'').slice(0,5))}</span>
+        <span style="flex:1;color:#374151">${b.game_name}</span>
+        <span style="color:#6b7280">${b.players_booked}p</span>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('todayBookings').innerHTML = '<div style="font-size:12px;color:#9ca3af">Could not load.</div>';
+  }
+}
+
+function loadProfile() {
+  if (!myStaffRecord) return;
+  const s = myStaffRecord;
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val||''; };
+  set('profileName', s.name);
+  set('profileEmail', s.email);
+  set('profilePhone', s.phone);
+  set('profileDob', s.date_of_birth);
+  set('profileAddress', s.address);
+  set('profileEmergencyName', s.emergency_contact);
+  set('profileEmergencyPhone', s.emergency_phone);
+}
+
+// ============================================================
+// CLOCK IN / OUT
+// ============================================================
+async function clockIn() {
+  if (!myStaffRecord) return;
+  const btn = document.getElementById('clockInBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Clocking in…'; }
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets`, {
+      method: 'POST',
+      headers: {...H(), 'Prefer':'return=representation'},
+      body: JSON.stringify({
+        staff_id: myStaffRecord.id,
+        work_date: toDateStr(new Date()),
+        clock_in: new Date().toISOString(),
+        hourly_rate_used: myStaffRecord.hourly_rate || 0,
+        status: 'clocked_in'
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) timesheets.unshift(rows[0]);
+    renderClockWidget();
+    renderMyTimesheets();
+  } catch(e) { alert('Clock in failed: ' + e.message); }
+  if (btn) { btn.disabled = false; }
+}
+
+async function clockOut() {
+  const active = getActiveClock();
+  if (!active) return;
+  const btn = document.getElementById('clockOutBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Clocking out…'; }
+  try {
+    const clockOut = new Date().toISOString();
+    const hours = hoursFromClockInOut(active.clock_in, clockOut);
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${active.id}`, {
+      method: 'PATCH',
+      headers: H(),
+      body: JSON.stringify({
+        clock_out: clockOut,
+        hours_worked: hours,
+        status: 'pending',
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const idx = timesheets.findIndex(t => t.id === active.id);
+    if (idx > -1) {
+      timesheets[idx].clock_out = clockOut;
+      timesheets[idx].hours_worked = hours;
+      timesheets[idx].status = 'pending';
+    }
+    renderClockWidget();
+    renderMyTimesheets();
+  } catch(e) { alert('Clock out failed: ' + e.message); }
+  if (btn) btn.disabled = false;
+}
+
+function getActiveClock() {
+  return timesheets.find(t => t.status === 'clocked_in' && t.work_date === toDateStr(new Date()));
+}
+
+function renderClockWidget() {
+  const el = document.getElementById('clockWidget');
+  const active = getActiveClock();
+  if (active) {
+    const since = fmtDatetime(active.clock_in);
+    el.innerHTML = `
+      <div class="clock-banner">
+        <div class="clock-banner-out">
+          <div class="clock-info">
+            <div class="clock-label">Clocked in since</div>
+            <div class="clock-time">${since.split(' ').slice(1).join(' ')}</div>
+            <div class="clock-sub">Today · tap to clock out when done</div>
+          </div>
+          <button class="clock-btn" id="clockOutBtn" onclick="clockOut()">
+            <i class="ti ti-player-stop" style="margin-right:4px"></i>Clock out
+          </button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="clock-idle">
+        <div class="clock-idle-label">
+          <div style="font-weight:700;color:#374151;margin-bottom:2px">Not clocked in</div>
+          <div style="font-size:11px;color:#9ca3af">${new Date().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'})}</div>
+        </div>
+        <button class="clock-idle-btn" id="clockInBtn" onclick="clockIn()">
+          <i class="ti ti-player-play" style="margin-right:4px"></i>Clock in
+        </button>
+      </div>`;
+  }
+}
+
+// ============================================================
+// AVAILABILITY
+// ============================================================
+function getWeekDays(weekOffset) {
+  const mon = getMonday(weekOffset);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
+function getWeekLabel(weekOffset) {
+  const days = getWeekDays(weekOffset);
+  const mon = days[0]; const sun = days[6];
+  if (weekOffset === 0) return `This week · ${mon.getDate()} ${MONTHS[mon.getMonth()]} – ${sun.getDate()} ${MONTHS[sun.getMonth()]}`;
+  if (weekOffset === 1) return `Next week · ${mon.getDate()} ${MONTHS[mon.getMonth()]} – ${sun.getDate()} ${MONTHS[sun.getMonth()]}`;
+  return `${mon.getDate()} ${MONTHS[mon.getMonth()]} – ${sun.getDate()} ${MONTHS[sun.getMonth()]} ${sun.getFullYear()}`;
+}
+
+function isDayOpen(date) {
+  const oh = (bookingConfig.openingHours || []).find(o => o.day === date.getDay());
+  return oh && oh.open;
+}
+
+function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
+  const el = document.getElementById(gridId); if (!el) return;
+  const offset = (gridId === 'adminStaffAvailGrid') ? adminStaffWeekOffset : availWeekOffset;
+  const labelId = (gridId === 'adminStaffAvailGrid') ? 'adminStaffWeekLabel' : 'availWeekLabel';
+  const shiftData = shifts || myShifts;
+
+  document.getElementById(labelId).textContent = getWeekLabel(offset);
+
+  const days = getWeekDays(offset);
+  const today = toDateStr(new Date());
+
+  let html = `<div class="avail-grid">
+    <div class="avail-grid-head"></div>
+    <div class="avail-grid-head">Morning<br><span style="font-weight:400;font-size:9px">${shiftRange('morning')}</span></div>
+    <div class="avail-grid-head">Afternoon<br><span style="font-weight:400;font-size:9px">${shiftRange('afternoon')}</span></div>
+    <div class="avail-grid-head">Evening<br><span style="font-weight:400;font-size:9px">${shiftRange('evening')}</span></div>`;
+
+  days.forEach(d => {
+    const ds = toDateStr(d);
+    const isPast = (gridId === 'adminStaffAvailGrid') ? ds < today : false;
+    const isOpen = isDayOpen(d);
+    const dayLabel = DAYS_SHORT[d.getDay()] + ' ' + d.getDate();
+
+    html += `<div class="avail-day-label" style="${isPast?'color:#d1d5db':''}">${dayLabel}</div>`;
+
+    if (!isOpen) {
+      html += `<div class="avail-closed" style="grid-column:2/-1">Closed</div>`;
+    } else {
+      SHIFT_TYPES.forEach(type => {
+        const key = shiftKey(ds, type);
+        const val = shiftData[key];
+        const isAvailable = val === 'available' || val === true;
+        const isMaybe = val === 'maybe';
+        
+        const statusClass = isAvailable ? 'on' : '';
+        const statusText = isAvailable ? '✓' : (isMaybe ? 'can be but prefer not' : '-');
+        const styleOverride = isMaybe ? 'style="background:#f59e0b !important; color:#fff !important; border-color:#d97706 !important;"' : '';
+        
+        const onclick = isPast ? '' : `onclick="${gridId==='adminStaffAvailGrid' ? 'toggleAdminShift' : 'toggleMyShift'}('${ds}','${type}')"`;
+        html += `<button class="avail-shift-btn ${statusClass} ${isPast?'past':''}" ${styleOverride} ${onclick}>
+            ${statusText}
+        </button>`;
+      });
+    }
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function toggleMyShift(dateStr, shiftType) {
+    const key = shiftKey(dateStr, shiftType);
+    const current = myShifts[key];
+    
+    if (!current || current === 'unavailable') {
+        myShifts[key] = 'available';
+    } else if (current === 'available') {
+        myShifts[key] = 'maybe';
+    } else {
+        myShifts[key] = 'unavailable';
+    }
+    
+    renderAllFourWeeks();
+    renderWeekAvailSummary();
+}
+
+function toggleAdminShift(dateStr, shiftType) {
+  const key = shiftKey(dateStr, shiftType);
+  adminShifts[key] = !adminShifts[key];
+  renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
+}
+
+function renderAllFourWeeks() {
+    const baseOffset = availWeekOffset;
+    
+    renderAvailGrid(null, null, 'availGrid');
+    
+    availWeekOffset = baseOffset + 1;
+    renderAvailGrid(null, null, 'availGrid_w2');
+    
+    availWeekOffset = baseOffset + 2;
+    renderAvailGrid(null, null, 'availGrid_w3');
+    
+    availWeekOffset = baseOffset + 3;
+    renderAvailGrid(null, null, 'availGrid_w4');
+    
+    availWeekOffset = baseOffset;
+}
+
+function copyWeek1ToAllWeeks() {
+    // Bug fix: only copy the 7 days currently shown in the "Week 1" box
+    // (based on availWeekOffset), not every date that happens to exist in
+    // myShifts — previously this could reach into other months/weeks you'd
+    // already set up separately and overwrite them unexpectedly.
+    const baseDays = getWeekDays(availWeekOffset);
+
+    baseDays.forEach(d => {
+        const dateStr = toDateStr(d);
+        SHIFT_TYPES.forEach(shiftType => {
+            const sourceKey = shiftKey(dateStr, shiftType);
+            const sourceVal = myShifts[sourceKey] || 'unavailable';
+
+            for (let delta = 1; delta <= 3; delta++) {
+                const targetDate = new Date(d);
+                targetDate.setDate(targetDate.getDate() + (delta * 7));
+                const targetKey = shiftKey(toDateStr(targetDate), shiftType);
+                myShifts[targetKey] = sourceVal;
+            }
+        });
+    });
+
+    renderAllFourWeeks();
+    
+    const msgEl = document.getElementById('availMsg');
+    if (msgEl) {
+        msgEl.className = 'msg';
+        msgEl.style.color = '#15803d';
+        msgEl.textContent = "Copied this Week 1 into Weeks 2, 3 & 4! (Click 'Save availability' below to save changes)";
+    }
+}
+
+function toggleCustomTimeFields() {
+    const selector = document.getElementById('excType');
+    const customWrapper = document.getElementById('customTimeFields');
+    if (selector && customWrapper) {
+        customWrapper.style.display = (selector.value === 'custom') ? 'flex' : 'none';
+    }
+}
+
+// ── SPECIFIC TIME OFF LOGIC ──
+async function submitTimeOffBlock() {
+    if (!myStaffRecord) {
+        alert("No staff profile linked to your user account.");
+        return;
+    }
+    const dateVal = document.getElementById('excDate')?.value;
+    const typeVal = document.getElementById('excType')?.value;
+    const feedbackEl = document.getElementById('excFeedback');
+    if (!feedbackEl) return;
+    
+    if (!dateVal) {
+        feedbackEl.style.color = '#ef4444';
+        feedbackEl.textContent = 'Please select a date.';
+        return;
+    }
+    
+    feedbackEl.style.color = '#374151';
+    feedbackEl.textContent = 'Submitting request...';
+    
+    try {
+        const b1 = bookingConfig.shiftBoundary1 || '13:00';
+        const b2 = bookingConfig.shiftBoundary2 || '16:30';
+        const d = new Date(dateVal + 'T12:00');
+        const daySlots = getSlotsForDay(d.getDay());
+
+        // Bug fix: work out exactly which slot times this block covers FIRST,
+        // so we only clear/replace those — not the entire day. Previously this
+        // deleted every row for the date, which silently wiped out any other
+        // shift (e.g. morning) already set for that same day.
+        let timesToBlock = [];
+
+        if (typeVal === 'all') {
+            timesToBlock = daySlots;
+        } else if (typeVal === 'morning') {
+            timesToBlock = daySlots.filter(t => t < b1);
+        } else if (typeVal === 'afternoon') {
+            timesToBlock = daySlots.filter(t => t >= b1 && t < b2);
+        } else if (typeVal === 'evening') {
+            timesToBlock = daySlots.filter(t => t >= b2);
+        } else if (typeVal === 'custom') {
+            const startT = document.getElementById('excStartTime')?.value;
+            const endT = document.getElementById('excEndTime')?.value;
+            if (!startT || !endT) {
+                feedbackEl.style.color = '#ef4444';
+                feedbackEl.textContent = 'Please provide start and end times.';
+                return;
+            }
+            timesToBlock = daySlots.filter(t => t >= startT && t <= endT);
+        }
+
+        if (timesToBlock.length > 0) {
+            // Only remove existing rows for THESE specific times on this date —
+            // any other slots already set for the day (outside this block) are left alone.
+            const timesFilter = timesToBlock.map(t => t + ':00').join(',');
+            await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${myStaffRecord.id}&specific_date=eq.${dateVal}&start_time=in.(${timesFilter})`, {
+                method: 'DELETE',
+                headers: H()
+            });
+        }
+
+        const rows = timesToBlock.map(t => ({
+            staff_id: myStaffRecord.id,
+            specific_date: dateVal,
+            start_time: t + ':00',
+            available: 'unavailable'
+        }));
+
+        if (rows.length > 0) {
+            const r = await fetch(`${SB_URL}/rest/v1/staff_availability`, {
+                method: 'POST',
+                headers: { ...H(), 'Prefer': 'return=minimal' },
+                body: JSON.stringify(rows)
+            });
+            if (!r.ok) throw new Error(await r.text());
+        }
+        
+        feedbackEl.style.color = '#15803d';
+        feedbackEl.textContent = '✓ Time off successfully blocked!';
+        
+        await loadMyShifts();
+        renderWeekAvailSummary();
+        renderAllFourWeeks();
+        
+        setTimeout(() => { feedbackEl.textContent = ''; }, 3000);
+    } catch(e) {
+        feedbackEl.style.color = '#ef4444';
+        feedbackEl.textContent = 'Submission failed: ' + e.message;
+    }
+}
+
+function navigateAvailWeek(delta) {
+    availWeekOffset += (delta * 4);
+    renderAllFourWeeks();
+}
+
+function navigateAdminStaffWeek(delta) {
+  adminStaffWeekOffset += delta;
+  renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
+}
+
+async function saveAvailability() {
+  if (!myStaffRecord) return;
+  const msgEl = document.getElementById('availMsg');
+  msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
+  await saveShiftsForStaff(myStaffRecord.id, myShifts, availWeekOffset, msgEl);
+}
+
+async function saveAdminStaffAvail() {
+  if (!adminViewingStaffId) return;
+  const msgEl = document.getElementById('adminStaffAvailMsg');
+  msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
+  await saveShiftsForStaff(adminViewingStaffId, adminShifts, adminStaffWeekOffset, msgEl);
+}
+
+async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
+  try {
+    const today = toDateStr(new Date());
+    const b1 = bookingConfig.shiftBoundary1 || '13:00';
+    const b2 = bookingConfig.shiftBoundary2 || '16:30';
+
+    const datesToSave = new Set();
+    Object.keys(shifts).forEach(key => {
+      const dateStr = key.split('_')[0];
+      if (dateStr >= today) datesToSave.add(dateStr);
+    });
+
+    for (let w = 0; w < 4; w++) {
+      getWeekDays(weekOffset + w).forEach(d => {
+        const ds = toDateStr(d);
+        if (ds >= today && isDayOpen(d)) datesToSave.add(ds);
+      });
+    }
+
+    for (const ds of datesToSave) {
+      await fetch(
+        `${SB_URL}/rest/v1/staff_availability?staff_id=eq.${staffId}&specific_date=eq.${ds}`,
+        {method:'DELETE', headers:H()}
+      );
+    }
+
+    const rows = [];
+    Object.entries(shifts).forEach(([key, val]) => {
+      if (!val || val === 'unavailable') return;
+      const parts = key.split('_');
+      const dateStr = parts[0];
+      const shiftType = parts[1];
+      if (dateStr < today) return;
+      const d = new Date(dateStr + 'T12:00');
+      if (!isDayOpen(d)) return;
+
+      const daySlots = getSlotsForDay(d.getDay());
+
+      daySlots.forEach(t => {
+        let belongs = false;
+        if (shiftType === 'morning'   && t < b1)  belongs = true;
+        if (shiftType === 'afternoon' && t >= b1 && t < b2) belongs = true;
+        if (shiftType === 'evening'   && t >= b2) belongs = true;
+        if (!belongs) return;
+        rows.push({
+          staff_id: staffId,
+          specific_date: dateStr,
+          start_time: t + ':00',
+          available: val
+        });
+      });
+    });
+
+    if (rows.length > 0) {
+      const r = await fetch(`${SB_URL}/rest/v1/staff_availability`, {
+        method: 'POST',
+        headers: {...H(), 'Prefer':'return=minimal'},
+        body: JSON.stringify(rows)
+      });
+      if (!r.ok) throw new Error(await r.text());
+    }
+
+    msgEl.className = 'msg ok';
+    msgEl.textContent = `✓ Saved ${rows.length} slot${rows.length!==1?'s':''}`;
+    setTimeout(() => { msgEl.textContent = ''; }, 3000);
+  } catch(e) {
+    msgEl.className = 'msg err';
+    msgEl.textContent = 'Save failed: ' + e.message;
+  }
+}
+
+// ============================================================
+// WEEK AVAILABILITY SUMMARY (Home tab)
+// ============================================================
+function renderWeekAvailSummary() {
+  const el = document.getElementById('weekAvailSummary'); if (!el) return;
+  const days = getWeekDays(0);
+  const today = toDateStr(new Date());
+  const openDays = days.filter(d => isDayOpen(d) && toDateStr(d) >= today);
+
+  if (!openDays.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af">No open days remaining this week.</div>';
+    return;
+  }
+
+  el.innerHTML = openDays.map(d => {
+    const ds = toDateStr(d);
+    const shifts = SHIFT_TYPES.filter(t => myShifts[shiftKey(ds, t)] && myShifts[shiftKey(ds, t)] !== 'unavailable');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:12px">
+      <span style="font-weight:600;color:#374151;min-width:36px">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</span>
+      ${shifts.length
+        ? shifts.map(s => {
+            const isMaybe = myShifts[shiftKey(ds, s)] === 'maybe';
+            const badgeBg = isMaybe ? '#fef3c7' : '#dcfce7';
+            const badgeColor = isMaybe ? '#d97706' : '#15803d';
+            const textLabel = SHIFT_LABELS[s] + (isMaybe ? ' (prefer off)' : '');
+            return `<span style="background:${badgeBg};color:${badgeColor};border-radius:99px;padding:1px 9px;font-size:11px;font-weight:600;margin-right:4px">${textLabel}</span>`;
+          }).join('')
+        : '<span style="color:#9ca3af">Not available</span>'}
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// TRAINING
+// ============================================================
+function renderMyTraining() {
+  const el = document.getElementById('myTraining'); if (!el) return;
+  if (!myStaffRecord) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af">Staff record not found — contact admin.</div>';
+    return;
+  }
+  const myRecords = staffTraining.filter(t => t.staff_id === myStaffRecord.id);
+  if (!myRecords.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af">No training set yet.</div>';
+    return;
+  }
+  el.innerHTML = myRecords.map(t => {
+    const game = games.find(g => g.id === t.game_id);
+    const status = trainingStatuses.find(s => s.id === t.status);
+    const isQualified = status?.qualifies;
+    return `<div class="train-row">
+      <span class="train-game">${game?.icon||''} ${game?.name || t.game_id}</span>
+      <span class="train-badge ${isQualified?'train-qualified':'train-partial'}">
+        ${status?.emoji||''} ${status?.label || t.status}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// TIMESHEETS (Staff View - NEW IMAGE_1D4C77 UPGRADE)
+// ============================================================
+function navigateTimesheetWeek(delta) {
+  timesheetWeekOffset += delta;
+  renderMyTimesheets();
+}
+
+function renderMyTimesheets() {
+  const el = document.getElementById('weeklyTimesheetReplica'); if (!el) return;
+  const labelEl = document.getElementById('tsWeekLabel');
+  
+  if (!myStaffRecord) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af">Staff record not found — contact admin.</div>';
+    return;
+  }
+
+  const days = getWeekDays(timesheetWeekOffset);
+  const monday = days[0];
+  const sunday = days[6];
+  const monStr = toDateStr(monday);
+  const sunStr = toDateStr(sunday);
+
+  if (labelEl) {
+    labelEl.textContent = `Week ending ${sunday.getDate()} ${MONTHS[sunday.getMonth()]} ${sunday.getFullYear()}`;
+  }
+
+  const matchedEntries = timesheets.filter(t => t.work_date >= monStr && t.work_date <= sunStr);
+
+  let cumulativeHours = 0;
+  let hasPendingOrQueried = false;
+  let isStaffDigitallySigned = false;
+  let isAdminDigitallyApproved = false;
+  let signedAt = null;
+  let approvedAt = null;
+
+  let html = `
+  <div class="weekly-sheet-card">
+    <div class="sheet-meta-grid">
+      <div class="meta-box">
+        <span class="meta-lbl">Employee Name</span>
+        <span class="meta-val">${myStaffRecord.name}</span>
+      </div>
+      <div class="meta-box">
+        <span class="meta-lbl">Department / Role</span>
+        <span class="meta-val" style="text-transform: capitalize;">${currentUser.role.replace('_', ' ')}</span>
+      </div>
+      <div class="meta-box">
+        <span class="meta-lbl">Week Commencing</span>
+        <span class="meta-val">${monday.getDate()} ${MONTHS[monday.getMonth()]} ${monday.getFullYear()}</span>
+      </div>
+    </div>
+
+    <div class="sheet-table-wrapper">
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Weekday</th>
+            <th>Clock In</th>
+            <th>Clock Out</th>
+            <th>Break</th>
+            <th>Daily Hours</th>
+            <th>Cumulative Hours</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+  days.forEach(d => {
+    const ds = toDateStr(d);
+    const dayEntries = matchedEntries.filter(t => t.work_date === ds);
+    const dayLabel = d.toLocaleDateString('en-NZ', { weekday: 'long' });
+    const formattedDate = `${d.getDate()}-${MONTHS[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+
+    if (dayEntries.length === 0) {
+      html += `
+        <tr style="cursor: pointer; background: #faf9ff;" onclick="openNewTsForm('${ds}')" title="Click to log manual/missed clock-in">
+          <td style="color:#6366f1; font-weight: 600;">${formattedDate} ➕</td>
+          <td style="color:#64748b">${dayLabel}</td>
+          <td style="color:#94a3b8; font-style: italic;">Tap to log…</td>
+          <td style="color:#94a3b8">—</td>
+          <td style="color:#94a3b8">30m</td>
+          <td style="font-weight:700; color:#94a3b8">0.00</td>
+          <td style="color:#94a3b8">${cumulativeHours.toFixed(2)}</td>
+          <td><span style="font-size:11px;color:#a5b4fc;font-weight:600;">+ Manual Log</span></td>
+        </tr>`;
+    } else {
+      dayEntries.forEach((ts, idx) => {
+        const inTime = ts.clock_in ? new Date(ts.clock_in).toLocaleTimeString('en-NZ', {hour:'2-digit',minute:'2-digit'}) : '—';
+        const outTime = ts.clock_out ? new Date(ts.clock_out).toLocaleTimeString('en-NZ', {hour:'2-digit',minute:'2-digit'}) : '—';
+        const hrs = ts.hours_worked || 0;
+        cumulativeHours += hrs;
+
+        if (ts.status === 'pending' || ts.status === 'queried' || ts.status === 'clocked_in') {
+          hasPendingOrQueried = true;
+        }
+        if (ts.staff_approved || ts.status === 'staff_approved' || ts.status === 'admin_approved') {
+          isStaffDigitallySigned = true;
+          signedAt = ts.staff_approved_at;
+        }
+        if (ts.admin_approved || ts.status === 'admin_approved') {
+          isAdminDigitallyApproved = true;
+          approvedAt = ts.admin_approved_at;
+        }
+
+        const statusColors = {
+          clocked_in: 'color:#3b82f6',
+          pending: 'color:#d97706',
+          staff_approved: 'color:#059669; font-weight:700;',
+          admin_approved: 'color:#10b981; font-weight:700;',
+          queried: 'color:#dc2626; font-weight:700;'
+        };
+
+        const statusLabels = {
+          clocked_in: 'Active',
+          pending: 'Pending Signature',
+          staff_approved: 'Signed ✓',
+          admin_approved: 'Approved ✓',
+          queried: 'Action Required ⚠️'
+        };
+
+        html += `
+          <tr style="cursor: pointer;" onclick="openTsDetail('${ts.id}', false)">
+            <td><strong>${formattedDate}</strong></td>
+            <td>${dayLabel}</td>
+            <td>${inTime}</td>
+            <td>${outTime}</td>
+            <td>30m</td>
+            <td style="font-weight:700; color:#1e293b">${hrs.toFixed(2)}</td>
+            <td style="font-weight:700; color:#475569">${cumulativeHours.toFixed(2)}</td>
+            <td><span style="font-size:11px; ${statusColors[ts.status]||''}">${statusLabels[ts.status]||ts.status}</span></td>
+          </tr>`;
+      });
+    }
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>`;
+
+  const standardHours = Math.min(cumulativeHours, 40);
+  const overtimeHours = Math.max(0, cumulativeHours - 40);
+  const hourlyRate = myStaffRecord.hourly_rate || 25.00;
+  const standardPay = standardHours * hourlyRate;
+  const overtimePay = overtimeHours * (hourlyRate * 1.5);
+  const grossPay = standardPay + overtimePay;
+
+  html += `
+    <div class="sheet-summary-grid">
+      <div class="summary-payroll-box">
+        <h4 style="font-size:12px; font-weight:700; color:#475569; margin-bottom:10px;">Payroll Cost Summary</h4>
+        <div class="pay-row">
+          <span>Weekly Standard Limit</span>
+          <span>40:00 Hours</span>
+        </div>
+        <div class="pay-row">
+          <span>Standard Hours Worked</span>
+          <span>${standardHours.toFixed(2)} hrs @ $${hourlyRate.toFixed(2)}/hr</span>
+        </div>
+        <div class="pay-row">
+          <span>Overtime Hours (1.5x)</span>
+          <span>${overtimeHours.toFixed(2)} hrs @ $${(hourlyRate * 1.5).toFixed(2)}/hr</span>
+        </div>
+        <div class="pay-row">
+          <span>Estimated Weekly Gross Pay</span>
+          <span style="color:#059669; font-weight:800;">$${grossPay.toLocaleString('en-NZ', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+        </div>
+      </div>
+
+      <div class="sign-box">
+        ${isStaffDigitallySigned 
+          ? `<div class="digital-sig-stamp signed">
+               <i class="ti ti-signature" style="font-size:20px; display:block; margin-bottom:4px;"></i>
+               <strong>Digitally Authorized</strong>
+               <div style="font-size:11px; opacity:0.8; margin-top:2px;">Verified on ${fmtDatetime(signedAt)}</div>
+             </div>`
+          : (matchedEntries.length > 0 
+              ? `<button class="btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="digitallySignWeek('${monStr}','${sunStr}')">
+                   <i class="ti ti-signature"></i> Digitally Authorize Week
+                 </button>
+                 <div style="font-size:11px; color:#64748b; text-align:center;">By clicking, you declare that all times submitted above are correct and authentic.</div>`
+              : `<div class="digital-sig-stamp" style="color:#94a3b8;">
+                   No entries logged this week to authorize.
+                 </div>`
+            )
+        }
+
+        ${isAdminDigitallyApproved 
+          ? `<div class="digital-sig-stamp approved">
+               <i class="ti ti-certificate" style="font-size:20px; display:block; margin-bottom:4px;"></i>
+               <strong>Digitally Approved & Processed</strong>
+               <div style="font-size:11px; opacity:0.8; margin-top:2px;">Approved on ${fmtDatetime(approvedAt)}</div>
+             </div>`
+          : `<div class="digital-sig-stamp" style="color:#94a3b8;">
+               <i class="ti ti-shield-alert" style="font-size:18px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+               Awaiting final payroll approval from administration.
+             </div>`
+        }
+      </div>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+// Secure digital signature transaction
+async function digitallySignWeek(monStr, sunStr) {
+  if (!confirm("Confirm Weekly Sign-off?\n\nBy clicking 'OK' you securely authorize your timesheet for this week as true, correct, and ready for payroll processing.")) return;
+
+  const matchedEntries = timesheets.filter(t => t.work_date >= monStr && t.work_date <= sunStr);
+  if (!matchedEntries.length) return;
+
+  const now = new Date().toISOString();
+  let successCount = 0;
+
+  for (const ts of matchedEntries) {
+    if (ts.status === 'pending' || ts.status === 'queried') {
+      try {
+        const r = await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${ts.id}`, {
+          method: 'PATCH',
+          headers: H(),
+          body: JSON.stringify({
+            staff_approved: true,
+            staff_approved_at: now,
+            status: 'staff_approved',
+            updated_at: now
+          })
+        });
+        if (r.ok) {
+          ts.staff_approved = true;
+          ts.staff_approved_at = now;
+          ts.status = 'staff_approved';
+          successCount++;
+        }
+      } catch(e) {
+        console.error("Failed signing transaction for id:", ts.id, e);
+      }
+    }
+  }
+
+  renderMyTimesheets();
+  loadAdminTimesheets();
+  
+  const feedbackEl = document.getElementById('tsSignMsg');
+  if (feedbackEl) {
+    feedbackEl.className = 'msg ok';
+    feedbackEl.textContent = `✓ Digitally signed week successfully (${successCount} entry blocks updated)`;
+    setTimeout(() => { feedbackEl.textContent = ''; }, 4000);
+  }
+}
+
+function openNewTsForm(dateStr) {
+  if (!myStaffRecord) return;
+  
+  document.getElementById('panelTsTitle').textContent = `Log Missed Shift · ${fmtFriendlyDate(dateStr)}`;
+  
+  const defaultIn = `${dateStr}T09:00`;
+  const defaultOut = `${dateStr}T17:00`;
+  
+  document.getElementById('tsDetailBody').innerHTML = `
+    <div class="card" style="border: 1px solid #c7d2fe; background: #faf5ff;">
+      <div class="card-title" style="color: #4f46e5;"><i class="ti ti-edit"></i> Manual Shift Adjustment</div>
+      <p style="font-size: 11px; color: #475569; margin-bottom: 12px;">Forgot to clock in or out? Submit your correct hours below for administrative review and signature authorization.</p>
+      
+      <div class="time-edit-row">
+        <span class="time-edit-label" style="font-weight:600;">Clock In</span>
+        <input type="datetime-local" class="time-edit-input" id="newTsIn" value="${defaultIn}">
+      </div>
+      <div class="time-edit-row" style="margin-top:10px;">
+        <span class="time-edit-label" style="font-weight:600;">Clock Out</span>
+        <input type="datetime-local" class="time-edit-input" id="newTsOut" value="${defaultOut}">
+      </div>
+      
+      <div class="field" style="margin-top:12px;">
+        <div class="field-label">Why are you recording this manually? <span class="req">*</span></div>
+        <input class="field-input" type="text" id="newTsNote" placeholder="e.g. Forgot to clock in, covered Alex's shift">
+      </div>
+      
+      <button class="btn-primary" style="width: 100%; margin-top: 14px; justify-content: center;" onclick="submitManualTs('${dateStr}')">
+        <i class="ti ti-send"></i> Submit Adjustments
+      </button>
+      <div class="msg" id="newTsFeedback" style="margin-top:8px;"></div>
+    </div>`;
+    
+  openPanel('panelTsDetail');
+}
+
+async function submitManualTs(dateStr) {
+  const inVal = document.getElementById('newTsIn')?.value;
+  const outVal = document.getElementById('newTsOut')?.value;
+  const noteVal = document.getElementById('newTsNote')?.value.trim();
+  const feedbackEl = document.getElementById('newTsFeedback');
+  
+  if (!inVal || !outVal || !noteVal) {
+    if (feedbackEl) {
+      feedbackEl.className = 'msg err';
+      feedbackEl.textContent = 'All fields (including explanation note) are required.';
+    }
+    return;
+  }
+  
+  const clockIn = new Date(inVal).toISOString();
+  const clockOut = new Date(outVal).toISOString();
+  const hours = hoursFromClockInOut(clockIn, clockOut);
+  
+  if (hours <= 0) {
+    if (feedbackEl) {
+      feedbackEl.className = 'msg err';
+      feedbackEl.textContent = 'Clock-out time must be after clock-in time.';
+    }
+    return;
+  }
+  
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets`, {
+      method: 'POST',
+      headers: {...H(), 'Prefer': 'return=representation'},
+      body: JSON.stringify({
+        staff_id: myStaffRecord.id,
+        work_date: dateStr,
+        clock_in: clockIn,
+        clock_out: clockOut,
+        hours_worked: hours,
+        hourly_rate_used: myStaffRecord.hourly_rate || 25.00,
+        staff_notes: noteVal,
+        status: 'pending'
+      })
+    });
+    
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) {
+      timesheets.unshift(rows[0]);
+    }
+    
+    if (feedbackEl) {
+      feedbackEl.className = 'msg ok';
+      feedbackEl.textContent = '✓ Logged successfully! Refreshing…';
+    }
+    
+    setTimeout(() => {
+      closePanel('panelTsDetail');
+      renderMyTimesheets();
+    }, 1500);
+    
+  } catch (e) {
+    if (feedbackEl) {
+      feedbackEl.className = 'msg err';
+      feedbackEl.textContent = 'Submission failed: ' + e.message;
+    }
+  }
+}
+
+function openTsDetail(tsId, isAdmin) {
+  const ts = [...timesheets, ...adminTs].find(t => t.id === tsId);
+  if (!ts) return;
+  const staff = allStaff.find(s => s.id === ts.staff_id);
+  document.getElementById('panelTsTitle').textContent =
+    (staff ? staff.name + ' · ' : '') + fmtFriendlyDate(ts.work_date);
+
+  const isAdminUser = ['admin','manager'].includes(currentUser.role);
+  const canEdit = isAdminUser || (ts.status === 'pending' || ts.status === 'queried');
+  
+  const canApproveStaff = !isAdminUser && (ts.status === 'pending' || ts.status === 'queried');
+  const canApproveAdmin = isAdminUser && (ts.status === 'staff_approved' || ts.status === 'pending');
+  const canQuery = isAdminUser && (ts.status === 'staff_approved' || ts.status === 'pending');
+
+  document.getElementById('tsDetailBody').innerHTML = `
+    <div class="card" style="${!canEdit ? 'opacity: 0.85; border: 1px solid #e2e8f0;' : 'border: 1px solid #bfdbfe; background:#f0f7ff;'}">
+      <div class="card-title" style="color:#1d4ed8;"><i class="ti ti-clock"></i> Record Adjustments</div>
+      <p style="font-size:11px; color:#475569; margin-bottom:12px;">
+        ${canEdit ? 'You are authorized to adjust your logged clock-in and clock-out hours below.' : 'These verified payroll records are locked and signed.'}
+      </p>
+      
+      <div class="time-edit-row">
+        <span class="time-edit-label" style="font-weight:600;">Clock in</span>
+        <input type="datetime-local" class="time-edit-input" id="tsEditIn"
+          value="${ts.clock_in ? ts.clock_in.slice(0,16) : ''}"
+          ${!canEdit ? 'disabled' : ''}>
+      </div>
+      <div class="time-edit-row" style="margin-top:10px;">
+        <span class="time-edit-label" style="font-weight:600;">Clock out</span>
+        <input type="datetime-local" class="time-edit-input" id="tsEditOut"
+          value="${ts.clock_out ? ts.clock_out.slice(0,16) : ''}"
+          ${!canEdit ? 'disabled' : ''}>
+      </div>
+      <div class="time-edit-row" style="margin-top:10px;">
+        <span class="time-edit-label" style="font-weight:600;">Manual Hours</span>
+        <input type="number" class="time-edit-input" id="tsEditHours"
+          value="${ts.hours_worked || ''}" min="0" step="0.25"
+          placeholder="auto-calculate" style="width:140px"
+          ${!canEdit ? 'disabled' : ''}>
+      </div>
+      ${canEdit ? `
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn-primary btn-sm" style="width:100%; justify-content:center;" onclick="saveTsEdits('${ts.id}', ${isAdminUser})">
+            <i class="ti ti-device-floppy"></i> Update & Save Times
+          </button>
+        </div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-notes"></i> Shift Log Notes</div>
+      ${!isAdminUser ? `
+      <div class="field">
+        <div class="field-label">Your Adjustment Reason / Log Notes</div>
+        <input class="field-input" type="text" id="tsStaffNote" value="${ts.staff_notes||''}" placeholder="Reason for change or shift details…">
+      </div>` : ''}
+      ${isAdminUser ? `
+      <div class="field">
+        <div class="field-label">Admin note (visible to staff)</div>
+        <input class="field-input" type="text" id="tsAdminNote" value="${ts.admin_notes||''}" placeholder="e.g. Please clarify start time">
+      </div>
+      <div class="field">
+        <div class="field-label">Staff note</div>
+        <input class="field-input" type="text" id="tsStaffNote" value="${ts.staff_notes||''}" disabled>
+      </div>` : ''}
+    </div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      ${canApproveStaff ? `<button class="btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="approveTs('${ts.id}','staff')"><i class="ti ti-check"></i> Submit Signature for Approval</button>` : ''}
+      ${canApproveAdmin ? `<button class="btn-primary" onclick="approveTs('${ts.id}','admin')"><i class="ti ti-check"></i> Final approval</button>` : ''}
+      ${canQuery ? `<button class="btn-danger" onclick="queryTs('${ts.id}')"><i class="ti ti-alert-circle"></i> Send back — query</button>` : ''}
+      ${!isAdminUser && (ts.status === 'pending' || ts.status === 'queried') ? `<button class="btn-secondary" style="width:100%; justify-content:center;" onclick="saveTsStaffNote('${ts.id}')"><i class="ti ti-device-floppy"></i> Save Adjustment Notes Only</button>` : ''}
+    </div>
+    <div class="msg" id="tsDetailMsg"></div>`;
+
+  openPanel('panelTsDetail');
+}
+
+async function saveTsEdits(id, isAdminUser) {
+  const inVal = document.getElementById('tsEditIn')?.value;
+  const outVal = document.getElementById('tsEditOut')?.value;
+  const hoursVal = parseFloat(document.getElementById('tsEditHours')?.value) || null;
+  const staffNote = document.getElementById('tsStaffNote')?.value.trim() || null;
+  const adminNote = document.getElementById('tsAdminNote')?.value.trim() || null;
+
+  const clockIn = inVal ? new Date(inVal).toISOString() : null;
+  const clockOut = outVal ? new Date(outVal).toISOString() : null;
+  const hours = hoursVal || (clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null);
+
+  try {
+    const payload = {
+      clock_in: clockIn,
+      clock_out: clockOut,
+      hours_worked: hours,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (isAdminUser) {
+      payload.admin_notes = adminNote;
+    } else {
+      payload.staff_notes = staffNote;
+      payload.status = 'pending';
+    }
+
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: H(),
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    
+    const msgEl = document.getElementById('tsDetailMsg');
+    if (msgEl) {
+      msgEl.className = 'msg ok';
+      msgEl.textContent = '✓ Saved changes!';
+      setTimeout(() => msgEl.textContent = '', 2000);
+    }
+    
+    const updateLocal = arr => {
+      const t = arr.find(x => x.id === id);
+      if (t) {
+        t.clock_in = clockIn;
+        t.clock_out = clockOut;
+        t.hours_worked = hours;
+        if (isAdminUser) t.admin_notes = adminNote;
+        else {
+          t.staff_notes = staffNote;
+          t.status = 'pending';
+        }
+      }
+    };
+    updateLocal(timesheets);
+    updateLocal(adminTs);
+    
+    renderMyTimesheets();
+  } catch (e) {
+    const msgEl = document.getElementById('tsDetailMsg');
+    if (msgEl) {
+      msgEl.className = 'msg err';
+      msgEl.textContent = 'Save failed: ' + e.message;
+    }
+  }
+}
+
+function buildTsCard(ts, isAdmin) {
+  const statusLabel = {
+    clocked_in:     'Clocked in',
+    pending:        'Pending approval',
+    staff_approved: isAdmin ? 'Staff approved' : 'You approved',
+    admin_approved: 'Approved ✓',
+    queried:        isAdmin ? 'Queried' : 'Queried — please review'
+  }[ts.status] || ts.status;
+
+  const statusCls = `ts-${ts.status.replace(/_/g,'-')}`;
+  const hours = ts.hours_worked ? `${ts.hours_worked}h` : (ts.clock_in && !ts.clock_out ? 'In progress' : '—');
+  const staffName = isAdmin ? (allStaff.find(s=>s.id===ts.staff_id)?.name || '?') : '';
+
+  return `<div class="timesheet-card" onclick="openTsDetail('${ts.id}',${isAdmin})">
+    <div class="timesheet-header">
+      <div>
+        <div class="timesheet-date">${isAdmin?staffName+' · ':''}${fmtFriendlyDate(ts.work_date)}</div>
+      </div>
+      <span class="timesheet-status ${statusCls}">${statusLabel}</span>
+    </div>
+    <div class="timesheet-times">
+      In: ${fmtDatetime(ts.clock_in)} &nbsp;|&nbsp; Out: ${fmtDatetime(ts.clock_out)}
+    </div>
+    <div class="timesheet-hours">${hours}</div>
+    ${ts.admin_notes ? `<div class="timesheet-notes">Admin: ${ts.admin_notes}</div>` : ''}
+    ${ts.staff_notes ? `<div class="timesheet-notes">You: ${ts.staff_notes}</div>` : ''}
+  </div>`;
+}
+
+async function saveTsStaffNote(id) {
+  const note = document.getElementById('tsStaffNote')?.value.trim();
+  try {
+    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body:JSON.stringify({staff_notes:note, updated_at:new Date().toISOString()})
+    });
+    const t = timesheets.find(x=>x.id===id);
+    if (t) t.staff_notes = note;
+    const msgEl = document.getElementById('tsDetailMsg');
+    msgEl.className='msg ok'; msgEl.textContent='✓ Note saved';
+    setTimeout(()=>msgEl.textContent='',2000);
+    renderMyTimesheets();
+  } catch(e) { console.error(e); }
+}
+
+async function approveTs(id, who) {
+  const now = new Date().toISOString();
+  let updates;
+  if (who === 'staff') {
+    const ts = [...timesheets, ...adminTs].find(x => x.id === id);
+    const isResubmit = ts?.status === 'queried';
+    updates = isResubmit
+      ? {status:'pending', updated_at:now}
+      : {staff_approved:true, staff_approved_at:now, status:'staff_approved', updated_at:now};
+  } else {
+    updates = {admin_approved:true, admin_approved_at:now, status:'admin_approved', updated_at:now};
+  }
+  try {
+    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {method:'PATCH',headers:H(),body:JSON.stringify(updates)});
+    const updateLocal = arr => { const t=arr.find(x=>x.id===id); if(t) Object.assign(t,updates); };
+    updateLocal(timesheets); updateLocal(adminTs);
+    closePanel('panelTsDetail');
+    renderMyTimesheets();
+    renderAdminTimesheets();
+  } catch(e) { alert('Approval failed: '+e.message); }
+}
+
+async function queryTs(id) {
+  const note = document.getElementById('tsAdminNote')?.value.trim();
+  const now = new Date().toISOString();
+  try {
+    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body:JSON.stringify({status:'queried', admin_notes:note||null, updated_at:now})
+    });
+    const t = adminTs.find(x=>x.id===id);
+    if (t) { t.status='queried'; t.admin_notes=note; }
+    closePanel('panelTsDetail');
+    renderAdminTimesheets();
+    renderMyTimesheets();
+  } catch(e) { alert('Query failed: '+e.message); }
+}
+
+// ============================================================
+// ADMIN: STAFF LIST
+// ============================================================
+
+// Given a date string ('YYYY-MM-DD'), returns days until the next
+// occurrence of that month/day (this year or next), plus the actual
+// next-occurrence Date object (used to compute age / years-with-us).
+function daysUntilNextAnniversary(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T12:00');
+  const today = new Date(); today.setHours(12,0,0,0);
+  let next = new Date(today.getFullYear(), d.getMonth(), d.getDate(), 12);
+  if (next < today) next = new Date(today.getFullYear()+1, d.getMonth(), d.getDate(), 12);
+  const diffDays = Math.round((next - today) / 86400000);
+  return { diffDays, next, original: d };
+}
+
+// Looks ahead 14 days for birthdays and work anniversaries among active
+// staff. 14 days is a starting assumption — easy to change this one
+// number later if you'd like more/less advance notice.
+const CELEBRATION_WINDOW_DAYS = 14;
+
+function renderStaffCelebrations() {
+  const el = document.getElementById('staffCelebrations'); if (!el) return;
+  const items = [];
+
+  allStaff.filter(s => s.active !== false).forEach(s => {
+    if (s.date_of_birth) {
+      const r = daysUntilNextAnniversary(s.date_of_birth);
+      if (r && r.diffDays <= CELEBRATION_WINDOW_DAYS) {
+        const age = r.next.getFullYear() - r.original.getFullYear();
+        items.push({ icon:'🎂', days:r.diffDays, next:r.next, text:`${s.name} turns ${age}` });
+      }
+    }
+    if (s.hire_date) {
+      const r = daysUntilNextAnniversary(s.hire_date);
+      if (r && r.diffDays <= CELEBRATION_WINDOW_DAYS) {
+        const years = r.next.getFullYear() - r.original.getFullYear();
+        if (years > 0) {
+          items.push({ icon:'🎉', days:r.diffDays, next:r.next, text:`${s.name} — ${years} year${years!==1?'s':''} with us` });
+        }
+      }
+    }
+  });
+
+  items.sort((a,b) => a.days - b.days);
+
+  if (!items.length) {
+    el.innerHTML = `<div class="celebration-card empty">
+      <div style="font-size:12px;color:#9ca3af;text-align:center">No birthdays or work anniversaries in the next ${CELEBRATION_WINDOW_DAYS} days.</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="celebration-card">
+    <div class="celebration-title"><i class="ti ti-confetti"></i> Coming up</div>
+    ${items.map(i => {
+      const when = i.days === 0 ? 'today!' : i.days === 1 ? 'tomorrow' : `on ${fmtFriendlyDate(toDateStr(i.next))}`;
+      return `<div class="celebration-row"><span class="celebration-icon">${i.icon}</span><span>${i.text} — ${when}</span></div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderAdminStaffList() {
+  const el = document.getElementById('adminStaffList'); if (!el) return;
+  const sorted = [...allStaff].sort((a,b) => {
+    const aInactive = a.active === false, bInactive = b.active === false;
+    if (aInactive !== bInactive) return aInactive ? 1 : -1; // inactive sinks to bottom
+    return a.name.localeCompare(b.name);
+  });
+
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-users"></i>No staff yet.</div>';
+    return;
+  }
+
+  const rows = sorted.map(s => {
+    const isActive = s.active !== false;
+    const roleRec = s.user_role_id ? adminRolesList.find(r => r.id === s.user_role_id) : null;
+    const roleCell = roleRec
+      ? `<select class="staff-role-select" onchange="updateStaffRoleInline('${s.id}','${roleRec.id}',this.value)">
+          ${Object.entries(ROLE_LABELS).map(([val,label]) => `<option value="${val}" ${roleRec.role===val?'selected':''}>${label}</option>`).join('')}
+        </select>`
+      : `<span class="staff-no-login">No login</span>`;
+
+    return `<tr class="${isActive?'':'inactive-row'}">
+      <td><input class="staff-inline-input" type="text" value="${s.name||''}" onchange="saveStaffField('${s.id}','name',this.value)"></td>
+      <td><input class="staff-inline-input" type="tel" value="${s.phone||''}" placeholder="—" onchange="saveStaffField('${s.id}','phone',this.value)"></td>
+      <td><input class="staff-inline-input" type="email" value="${s.email||''}" placeholder="—" onchange="saveStaffField('${s.id}','email',this.value)"></td>
+      <td>${roleCell}</td>
+      <td><button class="staff-active-toggle ${isActive?'on':'off'}" onclick="toggleStaffActive('${s.id}')" title="${isActive?'Active':'Inactive'}"></button></td>
+      <td><button class="btn-secondary btn-sm" onclick="openStaffDetail('${s.id}')">Details →</button></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="staff-table-wrap">
+      <table class="staff-table">
+        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Active</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// Inline save for name/phone/email — writes straight to the staff table.
+async function saveStaffField(staffId, field, value) {
+  const s = allStaff.find(x => x.id === staffId); if (!s) return;
+  const cleaned = value.trim() || null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?id=eq.${staffId}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify({ [field]: cleaned })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    s[field] = cleaned;
+  } catch(e) {
+    alert(`Could not save ${field}: ` + e.message);
+    renderAdminStaffList(); // revert the input to the last saved value
+  }
+}
+
+async function toggleStaffActive(staffId) {
+  const s = allStaff.find(x => x.id === staffId); if (!s) return;
+  const newActive = s.active === false; // flip
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?id=eq.${staffId}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify({ active: newActive })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    s.active = newActive;
+    renderAdminStaffList();
+    renderStaffCelebrations();
+  } catch(e) {
+    alert('Could not update active status: ' + e.message);
+  }
+}
+
+// Calls the new update_staff_role edge function action (admin-only,
+// validated server-side against the 4 known role values).
+async function updateStaffRoleInline(staffId, userRoleId, newRole) {
+  try {
+    await callEdgeFunction('update_staff_role', { userId: userRoleId, role: newRole }, currentUser.token);
+    const roleRec = adminRolesList.find(r => r.id === userRoleId);
+    if (roleRec) roleRec.role = newRole;
+  } catch(e) {
+    alert('Could not update role: ' + e.message);
+    renderAdminStaffList(); // revert dropdown to last known value
+  }
+}
+
+async function openStaffDetail(staffId) {
+  adminViewingStaffId = staffId;
+  adminStaffWeekOffset = 0;
+  const s = allStaff.find(x=>x.id===staffId);
+  if (!s) return;
+
+  document.getElementById('panelStaffDetailTitle').textContent = s.name;
+
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  set('adminStaffName', s.name);
+  set('adminStaffEmail', s.email);
+  set('adminStaffPhone', s.phone);
+  set('adminStaffDob', s.date_of_birth);
+  set('adminStaffHireDate', s.hire_date);
+  set('adminStaffAddress', s.address);
+  set('adminStaffEmergencyName', s.emergency_contact);
+  set('adminStaffEmergencyPhone', s.emergency_phone);
+  set('adminStaffEmpType', s.employment_type || 'casual');
+  set('adminStaffRate', s.hourly_rate);
+  set('adminStaffNotes', s.notes);
+  const activeEl = document.getElementById('adminStaffActive');
+  if (activeEl) activeEl.value = s.active === false ? 'false' : 'true';
+
+  await loadAdminStaffShifts(staffId);
+  await loadAdminStaffTimesheets(staffId);
+
+  openPanel('panelStaffDetail');
+}
+
+async function saveTraining(staffId, gameId, status) {
+  const ex = staffTraining.find(t => t.staff_id===staffId && t.game_id===gameId);
+  if (ex) ex.status = status; else staffTraining.push({staff_id:staffId,game_id:gameId,status});
+  try {
+    await fetch(`${SB_URL}/rest/v1/staff_game_training?on_conflict=staff_id,game_id`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({staff_id:staffId,game_id:gameId,status,updated_at:new Date().toISOString()})
+    });
+  } catch(e) { console.error('Training save:', e); }
+}
+
+// ============================================================
+// ADMIN: STAFF TRAINING GRID
+// ============================================================
+function renderStaffTrainingGrid() {
+  const el = document.getElementById('trainingGridTable'); if (!el) return;
+  const activeStaff = allStaff.filter(s => s.active !== false);
+
+  if (!activeStaff.length || !games.length) {
+    el.innerHTML = '<tr><td style="padding:16px;color:#9ca3af;font-size:12px">No staff or games found.</td></tr>';
+    return;
+  }
+
+  let html = '<thead><tr><th class="tg-staff-head">Staff</th>' +
+    games.map(g => `<th class="tg-game-head">${g.icon||''} ${g.name}</th>`).join('') +
+    '</tr></thead><tbody>';
+
+  activeStaff.forEach(s => {
+    html += `<tr><td class="tg-staff-name">${s.name}</td>`;
+    games.forEach(g => {
+      const rec = staffTraining.find(t => t.staff_id === s.id && t.game_id === g.id);
+      const curId = rec?.status || '';
+      const status = trainingStatuses.find(x => x.id === curId);
+      const isQualified = status?.qualifies;
+      const label = status ? `${status.emoji||''} ${status.label}` : '— Not set';
+      const cls = status ? (isQualified ? 'train-qualified' : 'train-partial') : 'train-none';
+      html += `<td class="tg-cell"><button type="button" class="tg-cell-btn ${cls}" onclick="cycleTraining('${s.id}','${g.id}')">${label}</button></td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody>';
+  el.innerHTML = html;
+}
+
+function cycleTraining(staffId, gameId) {
+  try {
+    const rec = staffTraining.find(t => t.staff_id === staffId && t.game_id === gameId);
+    const currentId = rec?.status || '';
+    const ids = ['', ...trainingStatuses.map(s => s.id)];
+    const idx = ids.indexOf(currentId);
+    const nextId = ids[(idx + 1) % ids.length];
+    saveTraining(staffId, gameId, nextId);
+    renderStaffTrainingGrid();
+  } catch(e) {
+    console.error('cycleTraining error:', e.message, e);
+  }
+}
+
+async function loadAdminStaffShifts(staffId) {
+  try {
+    const today = toDateStr(new Date());
+    const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 56);
+    const future = toDateStr(futureDate);
+    const r = await fetch(
+      `${SB_URL}/rest/v1/staff_availability?staff_id=eq.${staffId}&specific_date=gte.${today}&specific_date=lte.${future}&select=specific_date,start_time,available`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    adminShifts = {};
+    const b1 = bookingConfig.shiftBoundary1 || '13:00';
+    const b2 = bookingConfig.shiftBoundary2 || '16:30';
+    rows.forEach(row => {
+      if (!row.available || row.available === 'unavailable') return;
+      const t = (row.start_time || '').slice(0,5);
+      if (!t) return;
+      let shiftType;
+      if (t < b1)       shiftType = 'morning';
+      else if (t < b2)  shiftType = 'afternoon';
+      else              shiftType = 'evening';
+      const key = shiftKey(row.specific_date, shiftType);
+      adminShifts[key] = row.available;
+    });
+  } catch(e) { adminShifts = {}; }
+  renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
+}
+
+async function loadAdminStaffTimesheets(staffId) {
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/timesheets?staff_id=eq.${staffId}&order=work_date.desc&limit=10`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    const el = document.getElementById('adminStaffTs'); if (!el) return;
+    if (!rows.length) {
+      el.innerHTML = '<div style="font-size:12px;color:#9ca3af">No timesheets yet.</div>';
+      return;
+    }
+    rows.forEach(t => { if (!adminTs.find(x=>x.id===t.id)) adminTs.push(t); });
+    el.innerHTML = rows.map(ts => buildTsCard(ts, true)).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function saveAdminStaff() {
+  const s = allStaff.find(x => x.id === adminViewingStaffId);
+  if (!s) return;
+  const msgEl = document.getElementById('adminStaffMsg');
+  msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
+
+  const updates = {
+    name:              document.getElementById('adminStaffName')?.value.trim() || s.name,
+    email:             document.getElementById('adminStaffEmail')?.value.trim() || null,
+    phone:             document.getElementById('adminStaffPhone')?.value.trim() || null,
+    date_of_birth:     document.getElementById('adminStaffDob')?.value || null,
+    hire_date:         document.getElementById('adminStaffHireDate')?.value || null,
+    address:           document.getElementById('adminStaffAddress')?.value.trim() || null,
+    emergency_contact: document.getElementById('adminStaffEmergencyName')?.value.trim() || null,
+    emergency_phone:   document.getElementById('adminStaffEmergencyPhone')?.value.trim() || null,
+    employment_type:   document.getElementById('adminStaffEmpType')?.value || 'casual',
+    hourly_rate:       parseFloat(document.getElementById('adminStaffRate')?.value) || null,
+    notes:             document.getElementById('adminStaffNotes')?.value.trim() || null,
+    active:            document.getElementById('adminStaffActive')?.value !== 'false',
+  };
+
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?id=eq.${adminViewingStaffId}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify(updates)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    Object.assign(s, updates);
+    msgEl.className = 'msg ok'; msgEl.textContent = '✓ Saved';
+    setTimeout(() => msgEl.textContent = '', 3000);
+    renderAdminStaffList();
+    renderStaffCelebrations();
+  } catch(e) {
+    msgEl.className = 'msg err'; msgEl.textContent = 'Save failed: ' + e.message;
+  }
+}
+
+async function createStaff() {
+  const name = document.getElementById('newStaffName')?.value.trim();
+  const msgEl = document.getElementById('newStaffMsg');
+  if (!name) { msgEl.className='msg err'; msgEl.textContent='Name is required.'; return; }
+  msgEl.className='msg'; msgEl.textContent='Saving…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify({
+        name,
+        email:          document.getElementById('newStaffEmail')?.value.trim()||null,
+        phone:          document.getElementById('newStaffPhone')?.value.trim()||null,
+        employment_type:document.getElementById('newStaffEmpType')?.value||'casual',
+        hourly_rate:    parseFloat(document.getElementById('newStaffRate')?.value)||null,
+        hire_date:      document.getElementById('newStaffHireDate')?.value || null,
+        active: true
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) allStaff.push(rows[0]);
+    msgEl.className='msg ok'; msgEl.textContent='✓ Added!';
+    ['newStaffName','newStaffEmail','newStaffPhone','newStaffRate','newStaffHireDate'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    renderAdminStaffList();
+    renderStaffCelebrations();
+    setTimeout(() => { closePanel('panelNewStaff'); msgEl.textContent=''; }, 1500);
+  } catch(e) {
+    msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message;
+  }
+}
+
+// ============================================================
+// ADMIN: TIMESHEETS
+// ============================================================
+function setTsFilter(filter, btn) {
+  tsFilter = filter;
+  document.querySelectorAll('#tsFilterRow button').forEach(b => {
+    b.style.borderColor=''; b.style.color='';
+  });
+  if (btn) { btn.style.borderColor='#07b4c5'; btn.style.color='#07b4c5'; }
+  loadAdminTimesheets();
+}
+
+function renderAdminTimesheets() {
+  const el = document.getElementById('adminTsList'); if (!el) return;
+  if (!adminTs.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-check"></i>All clear — no timesheets pending.</div>';
+    return;
+  }
+  el.innerHTML = adminTs.map(ts => buildTsCard(ts, true)).join('');
+}
+
+async function exportTimesheets() {
+  const from = document.getElementById('exportFrom')?.value;
+  const to   = document.getElementById('exportTo')?.value;
+  if (!from || !to) { alert('Please select a date range.'); return; }
+
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/timesheets?status=eq.admin_approved&work_date=gte.${from}&work_date=lte.${to}&order=work_date`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    if (!rows.length) { alert('No approved timesheets in that range.'); return; }
+
+    const headers = ['staff_name','work_date','clock_in','clock_out','hours_worked','hourly_rate_used','pay_total','admin_notes','staff_notes'];
+    const csvRows = rows.map(ts => {
+      const staff = allStaff.find(s=>s.id===ts.staff_id);
+      const pay = ts.hours_worked && ts.hourly_rate_used ? (ts.hours_worked * ts.hourly_rate_used).toFixed(2) : '';
+      return [
+        staff?.name||'',
+        ts.work_date,
+        ts.clock_in||'',
+        ts.clock_out||'',
+        ts.hours_worked||'',
+        ts.hourly_rate_used||'',
+        pay,
+        `"${(ts.admin_notes||'').replace(/"/g,"'")}"`,
+        `"${(ts.staff_notes||'').replace(/"/g,"'")}"`,
+      ].join(',');
+    });
+
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `btb_timesheets_${from}_${to}.csv`;
+    a.click();
+  } catch(e) { alert('Export failed: '+e.message); }
+}
+
+// ============================================================
+// PROFILE SAVE
+// ============================================================
+async function saveProfile() {
+  if (!myStaffRecord) return;
+  const msgEl = document.getElementById('profileMsg');
+  msgEl.className='msg'; msgEl.textContent='Saving…';
+  const updates = {
+    phone:             document.getElementById('profilePhone')?.value.trim()||null,
+    address:           document.getElementById('profileAddress')?.value.trim()||null,
+    emergency_contact: document.getElementById('profileEmergencyName')?.value.trim()||null,
+    emergency_phone:   document.getElementById('profileEmergencyPhone')?.value.trim()||null,
+  };
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?id=eq.${myStaffRecord.id}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify(updates)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    Object.assign(myStaffRecord, updates);
+    msgEl.className='msg ok'; msgEl.textContent='✓ Saved';
+    setTimeout(()=>msgEl.textContent='',3000);
+    renderMyTimesheets();
+  } catch(e) {
+    msgEl.className='msg err'; msgEl.textContent='Save failed: '+e.message;
+  }
+}
+
+// ============================================================
+// ADMIN: CLOCK GRID
+// ============================================================
+let todayTimesheets = [];
+
+async function loadClockGrid() {
+  const today = toDateStr(new Date());
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/timesheets?work_date=eq.${today}&order=clock_in`,
+      {headers:H()}
+    );
+    todayTimesheets = await r.json();
+  } catch(e) { todayTimesheets = []; }
+  renderClockGrid();
+  renderClockGridTs();
+}
+
+let clockFilter = 'all';
+
+function setClockFilter(filter, btn) {
+  clockFilter = filter;
+  renderClockGrid();
+}
+
+function renderClockGrid() {
+  const el = document.getElementById('clockGrid'); if (!el) return;
+  const activeStaff = allStaff.filter(s => s.active !== false);
+
+  const rows = activeStaff.map(s => {
+    const ts = todayTimesheets.find(t => t.staff_id === s.id && t.status === 'clocked_in')
+            || todayTimesheets.filter(t => t.staff_id === s.id).sort((a,b) => b.clock_in > a.clock_in ? 1 : -1)[0]
+            || null;
+    return { staff: s, ts };
+  });
+
+  let filtered = rows;
+  if (clockFilter === 'clocked_in') {
+    filtered = rows.filter(r => r.ts?.status === 'clocked_in');
+  } else if (clockFilter === 'pending') {
+    filtered = rows.filter(r => r.ts && ['pending','staff_approved'].includes(r.ts.status));
+  }
+
+  const filterDefs = [
+    {id:'all', label:'All'},
+    {id:'clocked_in', label:'Clocked in'},
+    {id:'pending', label:'Pending approval'}
+  ];
+  const filterRowHtml = filterDefs.map(f => {
+    const active = clockFilter === f.id;
+    return `<button class="btn-secondary btn-sm" style="${active?'border-color:#07b4c5;color:#07b4c5':''}" onclick="setClockFilter('${f.id}')">${f.label}</button>`;
+  }).join('');
+
+  if (!activeStaff.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-users"></i>No active staff.</div>';
+    return;
+  }
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="clock-filter-row">${filterRowHtml}</div><div class="empty-state"><i class="ti ti-users"></i>No staff match this filter.</div>`;
+    return;
+  }
+
+  const tableRows = filtered.map(({staff: s, ts}) => {
+    const isClockedIn = ts?.status === 'clocked_in';
+    const hours = ts?.hours_worked ? ts.hours_worked + 'h' : (isClockedIn ? 'In progress' : '—');
+
+    const inInput = ts
+      ? `<input type="datetime-local" class="clock-edit-input" id="ccIn-${s.id}" value="${ts.clock_in ? ts.clock_in.slice(0,16) : ''}" style="width:100%;min-width:150px">`
+      : '—';
+    const outInput = ts
+      ? `<input type="datetime-local" class="clock-edit-input" id="ccOut-${s.id}" value="${ts.clock_out ? ts.clock_out.slice(0,16) : ''}" style="width:100%;min-width:150px">`
+      : '—';
+
+    const actions = [];
+    if (!ts || ts.status === 'admin_approved') {
+      actions.push(`<button class="cc-btn primary" onclick="adminClockIn('${s.id}')"><i class="ti ti-player-play"></i> Clock in</button>`);
+    }
+    if (isClockedIn) {
+      actions.push(`<button class="cc-btn danger" onclick="adminClockOut('${s.id}','${ts.id}')"><i class="ti ti-player-stop"></i> Clock out</button>`);
+    }
+    if (ts && !isClockedIn) {
+      actions.push(`<button class="cc-btn" onclick="adminSaveTimes('${s.id}','${ts.id}')"><i class="ti ti-device-floppy"></i> Save</button>`);
+    }
+    if (ts && ts.status === 'pending') {
+      actions.push(`<button class="cc-btn primary" onclick="adminApproveDirect('${ts.id}')"><i class="ti ti-check"></i> Approve</button>`);
+    }
+    if (ts && ts.status === 'staff_approved') {
+      actions.push(`<button class="cc-btn primary" onclick="adminApproveDirect('${ts.id}')"><i class="ti ti-check-checks"></i> Final approve</button>`);
+    }
+
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td><span class="clock-status-pill ${isClockedIn?'in':'out'}">${isClockedIn ? '● In' : '○ Out'}</span></td>
+      <td>${inInput}</td>
+      <td>${outInput}</td>
+      <td>${hours}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${actions.join('')}</div>
+        <div class="msg" id="ccMsg-${s.id}" style="margin-top:4px;font-size:11px"></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="clock-filter-row">${filterRowHtml}</div>
+    <div class="clock-table-wrap">
+      <table class="clock-table">
+        <thead><tr><th>Name</th><th>Status</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Actions</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderClockGridTs() {
+  const el = document.getElementById('clockGridTs'); if (!el) return;
+  const pending = adminTs.filter(t =>
+    ['pending','staff_approved','queried'].includes(t.status)
+  ).slice(0, 20);
+
+  if (!pending.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#9ca3af">No timesheets awaiting approval.</div>';
+    return;
+  }
+  el.innerHTML = pending.map(ts => buildTsCard(ts, true)).join('');
+}
+
+async function adminClockIn(staffId) {
+  const s = allStaff.find(x => x.id === staffId);
+  const msgEl = document.getElementById('ccMsg-'+staffId);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({
+        staff_id: staffId,
+        work_date: toDateStr(new Date()),
+        clock_in: new Date().toISOString(),
+        hourly_rate_used: s?.hourly_rate || 0,
+        status: 'clocked_in'
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) {
+      todayTimesheets.push(rows[0]);
+      adminTs.push(rows[0]);
+    }
+    renderClockGrid();
+    renderMyTimesheets();
+  } catch(e) {
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
+  }
+}
+
+async function adminClockOut(staffId, tsId) {
+  const msgEl = document.getElementById('ccMsg-'+staffId);
+  const clockOut = new Date().toISOString();
+
+  const inEl = document.getElementById('ccIn-'+staffId);
+  const clockIn = inEl?.value ? new Date(inEl.value).toISOString() : null;
+  const hours = clockIn ? hoursFromClockInOut(clockIn, clockOut) : null;
+
+  try {
+    const updates = {
+      clock_out: clockOut,
+      hours_worked: hours,
+      status: 'pending',
+      updated_at: new Date().toISOString()
+    };
+    if (clockIn) updates.clock_in = clockIn;
+    const r = await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify(updates)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const t = todayTimesheets.find(x=>x.id===tsId);
+    if (t) Object.assign(t, updates);
+    const at = adminTs.find(x=>x.id===tsId);
+    if (at) Object.assign(at, updates);
+    renderClockGrid();
+    renderMyTimesheets();
+  } catch(e) {
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
+  }
+}
+
+async function adminSaveTimes(staffId, tsId) {
+  const msgEl = document.getElementById('ccMsg-'+staffId);
+  const inEl  = document.getElementById('ccIn-'+staffId);
+  const outEl = document.getElementById('ccOut-'+staffId);
+  const clockIn  = inEl?.value  ? new Date(inEl.value).toISOString()  : null;
+  const clockOut = outEl?.value ? new Date(outEl.value).toISOString() : null;
+  const hours = clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null;
+  try {
+    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
+      method:'PATCH', headers:H(),
+      body:JSON.stringify({clock_in:clockIn, clock_out:clockOut, hours_worked:hours, updated_at:new Date().toISOString()})
+    });
+    const updateLocal = arr => {
+      const t = arr.find(x=>x.id===tsId);
+      if (t) { t.clock_in=clockIn; t.clock_out=clockOut; t.hours_worked=hours; }
+    };
+    updateLocal(todayTimesheets); updateLocal(adminTs);
+    if (msgEl) { msgEl.className='msg ok'; msgEl.textContent='✓ Saved'; setTimeout(()=>msgEl.textContent='',2000); }
+    renderClockGrid();
+    renderMyTimesheets();
+  } catch(e) {
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
+  }
+}
+
+async function adminApproveDirect(tsId) {
+  const ts = [...todayTimesheets, ...adminTs].find(x=>x.id===tsId);
+  if (!ts) return;
+  const now = new Date().toISOString();
+  const updates = {
+    staff_approved: true, staff_approved_at: now,
+    admin_approved: true, admin_approved_at: now,
+    status: 'admin_approved', updated_at: now
+  };
+  try {
+    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
+      method:'PATCH', headers:H(), body:JSON.stringify(updates)
+    });
+    const updateLocal = arr => { const t=arr.find(x=>x.id===tsId); if(t) Object.assign(t,updates); };
+    updateLocal(todayTimesheets); updateLocal(adminTs);
+    renderClockGrid();
+    renderClockGridTs();
+    renderAdminTimesheets();
+    renderMyTimesheets();
+  } catch(e) { alert('Approval failed: '+e.message); }
+}
+
+// ============================================================
+// PANELS & TABS
+// ============================================================
+function openPanel(id)  { document.getElementById(id)?.classList.add('open'); }
+function closePanel(id) { document.getElementById(id)?.classList.remove('open'); }
+
+function showTab(id, btn) {
+    document.querySelectorAll('.section').forEach(s => {
+        s.classList.remove('active');
+        s.style.setProperty('display', 'none', 'important'); 
+    });
+    
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    
+    const targetSection = document.getElementById(id);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        targetSection.style.setProperty('display', 'block', 'important'); 
+    }
+    
+    if (btn) btn.classList.add('active');
+    
+    if (id === 'tabTs') renderMyTimesheets();
+    if (id === 'tabShifts') { if(['admin','manager'].includes(currentUser?.role)) renderAdminShifts(); else renderStaffShifts(); }
+    if (id === 'tabClock') loadClockGrid();
+    if (id === 'tabApprove') loadAdminTimesheets();
+    if (id === 'tabStaff') { renderAdminStaffList(); renderStaffCelebrations(); }
+    if (id === 'tabStaffTraining') renderStaffTrainingGrid();
+    if (id === 'tabTraining') renderMyTraining();
+    if (id === 'tabAvail') renderAllFourWeeks();
+    if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('DOMContentLoaded', async () => {
+  const vTag = document.getElementById('buildVersionTag');
+  if (vTag) vTag.textContent = 'v' + BUILD_VERSION;
+
+  const saved = sessionStorage.getItem('btb_portal_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      // Always refresh the token eagerly on page load — don't assume the
+      // stored token is still valid. This ensures all data requests in
+      // initApp() use a fresh, authenticated token rather than a
+      // potentially expired one from the previous session.
+      if (currentUser.refreshToken) {
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null and we stop.
+        if (!currentUser) return;
+      }
+      scheduleTokenRefresh();
+      await initApp();
+      setTimeout(() => { if(document.getElementById('tabAvail')?.classList.contains('active')) renderAllFourWeeks(); }, 500);
+    } catch(e) { console.error('Session restore failed:', e); }
+  }
+});
+
+// ============================================================
+// SHIFTS
+// ============================================================
+let allShifts = [];
+let shiftFilter = 'all';
+
+async function loadShifts() {
+  const today = toDateStr(new Date());
+  const future = new Date(); future.setDate(future.getDate() + 56);
+  const futureDateStr = toDateStr(future);
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/assigned_shifts?shift_date=gte.${today}&shift_date=lte.${futureDateStr}&order=shift_date,custom_start_time`,
+      {headers:H()}
+    );
+    allShifts = await r.json();
+  } catch(e) { console.error('Shifts load:', e); allShifts = []; }
+}
+
+function setShiftFilter(filter, btn) {
+  shiftFilter = filter;
+  document.querySelectorAll('#shiftFilterBtns button').forEach(b => {
+    b.style.borderColor = ''; b.style.color = '';
+  });
+  if (btn) { btn.style.borderColor = '#07b4c5'; btn.style.color = '#07b4c5'; }
+  renderAdminShifts();
+}
+
+function shiftDuration(start, end) {
+  if (!start || !end) return '';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) return '';
+  const h = Math.floor(mins / 60); const m = mins % 60;
+  return h > 0 ? `${h}h${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
+}
+
+function groupByDate(shifts) {
+  const groups = {};
+  shifts.forEach(s => {
+    if (!groups[s.shift_date]) groups[s.shift_date] = [];
+    groups[s.shift_date].push(s);
+  });
+  return groups;
+}
+
+function fmtShiftDate(ds) {
+  const d = new Date(ds + 'T12:00');
+  const today = toDateStr(new Date());
+  const tomorrow = toDateStr(new Date(Date.now() + 86400000));
+  if (ds === today) return 'Today — ' + d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'});
+  if (ds === tomorrow) return 'Tomorrow — ' + d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'});
+  return d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function renderAdminShifts() {
+  const el = document.getElementById('adminShiftsList'); if (!el) return;
+  let filtered = shiftFilter === 'all' ? allShifts : allShifts.filter(s => s.status === shiftFilter);
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-calendar-off"></i>No shifts found.</div>';
+    return;
+  }
+  const groups = groupByDate(filtered);
+  el.innerHTML = Object.keys(groups).sort().map(date => {
+    const shifts = groups[date];
+    return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
+      shifts.map(s => buildAdminShiftCard(s)).join('');
+  }).join('');
+}
+
+function buildAdminShiftCard(s) {
+  const staffMember = allStaff.find(x => x.id === s.staff_id);
+  const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
+  const statusLabels = {open:'Open',claimed:'Claimed — needs confirmation',assigned:'Assigned',unclaim_requested:'⚠️ Unclaim requested'};
+  const isUnclaim = s.status === 'unclaim_requested';
+  
+  const isStandby = s.is_standby === true;
+  const standbyCls = isStandby ? 'standby-active' : '';
+
+  return `<div class="shift-card ${s.status} ${standbyCls}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+      <div>
+        <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+        ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+        <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+          <span class="shift-status-badge ss-${s.status}">${statusLabels[s.status]||s.status}</span>
+          ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Standby / On-Call</span>` : ''}
+        </div>
+        ${staffMember ? `<div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${staffMember.name}</div>` : '<div class="shift-notes">No staff assigned</div>'}
+        ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+        ${isUnclaim && s.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;margin-top:4px;background:#fee2e2;padding:4px 8px;border-radius:6px">Reason: ${s.unclaim_reason}</div>` : ''}
+      </div>
+      <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#d1d5db;font-size:16px;padding:2px" title="Delete shift"><i class="ti ti-trash"></i></button>
+    </div>
+    <div class="shift-actions">
+      ${s.status === 'claimed' ? `<button class="btn-primary btn-sm" onclick="confirmClaim('${s.id}')"><i class="ti ti-check"></i> Confirm assignment</button>` : ''}
+      ${s.status === 'unclaim_requested' ? `<button class="btn-primary btn-sm" onclick="approveUnclaim('${s.id}')"><i class="ti ti-check"></i> Approve unclaim</button>` : ''}
+      ${s.status === 'assigned' || s.status === 'claimed' ? `<button class="btn-secondary btn-sm" onclick="unassignShift('${s.id}')"><i class="ti ti-x"></i> Unassign</button>` : ''}
+      ${!s.staff_id ? `
+        <select class="field-select" style="font-size:12px;padding:4px 8px;max-width:180px" id="assignSelect-${s.id}">
+          <option value="">Assign to…</option>
+          ${allStaff.filter(x=>x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}
+        </select>
+        <button class="btn-secondary btn-sm" onclick="adminAssignShift('${s.id}')"><i class="ti ti-user-plus"></i> Assign</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderStaffShifts() {
+  if (!myStaffRecord) return;
+  const openEl = document.getElementById('openShiftsList');
+  const myEl   = document.getElementById('myShiftsList');
+
+  const openShifts = allShifts.filter(s => s.status === 'open');
+  const myShiftsData = allShifts.filter(s => s.staff_id === myStaffRecord.id);
+
+  if (!openShifts.length) {
+    openEl.innerHTML = '<div class="empty-state"><i class="ti ti-calendar-check"></i>No open shifts right now.</div>';
+  } else {
+    const groups = groupByDate(openShifts);
+    openEl.innerHTML = Object.keys(groups).sort().map(date => {
+      return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
+        groups[date].map(s => buildStaffOpenShiftCard(s)).join('');
+    }).join('');
+  }
+
+  if (!myShiftsData.length) {
+    myEl.innerHTML = '<div class="empty-state"><i class="ti ti-calendar-off"></i>No shifts assigned yet.</div>';
+  } else {
+    const groups = groupByDate(myShiftsData);
+    myEl.innerHTML = Object.keys(groups).sort().map(date => {
+      return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
+        groups[date].map(s => buildStaffMyShiftCard(s)).join('');
+    }).join('');
+  }
+}
+
+function buildStaffOpenShiftCard(s) {
+  const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
+  const isStandby = s.is_standby === true;
+  const standbyCls = isStandby ? 'standby-active' : '';
+
+  return `<div class="shift-card open ${standbyCls}">
+    <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+    ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+    ${isStandby ? `<div style="margin-top:4px; margin-bottom:4px;"><span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Open Standby Shift</span></div>` : ''}
+    ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+    <div class="shift-actions">
+      <button class="btn-primary btn-sm" onclick="claimShift('${s.id}')"><i class="ti ti-hand-stop"></i> Claim this shift</button>
+    </div>
+  </div>`;
+}
+
+function buildStaffMyShiftCard(s) {
+  const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
+  const canUnclaim = s.status === 'claimed' || s.status === 'assigned';
+  const isStandby = s.is_standby === true;
+  const standbyCls = isStandby ? 'standby-active' : '';
+
+  return `<div class="shift-card ${s.status} ${standbyCls}">
+    <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+    ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+      <span class="shift-status-badge ss-${s.status}">${s.status}</span>
+      ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 You are on Standby</span>` : ''}
+    </div>
+    ${isStandby ? `<div style="font-size:11px; color:#d97706; font-weight:600; margin-top:4px; background:#fffcf5; padding:4px 8px; border-radius:6px; border: 1px dashed #fcd34d;">⚠️ Standby Rule: Stay within 20 mins travel radius. Stay reachable.</div>` : ''}
+    ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+    <div class="shift-actions">
+      ${canUnclaim ? `<button class="btn-danger btn-sm" onclick="requestUnclaim('${s.id}')"><i class="ti ti-x"></i> Request to unclaim</button>` : ''}
+      ${s.status === 'unclaim_requested' ? `<div style="font-size:12px;color:#dc2626">Unclaim request sent — awaiting admin</div>` : ''}
+    </div>
+  </div>`;
+}
+
+async function createShift() {
+  const date  = document.getElementById('newShiftDate')?.value;
+  const start = document.getElementById('newShiftStart')?.value;
+  const end   = document.getElementById('newShiftEnd')?.value;
+  const staffId = document.getElementById('newShiftStaff')?.value || null;
+  const notes = document.getElementById('newShiftNotes')?.value.trim() || null;
+  const isStandby = document.getElementById('newShiftStandby')?.checked || false;
+  const msgEl = document.getElementById('newShiftMsg');
+
+  if (!date || !start || !end) { msgEl.className='msg err'; msgEl.textContent='Date, start and end time are required.'; return; }
+  if (end <= start) { msgEl.className='msg err'; msgEl.textContent='End time must be after start time.'; return; }
+  msgEl.className='msg'; msgEl.textContent='Saving…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify({
+        shift_date: date,
+        custom_start_time: start,
+        custom_end_time: end,
+        staff_id: staffId,
+        notes,
+        status: staffId ? 'assigned' : 'open',
+        created_by: currentUser?.name || null,
+        assigned_at: staffId ? new Date().toISOString() : null,
+        shift_type: 'custom',
+        is_standby: isStandby
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) allShifts.push(rows[0]);
+    allShifts.sort((a,b) => a.shift_date > b.shift_date ? 1 : a.custom_start_time > b.custom_start_time ? 1 : -1);
+    msgEl.className='msg ok'; msgEl.textContent='✓ Shift created';
+    document.getElementById('newShiftDate').value='';
+    document.getElementById('newShiftStart').value='';
+    document.getElementById('newShiftEnd').value='';
+    document.getElementById('newShiftNotes').value='';
+    document.getElementById('newShiftStaff').value='';
+    if (document.getElementById('newShiftStandby')) document.getElementById('newShiftStandby').checked = false;
+    setTimeout(()=>msgEl.textContent='',3000);
+    renderAdminShifts();
+  } catch(e) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
+}
+
+async function claimShift(id) {
+  if (!myStaffRecord) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({staff_id: myStaffRecord.id, status:'claimed', claimed_at: new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.staff_id=myStaffRecord.id; s.status='claimed'; s.claimed_at=new Date().toISOString(); }
+    renderStaffShifts();
+    updateShiftBadge();
+  } catch(e) { alert('Could not claim shift: '+e.message); }
+}
+
+async function confirmClaim(id) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status:'assigned', assigned_at: new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.status='assigned'; s.assigned_at=new Date().toISOString(); }
+    renderAdminShifts();
+    updateShiftBadge();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function adminAssignShift(id) {
+  const staffId = document.getElementById('assignSelect-'+id)?.value;
+  if (!staffId) { alert('Please select a staff member.'); return; }
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({staff_id:staffId, status:'assigned', assigned_at:new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.staff_id=staffId; s.status='assigned'; }
+    renderAdminShifts();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function unassignShift(id) {
+  if (!confirm('Remove staff from this shift and repost as open?')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({staff_id:null, status:'open', claimed_at:null, assigned_at:null, unclaim_reason:null})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.staff_id=null; s.status='open'; s.claimed_at=null; s.assigned_at=null; }
+    renderAdminShifts();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function deleteShift(id) {
+  if (!confirm('Delete this shift permanently?')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {method:'DELETE', headers:H()});
+    if (!r.ok) throw new Error(await r.text());
+    allShifts = allShifts.filter(x=>x.id!==id);
+    renderAdminShifts();
+    renderStaffShifts();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function requestUnclaim(id) {
+  const reason = prompt('Please give a reason for your unclaim request:');
+  if (reason === null) return;
+  if (!reason.trim()) { alert('A reason is required.'); return; }
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status:'unclaim_requested', unclaim_reason: reason.trim()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.status='unclaim_requested'; s.unclaim_reason=reason.trim(); }
+    renderStaffShifts();
+    showUnclaimAlert(reason.trim());
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function approveUnclaim(id) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({staff_id:null, status:'open', claimed_at:null, assigned_at:null, unclaim_reason:null})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const s = allShifts.find(x=>x.id===id);
+    if (s) { s.staff_id=null; s.status='open'; s.claimed_at=null; s.assigned_at=null; s.unclaim_reason=null; }
+    renderAdminShifts();
+    updateShiftBadge();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+function updateShiftBadge() {
+  const claimed = allShifts.filter(s => s.status === 'claimed' || s.status === 'unclaim_requested').length;
+  const btn = document.querySelector('[data-tab="tabShifts"]');
+  if (!btn) return;
+  const existing = btn.querySelector('.shift-badge');
+  if (existing) existing.remove();
+  if (claimed > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'shift-badge';
+    badge.style.cssText = 'background:#dc2626;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:auto';
+    badge.textContent = claimed;
+    btn.appendChild(badge);
+  }
+}
+
+function showUnclaimAlert(reason) {
+  const overlay = document.getElementById('unclaimOverlay');
+  const reasonEl = document.getElementById('unclaimReason');
+  const nameEl = document.getElementById('unclaimStaffName');
+  if (nameEl) nameEl.textContent = myStaffRecord?.name || 'A staff member';
+  if (reasonEl) reasonEl.textContent = reason;
+  if (overlay) overlay.classList.add('active');
+}
+
+function dismissUnclaimAlert() {
+  document.getElementById('unclaimOverlay')?.classList.remove('active');
+}
+
+function populateShiftStaffDropdown() {
+  const sel = document.getElementById('newShiftStaff'); if (!sel) return;
+  sel.innerHTML = '<option value="">— Post as open shift</option>' +
+    allStaff.filter(s => s.active !== false)
+      .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+</script>
+</body>
+</html>

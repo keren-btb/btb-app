@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — BtB App</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="btb_app.css">
+</head>
+<body>
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-overlay-icon">🚨</div>
+  <div class="help-title">HELP NEEDED!</div>
+  <div class="help-sub">Gamemaster needs assistance in:</div>
+  <div class="help-room" id="helpRoom">—</div>
+  <button class="help-dismiss" onclick="dismissHelp()">✓ On my way — dismiss</button>
+</div>
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">BtB App</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Email</div>
+      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="app" id="mainApp" style="display:none">
+  <div class="header">
+    <div style="text-align:center;padding:4px 0 2px">
+      <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">BtB APP <span id="buildVersionTag" style="font-size:10px;font-weight:400;color:rgba(255,255,255,.4);letter-spacing:0.5px;vertical-align:middle"></span></div>
+    </div>
+    <div class="header-sub" id="headerSub">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px">
+      <span class="auth-badge" id="authBadge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span> · Sign out</span>
+    </div>
+  </div>
+  <div class="timer-banner" id="timerBanner"></div>
+  <nav class="nav">
+    <a href="pos.html" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#059669 0%,#047857 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(5,150,105,.3)"><span style="font-size:15px;font-weight:850;color:#fff;padding:4px 16px;display:inline-block;letter-spacing:0.5px">POS</span></a>
+    <a href="waiver.html" target="_blank" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(124,58,237,.3)"><span style="font-size:14px;font-weight:700;color:#fff">Waiver</span></a>
+    <button class="nav-btn active" data-tab="calendar" onclick="showTab('calendar',this)"><i class="ti ti-calendar"></i>Calendar</button>
+<a href="enquiries.html" class="nav-btn" data-tab="leads" style="text-decoration:none"><i class="ti ti-users"></i>Enquiries</a>
+
+    <button class="nav-btn" data-tab="settings" onclick="showTab('settings',this)"><i class="ti ti-settings"></i>Settings</button>
+  </nav>
+  <div id="calendar" class="section active">
+    <div class="toggle-row">
+      <span class="toggle-label">View:</span>
+      <div class="toggle">
+        <button class="toggle-opt active" id="tog-cal" onclick="setView('cal')"><i class="ti ti-calendar" style="font-size:13px"></i> Calendar</button>
+        <button class="toggle-opt" id="tog-sched" onclick="setView('sched')"><i class="ti ti-list" style="font-size:13px"></i> Schedule</button>
+      </div>
+    </div>
+    <div id="calView">
+      <div class="month-nav">
+        <button class="month-nav-btn" onclick="navigateMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+        <span class="month-nav-label" id="monthNavLabel"></span>
+        <button class="month-nav-btn" onclick="navigateMonth(1)"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div class="cal-day-label">Mo</div><div class="cal-day-label">Tu</div><div class="cal-day-label">We</div><div class="cal-day-label">Th</div><div class="cal-day-label">Fr</div><div class="cal-day-label">Sa</div><div class="cal-day-label">Su</div>
+      </div>
+    </div>
+    <div id="schedView" style="display:none"><div class="filter-row" id="tagFilterRow"></div></div>
+    <div id="calListWrap">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="toggleWalkin()"><i class="ti ti-walk"></i> Add walk-in / phone booking</button>
+        <button id="refreshBtn" onclick="refreshBookings()" style="background:none;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;font-size:13px;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit" title="Refresh bookings">
+          <i class="ti ti-refresh"></i> Refresh
+        </button>
+      </div>
+      <div id="quickBookRow" class="qb-row"></div>
+      <div id="quickBookPopup" class="qb-popup" style="display:none"></div>
+      <div class="form-wrap" id="walkinForm" style="display:none">
+        <div class="form-title"><i class="ti ti-door-enter"></i> New booking</div>
+        <div class="form-2col">
+          <div><div class="form-label">Time</div><input class="form-input" type="time" id="wTime"></div>
+          <div><div class="form-label">Players</div><input class="form-input" type="number" id="wPlayers" placeholder="4" min="1" max="30"></div>
+        </div>
+        <div class="form-row"><div class="form-label">Game</div><select class="form-select" id="wGame"></select></div>
+        <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="wName" placeholder="Sarah Robinson"></div>
+        <div class="form-row"><div class="form-label">Phone</div><input class="form-input" type="tel" id="wPhone" placeholder="021 123 4567"></div>
+        <div class="form-row"><div class="form-label">Occasion</div>
+          <select class="form-select" id="wOccasion">
+            <option value="">None</option><option value="Birthday">Birthday 🎂</option><option value="Team building">Team building 💼</option><option value="Date night">Date night 💑</option><option value="Hen/Stag do">Hen/Stag do 🥂</option><option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-row"><div class="form-label">Gamemaster(s)</div><div class="gm-chip-row" id="wGMChips"></div></div>
+        <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="wNote" placeholder="e.g. Birthday group"></div>
+        <div class="form-2col">
+          <div><div class="form-label">Deposit paid ($)</div><input class="form-input" type="number" id="wDeposit" placeholder="0" min="0"></div>
+          <div><div class="form-label">How paid</div>
+            <select class="form-select" id="wHowPaid">
+              <option value="">Not paid yet</option>
+              <option value="cash">Cash</option>
+              <option value="eftpos">Eftpos</option>
+              <option value="bank_transfer">Bank transfer</option>
+              <option value="stripe">Card (Stripe)</option>
+              <option value="invoice">Invoice</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-btns">
+          <button class="form-cancel" onclick="toggleWalkin()">Cancel</button>
+          <button class="form-submit" onclick="submitWalkin()">Add booking</button>
+        </div>
+      </div>
+      <p class="sec-title" id="bookingListTitle"></p>
+      <div id="eventList"></div>
+    </div>
+  </div>
+
+
+
+  <div id="settings" class="section" style="padding:0;overflow:hidden;position:relative">
+    <div id="settingsMenu" class="settings-menu">
+
+      <!-- GROUP: POS -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
+          <span><span class="sg-icon">🛍️</span>POS</span>
+          <i class="ti ti-chevron-down sg-chevron"></i>
+        </div>
+        <div class="settings-group-body">
+          <div class="settings-grid">
+            <button class="settings-card" onclick="openPanel('pProducts')"><i class="ti ti-shopping-cart" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Products</div><div class="settings-card-sub">Shop items & pricing</div></button>
+            <button class="settings-card" onclick="openPanel('pPOSCat')"><i class="ti ti-layout-grid" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">POS Categories</div><div class="settings-card-sub">Home screen buttons</div></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP: Staff -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="window.open('staff_portal.html','_blank')" style="cursor:pointer">
+          <span><span class="sg-icon">👥</span>Staff Portal</span>
+          <i class="ti ti-external-link sg-chevron"></i>
+        </div>
+      </div>
+
+      <!-- GROUP: Control Room -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="window.open('control_room.html','_blank')" style="cursor:pointer">
+          <span><span class="sg-icon">🔮</span>Control Room</span>
+          <i class="ti ti-external-link sg-chevron"></i>
+        </div>
+      </div>
+
+      <!-- GROUP: Bookings & Enquiries -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
+          <span><span class="sg-icon">📋</span>Bookings & Enquiries</span>
+          <i class="ti ti-chevron-down sg-chevron"></i>
+        </div>
+        <div class="settings-group-body">
+          <div class="settings-grid">
+            <button class="settings-card" onclick="openPanel('pTags')"><i class="ti ti-tag" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Tags</div><div class="settings-card-sub">Booking labels</div></button>
+            <button class="settings-card" onclick="openPanel('pStatuses')"><i class="ti ti-flag" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Statuses</div><div class="settings-card-sub">Enquiry stages</div></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP: Initial Setup (admin only) -->
+      <div class="settings-group" id="settingsGroupSetup" style="display:none">
+        <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
+          <span><span class="sg-icon">⚙️</span>Initial Setup</span>
+          <i class="ti ti-chevron-down sg-chevron"></i>
+        </div>
+        <div class="settings-group-body">
+          <div class="settings-grid">
+            <button class="settings-card" onclick="openPanel('pGames')"><i class="ti ti-door" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Games</div><div class="settings-card-sub">Rooms & activities</div></button>
+            <button class="settings-card" id="cardConfig" style="display:none" onclick="openPanel('pConfig')"><i class="ti ti-clock-edit" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Booking Config</div><div class="settings-card-sub">Hours, slots & pricing</div></button>
+            <button class="settings-card" id="cardRoles" style="display:none" onclick="openPanel('pRoles')"><i class="ti ti-shield" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Logins & Roles</div><div class="settings-card-sub">Staff accounts</div></button>
+            <button class="settings-card" onclick="openPanel('pTraining')"><i class="ti ti-certificate" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Training Levels</div><div class="settings-card-sub">Skill definitions</div></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP: Reports -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
+          <span><span class="sg-icon">📊</span>Reports</span>
+          <i class="ti ti-chevron-down sg-chevron"></i>
+        </div>
+        <div class="settings-group-body">
+          <div class="settings-grid">
+            <button class="settings-card" onclick="window.open('reports.html','_blank')"><i class="ti ti-chart-bar" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Reports</div><div class="settings-card-sub">Revenue, bookings &amp; more</div></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="openPanel('pAbout')" style="color:#9ca3af">
+          <span><span class="sg-icon" style="opacity:.6">ℹ️</span>About</span>
+          <i class="ti ti-chevron-right sg-chevron"></i>
+        </div>
+      </div>
+
+    </div>
+    <!-- PANELS -->
+    <div id="pGames" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pGames')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Games & Activities</span></div><div class="panel-body"><p class="panel-sub">Add or edit activities. Toggle 🌐 Live to show/hide from booking widget.</p><div id="gamesList"></div><div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><div style="font-size:12px;color:#6b7280;font-weight:600;margin-bottom:8px">Add activity</div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input-sm" type="text" id="newGameIcon" placeholder="🚪" style="width:48px"><input class="add-input" type="text" id="newGameName" placeholder="Activity name…" onkeydown="if(event.key==='Enter')addGame()"><input class="add-input-sm" type="number" id="newGameDur" placeholder="min" min="1"></div><div style="margin-top:7px"><select class="form-select" id="newGamePricing"><option value="per_person_tiered">Escape room — per person (tiered)</option><option value="per_hour_flat">Hourly flat rate (e.g. VR Hour)</option><option value="per_person_per_hour">Per person per hour (e.g. Cafe)</option></select></div><div style="margin-top:7px"><select class="form-select" id="newGameCat"><option value="escape">Escape room</option><option value="vr">VR</option><option value="cafe">Cafe</option></select></div><button class="add-btn" style="margin-top:8px" onclick="addGame()"><i class="ti ti-plus"></i> Add</button></div></div></div>
+    <div id="pStaff" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pStaff')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Staff</span></div><div class="panel-body"><p class="panel-sub">Tap the certificate icon to set game training for each staff member.</p><div id="personList"></div><div class="add-row" style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><input class="add-input" type="text" id="newPersonInput" placeholder="Staff name…" onkeydown="if(event.key==='Enter')addPerson()"><button class="add-btn" onclick="addPerson()"><i class="ti ti-plus"></i> Add</button></div></div></div>
+    <div id="pTags" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pTags')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Booking Tags</span></div><div class="panel-body"><p class="panel-sub">Colour-coded labels for booking cards.</p><div id="tagList"></div><div style="margin-top:12px;border-top:1px solid #f3f4f6;padding-top:12px"><div class="add-row"><input class="add-input" type="text" id="newTagInput" placeholder="e.g. Prepaid, VIP…" onkeydown="if(event.key==='Enter')addTag()"><button class="add-btn" onclick="addTag()"><i class="ti ti-plus"></i> Add</button></div><div class="color-picker-row" id="colorPicker"></div><p class="hint">Pick colour, type name, hit Add.</p></div></div></div>
+    <div id="pStatuses" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pStatuses')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Enquiry Statuses</span></div><div class="panel-body"><p class="panel-sub">Status options shown on enquiry cards.</p><div id="statusList"></div><div class="add-row" style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><input class="add-input" type="text" id="newStatusLabel" placeholder="e.g. Hot lead…" onkeydown="if(event.key==='Enter')addStatus()"><input class="add-input-sm" type="text" id="newStatusEmoji" placeholder="🔥" style="width:50px"><button class="add-btn" onclick="addStatus()"><i class="ti ti-plus"></i> Add</button></div></div></div>
+    <div id="pTraining" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pTraining')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Training Levels</span></div><div class="panel-body"><p class="panel-sub">Skill levels for staff game training. "Qualifies solo" means they can run that room without supervision — this drives slot availability in the booking widget.</p><div id="trainingList"></div><div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input-sm" type="text" id="newTrainEmoji" placeholder="🎓" style="width:52px"><input class="add-input" type="text" id="newTrainLabel" placeholder="e.g. Fully trained…" onkeydown="if(event.key==='Enter')addTraining()"><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;cursor:pointer"><input type="checkbox" id="newTrainQualifies" style="accent-color:#07b4c5;width:15px;height:15px"> Qualifies solo</label><button class="add-btn" onclick="addTraining()"><i class="ti ti-plus"></i> Add</button></div></div></div></div>
+    <div id="pAvail" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pAvail')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Staff Availability</span></div><div class="panel-body"><p class="panel-sub">Tap slots to mark yourself available. Green = working that slot. This drives which slots show as bookable in the widget.</p><div class="avail-tabs" id="availTabs"></div><div class="month-nav" style="margin-bottom:10px"><button class="month-nav-btn" onclick="navigateAvailMonth(-1)"><i class="ti ti-chevron-left"></i></button><span class="month-nav-label" id="availMonthLabel"></span><button class="month-nav-btn" onclick="navigateAvailMonth(1)"><i class="ti ti-chevron-right"></i></button></div><div id="availGrid"></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveAvailability()"><i class="ti ti-device-floppy"></i> Save availability</button><div id="availMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
+    <div id="pConfig" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pConfig')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Booking Configuration</span></div><div class="panel-body"><p class="panel-sub">Opening hours, slot times, pricing and rules for the customer booking widget.</p><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-clock" style="color:#07b4c5"></i> Opening hours</div><div class="hours-grid" id="openingHoursGrid"></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-clock-play" style="color:#07b4c5"></i> Slot times</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="slotDayTabs"></div><div id="slotTimesForDay"></div><div style="display:flex;gap:7px;align-items:center;margin-top:8px"><input type="time" id="newSlotTime" class="time-input"><button class="add-btn" onclick="addSlotTime()"><i class="ti ti-plus"></i> Add slot</button></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-currency-dollar" style="color:#07b4c5"></i> Pricing</div><div id="pricingList"></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-phone" style="color:#07b4c5"></i> Call-to-book cutoff</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><input type="number" id="cutoffHours" class="time-input" style="width:60px" min="0" max="72" value="3"><span style="font-size:13px;color:#374151">hours before slot time</span></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-currency-dollar" style="color:#07b4c5"></i> Deposit</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap"><select id="depositType" class="time-input" style="width:130px"><option value="fixed">Fixed amount $</option><option value="percent">Percentage %</option></select><input type="number" id="depositAmt" class="time-input" style="width:70px" min="0" value="35"><span style="font-size:12px;color:#9ca3af" id="depositLabel">NZD</span></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-sparkles" style="color:#07b4c5"></i> Personalised experiences</div><p class="hint" style="margin-bottom:8px">Offer paid add-ons shown when customers select a special occasion. Set price 0 for free.</p><div id="personalExpList"></div><div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:7px">Add experience</div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input" type="text" id="newExpLabel" placeholder="e.g. Decorations package"><input class="add-input-sm" type="number" id="newExpPrice" placeholder="$" min="0" style="width:55px"></div><input class="add-input" type="text" id="newExpDesc" placeholder="Short description (optional)" style="width:100%;margin-top:6px"><div style="margin-top:7px;font-size:11px;color:#6b7280;margin-bottom:4px">Show for occasion(s): <span style="color:#9ca3af">leave blank = all occasions</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="newExpOccasionPicker"></div><button class="add-btn" onclick="addPersonalisedExp()"><i class="ti ti-plus"></i> Add</button></div><div style="font-size:12px;font-weight:700;color:#374151;margin:10px 0 6px"><i class="ti ti-credit-card" style="color:#07b4c5"></i> Card surcharge</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="number" id="cardSurcharge" class="time-input" style="width:60px" min="0" max="10" step="0.1" value="0"><span style="font-size:12px;color:#374151">% added for card payments (0 = no surcharge)</span></div><p class="hint" style="margin-bottom:0">Stripe can also handle surcharges automatically.</p><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Save config</button><div id="configMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
+    <div id="pRoles" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pRoles')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Logins & Roles</span></div><div class="panel-body"><p class="panel-sub">Create staff login accounts and control tab access.</p><div id="rolesList"></div><div style="margin-top:14px;border-top:2px solid #f3f4f6;padding-top:14px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Create new login</div><div class="form-row"><div class="form-label">Name</div><input class="add-input" type="text" id="newStaffName" placeholder="e.g. Alex"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Email</div><input class="add-input" type="email" id="newStaffEmail" placeholder="alex@btb.co.nz"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Temporary password</div><input class="add-input" type="text" id="newStaffPass" placeholder="Welcome123"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Role</div><select class="form-select" id="newStaffRole"><option value="gamemaster_own">Gamemaster Own — only their bookings</option><option value="gamemaster">Gamemaster — all calendar</option><option value="manager">Manager — all except Settings</option><option value="admin">Admin — everything</option></select></div><button class="add-btn" style="margin-top:10px;width:100%;justify-content:center" onclick="createLogin()"><i class="ti ti-plus"></i> Create login</button><div id="loginMsg" style="font-size:12px;margin-top:6px"></div></div></div></div>
+    <div id="pProducts" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pProducts')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Products</span></div><div class="panel-body">
+      <p class="panel-sub">Items available for sale. Boardgames track purchase &amp; retail price too.</p>
+      <!-- Category filter tabs -->
+      <div class="avail-tabs" id="prodCatTabs" style="margin-bottom:12px"></div>
+      <!-- Product list -->
+      <div id="prodList"></div>
+      <!-- Add product form -->
+      <div style="border-top:2px solid #f3f4f6;padding-top:12px;margin-top:4px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">Add product</div>
+        <div class="add-row" style="flex-wrap:wrap;gap:7px;margin-bottom:6px">
+          <input class="add-input" type="text" id="newProdName" placeholder="Product name…" style="flex:2;min-width:140px">
+          <select class="form-select" id="newProdCat" style="flex:1;min-width:120px" onchange="toggleProdBoardgameFields()">
+            <option value="Food/Drink">Food/Drink</option>
+            <option value="Escape Room">Escape Room</option>
+            <option value="Boardgame">Boardgame</option>
+            <option value="Book">Book</option>
+            <option value="VR">VR</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px">
+          <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Selling price $</div><input class="add-input" type="number" id="newProdSell" placeholder="0.00" min="0" step="0.01"></div>
+          <div id="newProdStockWrap"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Stock qty</div><input class="add-input" type="number" id="newProdStock" placeholder="0" min="0"></div>
+        </div>
+        <div id="newProdBoardgameFields" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:7px">Boardgame pricing</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Purchase price $</div><input class="add-input" type="number" id="newProdPurchase" placeholder="0.00" min="0" step="0.01"></div>
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">RRP $</div><input class="add-input" type="number" id="newProdRRP" placeholder="0.00" min="0" step="0.01"></div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Notes (optional)</div><input class="add-input" type="text" id="newProdNotes" placeholder="e.g. 2–6 players, 45min"></div>
+        <button class="add-btn" onclick="addProduct()"><i class="ti ti-plus"></i> Add product</button>
+        <div id="prodAddMsg" style="font-size:12px;margin-top:6px"></div>
+      </div>
+      <!-- CSV import/export -->
+      <div style="border-top:2px solid #f3f4f6;padding-top:12px;margin-top:12px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-file-text" style="color:#07b4c5"></i> Import / Export CSV</div>
+        <p class="hint" style="margin-bottom:10px">CSV columns: <strong>name, category, sell_price, purchase_price, rrp, stock_qty, notes, active</strong><br>Category options: Food/Drink · Escape Room · Boardgame · Book · VR · Other</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="add-btn" style="background:#1d9e75" onclick="exportProductsCSV()"><i class="ti ti-download"></i> Export CSV</button>
+          <label class="add-btn" style="background:#6b7280;cursor:pointer"><i class="ti ti-upload"></i> Import CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importProductsCSV(this)"></label>
+        </div>
+        <div id="csvMsg" style="font-size:12px;margin-top:8px"></div>
+      </div>
+    </div></div>
+    <div id="pPOSCat" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPOSCat')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">POS Categories</span></div><div class="panel-body">
+      <p class="panel-sub">The home screen buttons in the POS app. Drag to reorder, tap to edit.</p>
+      <div id="posCatList"></div>
+      <div style="border-top:2px solid #f3f4f6;padding-top:12px;margin-top:8px">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px">Add category</div>
+        <div class="form-row" style="margin-bottom:6px"><div class="form-label">Label</div><input class="add-input" type="text" id="newCatLabel" placeholder="e.g. Drinks"></div>
+        <div class="form-row" style="margin-bottom:6px"><div class="form-label">Emoji (optional — overrides icon)</div><input class="add-input" type="text" id="newCatEmoji" placeholder="e.g. 🍹" style="width:80px"></div>
+        <div class="form-row" style="margin-bottom:6px"><div class="form-label">Icon (Tabler name, e.g. ti-coffee)</div><input class="add-input" type="text" id="newCatIcon" placeholder="ti-coffee"></div>
+        <div class="form-row" style="margin-bottom:6px"><div class="form-label">Colour</div><input type="color" id="newCatColor" value="#07b4c5" style="height:36px;width:80px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;padding:2px"></div>
+        <div class="form-row" style="margin-bottom:6px"><div class="form-label">Type</div>
+          <select class="form-select" id="newCatType" onchange="toggleCatTypeFields()">
+            <option value="products">Products (filter by category)</option>
+            <option value="bookings">Bookings</option>
+          </select>
+        </div>
+        <div id="newCatFilterWrap" class="form-row" style="margin-bottom:10px"><div class="form-label">Product category filter</div>
+          <select class="form-select" id="newCatFilter">
+            <option value="All">All products</option>
+            <option value="Food/Drink">Food/Drink</option>
+            <option value="Escape Room">Escape Room</option>
+            <option value="Boardgame">Boardgame</option>
+            <option value="Book">Book</option>
+            <option value="VR">VR</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <button class="add-btn" onclick="addPOSCategory()"><i class="ti ti-plus"></i> Add</button>
+        <div id="posCatMsg" style="font-size:12px;margin-top:6px"></div>
+      </div>
+    </div></div>
+    <div id="pAbout" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pAbout')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">About</span></div><div class="panel-body"><div style="font-size:13px;color:#6b7280;line-height:2">Beyond the Box · BtB App v1.0<br>Supabase native — new system<br>Escape Rooms · VR · Board Game Cafe<br>Hawkes Bay, New Zealand<br>Built with Claude</div></div></div>
+  </div>
+</div>
+<script>
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+// SECURITY: H() now sends the real logged-in staff member's session token
+// for every data request (falls back to the anon key only if nobody is
+// logged in yet, e.g. requests that fire before login completes).
+// apikey always stays as the project anon key (Supabase requirement,
+// separate from Authorization) — matches the pattern used in staff_portal.html / pos.html.
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+
+const COLORS=[
+  {bg:'#e0f7f9',text:'#07b4c5',border:'#07b4c5',dot:'#07b4c5'},
+  {bg:'#dcfce7',text:'#15803d',border:'#4ade80',dot:'#1d9e75'},
+  {bg:'#fce7f3',text:'#9d174d',border:'#f472b6',dot:'#d4537e'},
+  {bg:'#fef3c7',text:'#d97706',border:'#fbbf24',dot:'#ef9f27'},
+  {bg:'#dbeafe',text:'#1d4ed8',border:'#60a5fa',dot:'#378add'},
+  {bg:'#fee2e2',text:'#dc2626',border:'#fca5a5',dot:'#e24b4a'},
+  {bg:'#f0fdf4',text:'#166534',border:'#86efac',dot:'#639922'},
+  {bg:'#f3f4f6',text:'#4b5563',border:'#d1d5db',dot:'#888780'},
+];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// DEFAULT DATA
+let games=[
+  {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
+  {id:'g2',name:'Saving Christmas',duration:60,pricingType:'per_person_tiered',icon:'🎄',bookable:true,category:'escape'},
+  {id:'g3',name:'Gregg in the Box',duration:45,pricingType:'per_person_tiered',icon:'📦',bookable:true,category:'escape'},
+  {id:'g4',name:'VR Hour',duration:60,pricingType:'per_hour_flat',icon:'🥽',bookable:true,category:'vr'},
+  {id:'g5',name:'Board Game Cafe',duration:60,pricingType:'per_person_per_hour',icon:'🎲',bookable:true,category:'cafe'},
+];
+let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepaid',colorIdx:0},{id:'vip',label:'VIP',colorIdx:4},{id:'allergy',label:'Allergy',colorIdx:5}];
+let statuses=[{id:'new',label:'New',emoji:'🔵'},{id:'followup',label:'Follow up',emoji:'🟡'},{id:'hot',label:'Hot',emoji:'🔥'},{id:'converted',label:'Converted',emoji:'✅'}];
+let trainingStatuses=[{id:'trained',label:'Trained',emoji:'✅',qualifies:true},{id:'in_training',label:'In training',emoji:'🟡',qualifies:false},{id:'supervised',label:'Supervised only',emoji:'👁',qualifies:false},{id:'can_supervise',label:'Can supervise',emoji:'⭐',qualifies:true}];
+let bookingConfig={
+  openingHours:[{day:0,open:null,label:'Sun'},{day:1,open:null,label:'Mon'},{day:2,open:'10:30',close:'20:30',label:'Tue'},{day:3,open:'10:30',close:'20:30',label:'Wed'},{day:4,open:'10:30',close:'20:30',label:'Thu'},{day:5,open:'10:30',close:'20:30',label:'Fri'},{day:6,open:'10:30',close:'20:30',label:'Sat'}],
+  slotTimes:{2:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},3:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},4:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},5:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},6:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']}},
+  gamePriceTiers:{g1:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],g2:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],g3:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}]},
+  gameFlatPrice:{g4:150},gamePerPersonPerHour:{g5:2},
+  gamePlayerLimits:{g1:{min:2,max:8},g2:{min:2,max:8},g3:{min:2,max:8},g4:{min:1,max:6},g5:{min:2,max:20}},
+  callToBookCutoffHours:3,depositAmount:35,
+};
+let staff=[],staffTraining=[],staffAvailability={},bookings=[],enquiries=[];
+let openTrainingPanels=new Set(),openPanels=new Set();
+const _n=new Date();
+const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
+let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
+let activeTagFilter=null,activeEnqStatus=null,calView='cal';
+let selectedColorIdx=0,walkinOpen=false,enqOpen=false,walkinGMs=[];
+let availStaffId=null,availMonth=TODAY_M,availYear=TODAY_Y,selectedSlotDay=2;
+let currentUser=null;
+let qbOpenGameId=null;
+
+// UTILS
+function fmt12(t){const[h,m]=t.split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`}
+function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
+function toDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function initials(n){return n.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+function tagStyle(ci){const c=COLORS[ci];return`background:${c.bg};color:${c.text};border-color:${c.border}`}
+function dayLbl(d){return DAYS[new Date(viewYear,viewMonth-1,d).getDay()]}
+function getElapsed(b){if(b.timerRunning&&b.timerStartedAt)return b.timerSec+Math.floor((Date.now()-b.timerStartedAt)/1000);return b.timerSec}
+function timerClass(b){if(!b.timerRunning&&b.timerSec===0)return'';const r=b.duration*60-getElapsed(b);return r<0?'over':r<300?'warning':'running'}
+
+// SETTINGS
+async function loadSettings(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/settings`,{headers:H()});
+    const rows=await r.json();
+    rows.forEach(row=>{
+      try{
+        const d=JSON.parse(row.value);
+        if(row.key==='btb_games'&&Array.isArray(d))games=d;
+        if(row.key==='btb_tags'&&Array.isArray(d))tags=d;
+        if(row.key==='btb_statuses'&&Array.isArray(d))statuses=d;
+        if(row.key==='btb_training_statuses'&&Array.isArray(d))trainingStatuses=d;
+        if(row.key==='btb_booking_config'&&typeof d==='object'&&!Array.isArray(d))bookingConfig={...bookingConfig,...d};
+        if(row.key==='btb_pos_categories'&&Array.isArray(d))posCategories=d;
+      }catch(e){}
+    });
+  }catch(e){console.error('Settings load:',e)}
+}
+async function saveSetting(key,data){
+  await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
+}
+const saveGames=()=>saveSetting('btb_games',games);
+const saveTags=()=>saveSetting('btb_tags',tags);
+const saveStatuses=()=>saveSetting('btb_statuses',statuses);
+const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
+const saveBookingConfigSetting=()=>saveSetting('btb_booking_config',bookingConfig);
+let posCategories=[
+  {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
+  {id:'vr_casual',label:'VR Casual',icon:'ti-vr',color:'#8b5cf6',type:'products',filter:'VR'},
+  {id:'escape',label:'Escape Room',icon:'ti-door',color:'#ef4444',type:'products',filter:'Escape Room'},
+  {id:'vr_hour',label:'VR Hour',icon:'ti-headset',color:'#0ea5e9',type:'products',filter:'VR'},
+  {id:'food',label:'General Sale',icon:'ti-coffee',color:'#f97316',type:'products',filter:'Food/Drink'},
+  {id:'boardgame',label:'Boardgame',icon:'ti-puzzle',color:'#1d9e75',type:'products',filter:'Boardgame'},
+];
+const savePosCategories=()=>saveSetting('btb_pos_categories',posCategories);
+
+function renderPOSCatList(){
+  const el=document.getElementById('posCatList');if(!el)return;
+  if(!posCategories.length){el.innerHTML='<div class="empty-state">No categories yet.</div>';return;}
+  el.innerHTML=posCategories.map((c,i)=>`
+    <div class="manage-row" style="align-items:flex-start;gap:8px">
+      <div style="width:36px;height:36px;border-radius:10px;background:${c.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        ${c.emoji?`<span style="font-size:18px">${c.emoji}</span>`:`<i class="ti ${c.icon}" style="font-size:18px;color:#fff"></i>`}
+      </div>
+      <div style="flex:1">
+        <div class="row-label">${c.label}</div>
+        <div class="row-sub">${c.type==='bookings'?'Bookings view':`Products — ${c.filter||'All'}`}</div>
+      </div>
+      <button class="icon-btn" onclick="editPOSCategory(${i})" title="Edit"><i class="ti ti-pencil"></i></button>
+      <button class="icon-btn danger" onclick="deletePOSCategory(${i})" title="Delete"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+}
+
+function toggleCatTypeFields(){
+  const type=document.getElementById('newCatType')?.value;
+  const wrap=document.getElementById('newCatFilterWrap');
+  if(wrap)wrap.style.display=type==='bookings'?'none':'';
+}
+
+function addPOSCategory(){
+  const label=document.getElementById('newCatLabel').value.trim();
+  if(!label){document.getElementById('posCatMsg').textContent='Please enter a label.';return;}
+  const emoji=document.getElementById('newCatEmoji').value.trim();
+  const icon=document.getElementById('newCatIcon').value.trim()||'ti-tag';
+  const color=document.getElementById('newCatColor').value||'#07b4c5';
+  const type=document.getElementById('newCatType').value;
+  const filter=document.getElementById('newCatFilter').value;
+  posCategories.push({id:'cat_'+Date.now(),label,emoji:emoji||null,icon,color,type,filter:type==='products'?filter:'All'});
+  document.getElementById('newCatLabel').value='';
+  document.getElementById('newCatEmoji').value='';
+  document.getElementById('newCatIcon').value='';
+  document.getElementById('posCatMsg').style.color='#15803d';
+  document.getElementById('posCatMsg').textContent='✓ Added!';
+  setTimeout(()=>{document.getElementById('posCatMsg').textContent='';},2000);
+  renderPOSCatList();
+  savePosCategories();
+}
+
+function deletePOSCategory(i){
+  posCategories.splice(i,1);
+  renderPOSCatList();
+  savePosCategories();
+}
+
+let editingCatIdx=null;
+function editPOSCategory(i){
+  const c=posCategories[i];
+  const newLabel=prompt('Label:',c.label);if(newLabel===null)return;
+  const newEmoji=prompt('Emoji (leave blank for none):',c.emoji||'');
+  const newIcon=prompt('Icon (e.g. ti-coffee):',c.icon||'ti-tag');
+  const newColor=prompt('Colour (hex, e.g. #07b4c5):',c.color||'#07b4c5');
+  const newFilter=prompt('Product filter (All / Food/Drink / Escape Room / Boardgame / Book / VR / Other):',c.filter||'All');
+  if(newLabel)posCategories[i]={...c,label:newLabel,emoji:newEmoji||null,icon:newIcon||'ti-tag',color:newColor||c.color,filter:newFilter||'All'};
+  renderPOSCatList();
+  savePosCategories();
+}
+
+// STAFF
+async function loadStaff(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&order=name`,{headers:H()});
+    const rows=await r.json();
+    if(rows&&rows.length>0)staff=rows;
+  }catch(e){console.error('Staff load:',e)}
+  await loadTraining();
+  renderPersonList();
+}
+async function loadTraining(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff_game_training`,{headers:H()});staffTraining=await r.json()}
+  catch(e){staffTraining=[]}
+}
+function getTrainStatus(sid,gid){const r=staffTraining.find(t=>t.staff_id===sid&&t.game_id===gid);return r?r.status:null}
+async function saveTrainRecord(sid,gid,status){
+  const ex=staffTraining.find(t=>t.staff_id===sid&&t.game_id===gid);
+  if(ex)ex.status=status;else staffTraining.push({staff_id:sid,game_id:gid,status});
+  renderPersonList();
+  await fetch(`${SB_URL}/rest/v1/staff_game_training?on_conflict=staff_id,game_id`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({staff_id:sid,game_id:gid,status,updated_at:new Date().toISOString()})});
+}
+
+// BOOKINGS
+async function loadBookings(month,year){
+  try{
+    const first=`${year}-${String(month).padStart(2,'0')}-01`;
+    const last=`${year}-${String(month).padStart(2,'0')}-${new Date(year,month,0).getDate()}`;
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${first}&booking_date=lte.${last}&status=neq.cancelled&order=slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const rows=await r.json();
+    bookings=bookings.filter(b=>!(b.month===month&&b.year===year));
+    rows.forEach(row=>{
+      const d=new Date(row.booking_date+'T12:00');
+      if(!bookings.find(b=>b.id===row.id)){
+        bookings.push({
+          id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),
+          name:row.game_name,game_id:row.game_id,
+          customer:(()=>{
+            // Online bookings store name in clients table; walk-ins use notes_when_booked
+            if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}
+            return row.notes_when_booked?.split('·')[0]?.trim()||'';
+          })(),
+          customerPhone:row.clients?.phone||'',
+          customerEmail:row.clients?.email||'',
+          time:(row.slot_time||'').slice(0,5),
+          duration:games.find(g=>g.id===row.game_id)?.duration||60,
+          meta:`${row.players_booked} player${row.players_booked!==1?'s':''} · ${row.source||''}`,
+          tags:(()=>{
+            let t=JSON.parse(row.tags||'[]');
+            // Auto-add occasion tag if exists
+            if(row.occasion){const ot=tags.find(x=>x.label.toLowerCase()===row.occasion.toLowerCase()||x.label.toLowerCase().includes(row.occasion.toLowerCase().split(' ')[0]));if(ot&&!t.includes(ot.id))t.push(ot.id)}
+            return t;
+          })(),notes:JSON.parse(row.staff_notes||'[]'),
+          gms:JSON.parse(row.assigned_staff_ids||'[]'),
+          status:row.status,
+          occasion:row.occasion||'',experience:row.experience||'',played_before:row.played_before,previous_game:row.previous_game||'',
+          name_of_special_person:row.name_of_special_person||'',age_of_special_person:row.age_of_special_person||null,
+          players_actual:row.players_actual||null,no_show:row.no_show||false,
+          clues_given:row.clues_given||null,time_taken:row.time_taken||null,
+          gm_notes:row.gm_notes||'',ask_for_review:row.ask_for_review||false,
+          total_amount:row.total_amount||null,
+          timerSec:row.timer_sec||0,timerRunning:row.timer_running||false,
+          timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
+          timerInterval:null,isEnquiry:row.status==='enquiry',source:row.source||'',
+          payments:row.payments||null,
+        });
+      }
+    });
+    console.log(`✓ ${rows.length} bookings for ${month}/${year}`);
+  }catch(e){console.error('Bookings load:',e)}
+}
+async function saveBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{
+      method:'PATCH',headers:H(),
+      body:JSON.stringify({
+        tags:JSON.stringify(b.tags||[]),staff_notes:JSON.stringify(b.notes||[]),
+        assigned_staff_ids:JSON.stringify(b.gms||[]),
+        status:b.status==='completed'?'completed':b.status==='enquiry'?'enquiry':'confirmed',
+        no_show:b.no_show||false,
+        // NOTE: players_actual / clues_given / time_taken / gm_notes / ask_for_review
+        // and timer_running / timer_sec / timer_started_at are now owned by control_room.html.
+        // btb_app.html must not PATCH these — doing so would overwrite control_room's data
+        // with stale local values every time an unrelated field (tag/note/GM) is saved here.
+        updated_at:new Date().toISOString(),
+      })
+    });
+  }catch(e){console.error('Booking save:',e)}
+}
+
+// WALK-IN FORM
+function toggleWalkin(){
+  walkinOpen=!walkinOpen;
+  const form=document.getElementById('walkinForm');
+  form.style.display=walkinOpen?'':'none';
+  if(walkinOpen){
+    const n=new Date();
+    document.getElementById('wTime').value=`${String(n.getHours()).padStart(2,'0')}:${String(Math.round(n.getMinutes()/5)*5%60).padStart(2,'0')}`;
+    document.getElementById('wGame').innerHTML=games.map(g=>`<option value="${g.id}">${g.name} (${g.duration}min)</option>`).join('');
+    walkinGMs=[];renderWalkinGMChips();document.getElementById('wNote').value='';document.getElementById('wName').focus();
+  }
+}
+// Opens the walk-in form pre-filled with a specific game + slot time — used when clicking a quick-book slot button
+function quickWalkin(gameId,timeStr){
+  qbOpenGameId=null;renderQuickBookRow();
+  if(!walkinOpen)toggleWalkin();
+  document.getElementById('wGame').value=gameId;
+  document.getElementById('wTime').value=timeStr;
+  document.getElementById('wName').focus();
+  document.getElementById('walkinForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderWalkinGMChips(){
+  document.getElementById('wGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${walkinGMs.includes(p.id)?'assigned':''}" onclick="toggleWGM('${p.id}')">${walkinGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
+}
+function toggleWGM(id){const i=walkinGMs.indexOf(id);if(i===-1)walkinGMs.push(id);else walkinGMs.splice(i,1);renderWalkinGMChips()}
+// Checks whether a proposed walk-in time falls within 90 minutes of an existing booking start for the same game on the selected day
+function checkGameTimeConflict(gameId,timeStr){
+  const game=games.find(g=>g.id===gameId);if(!game)return null;
+  const toMin=t=>{const[h,m]=(t||'0:0').split(':').map(Number);return h*60+m};
+  const newStart=toMin(timeStr);
+  const WINDOW=90;
+  const sameDay=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry&&b.game_id===gameId);
+  for(const b of sameDay){
+    const bStart=toMin(b.time);
+    // Conflict if new booking starts within 90 min of existing, or existing starts within 90 min of new
+    if(Math.abs(newStart-bStart)<WINDOW)return b;
+  }
+  return null;
+}
+async function submitWalkin(){
+  const time=document.getElementById('wTime').value;if(!time){document.getElementById('wTime').focus();return}
+  const players=parseInt(document.getElementById('wPlayers').value)||1;
+  const gameId=document.getElementById('wGame').value;
+  const name=document.getElementById('wName').value.trim();
+  const phone=document.getElementById('wPhone').value.trim();
+  const occasion=document.getElementById('wOccasion').value;
+  const note=document.getElementById('wNote').value.trim();
+  const deposit=parseFloat(document.getElementById('wDeposit')?.value)||null;
+  const howPaid=document.getElementById('wHowPaid')?.value||null;
+  const game=games.find(g=>g.id===gameId);if(!game)return;
+  const conflict=checkGameTimeConflict(gameId,time);
+  if(conflict){
+    const proceed=confirm(`Heads up: this overlaps with an existing ${game.name} booking at ${fmt12(conflict.time||'00:00')} (${conflict.customer||'no name'}). Book anyway?`);
+    if(!proceed)return;
+  }
+  const ds=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({
+        game_id:gameId,game_name:game.name,booking_date:ds,slot_time:time+':00',
+        players_booked:players,occasion:occasion||null,status:'confirmed',source:'walkin',
+        assigned_staff_ids:JSON.stringify(walkinGMs),tags:JSON.stringify([]),
+        staff_notes:JSON.stringify(note?[note]:[]),
+        notes_when_booked:name+(phone?' · '+phone:''),
+        deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0),how_paid:howPaid||null,
+        timer_running:false,timer_sec:0,
+      })
+    });
+    if(!r.ok)throw new Error(await r.text());
+    const saved=(await r.json())[0];
+    if(saved){
+      const d=new Date(ds+'T12:00');
+      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:game.duration,meta:`${players} player${players!==1?'s':''} · Walk-in`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||''});
+    }
+  }catch(e){alert('Error: '+e.message);return}
+  walkinGMs=[];walkinOpen=false;document.getElementById('walkinForm').style.display='none';
+  ['wPlayers','wName','wPhone','wNote','wDeposit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  const wp=document.getElementById('wHowPaid');if(wp)wp.value='';
+  buildCalendar();renderActiveView();updateHeader();
+}
+
+// REFRESH BOOKINGS — re-fetches only current month bookings, fast
+async function refreshBookings(){
+  const btn=document.getElementById('refreshBtn');
+  if(btn){btn.innerHTML='<i class="ti ti-refresh" style="animation:spin 0.7s linear infinite"></i> Refreshing…';btn.disabled=true}
+  // Remove bookings for current month so they get re-fetched fresh
+  bookings=bookings.filter(b=>!(b.month===viewMonth&&b.year===viewYear));
+  await loadBookings(viewMonth,viewYear);
+  buildCalendar();renderActiveView();updateHeader();renderTimerBanner();
+  if(btn){btn.innerHTML='<i class="ti ti-check"></i> Done';btn.disabled=false;setTimeout(()=>{btn.innerHTML='<i class="ti ti-refresh"></i> Refresh';},2000)}
+}
+
+// CALENDAR
+function buildCalendar(){
+  const grid=document.getElementById('calGrid');
+  const labels=Array.from(grid.querySelectorAll('.cal-day-label'));
+  grid.innerHTML='';labels.forEach(l=>grid.appendChild(l));
+  document.getElementById('monthNavLabel').textContent=`${MONTHS[viewMonth-1]} ${viewYear}`;
+  const hasEvent=new Set(bookings.filter(b=>b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry).map(b=>b.date));
+  const firstDay=new Date(viewYear,viewMonth-1,1).getDay();
+  const offset=(firstDay+6)%7;
+  const daysInMonth=new Date(viewYear,viewMonth,0).getDate();
+  for(let i=0;i<offset;i++){const b=document.createElement('div');b.className='cal-day empty';grid.appendChild(b)}
+  for(let d=1;d<=daysInMonth;d++){
+    const el=document.createElement('div');
+    const isPast=viewYear<TODAY_Y||(viewYear===TODAY_Y&&viewMonth<TODAY_M)||(viewYear===TODAY_Y&&viewMonth===TODAY_M&&d<TODAY);
+    el.className='cal-day'+(hasEvent.has(d)?' has-event':'')+(d===selectedDate?' selected':'')+(isPast?' past':'');
+    el.textContent=d;el.onclick=()=>{selectedDate=d;buildCalendar();renderEvents();updateHeader()};
+    grid.appendChild(el);
+  }
+}
+async function navigateMonth(delta){
+  viewMonth+=delta;
+  if(viewMonth>12){viewMonth=1;viewYear++}if(viewMonth<1){viewMonth=12;viewYear--}
+  selectedDate=(viewMonth===TODAY_M&&viewYear===TODAY_Y)?TODAY:1;
+  await loadBookings(viewMonth,viewYear);buildCalendar();renderActiveView();updateHeader();
+}
+function updateHeader(){
+  const count=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry).length;
+  document.getElementById('headerSub').textContent=`${dayLbl(selectedDate)} ${selectedDate} ${MONTHS[viewMonth-1]} · ${count} booking${count!==1?'s':''}`;
+}
+// BOOKING CARD
+function getGameColor(name) {
+  if (!name) return '#f9fafb';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 90%)`;
+}
+
+function buildCard(b){
+  const isOpen=openPanels.has(b.id);
+  const gmName=b.gms?.length>0?b.gms.map(id=>{const p=staff.find(x=>x.id===id);return p?p.name:'?'}).join(', '):'Unassigned';
+  const tagHtml=(b.tags||[]).map(tid=>{const t=tags.find(x=>x.id===tid);return t?`<span class="tag-pill" style="${tagStyle(t.colorIdx)}">${t.label}</span>`:''}).join('');
+  const chipHtml=tags.map(t=>`<button class="chip-btn ${(b.tags||[]).includes(t.id)?'selected':''}" onclick="toggleTag('${b.id}','${t.id}')" style="${(b.tags||[]).includes(t.id)?tagStyle(t.colorIdx):''}">${t.label}</button>`).join('');
+  const notesHtml=(b.notes||[]).map((n,i)=>`<div class="saved-note"><span>${n}</span><button class="del-btn" onclick="deleteNote('${b.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
+  const gmChipHtml=staff.map(p=>`<button class="gm-chip ${(b.gms||[]).includes(p.id)?'assigned':''}" onclick="toggleGM('${b.id}','${p.id}')">${(b.gms||[]).includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
+  const card=document.createElement('div');
+  const isDone = b.status==='completed';
+  card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'');
+  card.style.backgroundColor = getGameColor(b.name);
+  card.innerHTML=`
+    <div class="booking-top" onclick="togglePanel('${b.id}')">
+      <div class="booking-col-left">
+        <div class="booking-time"><span class="booking-time-val">${fmt12(b.time||'00:00')}</span> <span class="booking-game">${b.name}</span></div>
+        <div class="booking-name">${b.customer||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
+        <div class="booking-meta">${b.meta||''}</div>
+
+        ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
+        ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${n}</div>`).join('')}</div>`:''}
+      </div>
+      <div class="booking-col-right" onclick="event.stopPropagation()">
+        ${b.occasion?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">🎉 ${b.occasion}${b.name_of_special_person?' — '+b.name_of_special_person+(b.age_of_special_person?' ('+b.age_of_special_person+')':''):''}${b.occasion==='Hen/Stag do'&&b.name_of_special_person?' 🥂':''}</div>`:''}
+        ${b.experience?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">⭐ ${b.experience}</div>`:''}
+        ${b.played_before?`<div style="font-size:11px;color:#07b4c5;display:flex;align-items:center;gap:3px">👋 ${b.previous_game?'Played: '+b.previous_game:'Returning'}</div>`:''}
+        <div class="gm-badge"><i class="ti ti-user"></i> ${gmName}</div>
+        ${isDone?`<span style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid #4ade80;color:#15803d;background:#f0fdf8;display:flex;align-items:center;gap:3px;width:fit-content"><i class="ti ti-check"></i> Done</span>`:''}
+      </div>
+    </div>
+    <div class="expand-row" onclick="togglePanel('${b.id}')">
+      <span class="expand-row-label">${isOpen?"Collapse ▲":"Expand ▼"}</span>
+      <i class="ti ti-chevron-down ${isOpen?'open':''}"></i>
+    </div>
+    <div class="booking-panel ${isOpen?'open':''}" id="panel-${b.id}">
+
+      ${(b.customerPhone||b.customerEmail||b.occasion)?`
+      <div class="panel-label">Customer details</div>
+      <div style="background:#f9fafb;border-radius:8px;padding:9px 11px;margin-bottom:4px;font-size:12px;display:flex;flex-direction:column;gap:4px;border:1px solid #e5e7eb">
+        ${b.customerPhone?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-phone" style="color:#9ca3af;font-size:12px"></i> ${b.customerPhone}</div>`:''}
+        ${b.customerEmail?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-mail" style="color:#9ca3af;font-size:12px"></i> ${b.customerEmail}</div>`:''}
+        ${b.occasion?`<div style="display:flex;align-items:center;gap:6px;color:#374151">🎉 ${b.occasion}</div>`:''}
+      </div>`:''}
+      <div class="panel-label">Staff assigned</div>
+      <div class="gm-chip-row">${gmChipHtml}</div>
+      <div class="panel-label">Quick tags</div>
+      <div class="chip-row">${chipHtml}</div>
+      <div class="panel-label">Staff note</div>
+      <div class="note-input-row">
+        <input class="note-input" type="text" placeholder="Add a note…" data-bid="${b.id}" onkeydown="if(event.key==='Enter')saveNote('${b.id}',this.nextElementSibling)">
+        <button class="note-save-btn" onclick="saveNote('${b.id}',this)">Save</button>
+      </div>
+      ${notesHtml}
+      <div class="post-section">
+        <div class="post-title">⚠️ Session status</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="post-toggle ${isDone?'on':'off'}" style="width:100%;${isDone?'background:#dcfce7;color:#15803d;border:1px solid #4ade80;':''}" onclick="toggleDone('${b.id}')"><i class="ti ti-${isDone?'check':'circle'}"></i> ${isDone?'Done':'Mark done'}</button>
+          <button class="post-toggle ${b.no_show?'on':'off'}" style="width:100%;${b.no_show?'background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;':''}" onclick="togglePost('${b.id}','no_show')">${b.no_show?'🚫 No show':'Mark as no-show'}</button>
+        </div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:8px">Manual override — sessions are normally marked done from the Control Room app once finished. Post-session logging (clues, time taken, GM notes, review) is handled there too.</div>
+      </div>
+      <button onclick="window.open('waiver.html?booking_id=${b.id}','_blank')" style="width:100%;margin-top:10px;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+        📋 Open waiver for this booking
+      </button>
+    </div>`;
+  return card;
+}
+
+// QUICK-BOOK ROW & POPUP — buttons for games flagged "showOnQuickBook", showing available time ranges for the selected day
+function getOfficialSlotsForSelectedDate(){
+  const dateObj=new Date(viewYear,viewMonth-1,selectedDate);
+  const dayIdx=dateObj.getDay();
+  const dc=(bookingConfig.slotTimes||{})[dayIdx]||{};
+  const slots=Array.isArray(dc)?dc:(dc['default']||[]);
+  return [...slots].sort();
+}
+function renderQuickBookRow(){
+  const row=document.getElementById('quickBookRow');if(!row)return;
+  const qbGames=games.filter(g=>g.showOnQuickBook===true);
+  if(!qbGames.length){row.innerHTML='';document.getElementById('quickBookPopup').style.display='none';return;}
+  row.innerHTML=qbGames.map(g=>`<button class="qb-btn ${qbOpenGameId===g.id?'active':''}" onclick="toggleQuickBookPopup('${g.id}')">${g.icon||''} ${g.name}</button>`).join('');
+  if(qbOpenGameId)renderQuickBookPopup(qbOpenGameId);
+  else document.getElementById('quickBookPopup').style.display='none';
+}
+function toggleQuickBookPopup(gameId){
+  qbOpenGameId=(qbOpenGameId===gameId)?null:gameId;
+  renderQuickBookRow();
+}
+function renderQuickBookPopup(gameId){
+  const popup=document.getElementById('quickBookPopup');
+  const game=games.find(g=>g.id===gameId);
+  if(!game){popup.style.display='none';return}
+  popup.style.display='';
+  const officialSlots=getOfficialSlotsForSelectedDate();
+  if(!officialSlots.length){
+    popup.innerHTML=`<div class="qb-popup-title">${game.icon||''} ${game.name}</div><div class="qb-popup-empty">No slot times configured for this day.</div>`;
+    return;
+  }
+  const dayBookings=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry&&b.game_id===gameId);
+  const bookedTimes=new Set(dayBookings.map(b=>b.time));
+  const openSlots=officialSlots.filter(t=>!bookedTimes.has(t));
+  if(!openSlots.length){
+    popup.innerHTML=`<div class="qb-popup-title">${game.icon||''} ${game.name}</div><div class="qb-popup-empty">Fully booked at all official slot times today.</div>`;
+    return;
+  }
+  // Group consecutive open slots (in official slot order) into ranges
+  const ranges=[];let current=[];
+  officialSlots.forEach(t=>{
+    if(openSlots.includes(t))current.push(t);
+    else if(current.length){ranges.push(current);current=[]}
+  });
+  if(current.length)ranges.push(current);
+  popup.innerHTML=`<div class="qb-popup-title">${game.icon||''} ${game.name} — available today (tap a time to book)</div>`+
+    ranges.map(r=>`
+      <div class="qb-range">
+        <div class="qb-range-label">${fmt12(r[0])} – ${fmt12(r[r.length-1])}</div>
+        <div class="qb-range-slots">${r.map(t=>`<button class="qb-slot-btn" onclick="quickWalkin('${gameId}','${t}')">${fmt12(t)}</button>`).join('')}</div>
+      </div>`).join('');
+}
+
+function renderEvents(){
+  const list=document.getElementById('eventList');list.innerHTML='';
+  let filtered=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry);
+  if(activeTagFilter)filtered=filtered.filter(b=>(b.tags||[]).includes(activeTagFilter));
+  if(currentUser?.role==='gamemaster_own')filtered=filtered.filter(b=>(b.gms||[]).includes(currentUser.staffId||currentUser.id));
+  document.getElementById('bookingListTitle').textContent=`${dayLbl(selectedDate)} ${selectedDate} ${MONTHS[viewMonth-1]} — ${filtered.length} booking${filtered.length!==1?'s':''}`;
+  renderQuickBookRow();
+  if(!filtered.length){list.innerHTML='<div class="empty-state">No bookings for this day.</div>';return}
+  filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(b=>list.appendChild(buildCard(b)));
+}
+function renderActiveView(){if(calView==='sched')renderSchedule();else renderEvents()}
+
+// BOOKING ACTIONS
+function togglePanel(id){if(openPanels.has(id))openPanels.delete(id);else openPanels.add(id);renderActiveView()}
+function toggleTag(bid,tid){const b=bookings.find(x=>x.id===bid);if(!b)return;const i=(b.tags||[]).indexOf(tid);if(i===-1)(b.tags=b.tags||[]).push(tid);else b.tags.splice(i,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
+function toggleGM(bid,pid){const b=bookings.find(x=>x.id===bid);if(!b)return;b.gms=b.gms||[];const i=b.gms.indexOf(pid);if(i===-1)b.gms.push(pid);else b.gms.splice(i,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
+function saveNote(bid,btnEl){const input=btnEl?btnEl.previousElementSibling:document.querySelector(`[data-bid="${bid}"]`);const text=input?input.value.trim():'';if(!text)return;const b=bookings.find(x=>x.id===bid);if(!b)return;(b.notes=b.notes||[]).push(text);if(input)input.value='';openPanels.add(bid);saveBooking(bid);renderActiveView()}
+function deleteNote(bid,idx){const b=bookings.find(x=>x.id===bid);if(!b)return;b.notes.splice(idx,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
+function toggleDone(id){const b=bookings.find(x=>x.id===id);if(!b)return;b.status=(b.status==='completed')?'confirmed':'completed';saveBooking(id);renderActiveView()}
+function togglePost(id,field){const b=bookings.find(x=>x.id===id);if(!b)return;b[field]=!b[field];openPanels.add(id);saveBooking(id);renderActiveView()}
+
+// TIMER — read-only display here. control_room.html OWNS starting/pausing/resetting the timer;
+// this app only renders the live countdown as realtime updates arrive (see setupRealtime below).
+
+// TIMER BANNER (read-only display — countdown only, no stop control; timer is owned by control_room.html)
+function renderTimerBanner(){
+  const banner=document.getElementById('timerBanner');
+  const running=bookings.filter(b=>b.timerRunning);
+  if(!running.length){banner.className='timer-banner';banner.innerHTML='';return}
+  banner.className='timer-banner has-timers';
+  banner.innerHTML=running.map(b=>{
+    const rem=b.duration*60-getElapsed(b);const cls=rem<0?'over':rem<300?'warning':'';
+    return`<div class="timer-item"><div class="timer-countdown ${cls}" id="banner-timer-${b.id}">${fmtTimer(rem)}</div><div style="flex:1"><div class="timer-game">${b.name}</div><div class="timer-meta">${b.meta||''}</div></div><div class="timer-banner-btns"><button class="timer-help-btn" onclick="triggerHelp('${b.name}')">🚨 Help</button></div></div>`;
+  }).join('');
+}
+
+// HELP
+async function triggerHelp(room){
+  document.getElementById('helpRoom').textContent=room;document.getElementById('helpOverlay').classList.add('active');
+  try{await fetch(`${SB_URL}/rest/v1/help_alerts`,{method:'POST',headers:H(),body:JSON.stringify({room,dismissed:false})})}catch(e){}
+}
+async function dismissHelp(){
+  document.getElementById('helpOverlay').classList.remove('active');
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/help_alerts?dismissed=eq.false&order=created_at.desc&limit=1`,{headers:H()});
+    const rows=await r.json();
+    if(rows[0])await fetch(`${SB_URL}/rest/v1/help_alerts?id=eq.${rows[0].id}`,{method:'PATCH',headers:H(),body:JSON.stringify({dismissed:true})});
+  }catch(e){}
+}
+
+// SCHEDULE
+function renderSchedule(){
+  const container=document.getElementById('schedView');
+  renderTagFilters();
+  Array.from(container.children).forEach(el=>{if(!el.classList.contains('filter-row'))el.remove()});
+  const todayKey=`${TODAY_Y}-${String(TODAY_M).padStart(2,'0')}-${String(TODAY).padStart(2,'0')}`;
+  let filtered=bookings.filter(b=>{
+    const k=`${b.year||TODAY_Y}-${String(b.month||TODAY_M).padStart(2,'0')}-${String(b.date).padStart(2,'0')}`;
+    return k>=todayKey&&!b.isEnquiry;
+  });
+  if(activeTagFilter)filtered=filtered.filter(b=>(b.tags||[]).includes(activeTagFilter));
+  if(currentUser?.role==='gamemaster_own')filtered=filtered.filter(b=>(b.gms||[]).includes(currentUser.staffId||currentUser.id));
+  if(!filtered.length){const e=document.createElement('div');e.className='empty-state';e.textContent='No upcoming bookings.';container.appendChild(e);return}
+  const byKey={};
+  filtered.forEach(b=>{const k=`${b.year||TODAY_Y}-${String(b.month||TODAY_M).padStart(2,'0')}-${String(b.date).padStart(2,'0')}`;if(!byKey[k])byKey[k]=[];byKey[k].push(b)});
+  let todayBlock=null;
+  Object.keys(byKey).sort().forEach(key=>{
+    const grp=byKey[key].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    const[ky,km,kd]=key.split('-').map(Number);const isToday=key===todayKey;
+    const block=document.createElement('div');block.className='schedule-day-block';
+    block.innerHTML=`<div class="schedule-day-header ${isToday?'today-header':''}">${isToday?'📅 Today — ':''}${DAYS[new Date(ky,km-1,kd).getDay()]} ${kd} ${MONTHS[km-1]} ${ky}<span class="schedule-day-count">${grp.length} booking${grp.length!==1?'s':''}</span></div>`;
+    grp.forEach(b=>block.appendChild(buildCard(b)));
+    container.appendChild(block);if(isToday)todayBlock=block;
+  });
+  if(todayBlock)setTimeout(()=>todayBlock.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+// TAG FILTERS
+function renderTagFilters(){
+  const row=document.getElementById('tagFilterRow');
+  row.innerHTML=`<button class="filter-chip ${!activeTagFilter?'active':''}" onclick="setTagFilter(null)">All</button>`+tags.map(t=>`<button class="filter-chip ${activeTagFilter===t.id?'active':''}" onclick="setTagFilter('${t.id}')">${t.label}</button>`).join('');
+}
+function setTagFilter(id){activeTagFilter=id;renderTagFilters();renderSchedule()}
+function setView(v){
+  calView=v;const isCal=v==='cal';
+  document.getElementById('calView').style.display=isCal?'':'none';
+  document.getElementById('schedView').style.display=isCal?'none':'';
+  document.getElementById('calListWrap').style.display=isCal?'':'none';
+  document.getElementById('tog-cal').classList.toggle('active',isCal);
+  document.getElementById('tog-sched').classList.toggle('active',!isCal);
+  if(!isCal)renderSchedule();else renderEvents();
+}
+
+// SETTINGS — GAMES
+// Migrate games to include showOnQuickBook flag (default: true for escape rooms, false for others)
+function migrateQuickBookFlag(){
+  let changed=false;
+  games.forEach(g=>{
+    if(g.showOnQuickBook===undefined){
+      g.showOnQuickBook = g.category==='escape';
+      changed=true;
+    }
+  });
+  if(changed) saveGames();
+}
+function renderGamesList(){
+  const el=document.getElementById('gamesList');if(!el)return;
+  const cats={escape:'Escape room',vr:'VR',cafe:'Café'};
+  const pricingLabels={per_person_tiered:'Per person (tiered)',per_hour_flat:'Hourly flat rate',per_person_per_hour:'Per person per hour'};
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${games.map(g=>{
+    const isBookable=g.bookable!==false;
+    const isQuickBook=g.showOnQuickBook===true;
+    const tracksPlayers=g.trackPlayers!==false;
+    const mn=g.minPlayers||2;const mx=g.maxPlayers||8;
+    return`<div style="background:#f9fafb;border:1.5px solid #d1d5db;border-radius:12px;padding:11px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="game-swatch">${g.icon||'🚪'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="row-label" style="line-height:1.2">${g.name}</div>
+          <div class="row-sub">${cats[g.category]||g.category}</div>
+        </div>
+        <button class="icon-btn danger" onclick="deleteGame('${g.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280">
+        <span style="min-width:52px">Duration</span>
+        <input type="number" min="1" value="${g.duration}" onchange="setGameDuration('${g.id}',parseInt(this.value)||60)" style="width:55px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+        <span>min</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:#6b7280">
+        <span>Pricing type</span>
+        <select class="training-select" style="width:100%" onchange="setGamePricingType('${g.id}',this.value)">
+          ${Object.entries(pricingLabels).map(([val,label])=>`<option value="${val}" ${(g.pricingType||'per_person_tiered')===val?'selected':''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer">
+        <input type="checkbox" ${tracksPlayers?'checked':''} onchange="toggleTrackPlayers('${g.id}')" style="accent-color:#07b4c5;width:15px;height:15px">
+        Track player count (min/max)
+      </label>
+      ${tracksPlayers?`<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;flex-wrap:wrap">
+        <span>Min</span><input type="number" min="1" max="30" value="${mn}" onchange="setGameLimit('${g.id}','min',parseInt(this.value)||1)" style="width:48px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+        <span>Max</span><input type="number" min="1" max="50" value="${mx}" onchange="setGameLimit('${g.id}','max',parseInt(this.value)||8)" style="width:48px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+      </div>`:`<div style="font-size:11px;color:#9ca3af">No min/max — players field shown as optional info only.</div>`}
+      <button class="avail-toggle ${isBookable?'on':'off'}" style="width:100%" onclick="toggleBookable('${g.id}')">${isBookable?'🌐 Live':'🚫 Off'}</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer">
+        <input type="checkbox" ${isQuickBook?'checked':''} onchange="toggleQuickBook('${g.id}')" style="accent-color:#07b4c5;width:15px;height:15px">
+        Show in calendar quick-book row
+      </label>
+    </div>`;
+  }).join('')}</div>`;
+}
+function setGameLimit(id,field,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  if(field==='min')g.minPlayers=val;else g.maxPlayers=val;
+  renderGamesList();saveGames();
+}
+function setGameDuration(id,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.duration=val;
+  renderGamesList();saveGames();
+}
+function setGamePricingType(id,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.pricingType=val;
+  renderGamesList();saveGames();
+}
+function toggleQuickBook(id){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.showOnQuickBook=!(g.showOnQuickBook===true);
+  renderGamesList();saveGames();
+}
+function toggleTrackPlayers(id){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.trackPlayers=!(g.trackPlayers!==false);
+  renderGamesList();saveGames();
+}
+function addGame(){
+  const name=document.getElementById('newGameName').value.trim();if(!name)return;
+  const dur=parseInt(document.getElementById('newGameDur').value)||60;
+  const icon=document.getElementById('newGameIcon').value.trim()||'🚪';
+  const pricing=document.getElementById('newGamePricing').value;
+  const cat=document.getElementById('newGameCat').value;
+  games.push({id:'g_'+Date.now(),name,duration:dur,icon,pricingType:pricing,category:cat,bookable:true,showOnQuickBook:cat==='escape'});
+  document.getElementById('newGameName').value='';document.getElementById('newGameDur').value='';document.getElementById('newGameIcon').value='';
+  renderGamesList();saveGames();
+}
+function deleteGame(id){if(games.length<=1){alert('Need at least one game.');return}games=games.filter(g=>g.id!==id);renderGamesList();saveGames()}
+function toggleBookable(id){const g=games.find(x=>x.id===id);if(g)g.bookable=g.bookable===false?true:false;renderGamesList();saveGames()}
+
+// SETTINGS — STAFF
+function renderPersonList(){
+  const el=document.getElementById('personList');if(!el)return;
+  el.innerHTML=staff.map(p=>{
+    const isOpen=openTrainingPanels.has(p.id);
+    const ini=p.name.slice(0,2).toUpperCase();
+    const trainedGames=games.filter(g=>getTrainStatus(p.id,g.id)!==null);
+    const badges=trainedGames.map(g=>{const sid=getTrainStatus(p.id,g.id);const sobj=trainingStatuses.find(s=>s.id===sid);const style=sobj?.qualifies?'background:#dcfce7;color:#15803d;border:1px solid #4ade80':'background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb';return`<span class="train-badge" style="${style}">${sobj?.emoji||''} ${g.name}</span>`}).join('');
+    const trainingRows=games.map(g=>{const cur=getTrainStatus(p.id,g.id)||'';return`<div class="training-row"><span class="training-game">${g.name}</span><select class="training-select" onchange="saveTrainRecord('${p.id}','${g.id}',this.value)"><option value="">— Not set</option>${trainingStatuses.map(s=>`<option value="${s.id}" ${cur===s.id?'selected':''}>${s.emoji} ${s.label}</option>`).join('')}</select></div>`}).join('');
+    return`<div style="border-bottom:1px solid #f3f4f6"><div class="manage-row" style="border-bottom:none"><div class="person-avatar">${ini}</div><div style="flex:1"><div class="row-label">${p.name}</div>${badges?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">${badges}</div>`:''}</div><button class="icon-btn" onclick="toggleTrainPanel('${p.id}')"><i class="ti ti-certificate" style="${isOpen?'color:#07b4c5':''}"></i></button><button class="icon-btn danger" onclick="deletePerson('${p.id}')"><i class="ti ti-trash"></i></button></div><div class="training-panel ${isOpen?'open':''}"><div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Game training</div>${trainingRows}</div></div>`;
+  }).join('');
+}
+function toggleTrainPanel(id){if(openTrainingPanels.has(id))openTrainingPanels.delete(id);else openTrainingPanels.add(id);renderPersonList()}
+async function addPerson(){
+  const input=document.getElementById('newPersonInput');const val=input.value.trim();if(!val)return;input.value='';
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name:val,active:true})});const rows=await r.json();if(rows[0])staff.push(rows[0])}
+  catch(e){staff.push({id:'p_'+Date.now(),name:val})}
+  renderPersonList();
+}
+async function deletePerson(id){
+  staff=staff.filter(p=>p.id!==id);
+  try{await fetch(`${SB_URL}/rest/v1/staff?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})})}catch(e){}
+  renderPersonList();
+}
+
+// SETTINGS — TAGS
+function renderTagList(){
+  const el=document.getElementById('tagList');if(!el)return;
+  el.innerHTML=tags.map(t=>{const c=COLORS[t.colorIdx];return`<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+    <div style="display:flex;align-items:center;gap:8px;width:100%">
+      <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};border:1px solid ${c.border};display:flex;align-items:center;justify-content:center;font-size:9px;color:${c.text};font-weight:700">${t.label.slice(0,2).toUpperCase()}</div>
+      <span class="row-label">${t.label}</span>
+      <span class="tag-pill" style="${tagStyle(t.colorIdx)}">${t.label}</span>
+      <button class="icon-btn danger" onclick="deleteTag('${t.id}')"><i class="ti ti-trash"></i></button>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;padding-left:36px">
+      ${COLORS.map((cc,i)=>`<div onclick="changeTagColor('${t.id}',${i})" style="width:18px;height:18px;border-radius:50%;background:${cc.dot};cursor:pointer;border:2px solid ${i===t.colorIdx?'#111827':'transparent'};transform:${i===t.colorIdx?'scale(1.2)':'scale(1)'}"></div>`).join('')}
+    </div>
+  </div>`}).join('');
+}
+function changeTagColor(id,colorIdx){const t=tags.find(x=>x.id===id);if(t){t.colorIdx=colorIdx;renderTagList();renderTagFilters();renderActiveView();saveTags()}}
+function addTag(){const input=document.getElementById('newTagInput');const val=input.value.trim();if(!val)return;tags.push({id:'tag_'+Date.now(),label:val,colorIdx:selectedColorIdx});input.value='';renderTagList();renderTagFilters();renderActiveView();saveTags()}
+function deleteTag(id){tags=tags.filter(t=>t.id!==id);renderTagList();renderTagFilters();renderActiveView();saveTags()}
+function renderColorPicker(){document.getElementById('colorPicker').innerHTML=COLORS.map((c,i)=>`<div class="color-dot ${i===selectedColorIdx?'selected':''}" style="background:${c.dot}" onclick="selectColor(${i})"></div>`).join('')}
+function selectColor(idx){selectedColorIdx=idx;renderColorPicker()}
+
+// SETTINGS — STATUSES
+function renderStatusList(){const el=document.getElementById('statusList');if(!el)return;el.innerHTML=statuses.map(s=>`<div class="manage-row"><span style="font-size:18px">${s.emoji}</span><span class="row-label">${s.label}</span><button class="icon-btn danger" onclick="deleteStatus('${s.id}')"><i class="ti ti-trash"></i></button></div>`).join('')}
+function addStatus(){const label=document.getElementById('newStatusLabel').value.trim();if(!label)return;const emoji=document.getElementById('newStatusEmoji').value.trim()||'⚪';statuses.push({id:'status_'+Date.now(),label,emoji});document.getElementById('newStatusLabel').value='';document.getElementById('newStatusEmoji').value='';renderStatusList();saveStatuses()}
+function deleteStatus(id){if(statuses.length<=1){alert('Need at least one status.');return}statuses=statuses.filter(s=>s.id!==id);renderStatusList();saveStatuses()}
+
+// SETTINGS — TRAINING
+function renderTrainingList(){
+  const el=document.getElementById('trainingList');if(!el)return;
+  el.innerHTML=trainingStatuses.map(s=>`<div class="manage-row"><span style="font-size:18px;width:28px;text-align:center">${s.emoji}</span><div style="flex:1"><div class="row-label">${s.label}</div><span style="font-size:10px;padding:1px 7px;border-radius:99px;font-weight:600;${s.qualifies?'background:#dcfce7;color:#15803d':'background:#f3f4f6;color:#9ca3af'}">${s.qualifies?'✓ Qualifies solo':'✗ Does not qualify'}</span></div><button class="icon-btn" onclick="toggleTrainQualifies('${s.id}')"><i class="ti ti-star${s.qualifies?'-filled':''}" style="color:${s.qualifies?'#d97706':'#9ca3af'}"></i></button><button class="icon-btn danger" onclick="deleteTraining('${s.id}')"><i class="ti ti-trash"></i></button></div>`).join('');
+}
+function addTraining(){const label=document.getElementById('newTrainLabel').value.trim();if(!label)return;const emoji=document.getElementById('newTrainEmoji').value.trim()||'🎓';const qualifies=document.getElementById('newTrainQualifies').checked;trainingStatuses.push({id:'ts_'+Date.now(),label,emoji,qualifies});document.getElementById('newTrainLabel').value='';document.getElementById('newTrainEmoji').value='';document.getElementById('newTrainQualifies').checked=false;renderTrainingList();renderPersonList();saveTrainingStatuses()}
+function deleteTraining(id){if(trainingStatuses.length<=1){alert('Need at least one level.');return}trainingStatuses=trainingStatuses.filter(s=>s.id!==id);renderTrainingList();renderPersonList();saveTrainingStatuses()}
+function toggleTrainQualifies(id){const s=trainingStatuses.find(x=>x.id===id);if(s)s.qualifies=!s.qualifies;renderTrainingList();renderPersonList();saveTrainingStatuses()}
+
+// AVAILABILITY
+async function loadAvailability(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/staff_availability`,{headers:H()});const rows=await r.json();
+    staffAvailability={};
+    rows.forEach(r=>{
+      if(!staffAvailability[r.staff_id])staffAvailability[r.staff_id]={};
+      if(r.specific_date&&r.available){
+        if(!staffAvailability[r.staff_id][r.specific_date])staffAvailability[r.staff_id][r.specific_date]=[];
+        const t=(r.start_time||'').slice(0,5);
+        if(t&&!staffAvailability[r.staff_id][r.specific_date].includes(t))staffAvailability[r.staff_id][r.specific_date].push(t);
+      }
+    });
+  }catch(e){console.error('Avail load:',e)}
+}
+function navigateAvailMonth(delta){availMonth+=delta;if(availMonth>12){availMonth=1;availYear++}if(availMonth<1){availMonth=12;availYear--}document.getElementById('availMonthLabel').textContent=MONTHS[availMonth-1]+' '+availYear;renderAvailGrid()}
+function renderAvailTabs(){
+  const el=document.getElementById('availTabs');if(!el)return;
+  const visible=currentUser?.role==='admin'?staff:staff.filter(s=>s.id===currentUser?.staffId||s.email===currentUser?.email);
+  el.innerHTML=visible.map(s=>`<button class="avail-tab ${s.id===availStaffId?'active':''}" onclick="selectAvailStaff('${s.id}')">${s.name}</button>`).join('');
+}
+function selectAvailStaff(id){availStaffId=id;renderAvailTabs();renderAvailGrid()}
+function renderAvailGrid(){
+  const el=document.getElementById('availGrid');if(!el)return;
+  if(!availStaffId){el.innerHTML='<div class="empty-state">Select a staff member above.</div>';return}
+  // Show "Apply default week" helper at top
+  const avail=staffAvailability[availStaffId]||{};
+  const hasAny=Object.values(avail).some(s=>s.length>0);
+  const daysInMonth=new Date(availYear,availMonth,0).getDate();
+  const todayStr=toDateStr(new Date());
+  // Default week template helper — sets Mon-Fri or Tue-Sat patterns quickly
+  let html=`<div style="background:#f0fafb;border:1px solid #07b4c5;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:600;color:#07b4c5;margin-bottom:8px">⚡ Quick apply — fill all open days this month with a pattern</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="add-btn" style="font-size:11px;padding:4px 10px" onclick="applyAvailPattern('all')">All open days</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#1d9e75" onclick="applyAvailPattern('weekdays')">Weekdays only</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#ef9f27" onclick="applyAvailPattern('weekends')">Weekends only</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#6b7280" onclick="applyAvailPattern('none')">Clear all</button>
+    </div>
+  </div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(availYear,availMonth-1,d);const dayIdx=date.getDay();
+    const oh=(bookingConfig.openingHours||[]).find(o=>o.day===dayIdx);
+    if(!oh||!oh.open)continue;
+    const ds=toDateStr(date);if(ds<todayStr)continue;
+    const dc=(bookingConfig.slotTimes||{})[dayIdx]||{};
+    const slots=Array.isArray(dc)?dc:(dc['default']||[]);if(!slots.length)continue;
+    const staffSlots=avail[ds]||[];
+    const dayLblStr=date.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'});
+    const isToday=ds===todayStr;
+    html+=`<div class="avail-day-row"><div class="avail-day-hdr"><div><div class="avail-day-name" style="${isToday?'color:#07b4c5':''}">${isToday?'📅 ':''}${dayLblStr}</div><div class="avail-day-sum">${staffSlots.length>0?staffSlots.length+' slot'+(staffSlots.length>1?'s':'')+' marked':'None marked'}</div></div><button class="avail-toggle ${staffSlots.length>0?'on':'off'}" onclick="toggleAllDay('${ds}')">${staffSlots.length>0?'All on':'All off'}</button></div><div class="avail-slots">${slots.sort().map(t=>`<button class="avail-slot ${staffSlots.includes(t)?'on':''}" onclick="toggleSlot('${ds}','${t}')">${t}</button>`).join('')}</div></div>`;
+  }
+  el.innerHTML=html||'<div class="empty-state">No open days this month.</div>';
+}
+function applyAvailPattern(pattern){
+  if(!availStaffId)return;
+  if(!staffAvailability[availStaffId])staffAvailability[availStaffId]={};
+  const daysInMonth=new Date(availYear,availMonth,0).getDate();
+  const todayStr=toDateStr(new Date());
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(availYear,availMonth-1,d);
+    const ds=toDateStr(date);
+    if(ds<todayStr)continue;
+    const dayIdx=date.getDay();
+    const oh=(bookingConfig.openingHours||[]).find(o=>o.day===dayIdx);
+    if(!oh||!oh.open)continue;
+    const dc=(bookingConfig.slotTimes||{})[dayIdx]||{};
+    const allSlots=Array.isArray(dc)?dc:(dc['default']||[]);
+    if(!allSlots.length)continue;
+    const isWeekday=dayIdx>=1&&dayIdx<=5;
+    const isWeekend=dayIdx===0||dayIdx===6;
+    if(pattern==='all')staffAvailability[availStaffId][ds]=[...allSlots];
+    else if(pattern==='weekdays'&&isWeekday)staffAvailability[availStaffId][ds]=[...allSlots];
+    else if(pattern==='weekdays'&&!isWeekday)staffAvailability[availStaffId][ds]=[];
+    else if(pattern==='weekends'&&isWeekend)staffAvailability[availStaffId][ds]=[...allSlots];
+    else if(pattern==='weekends'&&!isWeekend)staffAvailability[availStaffId][ds]=[];
+    else if(pattern==='none')staffAvailability[availStaffId][ds]=[];
+  }
+  renderAvailGrid();
+}
+function toggleSlot(ds,time){
+  if(!availStaffId)return;
+  if(!staffAvailability[availStaffId])staffAvailability[availStaffId]={};
+  const slots=staffAvailability[availStaffId][ds]||[];
+  const idx=slots.indexOf(time);if(idx===-1)slots.push(time);else slots.splice(idx,1);
+  staffAvailability[availStaffId][ds]=slots;renderAvailGrid();
+}
+function toggleAllDay(ds){
+  if(!availStaffId)return;
+  if(!staffAvailability[availStaffId])staffAvailability[availStaffId]={};
+  const date=new Date(ds+'T12:00');const dayIdx=date.getDay();
+  const dc=(bookingConfig.slotTimes||{})[dayIdx]||{};
+  const allSlots=Array.isArray(dc)?dc:(dc['default']||[]);
+  const cur=staffAvailability[availStaffId][ds]||[];
+  staffAvailability[availStaffId][ds]=cur.length>0?[]:[...allSlots];renderAvailGrid();
+}
+async function saveAvailability(){
+  if(!availStaffId)return;
+  const msgEl=document.getElementById('availMsg');msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
+  const avail=staffAvailability[availStaffId]||{};
+  const headers=H();
+  try{
+    const delResp=await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${availStaffId}`,{method:'DELETE',headers});
+    if(!delResp.ok){const t=await delResp.text();console.error('DELETE failed:',delResp.status,t)}
+    const rows=[];
+    Object.entries(avail).forEach(([ds,slots])=>{
+      slots.forEach(t=>rows.push({staff_id:availStaffId,specific_date:ds,start_time:t+':00',available:true}));
+    });
+    if(rows.length>0){
+      const postResp=await fetch(`${SB_URL}/rest/v1/staff_availability`,{method:'POST',headers:{...headers,'Prefer':'return=minimal'},body:JSON.stringify(rows)});
+      if(!postResp.ok){
+        const errText=await postResp.text();
+        console.error('POST failed:',postResp.status,errText);
+        msgEl.style.color='#dc2626';msgEl.textContent='Save failed: '+errText;
+        return;
+      }
+    }
+    msgEl.style.color='#15803d';msgEl.textContent=`✓ Saved ${rows.length} slot${rows.length!==1?'s':''}`;
+    setTimeout(()=>{msgEl.textContent=''},3000);
+    console.log('✓ Availability saved',rows.length,'rows');
+  }catch(e){
+    msgEl.style.color='#dc2626';msgEl.textContent='Save failed: '+e.message;
+    console.error('saveAvailability error:',e);
+  }
+}
+
+// BOOKING CONFIG
+function renderOpeningHoursGrid(){
+  const el=document.getElementById('openingHoursGrid');if(!el)return;
+  el.innerHTML=(bookingConfig.openingHours||[]).map(oh=>{const isOpen=!!oh.open;return`<div class="hours-row"><span class="hours-day">${oh.label||DAYS[oh.day].slice(0,3)}</span><button class="hours-toggle ${isOpen?'open':'closed'}" onclick="toggleDayOpen(${oh.day})">${isOpen?'Open':'Closed'}</button>${isOpen?`<input class="time-input" type="time" value="${oh.open}" onchange="setOpenTime(${oh.day},'open',this.value)"><span style="font-size:12px;color:#9ca3af">–</span><input class="time-input" type="time" value="${oh.close}" onchange="setOpenTime(${oh.day},'close',this.value)"`:'<span style="font-size:12px;color:#d1d5db;margin-left:4px">—</span>'}</div>`}).join('');
+}
+function toggleDayOpen(dayIndex){const oh=(bookingConfig.openingHours||[]).find(o=>o.day===dayIndex);if(!oh)return;if(oh.open){oh.open=null;oh.close=null}else{oh.open='10:30';oh.close='20:30'}renderOpeningHoursGrid();renderSlotDayTabs()}
+function setOpenTime(d,f,v){const oh=(bookingConfig.openingHours||[]).find(o=>o.day===d);if(oh)oh[f]=v}
+function renderSlotDayTabs(){
+  const el=document.getElementById('slotDayTabs');if(!el)return;
+  el.innerHTML=(bookingConfig.openingHours||[]).filter(oh=>!!oh.open).map(oh=>`<button class="avail-tab ${oh.day===selectedSlotDay?'active':''}" onclick="selectSlotDay(${oh.day})">${oh.label||DAYS[oh.day].slice(0,3)}</button>`).join('');
+  renderSlotTimesForDay();
+}
+function selectSlotDay(d){selectedSlotDay=d;renderSlotDayTabs()}
+function renderSlotTimesForDay(){
+  const el=document.getElementById('slotTimesForDay');if(!el)return;
+  const dc=(bookingConfig.slotTimes||{})[selectedSlotDay]||{};
+  const slots=Array.isArray(dc)?dc:(dc['default']||[]);
+  el.innerHTML=slots.length?`<div class="slot-chips">${[...slots].sort().map(t=>`<div class="slot-chip">${t}<span onclick="removeSlot(${selectedSlotDay},'${t}')" style="cursor:pointer;color:#9ca3af;margin-left:4px"><i class="ti ti-x" style="font-size:11px"></i></span></div>`).join('')}</div>`:'<div style="font-size:12px;color:#9ca3af">No slots yet.</div>';
+}
+function addSlotTime(){
+  const input=document.getElementById('newSlotTime');const time=input?.value;if(!time)return;
+  if(!bookingConfig.slotTimes)bookingConfig.slotTimes={};
+  if(!bookingConfig.slotTimes[selectedSlotDay])bookingConfig.slotTimes[selectedSlotDay]={default:[]};
+  const dc=bookingConfig.slotTimes[selectedSlotDay];
+  if(Array.isArray(dc))bookingConfig.slotTimes[selectedSlotDay]={default:dc};
+  if(!bookingConfig.slotTimes[selectedSlotDay]['default'].includes(time))bookingConfig.slotTimes[selectedSlotDay]['default'].push(time);
+  input.value='';renderSlotTimesForDay();
+}
+function removeSlot(dayIndex,time){
+  const dc=(bookingConfig.slotTimes||{})[dayIndex]||{};
+  if(Array.isArray(dc))bookingConfig.slotTimes[dayIndex]={default:dc.filter(t=>t!==time)};
+  else if(dc['default'])dc['default']=dc['default'].filter(t=>t!==time);
+  renderSlotTimesForDay();
+}
+function renderPricingList(){
+  const el=document.getElementById('pricingList');if(!el)return;
+  el.innerHTML=games.map(g=>{
+    const type=g.pricingType||'per_person_tiered';
+    if(type==='per_hour_flat'){const p=(bookingConfig.gameFlatPrice||{})[g.id]??0;return`<div class="hours-row" style="margin-bottom:6px"><span style="flex:1;font-size:13px">${g.icon||''} ${g.name}</span><span style="font-size:12px;color:#9ca3af">$</span><input class="time-input" type="number" value="${p}" onchange="setFlatPrice('${g.id}',parseFloat(this.value)||0)" style="width:70px"><span style="font-size:12px;color:#9ca3af">flat</span></div>`}
+    if(type==='per_person_per_hour'){const r=(bookingConfig.gamePerPersonPerHour||{})[g.id]??0;return`<div class="hours-row" style="margin-bottom:6px"><span style="flex:1;font-size:13px">${g.icon||''} ${g.name}</span><span style="font-size:12px;color:#9ca3af">$</span><input class="time-input" type="number" value="${r}" onchange="setPerHour('${g.id}',parseFloat(this.value)||0)" style="width:70px"><span style="font-size:12px;color:#9ca3af">pp/hr</span></div>`}
+    const tiers=(bookingConfig.gamePriceTiers||{})[g.id]||[];
+    return`<div style="margin-bottom:10px;padding:8px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">${g.icon||''} ${g.name}</div>${tiers.map((t,i)=>`<div class="hours-row" style="gap:4px;margin-bottom:4px"><input class="time-input" type="number" value="${t.min}" min="1" onchange="updateTier('${g.id}',${i},'min',parseInt(this.value)||1)" style="width:44px"><span style="font-size:11px;color:#9ca3af">–</span><input class="time-input" type="number" value="${t.max===99?'':t.max}" min="1" placeholder="∞" onchange="updateTier('${g.id}',${i},'max',parseInt(this.value)||99)" style="width:44px"><span style="font-size:11px;color:#9ca3af">players $</span><input class="time-input" type="number" value="${t.pp}" onchange="updateTier('${g.id}',${i},'pp',parseFloat(this.value)||0)" style="width:55px"><span style="font-size:11px;color:#9ca3af">pp</span><button class="icon-btn danger" onclick="removeTier('${g.id}',${i})"><i class="ti ti-trash" style="font-size:13px"></i></button></div>`).join('')}<button class="add-btn" style="font-size:11px;padding:4px 10px;margin-top:4px" onclick="addTier('${g.id}')"><i class="ti ti-plus"></i> Add tier</button></div>`;
+  }).join('');
+}
+function updateTier(gid,i,f,v){if(bookingConfig.gamePriceTiers?.[gid]?.[i])bookingConfig.gamePriceTiers[gid][i][f]=v}
+function addTier(gid){if(!bookingConfig.gamePriceTiers)bookingConfig.gamePriceTiers={};if(!bookingConfig.gamePriceTiers[gid])bookingConfig.gamePriceTiers[gid]=[];bookingConfig.gamePriceTiers[gid].push({min:1,max:99,pp:35});renderPricingList()}
+function removeTier(gid,i){if(!bookingConfig.gamePriceTiers?.[gid])return;bookingConfig.gamePriceTiers[gid].splice(i,1);renderPricingList()}
+function setFlatPrice(gid,p){if(!bookingConfig.gameFlatPrice)bookingConfig.gameFlatPrice={};bookingConfig.gameFlatPrice[gid]=p}
+function setPerHour(gid,r){if(!bookingConfig.gamePerPersonPerHour)bookingConfig.gamePerPersonPerHour={};bookingConfig.gamePerPersonPerHour[gid]=r}
+function renderConfigPanel(){
+  renderOpeningHoursGrid();renderSlotDayTabs();renderPricingList();renderPersonalisedExpList();
+  const c=document.getElementById('cutoffHours');if(c)c.value=bookingConfig.callToBookCutoffHours??3;
+  const d=document.getElementById('depositAmt');if(d)d.value=bookingConfig.depositAmount??35;
+  const dt=document.getElementById('depositType');if(dt){dt.value=bookingConfig.depositType||'fixed'}
+  const dl=document.getElementById('depositLabel');if(dl)dl.textContent=(bookingConfig.depositType==='percent')?'%':'NZD';
+  const cs=document.getElementById('cardSurcharge');if(cs)cs.value=bookingConfig.cardSurchargePercent??0;
+  renderNewExpOccasionPicker();
+}
+
+const ALL_OCCASIONS=['Birthday','Hen/Stag do','Team building','Date night','Family outing','School group','Other'];
+let newExpOccasions=[];
+
+function renderNewExpOccasionPicker(){
+  const el=document.getElementById('newExpOccasionPicker');if(!el)return;
+  el.innerHTML=ALL_OCCASIONS.map(o=>`<button class="avail-slot ${newExpOccasions.includes(o)?'on':''}" onclick="toggleExpOccasion('${o}')" style="font-size:11px;padding:3px 9px">${o}</button>`).join('');
+}
+function toggleExpOccasion(o){
+  const idx=newExpOccasions.indexOf(o);if(idx>-1)newExpOccasions.splice(idx,1);else newExpOccasions.push(o);
+  renderNewExpOccasionPicker();
+}
+function renderPersonalisedExpList(){
+  const el=document.getElementById('personalExpList');if(!el)return;
+  const exps=bookingConfig.personalisedExperiences||[];
+  if(!exps.length){el.innerHTML='<div class="hint" style="margin-bottom:8px">No experiences added yet.</div>';return}
+  el.innerHTML=exps.map((e,i)=>`<div class="manage-row">
+    <div style="flex:1">
+      <div class="row-label">${e.label}${e.price>0?' · $'+e.price:' · Free'}</div>
+      <div class="row-sub">${e.description||''}${e.occasions&&e.occasions.length?' · '+e.occasions.join(', '):'· All occasions'}</div>
+    </div>
+    <button class="avail-toggle ${e.active?'on':'off'}" onclick="toggleExpActive(${i})">${e.active?'On':'Off'}</button>
+    <button class="icon-btn danger" onclick="deletePersonalisedExp(${i})"><i class="ti ti-trash"></i></button>
+  </div>`).join('');
+}
+function addPersonalisedExp(){
+  const label=document.getElementById('newExpLabel').value.trim();if(!label)return;
+  const price=parseFloat(document.getElementById('newExpPrice').value)||0;
+  const desc=document.getElementById('newExpDesc').value.trim();
+  if(!bookingConfig.personalisedExperiences)bookingConfig.personalisedExperiences=[];
+  bookingConfig.personalisedExperiences.push({id:'exp_'+Date.now(),label,price,description:desc,occasions:[...newExpOccasions],active:true});
+  document.getElementById('newExpLabel').value='';document.getElementById('newExpPrice').value='';document.getElementById('newExpDesc').value='';
+  newExpOccasions=[];renderPersonalisedExpList();renderNewExpOccasionPicker();saveBookingConfigSetting();
+}
+function deletePersonalisedExp(i){
+  (bookingConfig.personalisedExperiences||[]).splice(i,1);renderPersonalisedExpList();saveBookingConfigSetting();
+}
+function toggleExpActive(i){
+  const e=(bookingConfig.personalisedExperiences||[])[i];if(e)e.active=!e.active;renderPersonalisedExpList();saveBookingConfigSetting();
+}
+
+async function saveConfig(){
+  const msgEl=document.getElementById('configMsg');
+  const c=document.getElementById('cutoffHours');if(c)bookingConfig.callToBookCutoffHours=parseInt(c.value)||3;
+  const d=document.getElementById('depositAmt');if(d)bookingConfig.depositAmount=parseFloat(d.value)||35;
+  const dt=document.getElementById('depositType');if(dt)bookingConfig.depositType=dt.value||'fixed';
+  const cs=document.getElementById('cardSurcharge');if(cs)bookingConfig.cardSurchargePercent=parseFloat(cs.value)||0;
+  msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
+  await saveBookingConfigSetting();msgEl.style.color='#15803d';msgEl.textContent='✓ Saved!';setTimeout(()=>{msgEl.textContent=''},3000);
+}
+
+// ROLES
+async function renderRolesList(){
+  const el=document.getElementById('rolesList');if(!el)return;
+  try{
+    const rows=await callEdgeFunction('list_roles',{},currentUser?.token);
+    const allTabs=[{id:'calendar',label:'Calendar'},{id:'leads',label:'Enquiries'},{id:'pos',label:'POS'},{id:'settings',label:'Settings'}];
+    if(!rows.length){el.innerHTML='<div class="empty-state">No staff accounts yet.</div>';return}
+    el.innerHTML=rows.map(r=>{
+      const tabs=parseAllowedTabs(r.allowed_tabs);
+      const roleStyle={admin:'background:#fee2e2;color:#dc2626',manager:'background:#ede9fe;color:#7c3aed',gamemaster:'background:#dcfce7;color:#15803d',gamemaster_own:'background:#e0f7f9;color:#07b4c5'}[r.role]||'background:#f3f4f6;color:#6b7280';
+      return`<div class="manage-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;align-items:center;width:100%;margin-bottom:6px"><div class="person-avatar">${r.name.slice(0,2).toUpperCase()}</div><div style="flex:1;margin-left:8px"><div class="row-label">${r.name}</div><div style="font-size:11px;color:#9ca3af">${r.email||''}</div></div><span style="font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;${roleStyle}">${r.role}</span></div><div class="chip-row">${allTabs.map(t=>`<button class="chip-btn ${tabs.includes(t.id)?'selected':''}" onclick="toggleRoleTab('${r.id}','${t.id}',${tabs.includes(t.id)})">${t.label}</button>`).join('')}</div></div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty-state">Error loading roles.</div>'}
+}
+async function createLogin(){
+  const name=document.getElementById('newStaffName').value.trim();const email=document.getElementById('newStaffEmail').value.trim();const pass=document.getElementById('newStaffPass').value.trim();const role=document.getElementById('newStaffRole').value;
+  const msgEl=document.getElementById('loginMsg');
+  if(!name||!email||!pass){msgEl.style.color='#dc2626';msgEl.textContent='Fill in all fields.';return}
+  if(pass.length<6){msgEl.style.color='#dc2626';msgEl.textContent='Password must be 6+ chars.';return}
+  msgEl.style.color='#6b7280';msgEl.textContent='Creating…';
+  const tabs={admin:'["calendar","leads","pos","settings"]',manager:'["calendar","leads","pos"]',gamemaster:'["calendar","pos"]',gamemaster_own:'["calendar","pos"]'};
+  try{
+    const result=await callEdgeFunction('create_staff_login',{email,password:pass,name,role,allowed_tabs:tabs[role]||'["calendar"]'},currentUser?.token);
+    const sr=await fetch(`${SB_URL}/rest/v1/staff`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,email,user_role_id:result.id,active:true})});
+    if(sr.ok){const ns=await sr.json();if(ns[0]){staff.push(ns[0]);renderPersonList()}}
+    msgEl.style.color='#15803d';msgEl.textContent=`✓ Login created for ${name}`;
+    document.getElementById('newStaffName').value='';document.getElementById('newStaffEmail').value='';document.getElementById('newStaffPass').value='';
+    renderRolesList();
+  }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}
+}
+async function toggleRoleTab(userId,tabId,isIncluded){
+  const rows=await callEdgeFunction('list_roles',{},currentUser?.token);
+  const match=rows.find(r=>r.id===userId);if(!match)return;
+  let tabs=parseAllowedTabs(match.allowed_tabs);
+  if(isIncluded)tabs=tabs.filter(t=>t!==tabId);else tabs.push(tabId);
+  await callEdgeFunction('update_tab_access',{userId,allowed_tabs:JSON.stringify(tabs)},currentUser?.token);
+  renderRolesList();
+}
+
+// PANELS
+function toggleSettingsGroup(titleEl){
+  titleEl.classList.toggle('open');
+  const body=titleEl.nextElementSibling;
+  if(body&&body.classList.contains('settings-group-body'))body.classList.toggle('open');
+}
+function openPanel(id){
+  // Admin-only panels — block even if someone calls this from the console
+  const adminOnly = ['pConfig','pRoles'];
+  if(adminOnly.includes(id) && currentUser?.role !== 'admin'){
+    console.warn('Access denied to panel:',id);return;
+  }
+  document.getElementById(id).classList.add('open');
+  if(id==='pGames')renderGamesList();
+  if(id==='pStaff')renderPersonList();
+  if(id==='pTags'){renderTagList();renderColorPicker()}
+  if(id==='pStatuses')renderStatusList();
+  if(id==='pTraining')renderTrainingList();
+  if(id==='pAvail'){
+    loadAvailability().then(()=>{
+      if(!availStaffId&&staff.length>0){availStaffId=currentUser?.role!=='admin'?staff.find(s=>s.email===currentUser?.email)?.id||staff[0].id:staff[0].id}
+      renderAvailTabs();document.getElementById('availMonthLabel').textContent=MONTHS[availMonth-1]+' '+availYear;renderAvailGrid();
+    });
+  }
+  if(id==='pProducts'){loadProducts().then(()=>{prodCatFilter='All';renderProdCatTabs();renderProdList();toggleProdBoardgameFields();})}
+  if(id==='pConfig')renderConfigPanel();
+  if(id==='pPOSCat'){renderPOSCatList();toggleCatTypeFields();}
+  if(id==='pRoles')renderRolesList();
+}
+function closePanel(id){document.getElementById(id).classList.remove('open')}
+
+// TABS
+function showTab(id,btn){
+  // Enforce tab access — don't rely solely on the button being hidden
+  if(currentUser && currentUser.allowedTabs && !currentUser.allowedTabs.includes(id)){
+    console.warn('Access denied to tab:',id);return;
+  }
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');btn.classList.add('active');
+}
+
+// AUTH
+// ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+// Login tokens expire (Supabase default ~1 hour). Without this, a staff
+// member could get silently logged out or start seeing errors mid-shift.
+// This quietly renews the token in the background before it expires.
+let tokenRefreshTimer = null;
+
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token)
+      .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
+      || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
+    let staffId=userId;
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
+    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    showApp();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function parseAllowedTabs(raw){
+  if(!raw) return ['calendar'];
+  if(Array.isArray(raw)) return raw;
+  try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
+  catch(e){ return ['calendar']; }
+}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
+  document.getElementById('authName').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  const isAdmin=currentUser.role==='admin';
+  document.getElementById('settingsGroupSetup').style.display=isAdmin?'':'none';
+  document.getElementById('cardConfig').style.display=isAdmin?'':'none';
+  document.getElementById('cardRoles').style.display=isAdmin?'':'none';
+  // Match by data-tab — safe regardless of array order in Supabase
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    const tabId=btn.getAttribute('data-tab');
+    const allowed=currentUser.allowedTabs.includes(tabId);
+    btn.style.display=allowed?'':'none';
+  });
+}
+
+// REALTIME
+function setupRealtime(){
+  const wsUrl=`wss://${SB_URL.replace('https://','')}/realtime/v1/websocket?apikey=${SB_ANON}&vsn=1.0.0`;
+  const ws=new WebSocket(wsUrl);let ref=1;
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({topic:'realtime:public:game_bookings',event:'phx_join',payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'game_bookings'}]}},ref:String(ref++)}));
+    ws.send(JSON.stringify({topic:'realtime:public:help_alerts',event:'phx_join',payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'help_alerts'}]}},ref:String(ref++)}));
+    setInterval(()=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:String(ref++)}))},30000);
+    console.log('✓ Realtime connected');
+  };
+  ws.onmessage=(event)=>{
+    try{
+      const msg=JSON.parse(event.data);let rec=null,table=null;
+      if(msg.payload?.data?.record){rec=msg.payload.data.record;table=msg.payload.data.table}
+      else if(msg.payload?.record){rec=msg.payload.record;table=msg.payload.table}
+      else if(msg.event==='postgres_changes'&&msg.payload?.new){rec=msg.payload.new;table=msg.payload.table}
+      if(!rec||!table)return;
+      if(table==='game_bookings'){
+        const b=bookings.find(x=>x.id===rec.id);
+        if(b){
+          if(rec.tags)b.tags=JSON.parse(rec.tags||'[]');if(rec.staff_notes)b.notes=JSON.parse(rec.staff_notes||'[]');if(rec.assigned_staff_ids)b.gms=JSON.parse(rec.assigned_staff_ids||'[]');
+          if(rec.timer_sec!==undefined)b.timerSec=rec.timer_sec;b.timerStartedAt=rec.timer_started_at?new Date(rec.timer_started_at).getTime():null;
+          if(rec.timer_running!==undefined){const was=b.timerRunning;b.timerRunning=rec.timer_running;if(!was&&b.timerRunning&&b.timerStartedAt){clearInterval(b.timerInterval);b.timerInterval=setInterval(()=>{const rem=b.duration*60-getElapsed(b);const bel=document.getElementById('banner-timer-'+b.id);if(bel){bel.textContent=fmtTimer(rem);bel.className='timer-countdown '+(rem<0?'over':rem<300?'warning':'')}},1000)}else if(was&&!b.timerRunning)clearInterval(b.timerInterval)}
+          renderTimerBanner();const ae=document.activeElement;if(!ae||(ae.tagName!=='INPUT'&&ae.tagName!=='TEXTAREA'))renderActiveView();
+        }
+      }
+      if(table==='help_alerts'&&rec&&!rec.dismissed){document.getElementById('helpRoom').textContent=rec.room;document.getElementById('helpOverlay').classList.add('active')}
+    }catch(e){console.error('Realtime:',e)}
+  };
+  ws.onclose=()=>{console.log('Realtime disconnected, reconnecting…');setTimeout(setupRealtime,3000)};
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+let products = [];
+let prodCatFilter = 'All';
+const PROD_CATS = ['All','Food/Drink','Escape Room','Boardgame','Book','VR','Other'];
+
+async function loadProducts() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products?order=category,name`, {headers:H()});
+    if(!r.ok){ console.warn('Products table not ready yet ('+r.status+') — run create_products_table.sql'); return; }
+    const rows = await r.json();
+    if(Array.isArray(rows)) products = rows;
+  } catch(e) { console.error('Products load:', e); }
+}
+
+function renderProdCatTabs() {
+  const el = document.getElementById('prodCatTabs'); if(!el) return;
+  el.innerHTML = PROD_CATS.map(c =>
+    `<button class="avail-tab ${c===prodCatFilter?'active':''}" onclick="setProdFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setProdFilter(cat) {
+  prodCatFilter = cat;
+  renderProdCatTabs();
+  renderProdList();
+}
+
+function renderProdList() {
+  const el = document.getElementById('prodList'); if(!el) return;
+  const filtered = prodCatFilter === 'All' ? products : products.filter(p => p.category === prodCatFilter);
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state">No products in this category.</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(p => {
+    const isBG = p.category === 'Boardgame';
+    return `<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <div style="width:28px;height:28px;border-radius:8px;background:#f0fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${catEmoji(p.category)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="row-label" style="${!p.active?'color:#9ca3af;text-decoration:line-through':''}">${p.name}</div>
+          <div class="row-sub">${p.category}${p.stock_qty!=null?' · Stock: '+p.stock_qty:''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-weight:700;color:#07b4c5">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
+          ${isBG&&p.purchase_price?`<div style="font-size:10px;color:#9ca3af">Cost $${parseFloat(p.purchase_price).toFixed(2)}</div>`:''}
+        </div>
+        <button class="avail-toggle ${p.active?'on':'off'}" style="margin-left:6px" onclick="toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
+        <button class="icon-btn danger" onclick="deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+      ${isBG&&(p.rrp||p.purchase_price)?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">RRP $${parseFloat(p.rrp||0).toFixed(2)} · Cost $${parseFloat(p.purchase_price||0).toFixed(2)} · Margin $${(parseFloat(p.sell_price||0)-parseFloat(p.purchase_price||0)).toFixed(2)}</div>`:''}
+      ${p.notes?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">📝 ${p.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function catEmoji(cat) {
+  return {Food:' 🍔','Food/Drink':'🍔','Escape Room':'🔐','Boardgame':'🎲','Book':'📚','VR':'🥽','Other':'📦'}[cat]||'📦';
+}
+
+function toggleProdBoardgameFields() {
+  const cat = document.getElementById('newProdCat')?.value;
+  const el = document.getElementById('newProdBoardgameFields');
+  if(el) el.style.display = cat==='Boardgame' ? '' : 'none';
+}
+
+async function addProduct() {
+  const name = document.getElementById('newProdName').value.trim();
+  const cat  = document.getElementById('newProdCat').value;
+  const sell = parseFloat(document.getElementById('newProdSell').value)||0;
+  const stock= parseInt(document.getElementById('newProdStock').value)||null;
+  const notes= document.getElementById('newProdNotes').value.trim();
+  const purchase = cat==='Boardgame' ? parseFloat(document.getElementById('newProdPurchase').value)||null : null;
+  const rrp      = cat==='Boardgame' ? parseFloat(document.getElementById('newProdRRP').value)||null : null;
+  const msgEl = document.getElementById('prodAddMsg');
+  if(!name) { msgEl.style.color='#dc2626'; msgEl.textContent='Please enter a product name.'; return; }
+  msgEl.style.color='#6b7280'; msgEl.textContent='Saving…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products`, {
+      method:'POST', headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify({name,category:cat,sell_price:sell,purchase_price:purchase,rrp,stock_qty:stock,notes:notes||null,active:true})
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if(rows[0]) products.push(rows[0]);
+    ['newProdName','newProdSell','newProdStock','newProdNotes','newProdPurchase','newProdRRP'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    msgEl.style.color='#15803d'; msgEl.textContent='✓ Added!';
+    setTimeout(()=>{msgEl.textContent=''},2000);
+    renderProdList();
+  } catch(e) { msgEl.style.color='#dc2626'; msgEl.textContent='Error: '+e.message; }
+}
+
+async function deleteProduct(id) {
+  if(!confirm('Delete this product?')) return;
+  products = products.filter(p=>p.id!==id);
+  renderProdList();
+  try { await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()}); } catch(e){}
+}
+
+async function toggleProdActive(id) {
+  const p = products.find(x=>x.id===id); if(!p) return;
+  p.active = !p.active;
+  renderProdList();
+  try { await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})}); } catch(e){}
+}
+
+// CSV EXPORT
+function exportProductsCSV() {
+  const headers = ['name','category','sell_price','purchase_price','rrp','stock_qty','notes','active'];
+  const rows = products.map(p =>
+    headers.map(h => {
+      const val = p[h] ?? '';
+      return typeof val==='string' && val.includes(',') ? `"${val}"` : val;
+    }).join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'btb_products_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// CSV IMPORT
+async function importProductsCSV(input) {
+  const file = input.files[0]; if(!file) return;
+  const msgEl = document.getElementById('csvMsg');
+  msgEl.style.color='#6b7280'; msgEl.textContent='Reading file…';
+  const text = await file.text();
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length<2){msgEl.style.color='#dc2626';msgEl.textContent='CSV appears empty.';return;}
+  const headerRow = lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/['"]/g,''));
+  const idx = h => headerRow.indexOf(h);
+  const parseRow = line => {
+    // Handle quoted commas
+    const cols=[]; let cur='', inQ=false;
+    for(const ch of line){if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){cols.push(cur.trim());cur=''}else cur+=ch;}
+    cols.push(cur.trim());
+    return cols;
+  };
+  const toImport = [];
+  // Map common category name variants → exact DB values
+  const normCat = raw => {
+    const s = (raw||'').trim().toLowerCase();
+    if(s==='boardgame'||s==='board game'||s==='board games'||s==='boardgames') return 'Boardgame';
+    if(s==='food/drink'||s==='food & drink'||s==='food and drink'||s==='food'||s==='drink'||s==='drinks') return 'Food/Drink';
+    if(s==='escape room'||s==='escape rooms'||s==='escaperoom') return 'Escape Room';
+    if(s==='book'||s==='books') return 'Book';
+    if(s==='vr') return 'VR';
+    return 'Other';
+  };
+  for(let i=1;i<lines.length;i++){
+    const cols = parseRow(lines[i]);
+    const get = h => { const j=idx(h); return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''; };
+    const name = get('name'); if(!name) continue;
+    const activeVal = get('active').toUpperCase();
+    toImport.push({
+      name,
+      category: normCat(get('category')),
+      sell_price: parseFloat(get('sell_price'))||0,
+      purchase_price: parseFloat(get('purchase_price'))||null,
+      rrp: parseFloat(get('rrp'))||null,
+      stock_qty: get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,
+      notes: get('notes')||null,
+      active: activeVal==='FALSE'||activeVal==='0' ? false : true,
+    });
+  }
+  if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return;}
+  msgEl.textContent=`Importing ${toImport.length} products…`;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products`, {
+      method:'POST', headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify(toImport)
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const saved = await r.json();
+    saved.forEach(p=>{ if(!products.find(x=>x.id===p.id)) products.push(p); });
+    msgEl.style.color='#15803d'; msgEl.textContent=`✓ Imported ${saved.length} products!`;
+    renderProdList();
+  } catch(e){ msgEl.style.color='#dc2626'; msgEl.textContent='Import failed: '+e.message; }
+  input.value='';
+}
+
+const BUILD_VERSION = 9; // increment this each shipped update — check browser console to confirm you're on the latest build
+console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  // Load all settings and data first
+  await loadSettings();
+  migrateQuickBookFlag();
+  await Promise.all([loadStaff(), loadBookings(viewMonth,viewYear), loadProducts()]);
+
+  // Now restore session or show login
+  const saved=sessionStorage.getItem('btb_user');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(currentUser.refreshToken){
+        // Always refresh the token eagerly on page load — don't assume the
+        // stored token is still valid.
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null.
+      } else {
+        // Old-format cached session with no refresh token — can't safely
+        // trust it's still valid. Sign out for a fresh login.
+        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+        doLogout();
+      }
+      if(currentUser){
+        scheduleTokenRefresh();
+        let roleData=null;
+        try{
+          roleData=await callEdgeFunction('get_my_role',{},currentUser.token);
+        }catch(err){
+          // Token looked fine locally but Supabase rejected it — don't
+          // silently carry on with a broken session, sign out instead.
+          console.error('Session validation failed — signing out:',err);
+          doLogout();
+        }
+        if(currentUser&&roleData){
+          currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
+          currentUser.role=roleData.role;
+          currentUser.name=roleData.name;
+          sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+          showApp();
+        }
+      }
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+  }
+
+  buildCalendar();updateHeader();renderEvents();renderTagFilters();renderTimerBanner();
+  setupRealtime();
+});
+</script>
+</body>
+</html>
