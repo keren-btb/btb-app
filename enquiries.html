@@ -109,7 +109,7 @@ async function callEdgeFunction(action,params={},token=null){
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
   return r.json();
 }
-
+<!-- test -->
 // DEFAULT DATA — matches btb_app.html defaults, overwritten by loadSettings() below
 let games=[
   {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
