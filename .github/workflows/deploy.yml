@@ -13,12 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy via FTP
+      - name: Deploy via SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
-        source: "./*"
           host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: 22
-          target: public_html/test/
+          source: "./*"
+          target: "public_html/test/"
