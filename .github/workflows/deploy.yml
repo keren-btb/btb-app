@@ -13,12 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy via SFTP
+      - name: Deploy via SFTP (SSH key)
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           port: 22
+
           source: "./*"
-          target: "public_html/test/"
+          target: public_html/test/
+
+          # Required for your older cPanel SSH server
+          use_insecure_cipher: true
+
+          # Optional but helpful
+          timeout: 60s
+          command_timeout: 30s
+          overwrite: true
