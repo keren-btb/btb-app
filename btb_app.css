@@ -235,7 +235,7 @@ body{background:#e5e7eb;min-height:100vh;display:flex;justify-content:center;pad
 .slot-chip{font-size:12px;padding:4px 11px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:4px}
 .empty-state{text-align:center;padding:24px 0;font-size:13px;color:#9ca3af}
 .pos-btn-bold{position:relative;background:linear-gradient(135deg,#07b4c5 0%,#059aaa 100%)!important;border-radius:14px!important;margin:2px 6px;transition:all .25s ease;border:none!important;box-shadow:0 2px 12px rgba(7,180,197,.2);padding:10px 6px!important}.pos-btn-bold .ti-receipt{color:#fff!important;text-shadow:0 1px 4px rgba(0,0,0,.1)}.pos-btn-bold span{background:rgba(255,255,255,.2)!important;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .25s ease}.pos-btn-bold:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 24px rgba(7,180,197,.35);background:linear-gradient(135deg,#1ac8d9 0%,#07b4c5 100%)!important}.pos-btn-bold:hover span{background:rgba(255,255,255,.35)!important;transform:scale(1.05)}.pos-btn-bold:active{transform:scale(.95)}.pos-btn-bold.active{box-shadow:0 0 0 3px rgba(7,180,197,.3),0 4px 20px rgba(7,180,197,.3)}
-/* POS focus mode */
+/* POS focus mode  */
 .pos-card{background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;margin-bottom:12px;overflow:hidden;transition:opacity .25s,transform .25s}
 .pos-card.faded{opacity:.18;pointer-events:none;transform:scale(.98)}
 .pos-card.focused{box-shadow:0 0 0 2px #07b4c5,0 4px 20px rgba(7,180,197,.18);z-index:2;position:relative}
