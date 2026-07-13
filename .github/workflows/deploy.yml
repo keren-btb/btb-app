@@ -1,4 +1,4 @@
-name: Deploy via FTP
+name: Deploy via SSH
 
 on:
   push:
@@ -8,17 +8,23 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Upload via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-
-          local-dir: ./
-          server-dir: public_html/test/
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Add SSH host key
+        run: ssh-keyscan btbescaperooms.co.nz >> ~/.ssh/known_hosts 2>/dev/null
+      
+      - name: Deploy HTML and CSS files
+        run: |
+          rsync -avz --delete \
+            --include='/' \
+            --include='*.html' \
+            --include='*.css' \
+            --exclude='*' \
+            ./ btbescap@btbescaperooms.co.nz:/home3/btbescap/public_html/test/
