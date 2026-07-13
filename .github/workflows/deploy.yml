@@ -1,4 +1,4 @@
-name: Deploy via SSH
+name: Deploy via FTP
 
 on:
   push:
@@ -12,22 +12,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
+      - name: Upload via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "Host btbescaperooms.co.nz" >> ~/.ssh/config
-          echo "  StrictHostKeyChecking=no" >> ~/.ssh/config
-
-      - name: Deploy HTML and CSS files
-        run: |
-          rsync -avz --delete \
-            --include='/' \
-            --include='*.html' \
-            --include='*.css' \
-            --exclude='*' \
-            ./ btbescap@btbescaperooms.co.nz:/home3/btbescap/public_html/test/
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: public_html/test/
+          exclude: |
+            **/.git*
+            **/node_modules/**
+            **/.md
+            **/README*
+            **/.gitignore
+            **/.env*
+            **/.DS_Store
+          dangerous-clean-slate: false
