@@ -1790,9 +1790,10 @@ async function saveShiftTimes() {
 const BUILD_VERSION = 11; // increment this each shipped update — check browser console to confirm you're on the latest build
 console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
-window.addEventListener('DOMContentLoaded',async()=>{
+  window.addEventListener('DOMContentLoaded',async()=>{
   // Load all settings and data first
   await loadSettings();
+  await loadShiftTimes();
   migrateQuickBookFlag();
   await Promise.all([loadStaff(), loadBookings(viewMonth,viewYear), loadProducts()]);
 
