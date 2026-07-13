@@ -11,20 +11,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
-- name: Setup SSH
+
+      - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh-auth-sock: /tmp/ssh_agent.sock
-      
+
+      - name: Add SSH host key
+        run: ssh-keyscan btbescaperooms.co.nz >> ~/.ssh/known_hosts 2>/dev/null
+
       - name: Add passphrase to SSH key
         run: |
           echo "${{ secrets.SSH_PASSPHRASE }}" | ssh-add -p /dev/stdin || true
-      
-      - name: Add SSH host key
-        run: ssh-keyscan btbescaperooms.co.nz >> ~/.ssh/known_hosts 2>/dev/null
-      
+
       - name: Deploy HTML and CSS files
         run: |
           rsync -avz --delete \
