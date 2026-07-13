@@ -135,11 +135,24 @@
         </div>
       </div>
 
-      <!-- GROUP: Staff -->
+<!-- GROUP: Staff -->
       <div class="settings-group">
         <div class="settings-group-title" onclick="window.open('staff_portal.html','_blank')" style="cursor:pointer">
           <span><span class="sg-icon">👥</span>Staff Portal</span>
           <i class="ti ti-external-link sg-chevron"></i>
+        </div>
+      </div>
+
+      <!-- GROUP: Setup -->
+      <div class="settings-group">
+        <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
+          <span><span class="sg-icon">⚙️</span>Setup</span>
+          <i class="ti ti-chevron-down sg-chevron"></i>
+        </div>
+        <div class="settings-group-body">
+          <div class="settings-grid">
+            <button class="settings-card" onclick="openPanel('pShiftTimes')"><i class="ti ti-clock" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Shift Times</div><div class="settings-card-sub">Weekly routine for staff scheduling</div></button>
+          </div>
         </div>
       </div>
 
