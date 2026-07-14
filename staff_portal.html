@@ -819,12 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="false">Inactive</option>
       </select>
     </div>
-<div class="field">
-      <div class="field-label">Booking widget behaviour</div>
-      <button type="button" class="btn-secondary" id="adminStaffCallConfirmBtn" style="width:100%;justify-content:center" onclick="toggleCallToConfirm()"></button>
-      <p class="field-hint" id="adminStaffCallConfirmHint"></p>
-    </div>
-    <div class="btn-row">
+<div class="btn-row">
       <button class="btn-primary" onclick="saveAdminStaff()"><i class="ti ti-device-floppy"></i> Save profile</button>
     </div>
     <div class="msg" id="adminStaffMsg"></div>
@@ -968,6 +963,7 @@ const ROLE_LABELS = {
 let availWeekOffset      = 0;
 let adminStaffWeekOffset = 0;
 let adminViewingStaffId  = null;
+let adminStaffCallConfirmValue = false; // true = requires call to confirm, false = trusted/skips call
 let tsFilter             = 'all';
 
 // Weekly timesheet state tracking
@@ -2492,7 +2488,7 @@ function renderAdminStaffList() {
   el.innerHTML = `
     <div class="staff-table-wrap">
       <table class="staff-table">
-        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Active</th><th></th></tr></thead>
+<thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Role</th><th>Booking calls</th><th>Active</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -2563,8 +2559,11 @@ async function openStaffDetail(staffId) {
   set('adminStaffEmpType', s.employment_type || 'casual');
   set('adminStaffRate', s.hourly_rate);
   set('adminStaffNotes', s.notes);
-  const activeEl = document.getElementById('adminStaffActive');
+const activeEl = document.getElementById('adminStaffActive');
   if (activeEl) activeEl.value = s.active === false ? 'false' : 'true';
+
+  adminStaffCallConfirmValue = !(s.trusted_opener === true);
+  renderCallConfirmButton();
 
   await loadAdminStaffShifts(staffId);
   await loadAdminStaffTimesheets(staffId);
@@ -2676,7 +2675,25 @@ async function loadAdminStaffTimesheets(staffId) {
     el.innerHTML = rows.map(ts => buildTsCard(ts, true)).join('');
   } catch(e) { console.error(e); }
 }
+function renderCallConfirmButton() {
+  const btn = document.getElementById('adminStaffCallConfirmBtn');
+  const hint = document.getElementById('adminStaffCallConfirmHint');
+  if (!btn) return;
+  if (adminStaffCallConfirmValue) {
+    btn.innerHTML = '<i class="ti ti-phone"></i> 📞 Call to confirm';
+    btn.style.background = '#fef3c7'; btn.style.color = '#d97706'; btn.style.borderColor = '#fbbf24';
+    if (hint) hint.textContent = 'Booking widget will require a confirmation call when only this person is available.';
+  } else {
+    btn.innerHTML = '<i class="ti ti-key"></i> 🔑 Trusted — no call needed';
+    btn.style.background = '#dcfce7'; btn.style.color = '#15803d'; btn.style.borderColor = '#4ade80';
+    if (hint) hint.textContent = 'Bookings show as instantly available when only this person is free — no call needed.';
+  }
+}
 
+function toggleCallToConfirm() {
+  adminStaffCallConfirmValue = !adminStaffCallConfirmValue;
+  renderCallConfirmButton();
+}
 async function saveAdminStaff() {
   const s = allStaff.find(x => x.id === adminViewingStaffId);
   if (!s) return;
@@ -2695,7 +2712,9 @@ async function saveAdminStaff() {
     employment_type:   document.getElementById('adminStaffEmpType')?.value || 'casual',
     hourly_rate:       parseFloat(document.getElementById('adminStaffRate')?.value) || null,
     notes:             document.getElementById('adminStaffNotes')?.value.trim() || null,
-    active:            document.getElementById('adminStaffActive')?.value !== 'false',
+active:            document.getElementById('adminStaffActive')?.value !== 'false',
+    trusted_opener:    !adminStaffCallConfirmValue,
+  };
   };
 
   try {
