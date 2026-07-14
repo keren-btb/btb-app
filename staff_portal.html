@@ -2715,7 +2715,6 @@ async function saveAdminStaff() {
 active:            document.getElementById('adminStaffActive')?.value !== 'false',
     trusted_opener:    !adminStaffCallConfirmValue,
   };
-  };
 
   try {
     const r = await fetch(`${SB_URL}/rest/v1/staff?id=eq.${adminViewingStaffId}`, {
