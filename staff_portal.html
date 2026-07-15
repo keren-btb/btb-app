@@ -541,9 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label style="font-size: 12px; font-weight: 600; color: #475569;">Time-Off Type:</label>
                 <select id="excType" onchange="toggleCustomTimeFields()" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit; background:#fff;">
                     <option value="all">Whole Day (All Shifts)</option>
-                    <option value="morning">Morning Shift (9am - 1pm)</option>
-                    <option value="afternoon">Afternoon Shift (1pm - 4:30pm)</option>
-                    <option value="evening">Evening Shift (4:30pm onwards)</option>
+                    <!-- shift options inserted dynamically by renderTimeOffTypeOptions() -->
                     <option value="custom">Custom Specific Hours...</option>
                 </select>
             </div>
@@ -929,9 +927,30 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
-// Shift definitions — boundaries come from bookingConfig
-const SHIFT_TYPES = ['morning','afternoon','evening'];
-const SHIFT_LABELS = {morning:'Morning',afternoon:'Afternoon',evening:'Evening'};
+// Shift definitions — loaded dynamically from the 'btb_shift_times' setting
+// (configured by admin in btb_app.html > Settings > Initial Setup > Shift Times).
+// Replaces the old hardcoded Morning/Afternoon/Evening blocks so admin can
+// define any number of named shifts with custom start/end times.
+let shiftDefs = []; // [{name, start, end}, ...]
+
+function shiftForTime(t) {
+  // Finds which defined shift a given HH:MM slot time falls into.
+  // Returns null if the time doesn't fall in any defined shift (a gap).
+  return shiftDefs.find(s => t >= s.start && t < s.end) || null;
+}
+
+function renderTimeOffTypeOptions() {
+  const sel = document.getElementById('excType'); if (!sel) return;
+  sel.querySelectorAll('option[data-shift]').forEach(o => o.remove());
+  const customOpt = sel.querySelector('option[value="custom"]');
+  shiftDefs.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.dataset.shift = '1';
+    opt.textContent = `${s.name} Shift (${fmt12(s.start)} - ${fmt12(s.end)})`;
+    sel.insertBefore(opt, customOpt);
+  });
+}
 
 // ============================================================
 // STATE
@@ -942,12 +961,10 @@ let myStaffRecord = null;
 let games         = [];
 let trainingStatuses = [];
 let bookingConfig  = {
-  shiftBoundary1: '13:00',
-  shiftBoundary2: '16:30',
   openingHours: [],
   slotTimes: {}
 };
-let myShifts      = {};  // { 'YYYY-MM-DD_morning': true/false }
+let myShifts      = {};  // { 'YYYY-MM-DD_<shiftName>': 'available'|'maybe'|'unavailable' }
 let adminShifts   = {};  // for admin viewing a staff member
 let staffTraining = [];
 let timesheets    = [];
@@ -1017,13 +1034,10 @@ function initials(name) {
   return (name||'?').trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 }
 
-function shiftRange(type) {
-  const b1 = bookingConfig.shiftBoundary1 || '13:00';
-  const b2 = bookingConfig.shiftBoundary2 || '16:30';
-  if (type === 'morning')   return `9:00 AM – ${fmt12(b1)}`;
-  if (type === 'afternoon') return `${fmt12(b1)} – ${fmt12(b2)}`;
-  if (type === 'evening')   return `${fmt12(b2)} – 8:30 PM`;
-  return '';
+function shiftRange(name) {
+  const s = shiftDefs.find(x => x.name === name);
+  if (!s) return '';
+  return `${fmt12(s.start)} – ${fmt12(s.end)}`;
 }
 
 function shiftKey(dateStr, shiftType) {
@@ -1148,6 +1162,7 @@ async function initApp() {
 
   // Load settings and data in parallel
   await loadSettings();
+  renderTimeOffTypeOptions();
   await Promise.all([loadAllStaff(), loadMyTraining()]);
   await findMyStaffRecord();
   await Promise.all([loadMyShifts(), loadMyTimesheets()]);
@@ -1191,6 +1206,7 @@ async function loadSettings() {
         const d = JSON.parse(row.value);
         if (row.key === 'btb_games' && Array.isArray(d)) games = d;
         if (row.key === 'btb_training_statuses' && Array.isArray(d)) trainingStatuses = d;
+        if (row.key === 'btb_shift_times' && Array.isArray(d)) shiftDefs = d;
         if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d))
           bookingConfig = {...bookingConfig, ...d};
       } catch(e) {}
@@ -1238,17 +1254,13 @@ async function loadMyShifts() {
     );
     const rows = await r.json();
     myShifts = {};
-    const b1 = bookingConfig.shiftBoundary1 || '13:00';
-    const b2 = bookingConfig.shiftBoundary2 || '16:30';
     rows.forEach(row => {
       if (!row.available || row.available === 'unavailable') return;
       const t = (row.start_time || '').slice(0,5);
       if (!t) return;
-      let shiftType;
-      if (t < b1)            shiftType = 'morning';
-      else if (t < b2)       shiftType = 'afternoon';
-      else                   shiftType = 'evening';
-      const key = shiftKey(row.specific_date, shiftType);
+      const shift = shiftForTime(t);
+      if (!shift) return; // time falls in a gap between defined shifts
+      const key = shiftKey(row.specific_date, shift.name);
       myShifts[key] = row.available;
     });
   } catch(e) { console.error('Shifts load:', e); }
@@ -1446,11 +1458,14 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
   const days = getWeekDays(offset);
   const today = toDateStr(new Date());
 
-  let html = `<div class="avail-grid">
+  if (shiftDefs.length === 0) {
+    el.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings → Initial Setup → Shift Times.</div>';
+    return;
+  }
+
+  let html = `<div class="avail-grid" style="grid-template-columns:auto repeat(${shiftDefs.length},1fr)">
     <div class="avail-grid-head"></div>
-    <div class="avail-grid-head">Morning<br><span style="font-weight:400;font-size:9px">${shiftRange('morning')}</span></div>
-    <div class="avail-grid-head">Afternoon<br><span style="font-weight:400;font-size:9px">${shiftRange('afternoon')}</span></div>
-    <div class="avail-grid-head">Evening<br><span style="font-weight:400;font-size:9px">${shiftRange('evening')}</span></div>`;
+    ${shiftDefs.map(s => `<div class="avail-grid-head">${s.name}<br><span style="font-weight:400;font-size:9px">${shiftRange(s.name)}</span></div>`).join('')}`;
 
   days.forEach(d => {
     const ds = toDateStr(d);
@@ -1463,7 +1478,8 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
     if (!isOpen) {
       html += `<div class="avail-closed" style="grid-column:2/-1">Closed</div>`;
     } else {
-      SHIFT_TYPES.forEach(type => {
+      shiftDefs.forEach(s => {
+        const type = s.name;
         const key = shiftKey(ds, type);
         const val = shiftData[key];
         const isAvailable = val === 'available' || val === true;
@@ -1533,7 +1549,8 @@ function copyWeek1ToAllWeeks() {
 
     baseDays.forEach(d => {
         const dateStr = toDateStr(d);
-        SHIFT_TYPES.forEach(shiftType => {
+        shiftDefs.forEach(s => {
+            const shiftType = s.name;
             const sourceKey = shiftKey(dateStr, shiftType);
             const sourceVal = myShifts[sourceKey] || 'unavailable';
 
@@ -1585,8 +1602,6 @@ async function submitTimeOffBlock() {
     feedbackEl.textContent = 'Submitting request...';
     
     try {
-        const b1 = bookingConfig.shiftBoundary1 || '13:00';
-        const b2 = bookingConfig.shiftBoundary2 || '16:30';
         const d = new Date(dateVal + 'T12:00');
         const daySlots = getSlotsForDay(d.getDay());
 
@@ -1598,12 +1613,6 @@ async function submitTimeOffBlock() {
 
         if (typeVal === 'all') {
             timesToBlock = daySlots;
-        } else if (typeVal === 'morning') {
-            timesToBlock = daySlots.filter(t => t < b1);
-        } else if (typeVal === 'afternoon') {
-            timesToBlock = daySlots.filter(t => t >= b1 && t < b2);
-        } else if (typeVal === 'evening') {
-            timesToBlock = daySlots.filter(t => t >= b2);
         } else if (typeVal === 'custom') {
             const startT = document.getElementById('excStartTime')?.value;
             const endT = document.getElementById('excEndTime')?.value;
@@ -1613,6 +1622,10 @@ async function submitTimeOffBlock() {
                 return;
             }
             timesToBlock = daySlots.filter(t => t >= startT && t <= endT);
+        } else {
+            // typeVal is the name of one of the admin-defined shifts
+            const shiftDef = shiftDefs.find(s => s.name === typeVal);
+            if (shiftDef) timesToBlock = daySlots.filter(t => t >= shiftDef.start && t < shiftDef.end);
         }
 
         if (timesToBlock.length > 0) {
@@ -1682,8 +1695,6 @@ async function saveAdminStaffAvail() {
 async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
   try {
     const today = toDateStr(new Date());
-    const b1 = bookingConfig.shiftBoundary1 || '13:00';
-    const b2 = bookingConfig.shiftBoundary2 || '16:30';
 
     const datesToSave = new Set();
     Object.keys(shifts).forEach(key => {
@@ -1710,19 +1721,18 @@ async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
       if (!val || val === 'unavailable') return;
       const parts = key.split('_');
       const dateStr = parts[0];
-      const shiftType = parts[1];
+      const shiftType = parts.slice(1).join('_'); // shift name may contain underscores
       if (dateStr < today) return;
       const d = new Date(dateStr + 'T12:00');
       if (!isDayOpen(d)) return;
 
+      const shiftDef = shiftDefs.find(s => s.name === shiftType);
+      if (!shiftDef) return; // shift was removed/renamed since this was ticked
+
       const daySlots = getSlotsForDay(d.getDay());
 
       daySlots.forEach(t => {
-        let belongs = false;
-        if (shiftType === 'morning'   && t < b1)  belongs = true;
-        if (shiftType === 'afternoon' && t >= b1 && t < b2) belongs = true;
-        if (shiftType === 'evening'   && t >= b2) belongs = true;
-        if (!belongs) return;
+        if (!(t >= shiftDef.start && t < shiftDef.end)) return;
         rows.push({
           staff_id: staffId,
           specific_date: dateStr,
@@ -1766,7 +1776,7 @@ function renderWeekAvailSummary() {
 
   el.innerHTML = openDays.map(d => {
     const ds = toDateStr(d);
-    const shifts = SHIFT_TYPES.filter(t => myShifts[shiftKey(ds, t)] && myShifts[shiftKey(ds, t)] !== 'unavailable');
+    const shifts = shiftDefs.map(s => s.name).filter(t => myShifts[shiftKey(ds, t)] && myShifts[shiftKey(ds, t)] !== 'unavailable');
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:12px">
       <span style="font-weight:600;color:#374151;min-width:36px">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</span>
       ${shifts.length
@@ -1774,7 +1784,7 @@ function renderWeekAvailSummary() {
             const isMaybe = myShifts[shiftKey(ds, s)] === 'maybe';
             const badgeBg = isMaybe ? '#fef3c7' : '#dcfce7';
             const badgeColor = isMaybe ? '#d97706' : '#15803d';
-            const textLabel = SHIFT_LABELS[s] + (isMaybe ? ' (prefer off)' : '');
+            const textLabel = s + (isMaybe ? ' (prefer off)' : '');
             return `<span style="background:${badgeBg};color:${badgeColor};border-radius:99px;padding:1px 9px;font-size:11px;font-weight:600;margin-right:4px">${textLabel}</span>`;
           }).join('')
         : '<span style="color:#9ca3af">Not available</span>'}
@@ -2658,17 +2668,13 @@ async function loadAdminStaffShifts(staffId) {
     );
     const rows = await r.json();
     adminShifts = {};
-    const b1 = bookingConfig.shiftBoundary1 || '13:00';
-    const b2 = bookingConfig.shiftBoundary2 || '16:30';
     rows.forEach(row => {
       if (!row.available || row.available === 'unavailable') return;
       const t = (row.start_time || '').slice(0,5);
       if (!t) return;
-      let shiftType;
-      if (t < b1)       shiftType = 'morning';
-      else if (t < b2)  shiftType = 'afternoon';
-      else              shiftType = 'evening';
-      const key = shiftKey(row.specific_date, shiftType);
+      const shift = shiftForTime(t);
+      if (!shift) return;
+      const key = shiftKey(row.specific_date, shift.name);
       adminShifts[key] = row.available;
     });
   } catch(e) { adminShifts = {}; }
