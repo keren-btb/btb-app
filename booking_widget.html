@@ -2,718 +2,2091 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- Optimizes scaling on mobile tablets, preventing double-tap zooming issues on signature inputs -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Waiver — Beyond the Box</title>
-
-<!-- Fonts from Google Fonts API -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Now — Beyond the Box</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <style>
-/* ==========================================================================
-   1. GLOBAL RE-SETS & ROOT DESIGN TOKENS
-   ========================================================================== */
-*{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
 :root{
-  --teal:#07b4c5;     /* Main accent color used for buttons, active inputs, and accents */
-  --navy:#1a1035;     /* Core brand color used for backgrounds, headings, and primary buttons */
-  --text:#1f2937;     /* High-contrast slate color for general readability text */
-  --muted:#6b7280;    /* Grey tone for labels, subtitles, and hints */
-  --border:#e5e7eb;   /* Soft grey used for card borders and input boundaries */
-  --bg:#f3f4f6;       /* Page background fallback */
-  --head:'Bebas Neue',sans-serif; /* Impactful font for titles and primary calls-to-action */
-  --body:'DM Sans',sans-serif;    /* Crisp, clean sans-serif for reading dense waiver text */
+  --teal:#07b4c5;
+  --teal2:#059aaa;
+  --teal-dim:rgba(7,180,197,0.12);
+  --teal-glow:rgba(7,180,197,0.25);
+  --dark:#0a0f1e;
+  --dark2:#111827;
+  --dark3:#1a2235;
+  --card:#161e2e;
+  --card2:#1c2540;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
+  --text:#dde4f0;
+  --muted:#6b7a99;
+  --green:#1d9e75;
+  --green-dim:rgba(29,158,117,0.1);
+  --amber:#f5a623;
+  --amber-dim:rgba(245,166,35,0.1);
+  --red:#dc2626;
+  --head:'DM Sans',sans-serif;
+  --body:'DM Sans',sans-serif;
 }
 
-body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--text);min-height:100vh;padding-bottom:40px}
+body{
+  background:var(--dark);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:15px;
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%,rgba(7,180,197,0.08) 0%,transparent 60%),
+    linear-gradient(rgba(7,180,197,0.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(7,180,197,0.02) 1px,transparent 1px);
+  background-size:100% 100%,48px 48px,48px 48px;
+}
 
-/* Header Branding Section Styles */
-.hdr{background:var(--navy);padding:20px 24px 18px;text-align:center}
-.hdr-eye{font-family:var(--head);font-size:12px;letter-spacing:3px;color:var(--teal);margin-bottom:6px}
-.hdr-title{font-family:var(--head);font-size:38px;color:#fff;letter-spacing:1px;line-height:1}
-.hdr-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:6px}
+.page{max-width:560px;margin:0 auto;padding:28px 16px 80px}
 
-/* Page Layout Container */
-.page{max-width:600px;margin:0 auto;padding:20px 16px}
+/* ── SPLIT LAYOUT (desktop) ──────────────────────────── */
+.split{display:flex;min-height:100vh}
 
-/* Dynamic Booking Reference Banner (Top of page) */
-.booking-bar{background:var(--navy);border-radius:12px;padding:14px 16px;margin-bottom:18px;display:none;align-items:center;gap:12px}
-.booking-bar.show{display:flex}
-.bb-icon{font-size:24px;flex-shrink:0}
-.bb-name{font-weight:600;color:#fff;font-size:14px}
-.bb-detail{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+.lcol{
+  width:360px;flex-shrink:0;position:sticky;top:0;height:100vh;
+  overflow:hidden;display:flex;flex-direction:column;padding:40px 36px;
+  background:var(--dark);
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% -5%,rgba(7,180,197,0.13) 0%,transparent 65%),
+    linear-gradient(rgba(7,180,197,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(7,180,197,0.03) 1px,transparent 1px);
+  background-size:100% 100%,48px 48px,48px 48px;
+  border-right:1px solid var(--border);
+}
+.lc-brand{margin-bottom:36px}
+.lc-eye{font-family:var(--head);font-weight:700;font-size:11px;letter-spacing:4px;color:var(--teal);margin-bottom:14px}
+.lc-title{font-family:var(--head);font-weight:700;font-size:38px;line-height:1.05;color:#fff;letter-spacing:0.5px;margin-bottom:12px}
+.lc-title span{color:var(--teal);display:block}
+.lc-sub{font-size:13px;color:var(--muted)}
+.lc-divider{height:1px;background:var(--border);margin:24px 0}
 
-/* Clean UI Cards to separate Section steps */
-.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:opacity 0.3s ease}
-.card-title{font-family:var(--head);font-size:19px;color:var(--navy);letter-spacing:.5px;margin-bottom:3px}
-.card-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+/* Vertical stepper */
+.vsteps{display:flex;flex-direction:column;gap:0}
+.vstep-row{display:flex;gap:14px;align-items:flex-start}
+.vstep-spine{display:flex;flex-direction:column;align-items:center}
+.vstep-dot{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border2);background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0;transition:all .3s}
+.vstep-dot.active{border-color:var(--teal);background:var(--teal);color:#fff;box-shadow:0 0 16px var(--teal-glow)}
+.vstep-dot.done{border-color:var(--green);background:var(--green);color:var(--dark)}
+.vstep-connector{width:1px;height:28px;background:var(--border);transition:background .3s}
+.vstep-connector.done{background:var(--green)}
+.vstep-text{padding-top:5px}
+.vstep-lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;transition:color .3s}
+.vstep-lbl.active{color:var(--teal)}
+.vstep-lbl.done{color:var(--green)}
 
-/* Form inputs & Typography grids */
-.field{margin-bottom:14px}
-.field:last-child{margin-bottom:0}
-.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.field-label .req{color:#ef4444}
-.field-input{width:100%;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:15px;color:var(--text);transition:border-color .2s;-webkit-appearance:none;appearance:none;pointer-events:auto !important;position:relative;z-index:5}
-.field-input:focus{outline:none;border-color:var(--teal);background:#fff}
+/* Left panel summary card */
+.lc-summary{margin-top:auto;background:rgba(7,180,197,0.07);border:1px solid rgba(7,180,197,0.2);border-radius:14px;padding:16px;display:none}
+.lc-summary.show{display:block}
+.lc-sum-head{font-family:var(--head);font-weight:700;font-size:14px;letter-spacing:1px;color:var(--teal);margin-bottom:12px}
+.lc-sum-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
+.lc-sum-row:last-child{margin-bottom:0}
+.lc-sum-icon{font-size:15px;width:22px;text-align:center;flex-shrink:0}
+.lc-sum-val{color:#fff;font-weight:500}
+.lc-sum-sub{color:var(--muted);font-size:11px;margin-top:1px}
 
-/* Customized Dropdown arrows built using an optimized inline raw SVG icon */
-.field-select{width:100%;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:15px;color:var(--text);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+/* Right column */
+.rcol{flex:1;min-width:0;overflow-y:auto}
+.rinner{max-width:580px;margin:0 auto;padding:40px 28px 100px}
+
+/* Hide/show rules */
+@media(min-width:860px){
+  body{background:var(--dark);background-image:none}
+  .hdr{display:none}
+  .steps{display:none}
+  .split{display:flex}
+  .page{max-width:none;padding:0}
+}
+@media(max-width:859px){
+  .split{display:block}
+  .lcol{display:none}
+  .rcol{display:block}
+  .rinner{padding:0}
+  .page{display:block}
+}
+
+/* HEADER */
+.hdr{text-align:center;padding:8px 0 32px}
+.hdr-eyebrow{font-family:var(--head);font-weight:700;font-size:11px;letter-spacing:4px;color:var(--teal);margin-bottom:12px}
+.hdr-title{font-family:var(--head);font-weight:700;font-size:34px;line-height:1.05;color:#fff;margin-bottom:10px;letter-spacing:0.5px}
+.hdr-title span{color:var(--teal)}
+.hdr-sub{font-size:13px;color:var(--muted);letter-spacing:0.3px}
+
+/* STEP BAR */
+.steps{display:flex;align-items:center;margin-bottom:32px;padding:0 4px}
+.step-item{display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.step-num{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border2);background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);transition:all .3s}
+.step-num.active{border-color:var(--teal);background:var(--teal);color:#fff;box-shadow:0 0 16px var(--teal-glow)}
+.step-num.done{border-color:var(--green);background:var(--green);color:var(--dark)}
+.step-lbl{font-size:10px;color:var(--muted);white-space:nowrap;letter-spacing:0.5px;text-transform:uppercase;font-weight:500}
+.step-lbl.active{color:var(--teal)}
+.step-line{flex:1;height:1px;background:var(--border2);margin-bottom:18px;transition:background .3s}
+.step-line.done{background:var(--green)}
+
+/* SCREENS */
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:8px}
+.cat-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:22px 20px;cursor:pointer;display:flex;align-items:center;gap:18px;transition:all .2s;position:relative;overflow:hidden}
+.cat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--teal-dim),transparent);opacity:0;transition:opacity .2s}
+.cat-card:hover{border-color:rgba(7,180,197,0.4);transform:translateY(-1px)}
+.cat-card:hover::before{opacity:1}
+.cat-card.selected{border-color:var(--teal);background:var(--card2)}
+.cat-card.selected::before{opacity:1}
+.cat-emoji{font-size:36px;flex-shrink:0;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))}
+.cat-body{flex:1;min-width:0}
+.cat-title{font-family:var(--head);font-weight:700;font-size:22px;color:#fff;letter-spacing:0.5px;margin-bottom:3px}
+.cat-sub{font-size:12px;color:var(--muted);line-height:1.5}
+.cat-arrow{color:var(--muted);font-size:20px;flex-shrink:0;transition:transform .2s}
+.cat-card:hover .cat-arrow,.cat-card.selected .cat-arrow{transform:translateX(3px);color:var(--teal)}
+
+/* SECTION LABELS */
+.sec-label{font-family:var(--head);font-weight:700;font-size:13px;letter-spacing:2px;color:var(--teal);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec-title{font-family:var(--head);font-weight:700;font-size:28px;color:#fff;margin-bottom:6px;letter-spacing:0.5px}
+.sec-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+/* GAME CARDS */
+.game-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+.game-card{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .2s}
+.game-card:hover{border-color:rgba(7,180,197,0.35)}
+.game-card.selected{border-color:var(--teal);background:var(--card2)}
+.game-icon{width:46px;height:46px;border-radius:10px;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--border)}
+.game-info{flex:1;min-width:0}
+.game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#fff;letter-spacing:0.3px}
+.game-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.game-price{font-size:12px;color:var(--teal);font-weight:500;margin-top:2px}
+.game-chevron{color:var(--muted);transition:color .2s}
+.game-card:hover .game-chevron,.game-card.selected .game-chevron{color:var(--teal)}
+
+/* DATE STRIP */
+.date-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;scrollbar-width:none}
+.date-strip::-webkit-scrollbar{display:none}
+.date-chip{flex-shrink:0;background:var(--card);border:1.5px solid var(--border);border-radius:11px;padding:10px 13px;cursor:pointer;text-align:center;min-width:56px;transition:all .2s}
+.date-chip:hover{border-color:rgba(7,180,197,0.35)}
+.date-chip.selected{border-color:var(--teal);background:var(--card2)}
+.date-chip.no-avail{opacity:0.3;cursor:default;pointer-events:none}
+.dc-day{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+.dc-num{font-family:var(--head);font-weight:700;font-size:22px;color:#fff;line-height:1.1}
+.dc-mon{font-size:10px;color:var(--muted)}
+.date-chip.selected .dc-day,.date-chip.selected .dc-num,.date-chip.selected .dc-mon{color:var(--teal)}
+
+/* SLOT GRID */
+.slot-legend{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+.slot-heading{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.slot-btn{background:var(--card);border:1.5px solid var(--border);border-radius:11px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s}
+.slot-btn.available{border-color:rgba(29,158,117,0.3);background:var(--green-dim)}
+.slot-btn.available:hover{border-color:var(--green);box-shadow:0 0 12px rgba(29,158,117,0.15)}
+.slot-btn.selected{border-color:var(--teal);background:var(--teal-dim);box-shadow:0 0 16px var(--teal-glow)}
+.slot-btn.call{border-color:rgba(245,166,35,0.3);background:var(--amber-dim);cursor:default}
+.slot-btn.booked{opacity:0.25;cursor:not-allowed}
+.slot-btn.past{opacity:0.15;cursor:not-allowed}
+.slot-time{font-family:var(--head);font-weight:700;font-size:17px;color:#fff;letter-spacing:0.3px}
+.slot-btn.available .slot-time{color:var(--green)}
+.slot-btn.selected .slot-time{color:var(--teal)}
+.slot-btn.call .slot-time{color:var(--amber)}
+.slot-status{font-size:10px;margin-top:3px;font-weight:500;color:var(--muted)}
+.slot-btn.available .slot-status{color:rgba(29,158,117,0.7)}
+.slot-btn.call .slot-status{color:var(--amber)}
+.slot-btn.selected .slot-status{color:var(--teal)}
+
+/* VIEW TOGGLE */
+.view-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.view-opt{background:var(--card);border:1.5px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;text-align:center;transition:all .2s}
+.view-opt:hover{border-color:rgba(7,180,197,0.35)}
+.view-opt.active{border-color:var(--teal);background:var(--card2)}
+.view-opt-icon{font-size:22px;margin-bottom:6px}
+.view-opt-label{font-family:var(--head);font-weight:700;font-size:16px;color:#fff;letter-spacing:0.3px}
+.view-opt-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* INFO PANEL (Cafe) */
+.info-panel{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.info-panel-title{font-family:var(--head);font-weight:700;font-size:20px;color:#fff;margin-bottom:8px;letter-spacing:0.3px}
+.info-panel-body{font-size:13px;color:var(--muted);line-height:1.8}
+.info-panel-body strong{color:var(--text)}
+
+/* INTAKE FORM */
+.summary-bar{background:var(--card2);border:1.5px solid var(--teal);border-radius:13px;padding:14px 16px;margin-bottom:22px;display:flex;align-items:center;gap:12px}
+.summary-icon{font-size:26px;flex-shrink:0}
+.summary-game{font-family:var(--head);font-weight:700;font-size:16px;color:#fff;letter-spacing:0.3px}
+.summary-detail{font-size:12px;color:var(--muted);margin-top:2px}
+.summary-change{font-size:12px;color:var(--teal);cursor:pointer;margin-left:auto;white-space:nowrap;padding:4px 0}
+.summary-change:hover{text-decoration:underline}
+
+.field{margin-bottom:16px}
+.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px}
+.field-label .req{color:var(--red)}
+.field-input{width:100%;background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:14px;color:var(--text);transition:border-color .2s;-webkit-appearance:none}
+.field-input:focus{outline:none;border-color:var(--teal)}
+.field-input::placeholder{color:var(--muted)}
+.field-select{width:100%;background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:14px;color:var(--text);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a99' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .field-select:focus{outline:none;border-color:var(--teal)}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
 
-/* Flat layout container for Master Waiver to combat scroll trapping on tablets */
-.waiver-box{background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:16px;font-size:13px;line-height:1.8;color:#374151;margin-bottom:14px}
-.waiver-box h4{font-family:var(--head);font-size:15px;color:var(--navy);margin-bottom:4px;letter-spacing:.5px}
-.waiver-box p{margin-bottom:6px}
+/* MORE DETAILS TOGGLE */
+.more-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1.5px dashed rgba(7,180,197,0.35);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:18px;transition:all .2s;font-size:13px;color:var(--teal)}
+.more-toggle:hover{border-color:var(--teal);background:var(--card2)}
+.more-toggle-arrow{transition:transform .25s;flex-shrink:0;font-size:14px}
+.more-toggle-arrow.open{transform:rotate(180deg)}
 
-/* Colored accent left-borders for specific liability legal clauses */
-.clause{border-left:3px solid var(--teal);padding-left:12px;margin:12px 0}
-.clause strong{display:block;margin-bottom:2px;color:var(--navy);font-size:13px}
-.clause.danger{border-left-color:#ef4444} /* Destructive/Critical Alert Accent Color (Red) */
+/* RADIO GROUP (played before) */
+.radio-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.radio-opt{background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s}
+.radio-opt:hover{border-color:rgba(7,180,197,0.35)}
+.radio-opt.selected{border-color:var(--teal);background:var(--teal-dim)}
+.radio-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.radio-opt.selected .radio-dot{border-color:var(--teal);background:var(--teal)}
+.radio-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff;opacity:0;transition:opacity .2s}
+.radio-opt.selected .radio-dot::after{opacity:1}
+.radio-label{font-size:14px;color:var(--text)}
 
-/* Modernized Checkbox Containers designed for quick tap-to-toggle thumb gestures */
-.check-opt{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:all .15s}
-.check-opt:last-child{margin-bottom:0}
-.check-opt.on{border-color:var(--teal);background:rgba(7,180,197,.07)}
-.check-opt input[type=checkbox]{width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--teal);cursor:pointer}
-.check-body{font-size:14px;color:var(--text);line-height:1.5}
-.check-body strong{color:var(--navy)}
+/* PERSONALISED EXPERIENCES (checkbox-style options) */
+.exp-opt{background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:all .2s}
+.exp-opt:hover{border-color:rgba(7,180,197,0.35)}
+.exp-opt.selected{border-color:var(--teal);background:var(--teal-dim)}
+.exp-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--muted);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.exp-opt.selected .exp-check{border-color:var(--teal);background:var(--teal)}
+.exp-check::after{content:'✓';font-size:11px;color:#fff;opacity:0;transition:opacity .2s}
+.exp-opt.selected .exp-check::after{opacity:1}
+.exp-body{flex:1;min-width:0}
+.exp-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.exp-label{font-size:14px;color:var(--text);font-weight:500}
+.exp-price{font-size:13px;color:var(--teal);font-weight:600;white-space:nowrap}
+.exp-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
 
-/* Canvas Container Wrapper Engine Styling */
-.sig-wrap{border:2px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;margin-bottom:10px;position:relative;height:162px}
-.sig-wrap.active{border-color:var(--teal)}
-.sig-hint-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);pointer-events:none;transition:opacity .2s;z-index:1}
-.sig-hint-overlay.hidden{opacity:0}
-#sigCanvas{display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;position:relative;z-index:2}
-.sig-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.sig-label{font-size:12px;color:var(--muted)}
-.btn-clear{background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:var(--body)}
-.btn-clear:hover{border-color:#ef4444;color:#ef4444}
+/* PLAYERS */
+.players-row{display:flex;align-items:center;gap:14px}
+.cnt-btn{width:38px;height:38px;border-radius:50%;background:var(--dark3);border:1.5px solid var(--border2);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;line-height:1}
+.cnt-btn:hover{border-color:var(--teal);color:var(--teal)}
+.cnt-val{font-family:var(--head);font-weight:700;font-size:28px;color:#fff;min-width:34px;text-align:center}
+.cnt-lbl{font-size:12px;color:var(--muted)}
+.price-live{text-align:right;margin-left:auto}
+.price-big{font-family:var(--head);font-weight:700;font-size:26px;color:var(--teal);letter-spacing:0.5px}
+.price-small{font-size:11px;color:var(--muted);margin-top:2px}
 
-/* Error Messages styling */
-.err{background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:11px 14px;font-size:13px;color:#dc2626;margin-bottom:16px;display:none}
-.err.show{display:block}
+/* PRICE BOX */
+.price-box{background:var(--dark3);border:1px solid var(--border2);border-radius:13px;padding:16px;margin-bottom:20px}
+.price-row{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:8px}
+.price-row:last-child{margin-bottom:0}
+.price-lbl{color:var(--muted)}
+.price-val{color:var(--text);font-weight:500}
+.price-divider{height:1px;background:var(--border);margin:10px 0}
+.price-total-lbl{font-family:var(--head);font-weight:700;font-size:16px;color:#fff}
+.price-total-val{font-family:var(--head);font-weight:700;font-size:20px;color:var(--teal)}
+.deposit-note{background:var(--teal-dim);border:1px solid rgba(7,180,197,0.2);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--teal);margin-top:12px;line-height:1.6}
+.deposit-note strong{display:block;margin-bottom:2px;font-size:13px}
 
-/* Global Button UI States */
-.btn-submit{width:100%;padding:16px;background:var(--teal);color:#fff;border:none;border-radius:12px;font-family:var(--head);font-size:22px;letter-spacing:1px;cursor:pointer;transition:all .2s;margin-top:4px}
-.btn-submit:hover:not(:disabled){background:#059aaa;box-shadow:0 4px 20px rgba(7,180,197,.3)}
-.btn-submit:disabled{opacity:.4;cursor:not-allowed}
-.success{display:none;text-align:center;padding:48px 16px}
-.success.show{display:block}
-.success-icon{font-size:64px;margin-bottom:16px}
-.success-title{font-family:var(--head);font-size:44px;color:var(--navy);margin-bottom:8px;letter-spacing:1px}
-.success-sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:24px}
-.btn-next{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:14px 32px;font-family:var(--head);font-size:18px;letter-spacing:.5px;cursor:pointer;display:none}
-.btn-next:hover{background:#2d1f5e}
-.btn-next.show{display:inline-block}
+/* BUTTONS */
+.btn{width:100%;padding:15px;border-radius:11px;font-family:var(--head);font-weight:700;font-size:18px;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-primary:hover{background:var(--teal2);box-shadow:0 4px 20px var(--teal-glow)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border2);margin-top:10px;font-size:14px;padding:12px}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text)}
+.btn-enquiry{background:transparent;color:var(--teal);border:1.5px solid rgba(7,180,197,0.35);border-radius:11px;padding:14px;width:100%;font-family:var(--head);font-weight:700;font-size:16px;letter-spacing:0.5px;cursor:pointer;transition:all .2s;margin-bottom:10px}
+.btn-enquiry:hover{background:var(--teal-dim);border-color:var(--teal)}
+.btn-loading{position:relative;color:transparent!important}
+.btn-loading::after{content:'';position:absolute;width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;top:50%;left:50%;transform:translate(-50%,-50%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
 
-/* Loading animations spinning vectors */
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+/* ERROR */
+.err-msg{background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none}
+.err-msg.show{display:block}
 
-/* Dynamic Form Step Loop structures */
-.loop-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
-.btn-secondary{background:var(--navy);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--head);font-size:18px;cursor:pointer;letter-spacing:.5px}
-.minor-container{background:#f9fafb;border:1.5px dashed var(--border);border-radius:10px;padding:14px;margin-top:12px;position:relative;z-index:2}
-.minor-row-title{font-size:12px;font-weight:600;color:var(--teal);text-transform:uppercase;margin-bottom:8px}
+/* CONFIRM SCREEN */
+.confirm-icon{width:76px;height:76px;background:var(--green-dim);border:2px solid rgba(29,158,117,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px}
+.confirm-title{font-family:var(--head);font-weight:700;font-size:38px;color:#fff;text-align:center;margin-bottom:8px;letter-spacing:0.5px}
+.confirm-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px;line-height:1.7}
+.confirm-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px;margin-bottom:16px}
+.confirm-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.confirm-row:last-child{border-bottom:none}
+.confirm-lbl{color:var(--muted)}
+.confirm-val{color:#fff;font-weight:500;text-align:right;max-width:60%}
+.confirm-ref{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+.confirm-ref strong{color:var(--teal);font-family:monospace;letter-spacing:1px}
 
-/* Live Group Roster Summary Lists layout cards */
-.roster-card {background:#f9fafb;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
-.roster-item {display:flex;align-items:center;justify-content:between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
-.roster-item:last-child {border-bottom:none}
-.roster-tag {font-size:11px;font-weight:bold;padding:2px 8px;border-radius:20px;margin-left:auto}
-.tag-adult {background:#e0f2fe;color:#0369a1}
-.tag-child {background:#fef3c7;color:#b45309}
+/* ENQUIRY OVERLAY */
+.enq-overlay{display:none;position:fixed;inset:0;background:rgba(10,15,30,0.92);z-index:999;align-items:center;justify-content:center;padding:20px}
+.enq-overlay.open{display:flex}
+.enq-modal{background:var(--dark2);border:1.5px solid var(--border2);border-radius:14px;padding:26px;width:100%;max-width:420px}
+.enq-modal-title{font-family:var(--head);font-weight:700;font-size:24px;color:var(--teal);margin-bottom:4px;letter-spacing:0.5px}
+.enq-modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+/* CASUAL VR CARD */
+.casual-card{background:var(--card);border:1.5px dashed rgba(7,180,197,0.3);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s;margin-top:12px}
+.casual-card:hover{border-color:var(--teal);background:var(--card2)}
+.casual-title{font-family:var(--head);font-weight:700;font-size:17px;color:var(--teal);letter-spacing:0.3px;margin-bottom:4px}
+.casual-sub{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* DATE GAME SECTIONS */
+.dg-section{margin-bottom:18px}
+.dg-header{background:var(--dark3);border:1px solid var(--border);border-radius:11px 11px 0 0;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.dg-icon{font-size:18px}
+.dg-name{font-family:var(--head);font-weight:700;font-size:15px;color:#fff;letter-spacing:0.3px}
+.dg-price{font-size:12px;color:var(--teal);margin-left:auto}
+.dg-slots{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 11px 11px;padding:10px}
+
+/* BACK LINK */
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:20px;transition:color .2s}
+.back-link:hover{color:var(--teal)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:14px}
+.empty-icon{font-size:38px;margin-bottom:10px}
 </style>
 </head>
 <body>
+<div class="split">
 
-<div class="hdr">
-  <div class="hdr-eye">Beyond the Box</div>
-  <div class="hdr-title">Participant Waiver</div>
-  <div class="hdr-sub">Escape Rooms · VR · Hawkes Bay, New Zealand</div>
-</div>
+<!-- ═══════════════════════════════ LEFT PANEL ══════════════════════════════ -->
+<aside class="lcol">
+  <div class="lc-brand">
+    <div class="lc-eye">Hastings, New Zealand</div>
+    <div class="lc-title">BOOK YOUR <span>ADVENTURE</span></div>
+    <div class="lc-sub">Escape rooms · VR experiences · Board game cafe</div>
+  </div>
 
+  <div class="lc-divider"></div>
+
+  <!-- Vertical step indicator -->
+  <div class="vsteps">
+    <div class="vstep-row">
+      <div class="vstep-spine">
+        <div class="vstep-dot active" id="vdot1">1</div>
+        <div class="vstep-connector" id="vcon1"></div>
+      </div>
+      <div class="vstep-text"><div class="vstep-lbl active" id="vlbl1">Choose</div></div>
+    </div>
+    <div class="vstep-row">
+      <div class="vstep-spine">
+        <div class="vstep-dot" id="vdot2">2</div>
+        <div class="vstep-connector" id="vcon2"></div>
+      </div>
+      <div class="vstep-text"><div class="vstep-lbl" id="vlbl2">Pick slot</div></div>
+    </div>
+    <div class="vstep-row">
+      <div class="vstep-spine">
+        <div class="vstep-dot" id="vdot3">3</div>
+        <div class="vstep-connector" id="vcon3"></div>
+      </div>
+      <div class="vstep-text"><div class="vstep-lbl" id="vlbl3">Details</div></div>
+    </div>
+    <div class="vstep-row">
+      <div class="vstep-spine">
+        <div class="vstep-dot" id="vdot4">4</div>
+      </div>
+      <div class="vstep-text"><div class="vstep-lbl" id="vlbl4">Review</div></div>
+    </div>
+  </div>
+
+  <!-- Selection summary — appears once a game is selected -->
+  <div class="lc-summary" id="lcSummary">
+    <div class="lc-sum-head">YOUR BOOKING</div>
+    <div id="lcSummaryRows"></div>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════ RIGHT PANEL ══════════════════════════════ -->
+<div class="rcol">
+<div class="rinner">
 <div class="page">
 
-  <!-- Booking Details (Hydrated from Supabase API params if present) -->
-  <div class="booking-bar" id="bookingBar">
-    <div class="bb-icon" id="bbIcon">🚪</div>
-    <div>
-      <div class="bb-name" id="bbName"></div>
-      <div class="bb-detail" id="bbDetail"></div>
+  <div class="hdr">
+    <div class="hdr-eyebrow">Hastings, New Zealand</div>
+    <div class="hdr-title">BOOK YOUR <span>ADVENTURE</span></div>
+    <div class="hdr-sub">Escape rooms · VR experiences · Board game cafe</div>
+  </div>
+
+  <div class="steps" id="stepBar">
+    <div class="step-item">
+      <div class="step-num active" id="dot1">1</div>
+      <div class="step-lbl active" id="lbl1">Choose</div>
+    </div>
+    <div class="step-line" id="line1"></div>
+    <div class="step-item">
+      <div class="step-num" id="dot2">2</div>
+      <div class="step-lbl" id="lbl2">Pick slot</div>
+    </div>
+    <div class="step-line" id="line2"></div>
+    <div class="step-item">
+      <div class="step-num" id="dot3">3</div>
+      <div class="step-lbl" id="lbl3">Details</div>
+    </div>
+    <div class="step-line" id="line3"></div>
+    <div class="step-item">
+      <div class="step-num" id="dot4">4</div>
+      <div class="step-lbl" id="lbl4">Review</div>
     </div>
   </div>
 
-  <div id="formWrap">
-    <div class="err" id="formErr"></div>
-
-    <!-- ==========================================================================
-         SECTION 1: TEAM LEADER / BOOKER PRIMARY DETAILED ENTRY FORM
-         ========================================================================== -->
-    <div class="card" id="teamSessionCard">
-      <div class="card-title">👑 1. Team Leader / Booker Details</div>
-      <div class="card-sub">Please enter your details first to set up the group registration waiver.</div>
-      
-      <!-- Option for non-playing supervisors/parents checking in kid parties -->
-      <div class="check-opt" id="notPlayingOpt" onclick="toggleCheck('notPlaying')" style="margin-top: 10px; margin-bottom: 15px;">
-        <input type="checkbox" id="notPlaying" onclick="event.stopPropagation()">
-        <div class="check-body"><strong>I am not playing today</strong> but I accept full responsibility for my group.</div>
+  <!-- SCREEN 1: CATEGORY -->
+  <div class="screen active" id="s1">
+    <div class="sec-label">Step 1</div>
+    <div class="sec-title">What would you like to do?</div>
+    <div class="sec-sub">Choose your experience below.</div>
+    <div class="cat-grid">
+      <div class="cat-card" onclick="selectCategory('escape')">
+        <div class="cat-emoji">🚪</div>
+        <div class="cat-body">
+          <div class="cat-title">Escape Rooms</div>
+          <div class="cat-sub">Work together to solve puzzles and complete your mission before time runs out. 60 min sessions.</div>
+        </div>
+        <div class="cat-arrow">›</div>
       </div>
+      <div class="cat-card" onclick="selectCategory('vr')">
+        <div class="cat-emoji">🥽</div>
+        <div class="cat-body">
+          <div class="cat-title">VR Experiences</div>
+          <div class="cat-sub">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </div>
+      <div class="cat-card" onclick="selectCategory('cafe')">
+        <div class="cat-emoji">☕</div>
+        <div class="cat-body">
+          <div class="cat-title">Board Game Cafe</div>
+          <div class="cat-sub">Hire a table, choose from our game library, and enjoy food and drinks with your group.</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </div>
+      <div class="cat-card" onclick="selectCategory('enquiry')" style="border-color:rgba(139,92,246,0.3)">
+        <div class="cat-emoji">💬</div>
+        <div class="cat-body">
+          <div class="cat-title">Contact Us</div>
+          <div class="cat-sub">Got a question, need a custom booking, or want to discuss group rates? Send us a message.</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </div>
+    </div>
+  </div>
 
-      <div class="field-row">
-        <div class="field">
-          <div class="field-label">First name <span class="req">*</span></div>
-          <input class="field-input" type="text" id="orgFirst" placeholder="John">
+  <!-- SCREEN 2: ESCAPE ROOMS -->
+  <div class="screen" id="s2-escape">
+    <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+    <div class="sec-label">Escape Rooms</div>
+    <div class="sec-title">Browse by game or by date</div>
+    <div class="view-toggle">
+      <div class="view-opt active" id="vog" onclick="setEscapeView('game')">
+        <div class="view-opt-icon">🚪</div>
+        <div class="view-opt-label">By Game</div>
+        <div class="view-opt-sub">Choose room first</div>
+      </div>
+      <div class="view-opt" id="vod" onclick="setEscapeView('date')">
+        <div class="view-opt-icon">📅</div>
+        <div class="view-opt-label">By Date</div>
+        <div class="view-opt-sub">See all slots</div>
+      </div>
+    </div>
+
+    <!-- BY GAME -->
+    <div id="byGame">
+      <div class="sec-label">Choose a room</div>
+      <div class="game-list" id="escapeGameList"></div>
+      <div id="gameDateWrap" style="display:none">
+        <div class="sec-label">Choose a date</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <button onclick="gameWeekOffset--;renderGameDates()" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--muted);font-size:14px">‹ Prev</button>
+          <span id="gameWeekLabel" style="font-size:13px;color:var(--muted)"></span>
+          <button onclick="gameWeekOffset++;renderGameDates()" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--muted);font-size:14px">Next ›</button>
         </div>
-        <div class="field">
-          <div class="field-label">Last name <span class="req">*</span></div>
-          <input class="field-input" type="text" id="orgLast" placeholder="Smith">
+        <div id="gameDateStrip"></div>
+        <div id="gameSlotsWrap" style="display:none">
+          <div class="slot-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Call us</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>Full</div>
+          </div>
+          <div class="slot-heading" id="gameSlotsHeading"></div>
+          <div class="slot-grid" id="gameSlotsGrid"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- BY DATE -->
+    <div id="byDate" style="display:none">
+      <div class="sec-label">Choose a date</div>
+      <div class="date-strip" id="dateDateStrip"></div>
+      <div id="dateGamesWrap" style="display:none">
+        <div class="slot-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Call us</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>Full</div>
+        </div>
+        <div id="dateGamesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: VR -->
+  <div class="screen" id="s2-vr">
+    <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+    <div class="sec-label">VR Experiences</div>
+    <div class="sec-title">Choose your<br>VR session</div>
+    <div class="game-list" id="vrGameList"></div>
+    <div id="vrDateWrap" style="display:none">
+      <div class="sec-label">Choose a date</div>
+      <div class="date-strip" id="vrDateStrip"></div>
+      <div id="vrSlotsWrap" style="display:none">
+        <div class="slot-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Call us</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>Full</div>
+        </div>
+        <div class="slot-heading" id="vrSlotsHeading"></div>
+        <div class="slot-grid" id="vrSlotsGrid"></div>
+      </div>
+    </div>
+    <div class="casual-card" onclick="openEnquiry('casual-vr')">
+      <div class="casual-title">🎮 Casual VR — check availability</div>
+      <div class="casual-sub">Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.</div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: CAFE -->
+  <div class="screen" id="s2-cafe">
+    <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+    <div class="sec-label">Board Game Cafe</div>
+    <div class="sec-title">Table hire &<br>board games</div>
+    <div class="info-panel">
+      <div class="info-panel-title">How it works</div>
+      <div class="info-panel-body">
+        <strong>Table hire</strong> includes access to our full library of 200+ board games. Stay as long as you like during opening hours.<br><br>
+        <strong>Pricing:</strong> $2 per person per hour · Minimum 2 players<br><br>
+        <strong>Food & drinks</strong> available to order at the counter.<br><br>
+        <strong>Large groups or private hire?</strong> Get in touch and we'll sort something out for you.
+      </div>
+    </div>
+    <div class="game-list" id="cafeGameList"></div>
+    <div id="cafeDateWrap" style="display:none">
+      <div class="sec-label">Choose a date</div>
+      <div class="date-strip" id="cafeDateStrip"></div>
+      <div id="cafeSlotsWrap" style="display:none">
+        <div class="slot-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Call us</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>Full</div>
+        </div>
+        <div class="slot-heading" id="cafeSlotsHeading"></div>
+        <div class="slot-grid" id="cafeSlotsGrid"></div>
+      </div>
+    </div>
+    <button class="btn-enquiry" onclick="openEnquiry('cafe')">Enquire about table hire →</button>
+  </div>
+
+  <!-- SCREEN 3: INTAKE FORM -->
+  <div class="screen" id="s3">
+    <div class="back-link" onclick="goBack()">← Change slot</div>
+    <div class="summary-bar" id="summaryBar"></div>
+    <div class="err-msg" id="formErr"></div>
+
+    <div class="sec-label">Your details</div>
+
+    <!-- Players -->
+    <div class="field" id="playersField">
+      <div class="field-label" id="playersFieldLabel">How many players? <span class="req">*</span></div>
+      <div class="players-row">
+        <button class="cnt-btn" onclick="adjPlayers(-1)">−</button>
+        <div>
+          <div class="cnt-val" id="playerVal">2</div>
+          <div class="cnt-lbl" id="playerLbl">players</div>
+        </div>
+        <button class="cnt-btn" onclick="adjPlayers(1)">+</button>
+        <div class="price-live">
+          <div class="price-big" id="priceBig">—</div>
+          <div class="price-small" id="priceSmall"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Name -->
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field">
+        <div class="field-label">First name <span class="req">*</span></div>
+        <input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name">
       </div>
       <div class="field">
-        <div class="field-label">Email <span class="req">*</span></div>
-        <input class="field-input" type="email" id="orgEmail" placeholder="john.smith@example.com">
+        <div class="field-label">Last name <span class="req">*</span></div>
+        <input class="field-input" type="text" id="fLast" placeholder="Robinson" autocomplete="family-name">
       </div>
+    </div>
 
-      <div class="field" id="gameCard" style="margin-top:14px;">
-        <div class="field-label">Game / Activity <span class="req">*</span></div>
-        <select class="field-select" id="fGame">
-          <option value="">— Select Activity —</option>
+    <div class="field">
+      <div class="field-label">Email <span class="req">*</span></div>
+      <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <div class="field-label">Phone <span class="req">*</span></div>
+      <input class="field-input" type="tel" id="fPhone" placeholder="021 123 4567" autocomplete="tel">
+    </div>
+
+    <!-- Optional extras toggle -->
+    <div class="more-toggle" id="moreToggle" onclick="toggleMoreDetails()">
+      <span id="moreToggleLabel">✨ Birthday, hen/stag do, or other occasion? Tap to add details</span>
+      <span class="more-toggle-arrow" id="moreToggleArrow">▾</span>
+    </div>
+
+    <div id="moreDetailsWrap" style="display:none">
+
+      <div class="field">
+        <div class="field-label">What's the occasion?</div>
+        <select class="field-select" id="fOccasion">
+          <option value="">Just for fun</option>
+          <option value="Birthday">🎂 Birthday celebration</option>
+          <option value="Team building">💼 Team building</option>
+          <option value="Date night">💑 Date night</option>
+          <option value="Family outing">👨‍👩‍👧 Family outing</option>
+          <option value="School group">🎒 School group</option>
+          <option value="Hen/Stag do">🥂 Hen / Stag do</option>
+          <option value="Other">Other</option>
         </select>
       </div>
 
-      <!-- MASTER LIABILITY WAIVER FRAME (Scrollbar completely unpinned to prevent tracking) -->
-      <div class="field" style="margin-top: 15px;">
-        <div class="field-label">⚠️ Master Liability Waiver</div>
-        <div class="waiver-box" style="max-height: none; overflow: visible;">
-          <h4>BEYOND THE BOX — WAIVER OF LIABILITY</h4>
-          
-          <!-- Read-Aloud Directional Callout Block Moved explicitly to Top -->
-          <p style="margin-top: 6px; margin-bottom: 14px; font-style: italic; font-size: 13px; font-weight: 500; color: var(--teal);">
-            📢 Please read these statements aloud to your team before checking the confirmations below.
-          </p>
-
-          <p>I understand that participating in an escape room or VR experience involves physical and mental challenges. I voluntarily assume all risks, including but not limited to: minor injuries, slips, trips, falls, and stress-related reactions.</p>
-          
-          <div class="clause">
-            <strong>🔒 Damage, Breakage &amp; Property</strong>
-            The room and venue contain props, equipment, and structural property that must be treated with care. I may be held financially accountable for any deliberate or reckless damage caused by my group.
-          </div>
-
-          <!-- UPDATED CLAUSE: Code of Conduct & Behaviour Standards -->
-          <div class="clause" style="border-left-color: #f97316;">
-            <strong>📣 Behaviour &amp; Conduct Code</strong>
-            We expect all participants to follow staff instructions and maintain respectful behaviour. Acting aggressively towards staff or team-mates may result in immediate game cancellation without a refund.
-          </div>
-
-          <!-- NEW INTEGRATED CLAUSE: Sobriety Requirement -->
-          <div class="clause" style="border-left-color: #ea580c;">
-            <strong>🍺 Alcohol, Drugs &amp; Sobriety</strong>
-            I confirm that no participant in our group is under the influence of alcohol, drugs, or intoxicating substances. Beyond the Box reserves the right to refuse entry to anyone suspected of intoxication to maintain health and safety.
-          </div>
-
-          <!-- CLAUSE: Explicit Escape Room No-Lock-Picking Policy -->
-          <div class="clause" style="border-left-color: #06b6d4;">
-            <strong>🔑 No Lock Picking or Force Required</strong>
-            All puzzles can be solved using observation and logic. Do not attempt to force elements or pick locks. No tools, lockpicks, or excessive physical force should ever be used on our equipment.
-          </div>
-
-          <div class="clause" style="border-left-color: #a855f7;">
-            <strong>🥽 Virtual Reality (VR) Activity Use</strong>
-            I understand that VR experiences can occasionally induce temporary motion sickness, disorientation, flashing light sensitivities, or dizziness. Participants will immediately remove the headset and notify staff if they feel unwell.
-          </div>
-
-          <div class="clause danger">
-            <strong>⚖️ New Zealand Law</strong>
-            This waiver does not affect my rights under the Consumer Guarantees Act 1993.
-          </div>
+      <div class="field" id="specialPersonWrap" style="display:none">
+        <div class="field-label" id="specialPersonLabel">Name of the birthday / guest of honour</div>
+        <input class="field-input" type="text" id="fSpecialName" placeholder="e.g. Emma">
+        <div id="specialAgeWrap" style="display:none;margin-top:10px">
+          <div class="field-label">Their age <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></div>
+          <input class="field-input" type="number" id="fSpecialAge" placeholder="e.g. 10" min="0" max="120">
+          <div class="field-hint" id="childHint" style="display:none;color:var(--amber)">🎈 Noted — we'll make sure the room and welcome are right for a younger celebrant.</div>
         </div>
       </div>
 
-      <!-- Explicit Group Confirmation Toggle -->
-      <div class="check-opt" id="agreeOpt" onclick="toggleCheck('agree')">
-        <input type="checkbox" id="agree" onclick="event.stopPropagation()">
-        <div class="check-body"><strong>I have read aloud and our team agrees</strong> to the Liability Waiver rules and policies outlined above.</div>
+      <div class="field" id="personalExpWrap" style="display:none">
+        <div class="field-label">Make it extra special? <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></div>
+        <div id="personalExpList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
-      <!-- Child Dependents Dynamic Section Selector -->
-      <div class="field" style="margin-top:14px;">
-        <div class="field-label">🧒 Are there any children under 16 in your care today?</div>
-        <select class="field-select" id="orgMinorCount" onchange="generateMinorInputs('org')">
-          <option value="0">No children under 16 in my care</option>
-          <option value="1">1 Child</option>
-          <option value="2">2 Children</option>
-          <option value="3">3 Children</option>
-          <option value="4">4 Children</option>
-          <option value="5">5 Children</option>
+      <div class="field">
+        <div class="field-label">Escape room experience?</div>
+        <select class="field-select" id="fExperience">
+          <option value="First time">First time — totally new!</option>
+          <option value="Beginner">Done one or two before</option>
+          <option value="Intermediate">A few under our belt</option>
+          <option value="Experienced">Pretty experienced</option>
+          <option value="Expert">Escape room enthusiasts</option>
         </select>
-        <div id="orgMinorsContainer"></div>
       </div>
-      
-      <!-- Twin Workflow Decision buttons: Route based on whether leader has a team or is alone with kids -->
-      <div class="loop-actions" style="margin-top:20px;">
-        <button type="button" class="btn-submit" onclick="lockTeamConfig(false)" style="margin-top:0; font-size:16px; padding:12px; background:var(--navy);">Pass to next adult →</button>
-        <button type="button" class="btn-submit" onclick="lockTeamConfig(true)" style="margin-top:0; font-size:16px; padding:12px;">All players entered ✔</button>
-      </div>
-    </div>
 
-    <!-- ==========================================================================
-         SECTION 2: DYNAMIC ADDITIONAL TEAMMATE LOOP BLOCK (Hidden by default)
-         ========================================================================== -->
-    <div id="playerSection" style="display:none;">
-      <div class="card" style="border-top: 4px solid var(--teal)">
-        <div class="card-title" id="playerSectionTitle">👤 2. Player Details</div>
-        <div class="card-sub" id="playerInstructionText" style="color:var(--teal); font-weight:500;">👉 Please pass the tablet to the next adult teammate to complete their block.</div>
-        
-        <div class="check-opt" id="playerNotPlayingOpt" onclick="toggleCheck('playerNotPlaying')" style="margin-top: 10px; margin-bottom: 15px;">
-          <input type="checkbox" id="playerNotPlaying" onclick="event.stopPropagation()">
-          <div class="check-body"><strong>I am not playing today</strong> but I accept full responsibility for the children in my care.</div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <div class="field-label">First name <span class="req">*</span></div>
-            <input class="field-input" type="text" id="fFirst" placeholder="Sarah">
+      <!-- Played before -->
+      <div class="field" id="playedBeforeWrap">
+        <div class="field-label">Have you played with us before?</div>
+        <div class="radio-group">
+          <div class="radio-opt" id="rb-yes" onclick="setPlayedBefore(true)">
+            <div class="radio-dot"></div>
+            <span class="radio-label">Yes!</span>
           </div>
-          <div class="field">
-            <div class="field-label">Last name <span class="req">*</span></div>
-            <input class="field-input" type="text" id="fLast" placeholder="Robinson">
+          <div class="radio-opt" id="rb-no" onclick="setPlayedBefore(false)">
+            <div class="radio-dot"></div>
+            <span class="radio-label">First time</span>
           </div>
         </div>
-        <div class="field">
-          <div class="field-label">Email <span class="req">*</span></div>
-          <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com">
-        </div>
-        
-        <div class="check-opt" id="understandWaiverOpt" onclick="toggleCheck('understandWaiver')">
-          <input type="checkbox" id="understandWaiver" onclick="event.stopPropagation()">
-          <div class="check-body"><strong>I confirm I understand</strong> the master liability waiver read aloud by our team leader.</div>
-        </div>
-
-        <div class="field" style="margin-top:14px;">
-          <div class="field-label">🧒 Do you have any children under 16 in your care today?</div>
-          <select class="field-select" id="playerMinorCount" onchange="generateMinorInputs('player')">
-            <option value="0">No children under 16 in my care</option>
-            <option value="1">1 Child</option>
-            <option value="2">2 Children</option>
-            <option value="3">3 Children</option>
-            <option value="4">4 Children</option>
-          </select>
-          <div id="playerMinorsContainer"></div>
-        </div>
-
-        <div class="loop-actions">
-          <button type="button" class="btn-submit" onclick="saveActivePlayer()" style="margin-top:0; font-size:16px; padding:12px;">+ Save &amp; Next Adult</button>
-          <button type="button" class="btn-secondary" onclick="closePlayerLoop()">Done Adding Players →</button>
-        </div>
       </div>
+      <div class="field" id="prevGameWrap" style="display:none">
+        <div class="field-label">Which game did you play?</div>
+        <select class="field-select" id="fPrevGame">
+          <option value="">Can't remember</option>
+        </select>
+      </div>
+
+      <!-- Deposit payment preference -->
+      <div class="field">
+        <div class="field-label">How would you like to pay your deposit?</div>
+        <div class="radio-group" id="depositPrefGroup">
+          <div class="radio-opt" data-val="stripe" onclick="setDepositPref('stripe')">
+            <div class="radio-dot"></div>
+            <span class="radio-label">💳 Card</span>
+          </div>
+          <div class="radio-opt" data-val="bank_transfer" onclick="setDepositPref('bank_transfer')">
+            <div class="radio-dot"></div>
+            <span class="radio-label">🏦 Bank transfer</span>
+          </div>
+          <div class="radio-opt" data-val="invoice" onclick="setDepositPref('invoice')">
+            <div class="radio-dot"></div>
+            <span class="radio-label">📧 Invoice me</span>
+          </div>
+          <div class="radio-opt" data-val="cash" onclick="setDepositPref('cash')">
+            <div class="radio-dot"></div>
+            <span class="radio-label">💵 Cash in person</span>
+          </div>
+        </div>
+        <div class="field-hint">Just a preference for now — no payment is taken here.</div>
+      </div>
+
     </div>
 
-    <!-- ==========================================================================
-         SECTION 3: ROSTER VERIFICATION & MASTER AUTHORIZATION SIGNATURE
-         ========================================================================== -->
-    <div id="finalSignOffSection" style="display:none;">
-      <div class="card" style="border: 2px solid var(--navy)">
-        <div class="card-title">✍️ 3. Master Group Authorization</div>
-        <div class="card-sub" style="color:#ef4444; font-weight:600; margin-bottom:12px;">🔄 Please pass the tablet back to the Team Leader to authorize.</div>
-        
-        <!-- Live Roster Review List Target Window Box -->
-        <div class="field-label">📋 Registered Group Roster Review:</div>
-        <div class="roster-card" id="rosterReviewList"></div>
+    <!-- Price summary -->
+    <div class="price-box" id="priceBox"></div>
 
-        <!-- Canvas Engine Container Object -->
-        <div class="sig-wrap" id="sigWrap">
-          <div class="sig-hint-overlay" id="sigHint">Team Leader signs here ✍️</div>
-          <canvas id="sigCanvas"></canvas>
-        </div>
-        <div class="sig-actions">
-          <span class="sig-label">Draw signature inside box</span>
-          <button class="btn-clear" onclick="clearSig()">Clear</button>
-        </div>
-        
-        <button class="btn-submit" id="btnSubmit" disabled onclick="submitWaiver()">Submit All Waivers →</button>
+    <button class="btn btn-primary" id="btnConfirm" onclick="showReviewScreen()">Review Booking →</button>
+    <button class="btn btn-ghost" onclick="goBack()">← Change slot</button>
+  </div>
+
+  <!-- SCREEN 3b: REVIEW -->
+  <div class="screen" id="s3review">
+    <div class="back-link" onclick="goTo('s3',3)">← Edit details</div>
+    <div class="sec-label">Step 4</div>
+    <div class="sec-title">Review your<br>booking</div>
+    <div class="sec-sub">Please check everything below, then confirm.</div>
+    <div class="err-msg" id="reviewErr"></div>
+    <div class="confirm-card" id="reviewCard"></div>
+    <div class="price-box" id="reviewPriceBox"></div>
+    <button class="btn btn-primary" id="btnFinalConfirm" onclick="submitBooking()">Confirm Booking →</button>
+    <button class="btn btn-ghost" onclick="goTo('s3',3)">← Edit details</button>
+  </div>
+
+  <!-- SCREEN 4: CONFIRMATION -->
+  <div class="screen" id="s4">
+    <div class="confirm-icon">🎉</div>
+    <div class="confirm-title">You're booked in!</div>
+    <div class="confirm-sub">We can't wait to see you. Check your email for confirmation — we'll be in touch shortly about your deposit.</div>
+    <div class="confirm-card" id="confirmCard"></div>
+    <div class="confirm-ref">Reference: <strong id="confirmRef"></strong></div>
+    <button class="btn btn-primary" style="margin-top:24px" onclick="startOver()">Book another session →</button>
+  </div>
+
+  <!-- SCREEN 2: CONTACT/ENQUIRY -->
+  <div class="screen" id="s2-enquiry">
+    <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+    <div class="sec-label">Contact us</div>
+    <div class="sec-title">Send us a<br><span style="color:var(--teal)">message</span></div>
+    <div class="section-sub">Fill in as much or as little as you like — we'll get back to you as soon as we can.</div>
+    <div class="err-msg" id="enqFormErr"></div>
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field"><div class="field-label">First name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="cFirst" placeholder="Sarah" autocomplete="given-name"></div>
+      <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" id="cLast" placeholder="Robinson" autocomplete="family-name"></div>
+    </div>
+    <div class="field"><div class="field-label">Phone <span style="color:var(--red)">*</span></div><input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567" autocomplete="tel"></div>
+    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com" autocomplete="email"></div>
+    <div class="field"><div class="field-label">What are you interested in?</div>
+      <select class="field-select" id="cGame">
+        <option value="">Not sure yet</option>
+      </select>
+    </div>
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field"><div class="field-label">Preferred date</div><input class="field-input" type="date" id="cDate"></div>
+      <div class="field"><div class="field-label">Group size</div><input class="field-input" type="number" id="cPlayers" placeholder="e.g. 4" min="1" max="50"></div>
+    </div>
+    <div class="field"><div class="field-label">Occasion</div>
+      <select class="field-select" id="cOccasion">
+        <option value="">Just for fun</option>
+        <option value="Birthday">Birthday 🎂</option>
+        <option value="Team building">Team building 💼</option>
+        <option value="Date night">Date night 💑</option>
+        <option value="Family outing">Family outing 👨‍👩‍👧</option>
+        <option value="School group">School group 🎒</option>
+        <option value="Hen/Stag do">Hen/Stag do 🥂</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field"><div class="field-label">Your message</div><textarea class="field-input" id="cMessage" rows="3" placeholder="Tell us what you're after…" style="resize:none"></textarea></div>
+    <button class="btn btn-primary" id="btnEnqSubmit" onclick="submitContactEnquiry()">Send message →</button>
+    <button class="btn btn-ghost" onclick="goTo('s1',1)">← Back</button>
+  </div>
+
+</div><!-- /page -->
+</div><!-- /rinner -->
+</div><!-- /rcol -->
+</div><!-- /split -->
+
+<!-- ENQUIRY OVERLAY -->
+<div class="enq-overlay" id="enqOverlay">
+  <div class="enq-modal">
+    <div class="enq-modal-title" id="enqTitle">Send an enquiry</div>
+    <div class="enq-modal-sub" id="enqSub">Tell us what you're after and we'll get back to you.</div>
+    <div class="field">
+      <div class="field-label">Your name <span class="req">*</span></div>
+      <input class="field-input" type="text" id="enqName" placeholder="Sarah Robinson">
+    </div>
+    <div class="field">
+      <div class="field-label">Contact (phone or email) <span class="req">*</span></div>
+      <input class="field-input" type="text" id="enqContact" placeholder="021 123 4567">
+    </div>
+    <div class="field-row" style="margin-bottom:16px">
+      <div class="field">
+        <div class="field-label">Preferred date</div>
+        <input class="field-input" type="date" id="enqDate">
+      </div>
+      <div class="field">
+        <div class="field-label">Preferred time</div>
+        <input class="field-input" type="time" id="enqTime">
       </div>
     </div>
-
+    <div class="field">
+      <div class="field-label">How many in your group?</div>
+      <input class="field-input" type="number" id="enqPlayers" placeholder="e.g. 4" min="1" max="30">
+    </div>
+    <div class="field">
+      <div class="field-label">Anything else we should know?</div>
+      <input class="field-input" type="text" id="enqNotes" placeholder="e.g. birthday group, accessibility needs…">
+    </div>
+    <div class="err-msg" id="enqErr"></div>
+    <button class="btn btn-primary" onclick="submitEnquiry()">Send enquiry →</button>
+    <button class="btn btn-ghost" onclick="closeEnquiry()">Cancel</button>
   </div>
-
-  <!-- Registration Success UI Screen state -->
-  <div class="success" id="successScreen">
-    <div class="success-icon">🎉</div>
-    <div class="success-title">All Set!</div>
-    <div class="success-sub" id="successMsg">Thank you. Your team waivers have been recorded successfully.</div>
-    <p style="font-size:15px; font-weight:bold; color:var(--teal); margin-bottom:20px;">👉 Next Step: Please hand the tablet back to the Beyond the Box staff member!</p>
-    <button class="btn-next show" id="btnNext" onclick="window.location.reload()">➕ Next Group Registration</button>
-  </div>
-
 </div>
 
 <script>
-/* ==========================================================================
-   2. SUPABASE BACKEND INFRASTRUCTURE CORE SETTINGS
-   ========================================================================== */
-const SB_URL  = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
-const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`,'apikey':SB_ANON};
+// ============================================================
+// CONFIG
+// ============================================================
+const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
 
-// BUILD VERSION — bump this each time this file is shipped, so you can
-// confirm in the browser console which copy you're actually looking at.
-const BUILD_VERSION = '1.0.0';
-console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-/* Stateful Global Variables tracking entries */
-let games = [];
-let bookingData = null;
-let hasSig = false;
-let globalTeamArray = [];
-let ctx, canvas;
+// ============================================================
+// DEFAULT DATA — overwritten by Supabase settings on load
+// ============================================================
+let games = [
+  {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
+  {id:'g2',name:'Saving Christmas',duration:60,pricingType:'per_person_tiered',icon:'🎄',bookable:true,category:'escape'},
+  {id:'g3',name:'Gregg in the Box',duration:45,pricingType:'per_person_tiered',icon:'📦',bookable:true,category:'escape'},
+  {id:'g4',name:'VR Hour',duration:60,pricingType:'per_hour_flat',icon:'🥽',bookable:true,category:'vr'},
+  {id:'g5',name:'Board Game Cafe',duration:60,pricingType:'per_person_per_hour',icon:'🎲',bookable:true,category:'cafe'},
+];
 
-const params    = new URLSearchParams(window.location.search);
-const bookingId = params.get('booking_id') || null;
+let bookingConfig = {
+  openingHours:[
+    {day:0,open:null},{day:1,open:null},
+    {day:2,open:'10:30',close:'20:30'},{day:3,open:'10:30',close:'20:30'},
+    {day:4,open:'10:30',close:'20:30'},{day:5,open:'10:30',close:'20:30'},
+    {day:6,open:'10:30',close:'20:30'},
+  ],
+  slotTimes:{
+    2:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},
+    3:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},
+    4:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},
+    5:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},
+    6:{default:['10:30','12:00','13:30','15:00','16:30','18:00','19:30']},
+  },
+  gamePriceTiers:{
+    g1:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+    g2:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+    g3:[{min:2,max:2,pp:50},{min:3,max:6,pp:35},{min:7,max:99,pp:34}],
+  },
+  gameFlatPrice:{g4:150},
+  gamePerPersonPerHour:{g5:2},
+  gamePlayerLimits:{
+    g1:{min:2,max:8},g2:{min:2,max:8},g3:{min:2,max:8},
+    g4:{min:1,max:6},g5:{min:2,max:20},
+  },
+  callToBookCutoffHours:3,
+  depositAmount:35,
+};
 
-/* Initializer Bootloader Engine */
+let staffAvail    = {}; // {staffId: {'YYYY-MM-DD': ['HH:MM',...]}}
+let staffTraining = []; // [{staff_id, game_id, status}]
+let trainingStatuses = [{id:'trained',qualifies:true},{id:'can_supervise',qualifies:true}];
+let existingBookings = [];
+
+// ============================================================
+// STATE
+// ============================================================
+let gameWeekOffset = 0;
+let selCategory = null;
+let selGame     = null;
+let selDate     = null;
+let selSlot     = null;
+let playerCount = 2;
+let playedBefore = null;
+let selectedExperiences = [];
+let depositPref  = null;
+let escapeView  = 'game';
+let enqType     = null;
+
+// ============================================================
+// INIT
+// ============================================================
 async function init() {
-  await loadGames();
-  if (bookingId) await loadBooking();
-  bindEvents();
+  await loadSettings();
+  await loadStaffData();
+  await loadExistingBookings();
+  populatePrevGameSelect();
 }
 
-/* Fetches custom activities matrix list from API settings engine */
-async function loadGames() {
+async function loadSettings() {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games`, {headers:H});
+    const r = await fetch(`${SB_URL}/rest/v1/settings`, {headers:SB_H});
     const rows = await r.json();
-    if (rows[0]) {
-      const all = JSON.parse(rows[0].value);
-      games = all.filter(g => g.bookable !== false && g.category !== 'cafe');
-    }
-  } catch(e) {}
-  /* Fallback defaults if API fails */
-  if (!games.length) games = [
-    {id:'g1',name:'Sherlock',icon:'🔍'},
-    {id:'g2',name:'Saving Christmas',icon:'🎄'},
-    {id:'g3',name:'Gregg in the Box',icon:'📦'},
-    {id:'g4',name:'VR Hour',icon:'🥽'},
-  ];
-  const sel = document.getElementById('fGame');
-  games.forEach(g => {
-    const o = document.createElement('option');
-    o.value = g.id;
-    o.textContent = `${g.icon||''} ${g.name}`.trim();
-    sel.appendChild(o);
-  });
-}
-
-/* Populates active customer pre-fill bookings context metadata automatically */
-async function loadBooking() {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${bookingId}&select=*,clients(first_name,last_name,phone,email)`, {headers:H});
-    const rows = await r.json();
-    if (!rows[0]) return;
-    bookingData = rows[0];
-    const d = new Date(bookingData.booking_date + 'T12:00');
-    const dateStr = d.toLocaleDateString('en-NZ', {weekday:'short',day:'numeric',month:'short'});
-    const game = games.find(g => g.id === bookingData.game_id);
-    const bar = document.getElementById('bookingBar');
-    bar.classList.add('show');
-    document.getElementById('bbIcon').textContent = game?.icon || '🚪';
-    document.getElementById('bbName').textContent = bookingData.game_name;
-    document.getElementById('bbDetail').textContent = `${dateStr} · ${bookingData.players_booked} player${bookingData.players_booked!==1?'s':''}`;
-    
-    if (bookingData.game_id) {
-      document.getElementById('fGame').value = bookingData.game_id;
-      document.getElementById('gameCard').style.display = 'none';
-    }
-    if (bookingData.clients) {
-      const c = bookingData.clients;
-      document.getElementById('orgFirst').value = c.first_name || '';
-      document.getElementById('orgLast').value  = c.last_name   || '';
-      document.getElementById('orgEmail').value = c.email      || '';
-    }
-  } catch(e) {}
-}
-
-function bindEvents() {
-  document.getElementById('agree').addEventListener('change', validateFormState);
-  document.getElementById('understandWaiver').addEventListener('change', validateFormState);
-}
-
-/* Generates minor text inputs dynamically depending on drop-down selection count value */
-function generateMinorInputs(prefix) {
-  const count = parseInt(document.getElementById(prefix + 'MinorCount').value) || 0;
-  const target = document.getElementById(prefix + 'MinorsContainer');
-  target.innerHTML = '';
-  if (count === 0) return;
-  
-  const box = document.createElement('div');
-  box.className = 'minor-container';
-  box.innerHTML = `<div class="minor-row-title" style="color:#ef4444; font-weight:bold;">⚠️ I confirm I am the adult in charge of these children today and accept full responsibility on their behalf:</div>`;
-    
-  for(let i = 1; i <= count; i++) {
-    box.innerHTML += `
-      <div class="field-row" style="margin-bottom:8px;">
-        <input class="field-input dynamic-child-input" type="text" id="${prefix}ChildFirst_${i}" placeholder="Child ${i} First Name">
-        <input class="field-input dynamic-child-input" type="text" id="${prefix}ChildLast_${i}" placeholder="Child ${i} Last Name">
-      </div>
-    `;
-  }
-  target.appendChild(box);
-
-  // Solves virtual keyboard focus dropouts on iOS/Safari browsers within looped elements
-  const elements = target.querySelectorAll('.dynamic-child-input');
-  elements.forEach(el => {
-    el.addEventListener('click', function(e) { e.stopPropagation(); this.focus(); });
-    el.addEventListener('touchstart', function(e) { e.stopPropagation(); this.focus(); }, {passive: true});
-  });
-}
-
-/* Toggles stylized checkbox backgrounds dynamically */
-function toggleCheck(id) {
-  const cb  = document.getElementById(id);
-  cb.checked = !cb.checked;
-  const opt = document.getElementById(id + 'Opt');
-  if (opt) opt.classList.toggle('on', cb.checked);
-  validateFormState();
-}
-
-/* Processes Section 1 Submission configuration criteria logic */
-function lockTeamConfig(skipPassLoop) {
-  const first = document.getElementById('orgFirst').value.trim();
-  const last = document.getElementById('orgLast').value.trim();
-  const email = document.getElementById('orgEmail').value.trim();
-  const game = document.getElementById('fGame').value || bookingData?.game_id;
-  const agree = document.getElementById('agree').checked;
-  const notPlaying = document.getElementById('notPlaying').checked;
-
-  if (!first || !last || !email || !game || !agree) {
-    alert('Please fill out your name, select an activity, and confirm the waiver agreement.');
-    return;
-  }
-
-  const minorCount = parseInt(document.getElementById('orgMinorCount').value) || 0;
-  let minors = [];
-  for(let i = 1; i <= minorCount; i++) {
-    const cf = document.getElementById(`orgChildFirst_${i}`).value.trim();
-    const cl = document.getElementById(`orgChildLast_${i}`).value.trim();
-    if (!cf || !cl) {
-      alert(`Please fill out names for Child #${i} before submitting.`);
-      return;
-    }
-    minors.push({ first: cf, last: cl });
-  }
-
-  const assignedRole = notPlaying ? 'Organizer (Non-Player)' : 'Organizer & Player';
-  globalTeamArray.push({ first_name: first, last_name: last, email: email, role: assignedRole, minors_list: minors });
-
-  document.getElementById('teamSessionCard').style.opacity = '0.4';
-  document.getElementById('teamSessionCard').style.pointerEvents = 'none';
-
-  if (skipPassLoop) {
-    renderRosterSummary();
-    document.getElementById('finalSignOffSection').style.display = 'block';
-    setupSigPad();
-  } else {
-    document.getElementById('playerSection').style.display = 'block';
-    updateCounterDisplay();
-  }
-}
-
-function updateCounterDisplay() {
-  document.getElementById('playerSectionTitle').textContent = `👤 2. Adult Teammate Details`;
-}
-
-/* Pushes individual teammate profiles into group roster database index arrays */
-function saveActivePlayer() {
-  const first = document.getElementById('fFirst').value.trim();
-  const last = document.getElementById('fLast').value.trim();
-  const email = document.getElementById('fEmail').value.trim();
-  const understood = document.getElementById('understandWaiver').checked;
-  const minorCount = parseInt(document.getElementById('playerMinorCount').value) || 0;
-  const notPlaying = document.getElementById('playerNotPlaying').checked;
-
-  if (!first || !last || !email) {
-    alert('First name, Last name, and Email are required for adults.');
-    return;
-  }
-  if (!understood) {
-    alert('Please check the confirmation checkbox.');
-    return;
-  }
-
-  let minors = [];
-  for(let i = 1; i <= minorCount; i++) {
-    const cf = document.getElementById(`playerChildFirst_${i}`).value.trim();
-    const cl = document.getElementById(`playerChildLast_${i}`).value.trim();
-    if (!cf || !cl) {
-      alert(`Please complete child field information.`);
-      return;
-    }
-    minors.push({ first: cf, last: cl });
-  }
-
-  const assignedRole = notPlaying ? 'Co-Organizer (Non-Player)' : 'Participant';
-  globalTeamArray.push({ first_name: first, last_name: last, email: email, role: assignedRole, minors_list: minors });
-
-  /* Clear dynamic elements clean to prepare form fields for subsequent user checkins */
-  document.getElementById('fFirst').value = '';
-  document.getElementById('fLast').value = '';
-  document.getElementById('fEmail').value = '';
-  document.getElementById('understandWaiver').checked = false;
-  document.getElementById('playerNotPlaying').checked = false;
-  document.getElementById('understandWaiverOpt').classList.remove('on');
-  document.getElementById('playerNotPlayingOpt').classList.remove('on');
-  document.getElementById('playerMinorCount').value = '0';
-  document.getElementById('playerMinorsContainer').innerHTML = '';
-
-  updateCounterDisplay();
-  alert('Teammate details saved successfully!');
-}
-
-function closePlayerLoop() {
-  document.getElementById('playerSection').style.display = 'none';
-  renderRosterSummary();
-  document.getElementById('finalSignOffSection').style.display = 'block';
-  setupSigPad();
-}
-
-/* Renders live overview validation review screen block elements dynamically */
-function renderRosterSummary() {
-  const target = document.getElementById('rosterReviewList');
-  target.innerHTML = '';
-  
-  globalTeamArray.forEach(item => {
-    const adultRow = document.createElement('div');
-    adultRow.className = 'roster-item';
-    adultRow.innerHTML = `<strong>${item.first_name} ${item.last_name}</strong> <span class="roster-tag tag-adult">${item.role}</span>`;
-    target.appendChild(adultRow);
-    
-    item.minors_list.forEach(child => {
-      const childRow = document.createElement('div');
-      childRow.className = 'roster-item';
-      childRow.style.paddingLeft = '20px';
-      childRow.innerHTML = `↳ ${child.first} ${child.last} <span class="roster-tag tag-child">Under 16</span>`;
-      target.appendChild(childRow);
+    rows.forEach(row => {
+      try {
+        const d = JSON.parse(row.value);
+        if (row.key === 'btb_games' && Array.isArray(d))             games = d;
+        if (row.key === 'btb_training_statuses' && Array.isArray(d)) trainingStatuses = d;
+        if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d)) {
+          bookingConfig = {...bookingConfig,...d};
+        }
+      } catch(e){}
     });
+  } catch(e){ console.error('Settings load error:',e); }
+}
+
+async function loadStaffData() {
+  try {
+    // Load from staff_availability (specific_date rows where available = 'available' or 'maybe')
+    const today = toDateStr(new Date());
+    const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 90);
+    const future = toDateStr(futureDate);
+
+    const sr = await fetch(
+      `${SB_URL}/rest/v1/staff_availability?specific_date=gte.${today}&specific_date=lte.${future}&available=neq.unavailable&select=staff_id,specific_date,start_time,available`,
+      {headers: SB_H}
+    );
+    const rows = await sr.json();
+
+    staffAvail = {};
+    rows.forEach(row => {
+      const ds = row.specific_date;
+      const t = (row.start_time || '').slice(0, 5);
+      if (!t) return;
+      if (!staffAvail[row.staff_id]) staffAvail[row.staff_id] = {};
+      if (!staffAvail[row.staff_id][ds]) staffAvail[row.staff_id][ds] = [];
+      if (!staffAvail[row.staff_id][ds].includes(t))
+        staffAvail[row.staff_id][ds].push(t);
+    });
+
+    const tr = await fetch(`${SB_URL}/rest/v1/staff_game_training`, {headers:SB_H});
+    staffTraining = await tr.json();
+  } catch(e) { console.error('Staff data error:', e); }
+}
+// Return sorted slot times for a given day index (0=Sun…6=Sat)
+function getSlotsForDay(dayIdx) {
+  const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
+  const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
+  return [...slots].sort();
+}
+
+async function loadExistingBookings() {
+  try {
+    const today = toDateStr(new Date());
+    const r = await fetch(
+      `${SB_URL}/rest/v1/game_bookings?booking_date=gte.${today}&status=eq.confirmed&select=game_id,booking_date,slot_time,assigned_staff_ids`,
+      {headers:SB_H}
+    );
+    existingBookings = await r.json();
+  } catch(e){ existingBookings = []; }
+}
+
+// ============================================================
+// PRICING
+// ============================================================
+function calcPrice(gameId, players) {
+  const g = games.find(x => x.id === gameId);
+  if (!g) return {label:'—',total:0,breakdown:''};
+  const type = g.pricingType || 'per_person_tiered';
+  if (type === 'per_hour_flat') {
+    const p = (bookingConfig.gameFlatPrice||{})[gameId] ?? 0;
+    return {label:`$${p}`,total:p,breakdown:'Flat rate per session'};
+  }
+  if (type === 'per_person_per_hour') {
+    const rate = (bookingConfig.gamePerPersonPerHour||{})[gameId] ?? 0;
+    const total = rate * players;
+    return {label:`$${total}`,total,breakdown:`$${rate}pp/hr × ${players} player${players!==1?'s':''}`};
+  }
+  const tiers = (bookingConfig.gamePriceTiers||{})[gameId] || [{min:1,max:99,pp:35}];
+  const tier  = tiers.find(t => players >= t.min && players <= t.max) || tiers[tiers.length-1];
+  const pp    = tier ? tier.pp : 35;
+  const total = pp * players;
+  return {label:`$${total}`,total,breakdown:`$${pp} per person × ${players}`};
+}
+
+function calcDeposit(total) {
+  const type = bookingConfig.depositType || 'fixed';
+  const amt  = bookingConfig.depositAmount ?? 35;
+  if (type === 'percent') return Math.round(total * amt / 100 * 100) / 100;
+  return Math.min(amt, total);
+}
+
+function gamePriceLabel(g) {
+  const type = g.pricingType || 'per_person_tiered';
+  if (type === 'per_hour_flat') {
+    const p = (bookingConfig.gameFlatPrice||{})[g.id] ?? 0;
+    return `$${p} per session`;
+  }
+  if (type === 'per_person_per_hour') {
+    const r = (bookingConfig.gamePerPersonPerHour||{})[g.id] ?? 0;
+    return `$${r} per person / hr`;
+  }
+  const tiers = (bookingConfig.gamePriceTiers||{})[g.id] || [];
+  if (!tiers.length) return '$35 per person';
+  const mn = Math.min(...tiers.map(t=>t.pp));
+  const mx = Math.max(...tiers.map(t=>t.pp));
+  return mn===mx ? `$${mn} per person` : `$${mn}–$${mx} per person`;
+}
+
+// ============================================================
+// SLOT STATUS ENGINE
+// ============================================================
+function getSlotStatus(gameId, dateStr, slotTime) {
+  const d   = new Date(dateStr + 'T' + slotTime + ':00');
+  const now = new Date();
+  const cut = (bookingConfig.callToBookCutoffHours||3) * 3600000;
+  if (d < now) return 'past';
+  if (d - now < cut) return 'call';
+  // Check if already booked
+  const alreadyBooked = existingBookings.some(b =>
+    b.game_id === gameId &&
+    b.booking_date === dateStr &&
+    (b.slot_time||'').slice(0,5) === slotTime
+  );
+  if (alreadyBooked) return 'booked';
+  // If no staff set up at all, show as available so booking flow can be tested
+  const anyStaff = Object.keys(staffAvail).length > 0 || staffTraining.length > 0;
+  if (!anyStaff) return 'available';
+  // Staff exist — check if a qualified+available GM is free
+  const avail = getAvailableGMs(gameId, dateStr, slotTime);
+  if (avail.length === 0) return 'booked';
+  return 'available';
+}
+
+function getAvailableGMs(gameId, dateStr, slotTime) {
+  return Object.keys(staffAvail).filter(sid => {
+    const training  = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
+    const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
+    if (!statusObj || !statusObj.qualifies) return false;
+    const slots = (staffAvail[sid][dateStr] || []);
+    if (!slots.includes(slotTime)) return false;
+    const taken = existingBookings.some(b => {
+      const ids = JSON.parse(b.assigned_staff_ids || '[]');
+      return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time||'').slice(0,5) === slotTime;
+    });
+    return !taken;
   });
-  validateFormState();
 }
 
-function validateFormState() {
-  const submitBtn = document.getElementById('btnSubmit');
-  if (submitBtn) submitBtn.disabled = !hasSig;
+// ============================================================
+// DATES
+// ============================================================
+function toDateStr(d) {
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-/* ==========================================================================
-   3. CANVAS SIGNATURE DRAW ENGINE (Fixes size collapsing behavior)
-   ========================================================================== */
-function setupSigPad() {
-  canvas = document.getElementById('sigCanvas');
-  ctx = canvas.getContext('2d');
-  const wrap = document.getElementById('sigWrap');
-  const hint = document.getElementById('sigHint');
-  let drawing = false;
+function fmt12(t) {
+  const [h,m] = t.split(':').map(Number);
+  return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+}
 
-  /* Dynamically matches element visibility sizing matrices directly on activation execution */
-  function runResize() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = 160 * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1a1035';
+function getUpcomingDates(count=30) {
+  const dates=[], d=new Date();
+  d.setHours(0,0,0,0);
+  let checked=0;
+  while (dates.length < count && checked < 120) {
+    checked++;
+    const oh = (bookingConfig.openingHours||[]).find(o => o.day === d.getDay());
+    if (oh && oh.open) dates.push(toDateStr(new Date(d)));
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+function getSlotsForGame(gameId, dayIndex) {
+  const ds = (bookingConfig.slotTimes||{})[dayIndex] || {};
+  if (Array.isArray(ds)) return ds;
+  return ds[gameId] || ds['default'] || [];
+}
+
+// ============================================================
+// STEP INDICATOR
+// ============================================================
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const dot = document.getElementById('dot'+i);
+    const lbl = document.getElementById('lbl'+i);
+    if (i < n) { dot.className='step-num done'; dot.textContent='✓'; lbl.className='step-lbl'; }
+    else if (i===n) { dot.className='step-num active'; dot.textContent=i; lbl.className='step-lbl active'; }
+    else { dot.className='step-num'; dot.textContent=i; lbl.className='step-lbl'; }
+    if (i < 4) document.getElementById('line'+i).className='step-line'+(i<n?' done':'');
+  });
+  // also drive the left-panel vertical stepper
+  [1,2,3,4].forEach(i => {
+    const vdot = document.getElementById('vdot'+i);
+    const vlbl = document.getElementById('vlbl'+i);
+    const vcon = document.getElementById('vcon'+i);
+    if (!vdot) return;
+    if (i < n) {
+      vdot.className='vstep-dot done'; vdot.textContent='✓';
+      vlbl.className='vstep-lbl done';
+      if (vcon) vcon.className='vstep-connector done';
+    } else if (i===n) {
+      vdot.className='vstep-dot active'; vdot.textContent=i;
+      vlbl.className='vstep-lbl active';
+    } else {
+      vdot.className='vstep-dot'; vdot.textContent=i;
+      vlbl.className='vstep-lbl';
+      if (vcon) vcon.className='vstep-connector';
+    }
+  });
+}
+
+function goTo(screenId, step) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  setStep(step);
+  window.scrollTo({top:0,behavior:'smooth'});
+  updateLeftSummary();
+}
+
+// ── LEFT PANEL SUMMARY ────────────────────────────────────────
+function updateLeftSummary() {
+  const panel = document.getElementById('lcSummary');
+  const rows  = document.getElementById('lcSummaryRows');
+  if (!panel || !rows) return;
+  const items = [];
+  if (selGame) {
+    items.push({icon: selGame.icon||'🚪', val: selGame.name, sub: selGame.duration ? selGame.duration+'min' : ''});
+  }
+  if (selDate) {
+    const d = new Date(selDate+'T12:00');
+    items.push({icon:'📅', val: DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()], sub:''});
+  }
+  if (selSlot) {
+    items.push({icon:'🕐', val: fmt12(selSlot), sub:''});
+  }
+  if (selGame && selSlot) {
+    const p = calcPrice(selGame.id, playerCount);
+    items.push({icon:'💰', val: p.label+' NZD', sub: p.breakdown});
+  }
+  if (!items.length) { panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  rows.innerHTML = items.map(item => `
+    <div class="lc-sum-row">
+      <span class="lc-sum-icon">${item.icon}</span>
+      <div><div class="lc-sum-val">${item.val}</div>${item.sub?`<div class="lc-sum-sub">${item.sub}</div>`:''}</div>
+    </div>`).join('');
+}
+
+// ============================================================
+// SCREEN 1 — CATEGORY
+// ============================================================
+function selectCategory(cat) {
+  selCategory = cat;
+  selGame = null; selDate = null; selSlot = null;
+  if (cat === 'enquiry') {
+    // Populate game dropdown on contact form
+    const sel = document.getElementById('cGame');
+    if(sel) sel.innerHTML = '<option value="">Not sure yet</option>' + games.filter(g=>g.bookable!==false).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+    // Pre-fill today's date
+    const today = toDateStr(new Date());
+    const cd = document.getElementById('cDate'); if(cd) cd.value = today;
+    goTo('s2-enquiry', 2);
+    return;
+  }
+  if (cat === 'escape') {
+    renderEscapeGames();
+    goTo('s2-escape', 2);
+  } else if (cat === 'vr') {
+    renderVRGames();
+    goTo('s2-vr', 2);
+  } else {
+    renderCafeGames();
+    goTo('s2-cafe', 2);
+  }
+}
+
+// ============================================================
+// ESCAPE ROOMS
+// ============================================================
+function renderEscapeGames() {
+  const cats = games.filter(g => g.category === 'escape' && g.bookable !== false);
+  document.getElementById('escapeGameList').innerHTML = cats.map(g => `
+    <div class="game-card" id="gc-${g.id}" onclick="selectEscapeGame('${g.id}')">
+      <div class="game-icon">${g.icon||'🚪'}</div>
+      <div class="game-info">
+        <div class="game-name">${g.name}</div>
+        <div class="game-meta">${g.duration} min</div>
+        <div class="game-price">${gamePriceLabel(g)}</div>
+      </div>
+      <div class="game-chevron">›</div>
+    </div>`).join('');
+}
+
+function setEscapeView(v) {
+  escapeView = v;
+  document.getElementById('vog').className = 'view-opt'+(v==='game'?' active':'');
+  document.getElementById('vod').className = 'view-opt'+(v==='date'?' active':'');
+  document.getElementById('byGame').style.display = v==='game' ? '' : 'none';
+  document.getElementById('byDate').style.display = v==='date' ? '' : 'none';
+  selGame = null; selDate = null; selSlot = null;
+  if (v==='date') renderDateDates();
+}
+
+function selectEscapeGame(gameId) {
+  selGame = games.find(g => g.id === gameId);
+  selDate = null; selSlot = null; gameWeekOffset = 0;
+  document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('gc-'+gameId);
+  if (el) el.classList.add('selected');
+  const wrap = document.getElementById('gameDateWrap');
+  wrap.style.display = '';
+  renderGameDates();
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+function renderGameDates() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dow = (today.getDay()+6)%7;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - dow + (gameWeekOffset * 7));
+  const wEnd = new Date(weekStart); wEnd.setDate(weekStart.getDate()+6);
+  const lbl = document.getElementById('gameWeekLabel');
+  if(lbl) lbl.textContent = weekStart.getDate()+' '+MONTHS[weekStart.getMonth()]+' - '+wEnd.getDate()+' '+MONTHS[wEnd.getMonth()];
+  const strip = document.getElementById('gameDateStrip');
+  document.getElementById('gameSlotsWrap').style.display = 'none';
+  let html = '';
+  for(let i=0;i<7;i++){
+    const d = new Date(weekStart); d.setDate(weekStart.getDate()+i);
+    const ds = toDateStr(d);
+    const isPast = d < today;
+    const slots = getSlotsForGame(selGame.id, d.getDay());
+    if(!slots.length) continue;
+    const dayName = DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
+    html += '<div style="margin-bottom:18px">';
+    html += '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;';
+    html += 'color:'+(isPast?'var(--muted)':'var(--text)')+';margin-bottom:8px;padding-bottom:6px;';
+    html += 'border-bottom:1px solid var(--border)">'+dayName+'</div>';
+    html += '<div class="slot-grid">';
+    [...slots].sort().forEach(function(t){
+      const status = isPast ? 'past' : getSlotStatus(selGame.id, ds, t);
+      const statusLabels = {available:'Available', call:'Call us', booked:'Full', past:'Past'};
+      const clickable = status === 'available';
+      html += '<div class="slot-btn '+status+'"'+(clickable?' onclick="selectSlot(\''+selGame.id+'\',\''+ds+'\',\''+t+'\')"':'')+' >';
+      html += '<div class="slot-time">'+fmt12(t)+'</div>';
+      html += '<div class="slot-status">'+(statusLabels[status]||'')+'</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--muted)">No slots this week.</div>';
+  strip.innerHTML = html;
+}
+
+function selectGameDate(ds, el) {
+  selDate = ds;
+}
+
+// By date view
+function renderDateDates() {
+  const dates = getUpcomingDates(30);
+  document.getElementById('dateDateStrip').innerHTML = dates.map(ds => {
+    const d = new Date(ds+'T12:00');
+    return `<div class="date-chip" onclick="selectDateFirst('${ds}',this)">
+      <div class="dc-day">${DAYS[d.getDay()]}</div>
+      <div class="dc-num">${d.getDate()}</div>
+      <div class="dc-mon">${MONTHS[d.getMonth()]}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectDateFirst(ds, el) {
+  selDate = ds;
+  document.querySelectorAll('#dateDateStrip .date-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('dateGamesWrap').style.display = '';
+  const escapGames = games.filter(g => g.category==='escape' && g.bookable!==false);
+  const d = new Date(ds+'T12:00');
+  document.getElementById('dateGamesList').innerHTML = escapGames.map(g => {
+    const slots = getSlotsForGame(g.id, d.getDay());
+    if (!slots.length) return '';
+    const slotBtns = slots.sort().map(t => slotBtnHtml(g.id, ds, t, true)).join('');
+    return `<div class="dg-section">
+      <div class="dg-header">
+        <div class="dg-icon">${g.icon||'🚪'}</div>
+        <div class="dg-name">${g.name} <span style="font-size:11px;color:var(--muted);font-weight:400">${g.duration}min</span></div>
+        <div class="dg-price">${gamePriceLabel(g)}</div>
+      </div>
+      <div class="dg-slots"><div class="slot-grid">${slotBtns}</div></div>
+    </div>`;
+  }).join('');
+  const dateGamesWrapEl = document.getElementById('dateGamesWrap');
+  setTimeout(() => dateGamesWrapEl.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+// ============================================================
+// VR
+// ============================================================
+function renderVRGames() {
+  const vrGames = games.filter(g => g.category==='vr' && g.bookable!==false);
+  document.getElementById('vrGameList').innerHTML = vrGames.map(g => `
+    <div class="game-card" id="vgc-${g.id}" onclick="selectVRGame('${g.id}')">
+      <div class="game-icon">${g.icon||'🥽'}</div>
+      <div class="game-info">
+        <div class="game-name">${g.name}</div>
+        <div class="game-meta">${g.duration} min</div>
+        <div class="game-price">${gamePriceLabel(g)}</div>
+      </div>
+      <div class="game-chevron">›</div>
+    </div>`).join('') || '<div class="empty"><div class="empty-icon">🥽</div>No VR sessions available to book online right now.<br>Use the enquiry below.</div>';
+}
+
+function selectVRGame(gameId) {
+  selGame = games.find(g => g.id === gameId);
+  selDate = null; selSlot = null;
+  document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('vgc-'+gameId);
+  if (el) el.classList.add('selected');
+  const wrap = document.getElementById('vrDateWrap');
+  wrap.style.display = '';
+  document.getElementById('vrSlotsWrap').style.display = 'none';
+  renderVRDates();
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+function renderVRDates() {
+  const dates = getUpcomingDates(30);
+  document.getElementById('vrDateStrip').innerHTML = dates.map(ds => {
+    const d = new Date(ds+'T12:00');
+    const slots = getSlotsForGame(selGame.id, d.getDay());
+    const hasSlots = slots.length > 0;
+    return `<div class="date-chip${!hasSlots?' no-avail':''}" onclick="selectVRDate('${ds}',this)">
+      <div class="dc-day">${DAYS[d.getDay()]}</div>
+      <div class="dc-num">${d.getDate()}</div>
+      <div class="dc-mon">${MONTHS[d.getMonth()]}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectVRDate(ds, el) {
+  selDate = ds;
+  document.querySelectorAll('#vrDateStrip .date-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const wrap = document.getElementById('vrSlotsWrap');
+  wrap.style.display = '';
+  const d = new Date(ds+'T12:00');
+  document.getElementById('vrSlotsHeading').textContent =
+    DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  renderSlots('vrSlotsGrid', selGame.id, ds);
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+// ============================================================
+// CAFE
+// ============================================================
+function renderCafeGames() {
+  const cafeGames = games.filter(g => g.category==='cafe' && g.bookable!==false);
+  document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => `
+    <div class="game-card" id="cgc-${g.id}" onclick="selectCafeGame('${g.id}')">
+      <div class="game-icon">${g.icon||'☕'}</div>
+      <div class="game-info">
+        <div class="game-name">${g.name}</div>
+        <div class="game-meta">${g.duration} min</div>
+        <div class="game-price">${gamePriceLabel(g)}</div>
+      </div>
+      <div class="game-chevron">›</div>
+    </div>`).join('');
+}
+
+function selectCafeGame(gameId) {
+  selGame = games.find(g => g.id === gameId);
+  selDate = null; selSlot = null;
+  document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('cgc-'+gameId);
+  if (el) el.classList.add('selected');
+  const wrap = document.getElementById('cafeDateWrap');
+  wrap.style.display = '';
+  document.getElementById('cafeSlotsWrap').style.display = 'none';
+  renderCafeDates();
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+function renderCafeDates() {
+  const dates = getUpcomingDates(30);
+  document.getElementById('cafeDateStrip').innerHTML = dates.map(ds => {
+    const d = new Date(ds+'T12:00');
+    return `<div class="date-chip" onclick="selectCafeDate('${ds}',this)">
+      <div class="dc-day">${DAYS[d.getDay()]}</div>
+      <div class="dc-num">${d.getDate()}</div>
+      <div class="dc-mon">${MONTHS[d.getMonth()]}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectCafeDate(ds, el) {
+  selDate = ds;
+  document.querySelectorAll('#cafeDateStrip .date-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const wrap = document.getElementById('cafeSlotsWrap');
+  wrap.style.display = '';
+  const d = new Date(ds+'T12:00');
+  document.getElementById('cafeSlotsHeading').textContent =
+    DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  renderSlots('cafeSlotsGrid', selGame.id, ds);
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+// ============================================================
+// SLOT RENDERING
+// ============================================================
+function slotBtnHtml(gameId, dateStr, slotTime, withGame=false) {
+  const status = getSlotStatus(gameId, dateStr, slotTime);
+  const labels = {available:'Available',call:'📞 Call us',booked:'Full',past:'Past'};
+  const clickable = status === 'available';
+  const gname = withGame ? games.find(g=>g.id===gameId)?.name || '' : '';
+  return `<div class="slot-btn ${status}"
+    ${clickable ? `onclick="selectSlot('${gameId}','${dateStr}','${slotTime}')"` : ''}>
+    <div class="slot-time">${fmt12(slotTime)}</div>
+    <div class="slot-status">${labels[status]||''}</div>
+  </div>`;
+}
+
+function renderSlots(gridId, gameId, dateStr) {
+  const d     = new Date(dateStr+'T12:00');
+  const slots = getSlotsForGame(gameId, d.getDay());
+  const el    = document.getElementById(gridId);
+  if (!slots.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1">No slots on this day.</div>';
+    return;
+  }
+  el.innerHTML = slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join('');
+}
+
+function selectSlot(gameId, dateStr, slotTime) {
+  selGame  = games.find(g => g.id === gameId);
+  selDate  = dateStr;
+  selSlot  = slotTime;
+  const trackPlayers = selGame.trackPlayers !== false;
+  if (trackPlayers) {
+    const limits = (bookingConfig.gamePlayerLimits||{})[gameId] || {min:2,max:8};
+    playerCount  = limits.min;
+  } else {
+    playerCount = 1;
+  }
+  showIntakeForm();
+}
+
+// ============================================================
+// SCREEN 3 — INTAKE FORM
+// ============================================================
+function showIntakeForm() {
+  const d = new Date(selDate+'T12:00');
+  const dateLabel = DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear();
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="summary-icon">${selGame.icon||'🚪'}</div>
+    <div style="flex:1;min-width:0">
+      <div class="summary-game">${selGame.name}</div>
+      <div class="summary-detail">${dateLabel} · ${fmt12(selSlot)}</div>
+    </div>
+    <div class="summary-change" onclick="goBack()">Change</div>`;
+  const trackPlayers = selGame.trackPlayers !== false;
+  const playersFieldLabelEl = document.getElementById('playersFieldLabel');
+  if (trackPlayers) {
+    const limits = (bookingConfig.gamePlayerLimits||{})[selGame.id] || {min:2,max:8};
+    document.getElementById('playerLbl').textContent = `players (${limits.min}–${limits.max})`;
+    if (playersFieldLabelEl) playersFieldLabelEl.innerHTML = 'How many players? <span class="req">*</span>';
+  } else {
+    document.getElementById('playerLbl').textContent = `players (optional)`;
+    if (playersFieldLabelEl) playersFieldLabelEl.innerHTML = 'How many players? <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — just for our info)</span>';
+  }
+  document.getElementById('playerVal').textContent = playerCount;
+  // Show experience only for escape rooms
+  const expField = document.getElementById('fExperience').closest('.field');
+  expField.style.display = selGame.category === 'escape' ? '' : 'none';
+  updatePlayedBeforeVisibility();
+  // Reset selections for a fresh booking flow
+  selectedExperiences = [];
+  depositPref = null;
+  document.querySelectorAll('#depositPrefGroup .radio-opt').forEach(el => el.classList.remove('selected'));
+  const ageInput = document.getElementById('fSpecialAge');
+  if (ageInput) ageInput.value = '';
+  collapseMoreDetails();
+  renderPersonalExp();
+  updatePriceDisplay();
+  goTo('s3', 3);
+}
+
+function toggleMoreDetails() {
+  const wrap = document.getElementById('moreDetailsWrap');
+  const arrow = document.getElementById('moreToggleArrow');
+  const label = document.getElementById('moreToggleLabel');
+  const isOpen = wrap.style.display !== 'none';
+  if (isOpen) {
+    collapseMoreDetails();
+  } else {
+    wrap.style.display = '';
+    arrow.classList.add('open');
+    label.textContent = 'Hide extra details';
+    wrap.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+
+function collapseMoreDetails() {
+  const wrap = document.getElementById('moreDetailsWrap');
+  const arrow = document.getElementById('moreToggleArrow');
+  const label = document.getElementById('moreToggleLabel');
+  if (!wrap) return;
+  wrap.style.display = 'none';
+  if (arrow) arrow.classList.remove('open');
+  if (label) label.textContent = '✨ Birthday, hen/stag do, or other occasion? Tap to add details';
+}
+
+function adjPlayers(d) {
+  const trackPlayers = selGame.trackPlayers !== false;
+  if (trackPlayers) {
+    const limits = (bookingConfig.gamePlayerLimits||{})[selGame.id] || {min:2,max:8};
+    playerCount = Math.max(limits.min, Math.min(limits.max, playerCount+d));
+  } else {
+    playerCount = Math.max(1, Math.min(50, playerCount+d));
+  }
+  document.getElementById('playerVal').textContent = playerCount;
+  updatePriceDisplay();
+  updateLeftSummary();
+}
+
+// ============================================================
+// PERSONALISED EXPERIENCES
+// ============================================================
+function renderPersonalExp() {
+  const wrap = document.getElementById('personalExpWrap');
+  const occasion = document.getElementById('fOccasion').value;
+  const exps = (bookingConfig.personalisedExperiences||[]).filter(e =>
+    e.active !== false && (!e.occasions || !e.occasions.length || e.occasions.includes(occasion))
+  );
+  // Drop any selections that no longer apply to the current occasion
+  selectedExperiences = selectedExperiences.filter(id => exps.find(e => e.id === id));
+  if (!occasion || !exps.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  document.getElementById('personalExpList').innerHTML = exps.map(e => `
+    <div class="exp-opt ${selectedExperiences.includes(e.id)?'selected':''}" onclick="toggleExperience('${e.id}')">
+      <div class="exp-check"></div>
+      <div class="exp-body">
+        <div class="exp-label-row">
+          <span class="exp-label">${e.label}</span>
+          <span class="exp-price">${parseFloat(e.price)>0?'+$'+e.price:'Free'}</span>
+        </div>
+        ${e.description ? `<div class="exp-desc">${e.description}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleExperience(id) {
+  const i = selectedExperiences.indexOf(id);
+  if (i === -1) selectedExperiences.push(id); else selectedExperiences.splice(i,1);
+  renderPersonalExp();
+  updatePriceDisplay();
+}
+
+function getSelectedExpRows() {
+  return (bookingConfig.personalisedExperiences||[]).filter(e => selectedExperiences.includes(e.id));
+}
+function getSelectedExpTotal() {
+  return getSelectedExpRows().reduce((s,e) => s + (parseFloat(e.price)||0), 0);
+}
+
+// ============================================================
+// DEPOSIT PAYMENT PREFERENCE
+// ============================================================
+function setDepositPref(val) {
+  depositPref = val;
+  document.querySelectorAll('#depositPrefGroup .radio-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.val === val);
+  });
+  updatePriceDisplay();
+}
+
+function updatePriceDisplay() {
+  if (!selGame) return;
+  const p = calcPrice(selGame.id, playerCount);
+  const expRows  = getSelectedExpRows();
+  const expTotal = getSelectedExpTotal();
+  const grandTotal = p.total + expTotal;
+  document.getElementById('priceBig').textContent   = `$${grandTotal}`;
+  document.getElementById('priceSmall').textContent = p.breakdown;
+  const dep = calcDeposit(grandTotal);
+  const expRowsHtml = expRows.map(e => `<div class="price-row"><span class="price-lbl">${e.label}</span><span class="price-val">+$${e.price}</span></div>`).join('');
+  const depositNote = depositPref === 'invoice'
+    ? `We'll email you an invoice for the deposit — please pay it to secure your booking. Remaining balance due on the day.`
+    : `We'll be in touch shortly after you confirm with payment details. Remaining balance due on the day.`;
+  document.getElementById('priceBox').innerHTML = `
+    <div class="price-row"><span class="price-lbl">${selGame.name}</span><span class="price-val">${p.breakdown}</span></div>
+    ${expRowsHtml}
+    <div class="price-divider"></div>
+    <div class="price-row"><span class="price-total-lbl">Total</span><span class="price-total-val">$${grandTotal} NZD</span></div>
+    <div class="deposit-note"><strong>💳 Deposit to secure your booking: $${dep}</strong>${depositNote}</div>`;
+}
+
+// Occasion → show name field for birthday/hen/stag, age field for birthday, and any matching add-ons
+document.getElementById('fOccasion').addEventListener('change', function() {
+  const show = ['Birthday','Hen/Stag do'].includes(this.value);
+  document.getElementById('specialPersonWrap').style.display = show ? '' : 'none';
+  const lbl = document.getElementById('specialPersonLabel');
+  if (lbl) {
+    if (this.value === 'Birthday') lbl.textContent = 'Name of the birthday person';
+    else if (this.value === 'Hen/Stag do') lbl.textContent = 'Name of the hen / stag';
+    else lbl.textContent = 'Name of the special guest';
+  }
+  const ph = document.getElementById('fSpecialName');
+  if (ph) {
+    if (this.value === 'Birthday') ph.placeholder = 'e.g. Emma';
+    else if (this.value === 'Hen/Stag do') ph.placeholder = 'e.g. Sophie';
+  }
+  const ageWrap = document.getElementById('specialAgeWrap');
+  if (ageWrap) {
+    ageWrap.style.display = this.value === 'Birthday' ? '' : 'none';
+    if (this.value !== 'Birthday') {
+      document.getElementById('fSpecialAge').value = '';
+      document.getElementById('childHint').style.display = 'none';
+    }
+  }
+  renderPersonalExp();
+  updatePriceDisplay();
+});
+
+document.getElementById('fSpecialAge').addEventListener('input', function() {
+  const age = parseInt(this.value);
+  document.getElementById('childHint').style.display = (!isNaN(age) && age < 18 && age >= 0) ? '' : 'none';
+});
+
+function setPlayedBefore(val) {
+  playedBefore = val;
+  document.getElementById('rb-yes').classList.toggle('selected', val===true);
+  document.getElementById('rb-no').classList.toggle('selected', val===false);
+  document.getElementById('prevGameWrap').style.display = val ? '' : 'none';
+}
+
+// "First time, totally new" already answers "have you played with us before?" —
+// only relevant for escape rooms, since the experience dropdown is hidden for VR/Cafe.
+function updatePlayedBeforeVisibility() {
+  const expEl = document.getElementById('fExperience');
+  const isEscape = selGame && selGame.category === 'escape';
+  const isFirstTime = expEl.value === 'First time';
+  const wrap = document.getElementById('playedBeforeWrap');
+  if (isEscape && isFirstTime) {
+    wrap.style.display = 'none';
+    setPlayedBefore(false);
+  } else {
+    wrap.style.display = '';
+  }
+}
+document.getElementById('fExperience').addEventListener('change', updatePlayedBeforeVisibility);
+
+function populatePrevGameSelect() {
+  const sel = document.getElementById('fPrevGame');
+  const escapeGames = games.filter(g => g.category==='escape');
+  sel.innerHTML = '<option value="">Can\'t remember</option>' +
+    escapeGames.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+}
+
+function goBack() {
+  selSlot = null;
+  if (selCategory === 'escape') goTo('s2-escape', 2);
+  else if (selCategory === 'vr') goTo('s2-vr', 2);
+  else goTo('s2-cafe', 2);
+}
+
+// ============================================================
+// SUBMIT BOOKING
+// ============================================================
+// ============================================================
+// SCREEN 3b — REVIEW
+// ============================================================
+function showReviewScreen() {
+  const first  = document.getElementById('fFirst').value.trim();
+  const last   = document.getElementById('fLast').value.trim();
+  const email  = document.getElementById('fEmail').value.trim();
+  const phone  = document.getElementById('fPhone').value.trim();
+
+  if (!first || !last) { showErr('Please enter your full name.'); return; }
+  if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
+  if (!phone) { showErr('Please enter a phone number so we can reach you.'); return; }
+
+  const d = new Date(selDate+'T12:00');
+  const dateLabel = DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear();
+  const occasion     = document.getElementById('fOccasion').value;
+  const specialName  = document.getElementById('fSpecialName').value.trim();
+  const specialAge   = document.getElementById('fSpecialAge')?.value;
+  const experience   = document.getElementById('fExperience').value;
+  const prevGame     = document.getElementById('fPrevGame').value;
+  const expRows      = getSelectedExpRows();
+  const depositLabels = {stripe:'💳 Card', bank_transfer:'🏦 Bank transfer', invoice:'📧 Invoice me', cash:'💵 Cash in person'};
+
+  const rows = [
+    ['Game', `${selGame.icon||''} ${selGame.name}`],
+    ['Date', dateLabel],
+    ['Time', fmt12(selSlot)],
+    ['Players', playerCount],
+    ['Name', `${first} ${last}`],
+    ['Email', email],
+    ['Phone', phone],
+  ];
+  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '')]);
+  if (selGame.category === 'escape') rows.push(['Experience', experience]);
+  if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — '+prevGame : '')]);
+  if (expRows.length) rows.push(['Add-ons', expRows.map(e=>e.label).join(', ')]);
+  if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
+
+  document.getElementById('reviewCard').innerHTML = rows.map(([l,v]) =>
+    `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`
+  ).join('');
+
+  // Reuse the already-computed price box rather than recalculating
+  document.getElementById('reviewPriceBox').innerHTML = document.getElementById('priceBox').innerHTML;
+
+  goTo('s3review', 4);
+}
+
+async function submitBooking() {
+  const errEl = document.getElementById('reviewErr');
+  const btn   = document.getElementById('btnFinalConfirm');
+  errEl.classList.remove('show');
+
+  const first  = document.getElementById('fFirst').value.trim();
+  const last   = document.getElementById('fLast').value.trim();
+  const email  = document.getElementById('fEmail').value.trim().toLowerCase();
+  const phone  = document.getElementById('fPhone').value.trim();
+  const occasion = document.getElementById('fOccasion').value;
+  const specialName = document.getElementById('fSpecialName').value.trim();
+  const specialAgeVal = document.getElementById('fSpecialAge')?.value;
+  const specialAge = specialAgeVal ? parseInt(specialAgeVal) : null;
+  const experience  = document.getElementById('fExperience').value;
+  const prevGame    = document.getElementById('fPrevGame').value;
+
+  if (!first || !last) { showErr('Please enter your full name.'); return; }
+  if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
+  if (!phone) { showErr('Please enter a phone number so we can reach you.'); return; }
+
+  // Local timing check (slot now in the past, or now within the call-to-book window)
+  const slotCheck = getSlotStatus(selGame.id, selDate, selSlot);
+  if (slotCheck === 'past') {
+    showErr('This slot has already passed. Please choose another time.');
+    return;
+  }
+  if (slotCheck === 'call') {
+    showErr('This slot now needs a phone call to confirm — please call us.');
+    return;
   }
 
-  function getXY(e) {
-    const rect = canvas.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
-    return {x: src.clientX - rect.left, y: src.clientY - rect.top};
-  }
+  const pricing    = calcPrice(selGame.id, playerCount);
+  const expRows    = getSelectedExpRows();
+  const expTotal   = getSelectedExpTotal();
+  const grandTotal = pricing.total + expTotal;
+  const dep   = calcDeposit(grandTotal);
+  const ref   = 'BTB-' + Date.now().toString(36).toUpperCase();
 
-  /* Core pointer listener registration bindings */
-  canvas.addEventListener('mousedown', e => {
-    e.preventDefault(); drawing = true; const p = getXY(e);
-    ctx.beginPath(); ctx.moveTo(p.x, p.y);
-  });
-  canvas.addEventListener('mousemove', e => {
-    e.preventDefault(); if (!drawing) return; const p = getXY(e);
-    ctx.lineTo(p.x, p.y); ctx.stroke();
-    if(!hasSig) { hasSig = true; hint.classList.add('hidden'); validateFormState(); }
-  });
-  window.addEventListener('mouseup', () => { drawing = false; });
-
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault(); drawing = true; const p = getXY(e);
-    ctx.beginPath(); ctx.moveTo(p.x, p.y);
-  }, {passive:false});
-  canvas.addEventListener('touchmove', e => {
-    e.preventDefault(); if (!drawing) return; const p = getXY(e);
-    ctx.lineTo(p.x, p.y); ctx.stroke();
-    if(!hasSig) { hasSig = true; hint.classList.add('hidden'); validateFormState(); }
-  }, {passive:false});
-  window.addEventListener('touchend', () => { drawing = false; });
-
-  runResize();
-}
-
-function clearSig() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  hasSig = false;
-  document.getElementById('sigHint').classList.remove('hidden');
-  validateFormState();
-}
-
-/* Transmits group object JSON data package values to backend API */
-async function submitWaiver() {
-  const btn = document.getElementById('btnSubmit');
+  btn.classList.add('btn-loading');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Processing Group…';
-
-  const gameId   = document.getElementById('fGame').value || bookingData?.game_id || null;
-  const gameName = games.find(g => g.id === gameId)?.name || bookingData?.game_name || null;
-  const signatureDataURL = canvas.toDataURL('image/png');
-
-  /* Organizes team data cleanly into phone column space payload payload specs */
-  const payload = {
-    booking_id: bookingId || null,
-    first_name: globalTeamArray[0].first_name,
-    last_name: globalTeamArray[0].last_name,
-    email: globalTeamArray[0].email,
-    game_id: gameId,
-    game_name: gameName,
-    agreed_to_terms: true,
-    not_under_influence: true,
-    signature_data: signatureDataURL,
-    source: 'tablet',
-    status: 'signed',
-    phone: JSON.stringify(globalTeamArray) 
-  };
 
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/waivers`, {
-      method: 'POST',
-      headers: {...H, 'Prefer': 'return=minimal'},
-      body: JSON.stringify(payload),
+    // Live re-check, fetched fresh right now rather than relying on the list
+    // loaded when the page first opened — closes the window where two people
+    // could both pass the "is this free?" check for the same slot.
+    const takenCheck = await fetch(
+      `${SB_URL}/rest/v1/game_bookings?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=eq.confirmed&select=id`,
+      {headers:SB_H}
+    );
+    const takenRows = await takenCheck.json();
+    if (Array.isArray(takenRows) && takenRows.length > 0) {
+      showErr('Sorry, this slot was just taken. Please choose another time.');
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+      return;
+    }
+
+    const avail = getAvailableGMs(selGame.id, selDate, selSlot);
+
+    // 1. Find or create client record
+    let clientId = null;
+    if (email) {
+      const cr = await fetch(
+        `${SB_URL}/rest/v1/clients?email=eq.${encodeURIComponent(email)}&select=id`,
+        {headers:SB_H}
+      );
+      const existing = await cr.json();
+      if (existing.length > 0) {
+        clientId = existing[0].id;
+      } else {
+        const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
+          method:'POST',
+          headers:{...SB_H,'Prefer':'return=representation'},
+          body:JSON.stringify({
+            first_name: first,
+            last_name:  last,
+            email,
+            phone,
+            source:'online',
+          })
+        });
+        const newClient = await nr.json();
+        clientId = newClient[0]?.id;
+      }
+    }
+
+    // 2. Save game booking
+    const bookingData = {
+      client_id:          clientId,
+      game_id:            selGame.id,
+      game_name:          selGame.name,
+      booking_date:       selDate,
+      slot_time:          selSlot + ':00',
+      players_booked:     playerCount,
+      occasion:           occasion || null,
+      name_of_special_person: specialName || null,
+      age_of_special_person:  specialAge,
+      experience:         selGame.category==='escape' ? experience : null,
+      played_before:      playedBefore === true,
+      previous_game:      playedBefore ? prevGame || null : null,
+      total_amount:       grandTotal,
+      deposit_amount:     dep,
+      deposit_method:      depositPref || null,
+      addons:              expRows.length ? JSON.stringify(expRows.map(e => ({label:e.label, amount:parseFloat(e.price)||0, at:new Date().toISOString()}))) : null,
+      status:             'confirmed',
+      source:             'online',
+      assigned_staff_ids: JSON.stringify(avail.slice(0,1)),
+      tags:               JSON.stringify([]),
+      staff_notes:        JSON.stringify([]),
+      notes_when_booked:  `${first} ${last} · ${ref}`,
+    };
+
+    const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method:'POST',
+      headers:{...SB_H,'Prefer':'return=representation'},
+      body:JSON.stringify(bookingData),
+    });
+    if (!br.ok) throw new Error('Booking save failed: ' + await br.text());
+
+    // 3. Add to local list so slot shows taken immediately
+    existingBookings.push({
+      game_id:selGame.id,
+      booking_date:selDate,
+      slot_time:selSlot+':00',
+      assigned_staff_ids:JSON.stringify(avail.slice(0,1)),
+    });
+
+    showConfirmation(first, last, email, grandTotal, dep, ref, expRows, depositPref);
+
+  } catch(e) {
+    showErr('Something went wrong — please try again or call us.');
+    console.error('Booking error:',e);
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
+
+function showErr(msg) {
+  const el = document.querySelector('.screen.active .err-msg') || document.getElementById('formErr');
+  el.textContent = msg;
+  el.classList.add('show');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ============================================================
+// SCREEN 4 — CONFIRMATION
+// ============================================================
+function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, depositPref) {
+  const d = new Date(selDate+'T12:00');
+  const dateLabel = DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear();
+  const depositLabels = {stripe:'💳 Card', bank_transfer:'🏦 Bank transfer', invoice:'📧 Invoice me', cash:'💵 Cash in person'};
+  const rows = [
+    ['Game', `${selGame.icon||''} ${selGame.name}`],
+    ['Date', dateLabel],
+    ['Time', fmt12(selSlot)],
+    ['Players', playerCount],
+    ['Name', `${first} ${last}`],
+    ['Email', email],
+  ];
+  if (expRows && expRows.length) rows.push(['Add-ons', expRows.map(e=>e.label).join(', ')]);
+  rows.push(['Total', `$${grandTotal} NZD`]);
+  rows.push(['Deposit due', `$${dep} NZD`]);
+  if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
+  document.getElementById('confirmCard').innerHTML = rows.map(([l,v]) => `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`).join('');
+  document.getElementById('confirmRef').textContent = ref;
+  goTo('s4', 5);
+}
+
+function startOver() {
+  selCategory=null; selGame=null; selDate=null; selSlot=null;
+  playerCount=2; playedBefore=null; escapeView='game';
+  ['fFirst','fLast','fEmail','fPhone','fSpecialName'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('fOccasion').value='';
+  document.getElementById('fExperience').value='First time';
+  document.getElementById('rb-yes').classList.remove('selected');
+  document.getElementById('rb-no').classList.remove('selected');
+  document.getElementById('prevGameWrap').style.display='none';
+  document.getElementById('specialPersonWrap').style.display='none';
+  document.getElementById('gameDateWrap').style.display='none';
+  document.getElementById('gameSlotsWrap').style.display='none';
+  document.getElementById('dateGamesWrap').style.display='none';
+  document.getElementById('vrDateWrap').style.display='none';
+  document.getElementById('vrSlotsWrap').style.display='none';
+  document.getElementById('cafeDateWrap').style.display='none';
+  document.getElementById('cafeSlotsWrap').style.display='none';
+  goTo('s1', 1);
+}
+
+// ============================================================
+// ENQUIRY OVERLAY
+// ============================================================
+const ENQ_CONFIG = {
+  'casual-vr': {title:'Casual VR enquiry', sub:'Tell us your preferred time and how many people — we\'ll confirm if we have space.'},
+  'cafe':       {title:'Table hire enquiry', sub:'Let us know your group size, preferred date and any questions.'},
+  'general':    {title:'Send an enquiry',    sub:'Tell us what you\'re after and we\'ll get back to you.'},
+};
+
+function openEnquiry(type) {
+  enqType = type;
+  const cfg = ENQ_CONFIG[type] || ENQ_CONFIG['general'];
+  document.getElementById('enqTitle').textContent = cfg.title;
+  document.getElementById('enqSub').textContent   = cfg.sub;
+  const today = toDateStr(new Date());
+  document.getElementById('enqDate').value = today;
+  document.getElementById('enqErr').classList.remove('show');
+  document.getElementById('enqOverlay').classList.add('open');
+}
+
+function closeEnquiry() {
+  document.getElementById('enqOverlay').classList.remove('open');
+  enqType = null;
+}
+
+async function submitEnquiry() {
+  const name    = document.getElementById('enqName').value.trim();
+  const contact = document.getElementById('enqContact').value.trim();
+  const date    = document.getElementById('enqDate').value;
+  const time    = document.getElementById('enqTime').value;
+  const players = document.getElementById('enqPlayers').value;
+  const notes   = document.getElementById('enqNotes').value.trim();
+  const errEl   = document.getElementById('enqErr');
+
+  if (!name || !contact) {
+    errEl.textContent = 'Please enter your name and contact details.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const d = date ? new Date(date+'T12:00') : new Date();
+  const typeLabels = {'casual-vr':'Casual VR','cafe':'Cafe table hire','general':'General'};
+  const noteText = [
+    typeLabels[enqType]||'Enquiry',
+    players ? `${players} players` : '',
+    date ? DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()] : '',
+    time || '',
+    notes,
+    `Contact: ${contact}`,
+  ].filter(Boolean).join(' · ');
+
+  try {
+    // Save to game_bookings as an enquiry
+    await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method:'POST',
+      headers:{...SB_H,'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        game_id:       enqType==='casual-vr' ? 'g4' : 'g5',
+        game_name:     typeLabels[enqType]||'Enquiry',
+        booking_date:  date || toDateStr(new Date()),
+        slot_time:     (time||'12:00')+':00',
+        players_booked: parseInt(players)||1,
+        status:        'enquiry',
+        source:        'online',
+        notes_when_booked: name + ' · ' + noteText,
+        tags:          JSON.stringify([]),
+        staff_notes:   JSON.stringify([]),
+        assigned_staff_ids: JSON.stringify([]),
+      })
+    });
+  } catch(e) { console.error('Enquiry save error:',e); }
+
+  closeEnquiry();
+
+  // Show thank you message
+  const thanks = document.createElement('div');
+  thanks.style.cssText='position:fixed;inset:0;background:rgba(10,15,30,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  thanks.innerHTML = `<div style="background:var(--dark2);border:1.5px solid var(--border2);border-radius:14px;padding:32px;width:100%;max-width:380px;text-align:center">
+    <div style="font-size:52px;margin-bottom:14px">🥽</div>
+    <div style="font-family:var(--head);font-weight:700;font-size:30px;color:#fff;margin-bottom:8px">Enquiry sent!</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px">Thanks ${name}! We'll get back to you at <strong style="color:var(--text)">${contact}</strong> as soon as we can to confirm availability.</div>
+    <button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
+  </div>`;
+  document.body.appendChild(thanks);
+}
+
+// ── CONTACT / ENQUIRY FORM SUBMISSION ─────────────────────────────
+async function submitContactEnquiry() {
+  const first   = document.getElementById('cFirst').value.trim();
+  const last    = document.getElementById('cLast').value.trim();
+  const phone   = document.getElementById('cPhone').value.trim();
+  const email   = document.getElementById('cEmail').value.trim().toLowerCase();
+  const gameId  = document.getElementById('cGame').value;
+  const date    = document.getElementById('cDate').value;
+  const players = parseInt(document.getElementById('cPlayers').value) || 1;
+  const occasion= document.getElementById('cOccasion').value;
+  const message = document.getElementById('cMessage').value.trim();
+  const errEl   = document.getElementById('enqFormErr');
+  errEl.classList.remove('show');
+  if (!first) { errEl.textContent='Please enter your first name.'; errEl.classList.add('show'); return; }
+  if (!phone && !email) { errEl.textContent='Please enter a phone or email so we can reach you.'; errEl.classList.add('show'); return; }
+  const btn = document.getElementById('btnEnqSubmit');
+  btn.classList.add('btn-loading'); btn.disabled = true;
+  const game = games.find(g => g.id === gameId);
+  const gameName = game ? game.name : 'General enquiry';
+  const ref = 'ENQ-' + Date.now().toString(36).toUpperCase();
+  const noteText = [`${first} ${last}`.trim(), phone, email, occasion||null, message||null, ref].filter(Boolean).join(' · ');
+  try {
+    let clientId = null;
+    const qParam = email ? `email=eq.${encodeURIComponent(email)}` : `phone=eq.${encodeURIComponent(phone)}`;
+    const cr = await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`, { headers: SB_H });
+    const existing = await cr.json();
+    if (existing.length > 0) { clientId = existing[0].id; }
+    else {
+      const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
+        method: 'POST', headers: { ...SB_H, 'Prefer': 'return=representation' },
+        body: JSON.stringify({ first_name:first, last_name:last||null, email:email||null, phone:phone||null, source:'online' })
+      });
+      const nc = await nr.json(); clientId = nc[0]?.id;
+    }
+    const r = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method: 'POST', headers: { ...SB_H, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        client_id: clientId, game_id: gameId||'enquiry', game_name: gameName,
+        booking_date: date||toDateStr(new Date()), slot_time: '12:00:00',
+        players_booked: players, occasion: occasion||null,
+        status: 'enquiry', source: 'online',
+        notes_when_booked: noteText,
+        tags: JSON.stringify([]), staff_notes: JSON.stringify([]), assigned_staff_ids: JSON.stringify([]),
+      })
     });
     if (!r.ok) throw new Error(await r.text());
-
-    document.getElementById('formWrap').style.display = 'none';
-    document.getElementById('successScreen').classList.add('show');
-    window.scrollTo({top:0, behavior:'smooth'});
+    btn.classList.remove('btn-loading'); btn.disabled = false;
+    // Show thank-you overlay
+    const thanks = document.createElement('div');
+    thanks.style.cssText='position:fixed;inset:0;background:rgba(10,15,30,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    thanks.innerHTML = `<div style="background:var(--dark2);border:1.5px solid var(--border2);border-radius:14px;padding:32px;width:100%;max-width:380px;text-align:center">
+      <div style="font-size:52px;margin-bottom:14px">💬</div>
+      <div style="font-family:var(--head);font-weight:700;font-size:30px;color:#fff;margin-bottom:8px">Message sent!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px">
+        Thanks ${first}! We'll be in touch at <strong style="color:var(--text)">${phone||email}</strong> as soon as we can.
+      </div>
+      <button class="btn btn-primary" onclick="this.closest('div[style]').remove();startOver()">Done →</button>
+    </div>`;
+    document.body.appendChild(thanks);
   } catch(e) {
-    const err = document.getElementById('formErr');
-    err.textContent = 'Submission error — Please notify a staff member to assist.';
-    err.classList.add('show');
-    btn.disabled = false;
-    btn.innerHTML = 'Submit All Waivers →';
+    btn.classList.remove('btn-loading'); btn.disabled = false;
+    errEl.textContent = 'Something went wrong — please call us directly.';
+    errEl.classList.add('show');
+    console.error('Enquiry submit error:', e);
   }
 }
 
-window.onload = init;
+init();
 </script>
 </body>
 </html>
