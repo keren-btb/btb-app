@@ -76,8 +76,8 @@
                         </h3>
                         <p class="text-sm text-gray-400 mt-1" id="game-meta-details">Booked: 0 players • Booking Source: --</p>
                     </div>
-                    <button id="help-btn" onclick="triggerHelpAlert()" class="w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3 animate-pulse">
-                        <span class="text-xl">🚨</span> REPORT EMERGENCY HELP
+                    <button id="help-btn" onclick="triggerHelpAlert()" class="w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3">
+                        <span class="text-xl">🚨</span> ASK FOR HELP
                     </button>
                 </div>
 
@@ -111,11 +111,23 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Actual Players in Room</label>
-                            <input type="number" id="input-players" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustPlayers(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                                <input type="number" id="input-players" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0">
+                                <button type="button" onclick="adjustPlayers(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Clues Given</label>
-                            <input type="number" id="input-clues" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0" value="0">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustClues(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                                <input type="number" id="input-clues" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0" value="0">
+                                <button type="button" onclick="adjustClues(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Group Name for Photo (optional)</label>
+                            <input type="text" id="input-photo-group-name" placeholder="e.g. The Codebreakers" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold placeholder-gray-600 focus:outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Time Taken (Total Minutes)</label>
@@ -259,7 +271,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 1; // increment this each shipped update — check browser console to confirm you're on the latest build
+        const BUILD_VERSION = 3; // increment this each shipped update — check browser console to confirm you're on the latest build
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
         // Initialize App on DOM Load
@@ -517,6 +529,7 @@ async function checkActiveBooking() {
             document.getElementById("input-clues").value = booking.clues_given || 0;
             document.getElementById("input-time").value = booking.time_taken || "";
             document.getElementById("input-gm-notes").value = booking.gm_notes || "";
+            document.getElementById("input-photo-group-name").value = booking.photo_group_name || "";
 
             askForReviewFlag = booking.ask_for_review || false;
             updateReviewButtonUI();
@@ -600,6 +613,17 @@ async function resetTimer(){
             updateTimerDisplay();
             await saveTimerState(b);
         }
+        function adjustPlayers(delta){
+            const input = document.getElementById("input-players");
+            const current = parseInt(input.value) || 0;
+            input.value = Math.max(0, current + delta);
+        }
+        function adjustClues(delta){
+            const input = document.getElementById("input-clues");
+            const current = parseInt(input.value) || 0;
+            input.value = Math.max(0, current + delta);
+            document.getElementById("photo-clues-display").innerText = `Clues Used: ${input.value}`;
+        }
         async function saveTimerState(b){
             try{
                 await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, {
@@ -652,8 +676,8 @@ async function resetTimer(){
                 btn.innerText = "🔊 FLOOR MANAGER NOTIFIED";
                 
                 setTimeout(() => {
-                    btn.className = "w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3 animate-pulse";
-                    btn.innerText = "🚨 REPORT EMERGENCY HELP";
+                    btn.className = "w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3";
+                    btn.innerText = "🚨 ASK FOR HELP";
                     btn.disabled = false;
                 }, 5000);
 
@@ -661,7 +685,7 @@ async function resetTimer(){
                 console.error("Alerting routing failure:", err.message);
                 alert("Failed to report help alert to database: " + err.message);
                 btn.disabled = false;
-                btn.innerText = "🚨 REPORT EMERGENCY HELP";
+                btn.innerText = "🚨 ASK FOR HELP";
             }
         }
 
@@ -675,6 +699,7 @@ async function resetTimer(){
             const cGiven = parseInt(document.getElementById("input-clues").value) || 0;
             const tTaken = parseInt(document.getElementById("input-time").value) || 0;
             const notes = document.getElementById("input-gm-notes").value;
+            const photoGroupName = document.getElementById("input-photo-group-name").value.trim();
 
             try {
                 const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${currentBooking.id}`, {
@@ -684,6 +709,7 @@ async function resetTimer(){
                         clues_given: cGiven,
                         time_taken: tTaken,
                         gm_notes: notes,
+                        photo_group_name: photoGroupName,
                         ask_for_review: askForReviewFlag,
                         status: 'completed', // marks session complete — front desk greys this out but keeps it editable
                         updated_at: new Date().toISOString()
@@ -713,7 +739,7 @@ async function resetTimer(){
 
             const tName = document.getElementById("input-time").value || "60";
             const cCount = document.getElementById("input-clues").value || "0";
-            const team = document.getElementById("game-team-name").innerText;
+            const team = document.getElementById("input-photo-group-name").value.trim() || document.getElementById("game-team-name").innerText;
 
             document.getElementById("photo-room-emoji").innerText = emojiMap[currentRoom] || "🔮";
             document.getElementById("photo-room-name").innerText = currentRoom;
