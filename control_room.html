@@ -93,6 +93,7 @@
                         <button onclick="adjustTimer(-1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">-1 min</button>
                         <button onclick="adjustTimer(1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+1 min</button>
                         <button id="timer-toggle-btn" onclick="toggleTimer()" class="flex-grow sm:flex-grow-0 px-5 py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 transition">▶ Start</button>
+                        <button onclick="endGame()" class="px-5 py-3 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 transition">🏁 End Game</button>
                         <button onclick="resetTimer()" class="px-5 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">↺ Reset</button>
                     </div>
                 </div>
@@ -131,14 +132,10 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Time Taken (Total Minutes)</label>
-                            <input type="number" id="input-time" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold focus:outline-none" min="0" max="60" placeholder="e.g. 56">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Review Status</label>
-                            <div class="flex gap-2">
-                                <button type="button" id="btn-review" onclick="toggleReviewFlag()" class="flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-purple-950/40 border-purple-800 text-purple-300">
-                                    ⭐ Prompt Review Sequence
-                                </button>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustTimeTaken(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                                <input type="number" id="input-time" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0" placeholder="e.g. 56">
+                                <button type="button" onclick="adjustTimeTaken(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
                             </div>
                         </div>
                     </div>
@@ -146,6 +143,15 @@
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Gamemaster Log & Room Reset Notes</label>
                         <textarea id="input-gm-notes" rows="3" placeholder="How did it go? Notable highlights, puzzle hitches, or maintenance details..." class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none text-sm"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Review Status</label>
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-review" onclick="toggleReviewFlag()" class="flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-purple-950/40 border-purple-800 text-purple-300">
+                                ⭐ Prompt Review Sequence
+                            </button>
+                        </div>
                     </div>
 
                     <div class="pt-4 flex flex-col sm:flex-row gap-3">
@@ -271,7 +277,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 3; // increment this each shipped update — check browser console to confirm you're on the latest build
+        const BUILD_VERSION = 4; // increment this each shipped update — check browser console to confirm you're on the latest build
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
         // Initialize App on DOM Load
@@ -593,6 +599,15 @@ async function checkActiveBooking() {
             updateTimerDisplay();
             await saveTimerState(b);
         }
+        async function endGame(){
+            if (!currentBooking) return;
+            const b = currentBooking;
+            if (b.timer_running) {
+                await toggleTimer(); // pauses timer and saves state
+            }
+            const minutesElapsed = Math.round(getElapsed(b) / 60);
+            document.getElementById("input-time").value = minutesElapsed;
+        }
 async function resetTimer(){
             if (!currentBooking) return;
             if (!confirm("Reset the timer to 0?")) return;
@@ -623,6 +638,11 @@ async function resetTimer(){
             const current = parseInt(input.value) || 0;
             input.value = Math.max(0, current + delta);
             document.getElementById("photo-clues-display").innerText = `Clues Used: ${input.value}`;
+        }
+        function adjustTimeTaken(delta){
+            const input = document.getElementById("input-time");
+            const current = parseInt(input.value) || 0;
+            input.value = Math.max(0, current + delta);
         }
         async function saveTimerState(b){
             try{
