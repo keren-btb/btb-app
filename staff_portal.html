@@ -228,6 +228,15 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .avail-shift-btn.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
 .avail-shift-btn.past{opacity:.35;cursor:not-allowed;pointer-events:none}
 .avail-closed{font-size:11px;color:#d1d5db;text-align:center;grid-column:2/-1;padding:4px}
+.gran-day-row{border-bottom:1px solid #f3f4f6;padding:8px 0}
+.gran-day-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.gran-day-name{font-size:12px;font-weight:600;color:#374151}
+.gran-day-sum{font-size:10px;color:#9ca3af}
+.gran-slots{display:flex;flex-wrap:wrap;gap:4px}
+.gran-slot{border-radius:7px;border:1px solid #e5e7eb;background:#fff;padding:4px 8px;cursor:pointer;font-size:11px;color:#6b7280;font-family:inherit}
+.gran-slot.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
+.gran-toggle-all{border-radius:99px;border:1px solid #e5e7eb;background:#fff;padding:3px 10px;cursor:pointer;font-size:10px;font-weight:600;color:#6b7280;font-family:inherit}
+.gran-toggle-all.on{background:#dcfce7;color:#15803d;border-color:#4ade80}
 
 /* ── TRAINING BADGES ── */
 .train-list{display:flex;flex-direction:column;gap:6px}
@@ -837,6 +846,23 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="msg" id="adminStaffAvailMsg"></div>
 
+    <div style="margin-top:10px">
+      <button class="add-btn" style="font-size:12px" onclick="toggleGranularAvailPanel()"><i class="ti ti-adjustments"></i> <span id="granAvailToggleLabel">Fine-tune individual slots</span></button>
+    </div>
+    <div id="granAvailPanel" style="display:none;margin-top:10px">
+      <p class="panel-sub" style="margin-bottom:8px">For finer control than the shift blocks above — tick individual room-booking slot times directly. Saving here overwrites this staff member's availability for the dates shown below.</p>
+      <div class="week-nav" style="margin-bottom:10px">
+        <button class="week-nav-btn" onclick="navigateGranAvailMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+        <span class="week-nav-label" id="granAvailMonthLabel"></span>
+        <button class="week-nav-btn" onclick="navigateGranAvailMonth(1)"><i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div id="granAvailGrid"></div>
+      <div class="btn-row">
+        <button class="btn-primary btn-sm" onclick="saveGranularAvailability()"><i class="ti ti-device-floppy"></i> Save individual slots</button>
+      </div>
+      <div class="msg" id="granAvailMsg"></div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- Timesheet for this staff member -->
@@ -920,7 +946,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.6.3';
+const BUILD_VERSION = '1.7.0';
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2594,6 +2620,15 @@ const activeEl = document.getElementById('adminStaffActive');
   await loadAdminStaffShifts(staffId);
   await loadAdminStaffTimesheets(staffId);
 
+  // Reset the granular fine-tune panel — collapse it and clear any data from
+  // whichever staff member was previously open, so nothing stale shows through.
+  granAvailOpen = false;
+  granAvailData = {};
+  const granPanel = document.getElementById('granAvailPanel');
+  const granLabel = document.getElementById('granAvailToggleLabel');
+  if (granPanel) granPanel.style.display = 'none';
+  if (granLabel) granLabel.textContent = 'Fine-tune individual slots';
+
   openPanel('panelStaffDetail');
 }
 
@@ -2679,6 +2714,183 @@ async function loadAdminStaffShifts(staffId) {
     });
   } catch(e) { adminShifts = {}; }
   renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
+}
+
+// ============================================================
+// GRANULAR PER-SLOT AVAILABILITY (fine-tuning tool)
+// Ported from btb_app.html's old "Staff Availability" panel, which had
+// no button anywhere to open it and was unreachable. Rescoped here to
+// whichever staff member is currently open in the admin Staff Detail
+// panel, instead of its own staff tab-picker.
+// ============================================================
+let granAvailOpen  = false;
+let granAvailData  = {};              // { 'YYYY-MM-DD': ['10:30','11:00',...] }
+let granAvailMonth = new Date().getMonth() + 1;
+let granAvailYear  = new Date().getFullYear();
+
+function toggleGranularAvailPanel() {
+  granAvailOpen = !granAvailOpen;
+  const panel = document.getElementById('granAvailPanel');
+  const label = document.getElementById('granAvailToggleLabel');
+  if (panel) panel.style.display = granAvailOpen ? '' : 'none';
+  if (label) label.textContent = granAvailOpen ? 'Hide individual slots' : 'Fine-tune individual slots';
+  if (granAvailOpen && adminViewingStaffId) {
+    granAvailMonth = new Date().getMonth() + 1; granAvailYear = new Date().getFullYear();
+    loadGranularAvailability(adminViewingStaffId);
+  }
+}
+
+async function loadGranularAvailability(staffId) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${staffId}&select=specific_date,start_time,available`, {headers:H()});
+    const rows = await r.json();
+    granAvailData = {};
+    rows.forEach(row => {
+      if (!row.specific_date || !row.available || row.available === 'unavailable') return;
+      const t = (row.start_time || '').slice(0,5);
+      if (!t) return;
+      if (!granAvailData[row.specific_date]) granAvailData[row.specific_date] = [];
+      if (!granAvailData[row.specific_date].includes(t)) granAvailData[row.specific_date].push(t);
+    });
+  } catch(e) { console.error('Granular avail load:', e); granAvailData = {}; }
+  document.getElementById('granAvailMonthLabel').textContent = MONTHS[granAvailMonth-1] + ' ' + granAvailYear;
+  renderGranularAvailGrid();
+}
+
+function navigateGranAvailMonth(delta) {
+  granAvailMonth += delta;
+  if (granAvailMonth > 12) { granAvailMonth = 1; granAvailYear++; }
+  if (granAvailMonth < 1)  { granAvailMonth = 12; granAvailYear--; }
+  document.getElementById('granAvailMonthLabel').textContent = MONTHS[granAvailMonth-1] + ' ' + granAvailYear;
+  renderGranularAvailGrid();
+}
+
+function getAllSlotsForDayIdx(dayIdx) {
+  const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
+  return Array.isArray(dc) ? dc : (dc['default'] || []);
+}
+
+function renderGranularAvailGrid() {
+  const el = document.getElementById('granAvailGrid'); if (!el) return;
+  if (!adminViewingStaffId) { el.innerHTML = '<div class="empty-state">No staff member selected.</div>'; return; }
+
+  const daysInMonth = new Date(granAvailYear, granAvailMonth, 0).getDate();
+  const todayStr = toDateStr(new Date());
+
+  let html = `<div style="background:#f0fafb;border:1px solid #07b4c5;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:600;color:#07b4c5;margin-bottom:8px">⚡ Quick apply — fill all open days this month with a pattern</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="add-btn" style="font-size:11px;padding:4px 10px" onclick="applyGranularAvailPattern('all')">All open days</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#1d9e75" onclick="applyGranularAvailPattern('weekdays')">Weekdays only</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#ef9f27" onclick="applyGranularAvailPattern('weekends')">Weekends only</button>
+      <button class="add-btn" style="font-size:11px;padding:4px 10px;background:#6b7280" onclick="applyGranularAvailPattern('none')">Clear all</button>
+    </div>
+  </div>`;
+
+  let anyDay = false;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(granAvailYear, granAvailMonth-1, d);
+    const dayIdx = date.getDay();
+    const oh = (bookingConfig.openingHours || []).find(o => o.day === dayIdx);
+    if (!oh || !oh.open) continue;
+    const ds = toDateStr(date);
+    if (ds < todayStr) continue;
+    const allSlots = getAllSlotsForDayIdx(dayIdx);
+    if (!allSlots.length) continue;
+    anyDay = true;
+
+    const staffSlots = granAvailData[ds] || [];
+    const dayLbl = date.toLocaleDateString('en-NZ', {weekday:'short', day:'numeric', month:'short'});
+    const isToday = ds === todayStr;
+
+    html += `<div class="gran-day-row">
+      <div class="gran-day-hdr">
+        <div>
+          <div class="gran-day-name" style="${isToday?'color:#07b4c5':''}">${isToday?'📅 ':''}${dayLbl}</div>
+          <div class="gran-day-sum">${staffSlots.length>0 ? staffSlots.length+' slot'+(staffSlots.length>1?'s':'')+' marked' : 'None marked'}</div>
+        </div>
+        <button class="gran-toggle-all ${staffSlots.length>0?'on':''}" onclick="toggleGranularAllDay('${ds}')">${staffSlots.length>0?'All on':'All off'}</button>
+      </div>
+      <div class="gran-slots">${allSlots.slice().sort().map(t => `<button class="gran-slot ${staffSlots.includes(t)?'on':''}" onclick="toggleGranularSlot('${ds}','${t}')">${t}</button>`).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = anyDay ? html : '<div class="empty-state">No open days this month.</div>';
+}
+
+function applyGranularAvailPattern(pattern) {
+  const daysInMonth = new Date(granAvailYear, granAvailMonth, 0).getDate();
+  const todayStr = toDateStr(new Date());
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(granAvailYear, granAvailMonth-1, d);
+    const ds = toDateStr(date);
+    if (ds < todayStr) continue;
+    const dayIdx = date.getDay();
+    const oh = (bookingConfig.openingHours || []).find(o => o.day === dayIdx);
+    if (!oh || !oh.open) continue;
+    const allSlots = getAllSlotsForDayIdx(dayIdx);
+    if (!allSlots.length) continue;
+    const isWeekday = dayIdx >= 1 && dayIdx <= 5;
+    const isWeekend = dayIdx === 0 || dayIdx === 6;
+    if (pattern === 'all')                             granAvailData[ds] = [...allSlots];
+    else if (pattern === 'weekdays' && isWeekday)       granAvailData[ds] = [...allSlots];
+    else if (pattern === 'weekdays' && !isWeekday)      granAvailData[ds] = [];
+    else if (pattern === 'weekends' && isWeekend)       granAvailData[ds] = [...allSlots];
+    else if (pattern === 'weekends' && !isWeekend)      granAvailData[ds] = [];
+    else if (pattern === 'none')                        granAvailData[ds] = [];
+  }
+  renderGranularAvailGrid();
+}
+
+function toggleGranularSlot(ds, time) {
+  const slots = granAvailData[ds] || [];
+  const idx = slots.indexOf(time);
+  if (idx === -1) slots.push(time); else slots.splice(idx, 1);
+  granAvailData[ds] = slots;
+  renderGranularAvailGrid();
+}
+
+function toggleGranularAllDay(ds) {
+  const date = new Date(ds + 'T12:00');
+  const allSlots = getAllSlotsForDayIdx(date.getDay());
+  const cur = granAvailData[ds] || [];
+  granAvailData[ds] = cur.length > 0 ? [] : [...allSlots];
+  renderGranularAvailGrid();
+}
+
+async function saveGranularAvailability() {
+  if (!adminViewingStaffId) return;
+  const msgEl = document.getElementById('granAvailMsg');
+  msgEl.style.color = '#6b7280'; msgEl.textContent = 'Saving…';
+  const headers = H();
+  try {
+    const delResp = await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${adminViewingStaffId}`, {method:'DELETE', headers});
+    if (!delResp.ok) { const t = await delResp.text(); console.error('DELETE failed:', delResp.status, t); }
+
+    const rows = [];
+    Object.entries(granAvailData).forEach(([ds, slots]) => {
+      slots.forEach(t => rows.push({staff_id: adminViewingStaffId, specific_date: ds, start_time: t+':00', available: true}));
+    });
+
+    if (rows.length > 0) {
+      const postResp = await fetch(`${SB_URL}/rest/v1/staff_availability`, {method:'POST', headers:{...headers,'Prefer':'return=minimal'}, body:JSON.stringify(rows)});
+      if (!postResp.ok) {
+        const errText = await postResp.text();
+        console.error('POST failed:', postResp.status, errText);
+        msgEl.style.color = '#dc2626'; msgEl.textContent = 'Save failed: ' + errText;
+        return;
+      }
+    }
+    msgEl.style.color = '#15803d';
+    msgEl.textContent = `✓ Saved ${rows.length} slot${rows.length!==1?'s':''}`;
+    setTimeout(() => { msgEl.textContent = ''; }, 3000);
+
+    // Refresh the shift-block view above too, since it reads the same table
+    await loadAdminStaffShifts(adminViewingStaffId);
+  } catch(e) {
+    msgEl.style.color = '#dc2626'; msgEl.textContent = 'Save failed: ' + e.message;
+    console.error('saveGranularAvailability error:', e);
+  }
 }
 
 async function loadAdminStaffTimesheets(staffId) {
