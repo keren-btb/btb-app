@@ -844,6 +844,8 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
+const BUILD_VERSION = '1.2.0';
+console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
 
@@ -892,6 +894,8 @@ let bookingConfig = {
 
 let staffAvail    = {}; // {staffId: {'YYYY-MM-DD': ['HH:MM',...]}}
 let staffTraining = []; // [{staff_id, game_id, status}]
+let staffAvailStatus = {}; // { staff_id: { 'YYYY-MM-DD_HH:MM': 'available'|'maybe' } }
+let staffFlags = {}; // { staff_id: true/false } — trusted_opener
 let trainingStatuses = [{id:'trained',qualifies:true},{id:'can_supervise',qualifies:true}];
 let existingBookings = [];
 
@@ -944,13 +948,19 @@ async function loadStaffData() {
     const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 90);
     const future = toDateStr(futureDate);
 
+    // NOTE: these query the public_* views, not the raw tables. The raw
+    // staff_availability / staff_game_training tables are locked to
+    // 'authenticated' only (see RLS policies) — the anon key this widget
+    // uses cannot read them directly. These views were created specifically
+    // to expose just the columns the public widget needs.
     const sr = await fetch(
-      `${SB_URL}/rest/v1/staff_availability?specific_date=gte.${today}&specific_date=lte.${future}&available=neq.unavailable&select=staff_id,specific_date,start_time,available`,
+      `${SB_URL}/rest/v1/public_staff_availability?specific_date=gte.${today}&specific_date=lte.${future}&available=neq.unavailable&select=staff_id,specific_date,start_time,available`,
       {headers: SB_H}
     );
     const rows = await sr.json();
 
     staffAvail = {};
+    staffAvailStatus = {}; // { staff_id: { 'YYYY-MM-DD_HH:MM': 'available'|'maybe' } }
     rows.forEach(row => {
       const ds = row.specific_date;
       const t = (row.start_time || '').slice(0, 5);
@@ -959,10 +969,23 @@ async function loadStaffData() {
       if (!staffAvail[row.staff_id][ds]) staffAvail[row.staff_id][ds] = [];
       if (!staffAvail[row.staff_id][ds].includes(t))
         staffAvail[row.staff_id][ds].push(t);
+      if (!staffAvailStatus[row.staff_id]) staffAvailStatus[row.staff_id] = {};
+      staffAvailStatus[row.staff_id][ds + '_' + t] = row.available;
     });
 
-    const tr = await fetch(`${SB_URL}/rest/v1/staff_game_training`, {headers:SB_H});
+    const tr = await fetch(`${SB_URL}/rest/v1/public_staff_training`, {headers:SB_H});
     staffTraining = await tr.json();
+
+    // Trusted Opener flags — a separate minimal view (id + trusted_opener only).
+    // If this view doesn't exist yet (SQL not run), fails safe: staffFlags stays
+    // empty, so every near-cutoff slot requires a phone call (no one treated
+    // as a trusted opener) rather than assuming trust by default.
+    try {
+      const fr = await fetch(`${SB_URL}/rest/v1/public_staff_flags?select=staff_id,trusted_opener`, {headers:SB_H});
+      const flagRows = await fr.json();
+      staffFlags = {};
+      if (Array.isArray(flagRows)) flagRows.forEach(f => { staffFlags[f.staff_id] = f.trusted_opener === true; });
+    } catch(e) { staffFlags = {}; }
   } catch(e) { console.error('Staff data error:', e); }
 }
 // Return sorted slot times for a given day index (0=Sun…6=Sat)
@@ -1038,7 +1061,6 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   const now = new Date();
   const cut = (bookingConfig.callToBookCutoffHours||3) * 3600000;
   if (d < now) return 'past';
-  if (d - now < cut) return 'call';
   // Check if already booked
   const alreadyBooked = existingBookings.some(b =>
     b.game_id === gameId &&
@@ -1046,28 +1068,58 @@ function getSlotStatus(gameId, dateStr, slotTime) {
     (b.slot_time||'').slice(0,5) === slotTime
   );
   if (alreadyBooked) return 'booked';
-  // If no staff set up at all, show as available so booking flow can be tested
-  const anyStaff = Object.keys(staffAvail).length > 0 || staffTraining.length > 0;
-  if (!anyStaff) return 'available';
-  // Staff exist — check if a qualified+available GM is free
-  const avail = getAvailableGMs(gameId, dateStr, slotTime);
-  if (avail.length === 0) return 'booked';
-  return 'available';
+
+  // Fail-safe: if there's no staff/training data in the system at all (fresh
+  // install, or data wiped), we can't verify anyone can actually run this —
+  // so don't claim it's available, ask the customer to call instead.
+  const anyStaffData = Object.keys(staffAvail).length > 0 || staffTraining.length > 0;
+  if (!anyStaffData) return 'call';
+
+  const pool = getQualifiedStaffPool(gameId, dateStr, slotTime);
+  if (pool.fullyAvailable.length === 0 && pool.maybeAvailable.length === 0) return 'booked'; // nobody qualified & free at all
+
+  const withinCutoff = (d - now) < cut;
+  if (withinCutoff) {
+    // Close to the slot — only bookable without a call if a fully-available,
+    // trusted-opener staff member is free (they don't need a confirm call to open solo).
+    const trustedFree = pool.fullyAvailable.some(sid => staffFlags[sid] === true);
+    return trustedFree ? 'available' : 'call';
+  }
+  // Outside the cutoff window — fully-available qualified staff can book direct;
+  // if only "maybe / prefer off" staff are free, ask the customer to call.
+  return pool.fullyAvailable.length > 0 ? 'available' : 'call';
 }
 
-function getAvailableGMs(gameId, dateStr, slotTime) {
-  return Object.keys(staffAvail).filter(sid => {
+// Splits qualified, unassigned staff for a slot into fully-available vs "maybe".
+function getQualifiedStaffPool(gameId, dateStr, slotTime) {
+  const fullyAvailable = [];
+  const maybeAvailable = [];
+  Object.keys(staffAvail).forEach(sid => {
     const training  = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
     const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
-    if (!statusObj || !statusObj.qualifies) return false;
+    if (!statusObj || !statusObj.qualifies) return;
     const slots = (staffAvail[sid][dateStr] || []);
-    if (!slots.includes(slotTime)) return false;
+    if (!slots.includes(slotTime)) return;
     const taken = existingBookings.some(b => {
       const ids = JSON.parse(b.assigned_staff_ids || '[]');
       return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time||'').slice(0,5) === slotTime;
     });
-    return !taken;
+    if (taken) return;
+    const availStatus = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime];
+    if (availStatus === 'maybe') maybeAvailable.push(sid);
+    else fullyAvailable.push(sid);
   });
+  return { fullyAvailable, maybeAvailable };
+}
+
+function getAvailableGMs(gameId, dateStr, slotTime) {
+  // Kept for compatibility with booking-submission logic, which uses the
+  // first entry here as the assigned staff member. Trusted openers are
+  // sorted first among fully-available staff, since a near-cutoff booking
+  // may only be valid because a trusted opener specifically was free.
+  const pool = getQualifiedStaffPool(gameId, dateStr, slotTime);
+  const sortedFullyAvailable = [...pool.fullyAvailable].sort((a,b) => (staffFlags[b]===true?1:0) - (staffFlags[a]===true?1:0));
+  return [...sortedFullyAvailable, ...pool.maybeAvailable];
 }
 
 // ============================================================
