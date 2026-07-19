@@ -844,7 +844,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.3.0';
+const BUILD_VERSION = '1.3.1';
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
@@ -1870,19 +1870,17 @@ async function submitBooking() {
       if (foundId) {
         clientId = foundId;
       } else {
-        const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
+        const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
           method:'POST',
-          headers:{...SB_H,'Prefer':'return=representation'},
+          headers:SB_H,
           body:JSON.stringify({
-            first_name: first,
-            last_name:  last,
-            email,
-            phone,
-            source:'online',
+            p_first_name: first,
+            p_last_name:  last,
+            p_email:      email,
+            p_phone:      phone,
           })
         });
-        const newClient = await nr.json();
-        clientId = newClient[0]?.id;
+        clientId = await nr.json();
       }
     }
 
@@ -1914,7 +1912,7 @@ async function submitBooking() {
 
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method:'POST',
-      headers:{...SB_H,'Prefer':'return=representation'},
+      headers:{...SB_H,'Prefer':'return=minimal'},
       body:JSON.stringify(bookingData),
     });
     if (!br.ok) throw new Error('Booking save failed: ' + await br.text());
@@ -2109,11 +2107,11 @@ async function submitContactEnquiry() {
     const foundId = await cr.json();
     if (foundId) { clientId = foundId; }
     else {
-      const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
-        method: 'POST', headers: { ...SB_H, 'Prefer': 'return=representation' },
-        body: JSON.stringify({ first_name:first, last_name:last||null, email:email||null, phone:phone||null, source:'online' })
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_first_name:first, p_last_name:last||null, p_email:email||null, p_phone:phone||null })
       });
-      const nc = await nr.json(); clientId = nc[0]?.id;
+      clientId = await nr.json();
     }
     const r = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST', headers: { ...SB_H, 'Prefer': 'return=minimal' },
