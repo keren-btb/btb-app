@@ -471,15 +471,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
       <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
       <button class="nav-btn"        data-tab="tabTraining" onclick="showTab('tabTraining',this)"><i class="ti ti-certificate"></i>My Training</button>
- <button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
-      <!-- Admin-only tabs, hidden for staff -->
+<button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
+      <button class="nav-btn admin-only" data-tab="tabRoster" onclick="showTab('tabRoster',this)" style="display:none"><i class="ti ti-table"></i>Roster</button>
+        <!-- Admin-only tabs, hidden for staff -->
       <div class="nav-divider"></div>
       <button class="nav-btn admin-only" data-tab="tabClock" onclick="showTab('tabClock',this)" style="display:none"><i class="ti ti-clock-bolt"></i>Clock</button>
       <button class="nav-btn admin-only" data-tab="tabStaff" onclick="showTab('tabStaff',this)" style="display:none"><i class="ti ti-users"></i>Staff</button>
       <button class="nav-btn admin-only" data-tab="tabStaffTraining" onclick="showTab('tabStaffTraining',this)" style="display:none"><i class="ti ti-table"></i>Staff Training</button>
 <button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
-      <button class="nav-btn admin-only" data-tab="tabRoster" onclick="showTab('tabRoster',this)" style="display:none"><i class="ti ti-table"></i>Roster</button>    </nav>
-
     <div class="content-area">
 
   <!-- ══ HOME TAB ══ -->
@@ -1213,7 +1212,7 @@ function getRosterWeekDates() {
   return dates;
 }
 
-function loadRosterOverview() {
+async function loadRosterOverview() {
   const dates = getRosterWeekDates();
   const label = document.getElementById('rosterWeekLabel');
   if (label) {
@@ -1230,6 +1229,33 @@ function loadRosterOverview() {
   }
 
   const activeStaff = allStaff.filter(s => s.active !== false);
+  const fromDate = toDateStr(dates[0]);
+  const toDate = toDateStr(dates[6]);
+
+  wrap.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  // Pull recurring patterns + specific-date overrides for every active staff member in one go
+  const [recurRes, overrideRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/staff_recurring_availability?select=staff_id,cycle_week,day_of_week,shift_index,available`, {headers:H()}),
+    fetch(`${SB_URL}/rest/v1/staff_availability?specific_date=gte.${fromDate}&specific_date=lte.${toDate}&select=staff_id,specific_date,start_time,available`, {headers:H()})
+  ]);
+  const recurRows = await recurRes.json();
+  const overrideRows = await overrideRes.json();
+
+  const recurMap = {}; // staff_id -> { 'week_day_shift': state }
+  recurRows.forEach(row => {
+    if (!recurMap[row.staff_id]) recurMap[row.staff_id] = {};
+    recurMap[row.staff_id][`${row.cycle_week}_${row.day_of_week}_${row.shift_index}`] = row.available;
+  });
+
+  const overrideMap = {}; // staff_id -> { 'date_shift': state }
+  overrideRows.forEach(row => {
+    const t = (row.start_time || '').slice(0,5);
+    const shiftIdx = shiftDefs.findIndex(s => t >= s.start && t < s.end);
+    if (shiftIdx === -1) return;
+    if (!overrideMap[row.staff_id]) overrideMap[row.staff_id] = {};
+    overrideMap[row.staff_id][`${row.specific_date}_${shiftIdx}`] = row.available;
+  });
 
   let html = `<table style="border-collapse:collapse;font-size:12px;min-width:700px">
     <tr>
@@ -1242,10 +1268,16 @@ function loadRosterOverview() {
     </tr>`;
 
   activeStaff.forEach(staff => {
-    html += `<tr><td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #f3f4f6">${staff.name}</td>`;
-    dates.forEach(() => {
-      visibleShiftIdxs.forEach(() => {
-        html += `<td style="padding:6px 10px;text-align:center;color:#9ca3af;border-bottom:1px solid #f3f4f6">—</td>`;
+    html += `<tr><td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #f3f4f6;white-space:nowrap">${staff.name}</td>`;
+    dates.forEach(d => {
+      const dateStr = toDateStr(d);
+      const cycleWeek = getCycleWeekForDate(d);
+      const dayOfWeek = (d.getDay() + 6) % 7; // convert JS Sun=0 to Mon=0
+      visibleShiftIdxs.forEach(shiftIdx => {
+        const overrideState = overrideMap[staff.id]?.[`${dateStr}_${shiftIdx}`];
+        const state = overrideState || recurMap[staff.id]?.[`${cycleWeek}_${dayOfWeek}_${shiftIdx}`] || 'unavailable';
+        const meta = AVAIL_STATE_META[state];
+        html += `<td style="padding:6px 10px;text-align:center;background:${meta.bg};color:${meta.color};border-bottom:1px solid #f3f4f6">${meta.label}</td>`;
       });
     });
     html += `</tr>`;
@@ -1254,7 +1286,7 @@ function loadRosterOverview() {
   html += `</table>`;
   wrap.innerHTML = html;
 }
-
+    
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
   const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
