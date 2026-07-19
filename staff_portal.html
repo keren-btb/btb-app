@@ -1003,7 +1003,31 @@ const ROLE_LABELS = {
   manager:        'Manager',
   admin:          'Admin'
 };
+// ============================================================
+// RECURRING AVAILABILITY PATTERN (4-week rolling cycle)
+// ============================================================
+const CYCLE_ANCHOR = new Date('2024-01-01T00:00:00'); // fixed Monday reference point — shared by every staff member
+const CYCLE_WEEK_LABELS = ['Week A', 'Week B', 'Week C', 'Week D'];
+const DAY_LABELS_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
+const AVAIL_STATE_ORDER = ['unavailable', 'would_like', 'maybe', 'available'];
+const AVAIL_STATE_META = {
+  unavailable: { label: 'Unavailable',        bg: '#f3f4f6', color: '#9ca3af' },
+  would_like:  { label: 'Would like to work', bg: '#dbeafe', color: '#1d4ed8' },
+  maybe:       { label: 'Maybe',              bg: '#fef3c7', color: '#d97706' },
+  available:   { label: 'Available',          bg: '#dcfce7', color: '#15803d' }
+};
+
+function nextAvailState(current) {
+  const idx = AVAIL_STATE_ORDER.indexOf(current);
+  return AVAIL_STATE_ORDER[(idx + 1) % AVAIL_STATE_ORDER.length];
+}
+
+function getCycleWeekForDate(d) {
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksSinceAnchor = Math.floor((d - CYCLE_ANCHOR) / msPerWeek);
+  return ((weeksSinceAnchor % 4) + 4) % 4; // always returns 0-3, even for dates before the anchor
+}
 let availWeekOffset      = 0;
 let adminStaffWeekOffset = 0;
 let adminViewingStaffId  = null;
