@@ -471,16 +471,16 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
       <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
       <button class="nav-btn"        data-tab="tabTraining" onclick="showTab('tabTraining',this)"><i class="ti ti-certificate"></i>My Training</button>
- <button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
-      <!-- Admin-only tabs, hidden for staff -->
+<button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
+      <button class="nav-btn admin-only" data-tab="tabRoster" onclick="showTab('tabRoster',this)" style="display:none"><i class="ti ti-table"></i>Roster</button>
+        <!-- Admin-only tabs, hidden for staff -->
       <div class="nav-divider"></div>
       <button class="nav-btn admin-only" data-tab="tabClock" onclick="showTab('tabClock',this)" style="display:none"><i class="ti ti-clock-bolt"></i>Clock</button>
       <button class="nav-btn admin-only" data-tab="tabStaff" onclick="showTab('tabStaff',this)" style="display:none"><i class="ti ti-users"></i>Staff</button>
       <button class="nav-btn admin-only" data-tab="tabStaffTraining" onclick="showTab('tabStaffTraining',this)" style="display:none"><i class="ti ti-table"></i>Staff Training</button>
-      <button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
+<button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
     </nav>
-
-    <div class="content-area">
+        <div class="content-area">
 
   <!-- ══ HOME TAB ══ -->
   <div id="tabHome" class="section active">
@@ -648,9 +648,24 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
+<!-- ══ ADMIN: ROSTER OVERVIEW TAB ══ -->
+  <div id="tabRoster" class="section">
+    <div class="sec-title">Roster Overview</div>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset--; loadRosterOverview()">← Prev week</button>
+      <span id="rosterWeekLabel" style="font-weight:600;font-size:13px;color:#1f2937"></span>
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset++; loadRosterOverview()">Next week →</button>
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset=0; loadRosterOverview()">This week</button>
+      <button class="btn-secondary btn-sm" id="rosterHideClosedBtn" onclick="rosterHideClosed=!rosterHideClosed; loadRosterOverview()">Hide closed days</button>
+    </div>
+<div id="rosterGridWrap" style="overflow-x:auto"></div>
+    <div class="divider"></div>
+    <div class="sec-title" style="font-size:14px" id="rosterMonthlyLabel">Hours rostered this month</div>
+    <div id="rosterMonthlyHours"></div>
+  </div>
+      
   <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
-  <div id="tabApprove" class="section">
-    <div class="sec-title">Timesheets awaiting approval</div>
+  <div id="tabApprove" class="section">    <div class="sec-title">Timesheets awaiting approval</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
       <button class="btn-secondary btn-sm" style="border-color:#07b4c5;color:#07b4c5" onclick="setTsFilter('all',this)">All pending</button>
       <button class="btn-secondary btn-sm" onclick="setTsFilter('clocked_in',this)">Clocked in</button>
@@ -682,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="field-label">Date <span class="req">*</span></div>
             <input class="field-input" type="date" id="newShiftDate">
           </div>
-          <div class="field-2col">
+<div class="field-2col">
             <div class="field">
               <div class="field-label">Start time <span class="req">*</span></div>
               <input class="field-input" type="time" id="newShiftStart">
@@ -692,8 +707,28 @@ document.addEventListener('DOMContentLoaded', () => {
               <input class="field-input" type="time" id="newShiftEnd">
             </div>
           </div>
+          <div class="field-2col">
+<div class="field">
+              <div class="field-label">Staff required</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button type="button" class="btn-secondary btn-sm" onclick="adjustShiftCount(-1)" style="width:32px">−</button>
+                <input class="field-input" type="number" id="newShiftCount" min="1" value="1" style="text-align:center" readonly>
+                <button type="button" class="btn-secondary btn-sm" onclick="adjustShiftCount(1)" style="width:32px">+</button>
+              </div>
+            </div>
+              <div class="field">
+              <div class="field-label">Minimum role</div>
+              <select class="field-select" id="newShiftMinRole">
+                <option value="">No restriction</option>
+                <option value="gamemaster_own">Gamemaster (own)</option>
+                <option value="gamemaster">Gamemaster</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
           <div class="field">
-            <div class="field-label">Assign to staff (optional — leave blank to post as open)</div>
+            <div class="field-label">Assign to staff (optional — leave blank to post as open, only used when Staff required = 1)</div>
             <select class="field-select" id="newShiftStaff">
               <option value="">— Post as open shift</option>
             </select>
@@ -924,7 +959,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.8.0';
+const BUILD_VERSION = '1.9.0';
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -936,7 +971,10 @@ const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 // Replaces the old hardcoded Morning/Afternoon/Evening blocks so admin can
 // define any number of named shifts with custom start/end times.
 let shiftDefs = []; // [{name, start, end}, ...]
-
+// WARNING: this array's ORDER is meaningful. Availability/overrides in the DB store
+// shift_index = position in this array. If the order of shifts in Settings > Shift Times
+// ever changes (currently not possible via the UI, only via a direct DB edit), historical
+// availability data will be silently reassigned to the wrong shift.
 function shiftForTime(t) {
   // Finds which defined shift a given HH:MM slot time falls into.
   // Returns null if the time doesn't fall in any defined shift (a gap).
@@ -1181,6 +1219,169 @@ function shiftKey(dateStr, shiftIndex) {
   return `${dateStr}_${shiftIndex}`;
 }
 
+// ============================================================
+// ADMIN: ROSTER OVERVIEW (skeleton — data wiring comes next step)
+// ============================================================
+let rosterWeekOffset = 0;
+let rosterHideClosed = false;
+    
+function getRosterWeekDates() {
+  const now = new Date();
+  const jsDay = now.getDay(); // 0=Sun
+  const mondayOffset = (jsDay === 0 ? -6 : 1 - jsDay);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset + rosterWeekOffset * 7);
+  monday.setHours(0,0,0,0);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+async function loadRosterOverview() {
+  const dates = getRosterWeekDates();
+  const label = document.getElementById('rosterWeekLabel');
+  if (label) {
+    label.textContent = `${dates[0].getDate()} ${MONTHS[dates[0].getMonth()]} – ${dates[6].getDate()} ${MONTHS[dates[6].getMonth()]}`;
+  }
+
+  const visibleShiftIdxs = shiftDefs.map((s,i)=>i).filter(i => shiftDefs[i].active !== false);
+  const wrap = document.getElementById('rosterGridWrap');
+  if (!wrap) return;
+
+  if (visibleShiftIdxs.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings.</div>';
+    return;
+  }
+
+const btn = document.getElementById('rosterHideClosedBtn');
+  if (btn) btn.textContent = rosterHideClosed ? 'Show all days' : 'Hide closed days';
+
+  const visibleDates = rosterHideClosed ? dates.filter(isDayOpen) : dates;
+
+  const activeStaff = allStaff.filter(s => s.active !== false);
+  const fromDate = toDateStr(dates[0]);
+  const toDate = toDateStr(dates[6]);
+    
+  wrap.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  // Pull recurring patterns + specific-date overrides for every active staff member in one go
+  const [recurRes, overrideRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/staff_recurring_availability?select=staff_id,cycle_week,day_of_week,shift_index,available`, {headers:H()}),
+    fetch(`${SB_URL}/rest/v1/staff_availability?specific_date=gte.${fromDate}&specific_date=lte.${toDate}&select=staff_id,specific_date,start_time,available`, {headers:H()})
+  ]);
+  const recurRows = await recurRes.json();
+  const overrideRows = await overrideRes.json();
+
+  const recurMap = {}; // staff_id -> { 'week_day_shift': state }
+  recurRows.forEach(row => {
+    if (!recurMap[row.staff_id]) recurMap[row.staff_id] = {};
+    recurMap[row.staff_id][`${row.cycle_week}_${row.day_of_week}_${row.shift_index}`] = row.available;
+  });
+
+  const overrideMap = {}; // staff_id -> { 'date_shift': state }
+  overrideRows.forEach(row => {
+    const t = (row.start_time || '').slice(0,5);
+    const shiftIdx = shiftDefs.findIndex(s => t >= s.start && t < s.end);
+    if (shiftIdx === -1) return;
+    if (!overrideMap[row.staff_id]) overrideMap[row.staff_id] = {};
+    overrideMap[row.staff_id][`${row.specific_date}_${shiftIdx}`] = row.available;
+  });
+
+/* ── colour for diff days in roster view ── */  
+const dayShade = (i) => i % 2 === 0 ? '#dec4fc' : '#ffffff';
+  let html = `<table style="border-collapse:collapse;font-size:12px;min-width:700px">
+    <tr>
+      <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #e5e7eb">Staff</th>
+      ${visibleDates.map((d,di) => `<th colspan="${visibleShiftIdxs.length}" style="padding:6px 10px;border-bottom:2px solid #e5e7eb;text-align:center;background:${dayShade(di)}">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</th>`).join('')}
+    </tr>
+    <tr>
+      <th></th>
+      ${visibleDates.map((d,di) => visibleShiftIdxs.map(i => `<th style="padding:4px 6px;font-weight:400;color:#6b7280;border-bottom:1px solid #e5e7eb;background:${dayShade(di)}">${shiftDefs[i].name}</th>`).join('')).join('')}
+    </tr>`;
+
+  activeStaff.forEach(staff => {
+    html += `<tr><td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #f3f4f6;white-space:nowrap">${staff.name}</td>`;
+    visibleDates.forEach((d,di) => {
+      const dateStr = toDateStr(d);
+      const cycleWeek = getCycleWeekForDate(d);
+      const dayOfWeek = (d.getDay() + 6) % 7; // convert JS Sun=0 to Mon=0
+      visibleShiftIdxs.forEach(shiftIdx => {
+        const overrideState = overrideMap[staff.id]?.[`${dateStr}_${shiftIdx}`];
+        const state = overrideState || recurMap[staff.id]?.[`${cycleWeek}_${dayOfWeek}_${shiftIdx}`] || 'unavailable';
+        const meta = AVAIL_STATE_META[state];
+        const bg = state === 'unavailable' ? dayShade(di) : meta.bg;
+        html += `<td style="padding:6px 10px;text-align:center;background:${bg};color:${meta.color};border-bottom:1px solid #f3f4f6">${meta.label}</td>`;
+      });
+    });
+    html += `</tr>`;
+  });
+    
+html += `</table>`;
+  wrap.innerHTML = html;
+
+  await loadRosterMonthlyHours(dates[0]);
+}
+
+function hoursBetween(startStr, endStr) {
+  const [sh, sm] = startStr.split(':').map(Number);
+  const [eh, em] = endStr.split(':').map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // overnight shift
+  return mins / 60;
+}
+
+async function loadRosterMonthlyHours(anyDateInWeek) {
+  const monthStart = new Date(anyDateInWeek.getFullYear(), anyDateInWeek.getMonth(), 1);
+  const monthEnd = new Date(anyDateInWeek.getFullYear(), anyDateInWeek.getMonth() + 1, 0);
+  const fromStr = toDateStr(monthStart);
+  const toStr = toDateStr(monthEnd);
+
+  const labelEl = document.getElementById('rosterMonthlyLabel');
+  if (labelEl) labelEl.textContent = `Hours rostered — ${MONTHS[monthStart.getMonth()]} ${monthStart.getFullYear()}`;
+
+  const el = document.getElementById('rosterMonthlyHours');
+  if (!el) return;
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/assigned_shifts?shift_date=gte.${fromStr}&shift_date=lte.${toStr}&status=neq.open&select=staff_id,custom_start_time,custom_end_time`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+
+    const totals = {}; // staff_id -> hours
+    rows.forEach(row => {
+      if (!row.staff_id || !row.custom_start_time || !row.custom_end_time) return;
+      const hrs = hoursBetween(row.custom_start_time.slice(0,5), row.custom_end_time.slice(0,5));
+      totals[row.staff_id] = (totals[row.staff_id] || 0) + hrs;
+    });
+
+    const activeStaff = allStaff.filter(s => s.active !== false);
+    const summary = activeStaff
+      .map(s => ({ name: s.name, hours: totals[s.id] || 0 }))
+      .sort((a,b) => b.hours - a.hours);
+
+    if (summary.every(s => s.hours === 0)) {
+      el.innerHTML = '<div class="empty-state">No confirmed shifts this month yet.</div>';
+      return;
+    }
+
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">
+      ${summary.map(s => `<div style="display:flex;justify-content:space-between;max-width:320px;padding:4px 10px;font-size:13px;border-bottom:1px solid #f3f4f6">
+        <span>${s.name}</span><span style="font-weight:600">${s.hours.toFixed(1)} hrs</span>
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state">Couldn\'t load hours: ' + e.message + '</div>';
+  }
+}
+    
+    
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
   const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
@@ -3401,6 +3602,7 @@ function showTab(id, btn) {
     if (id === 'tabTraining') renderMyTraining();
     if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
+    if (id === 'tabRoster') loadRosterOverview();
 }
 
 // ============================================================
@@ -3607,6 +3809,12 @@ function buildStaffMyShiftCard(s) {
   </div>`;
 }
 
+function adjustShiftCount(delta) {
+  const el = document.getElementById('newShiftCount');
+  const val = Math.max(1, (parseInt(el.value) || 1) + delta);
+  el.value = val;
+}
+
 async function createShift() {
   const date  = document.getElementById('newShiftDate')?.value;
   const start = document.getElementById('newShiftStart')?.value;
@@ -3614,44 +3822,53 @@ async function createShift() {
   const staffId = document.getElementById('newShiftStaff')?.value || null;
   const notes = document.getElementById('newShiftNotes')?.value.trim() || null;
   const isStandby = document.getElementById('newShiftStandby')?.checked || false;
+  const count = Math.max(1, parseInt(document.getElementById('newShiftCount')?.value) || 1);
+  const minRole = document.getElementById('newShiftMinRole')?.value || null;
   const msgEl = document.getElementById('newShiftMsg');
 
   if (!date || !start || !end) { msgEl.className='msg err'; msgEl.textContent='Date, start and end time are required.'; return; }
   if (end <= start) { msgEl.className='msg err'; msgEl.textContent='End time must be after start time.'; return; }
+  if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign to staff only works when Staff required = 1. Leave it blank for multi-staff shifts.'; return; }
   msgEl.className='msg'; msgEl.textContent='Saving…';
   try {
+    const slotGroupId = count > 1 ? crypto.randomUUID() : null;
+    const rowsToCreate = Array.from({length: count}, () => ({
+      shift_date: date,
+      custom_start_time: start,
+      custom_end_time: end,
+      staff_id: staffId,
+      notes,
+      status: staffId ? 'assigned' : 'open',
+      created_by: currentUser?.name || null,
+      assigned_at: staffId ? new Date().toISOString() : null,
+      shift_type: 'custom',
+      is_standby: isStandby,
+      required_role: minRole,
+      slot_group_id: slotGroupId
+    }));
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, {
       method:'POST',
       headers:{...H(),'Prefer':'return=representation'},
-      body: JSON.stringify({
-        shift_date: date,
-        custom_start_time: start,
-        custom_end_time: end,
-        staff_id: staffId,
-        notes,
-        status: staffId ? 'assigned' : 'open',
-        created_by: currentUser?.name || null,
-        assigned_at: staffId ? new Date().toISOString() : null,
-        shift_type: 'custom',
-        is_standby: isStandby
-      })
+      body: JSON.stringify(rowsToCreate)
     });
     if (!r.ok) throw new Error(await r.text());
     const rows = await r.json();
-    if (rows[0]) allShifts.push(rows[0]);
+    allShifts.push(...rows);
     allShifts.sort((a,b) => a.shift_date > b.shift_date ? 1 : a.custom_start_time > b.custom_start_time ? 1 : -1);
-    msgEl.className='msg ok'; msgEl.textContent='✓ Shift created';
+    msgEl.className='msg ok'; msgEl.textContent = count > 1 ? `✓ ${count} shift slots created` : '✓ Shift created';
     document.getElementById('newShiftDate').value='';
     document.getElementById('newShiftStart').value='';
     document.getElementById('newShiftEnd').value='';
     document.getElementById('newShiftNotes').value='';
     document.getElementById('newShiftStaff').value='';
+    document.getElementById('newShiftCount').value='1';
+    document.getElementById('newShiftMinRole').value='';
     if (document.getElementById('newShiftStandby')) document.getElementById('newShiftStandby').checked = false;
     setTimeout(()=>msgEl.textContent='',3000);
     renderAdminShifts();
   } catch(e) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
 }
-
+    
 async function claimShift(id) {
   if (!myStaffRecord) return;
   try {
