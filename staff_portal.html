@@ -1066,8 +1066,8 @@ function shiftRange(name) {
   return `${fmt12(s.start)} – ${fmt12(s.end)}`;
 }
 
-function shiftKey(dateStr, shiftType) {
-  return `${dateStr}_${shiftType}`;
+function shiftKey(dateStr, shiftIndex) {
+  return `${dateStr}_${shiftIndex}`;
 }
 
 function getSlotsForDay(dayIdx) {
@@ -1284,9 +1284,9 @@ async function loadMyShifts() {
       if (!row.available || row.available === 'unavailable') return;
       const t = (row.start_time || '').slice(0,5);
       if (!t) return;
-      const shift = shiftForTime(t);
-      if (!shift) return; // time falls in a gap between defined shifts
-      const key = shiftKey(row.specific_date, shift.name);
+      const shiftIdx = shiftDefs.findIndex(s => t >= s.start && t < s.end);
+      if (shiftIdx === -1) return; // time falls in a gap between defined shifts
+      const key = shiftKey(row.specific_date, shiftIdx);
       myShifts[key] = row.available;
     });
   } catch(e) { console.error('Shifts load:', e); }
@@ -1491,7 +1491,7 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
 
   let html = `<div class="avail-grid" style="grid-template-columns:auto repeat(${shiftDefs.length},1fr)">
     <div class="avail-grid-head"></div>
-    ${shiftDefs.map(s => `<div class="avail-grid-head">${s.name}<br><span style="font-weight:400;font-size:9px">${shiftRange(s.name)}</span></div>`).join('')}`;
+    ${shiftDefs.map((s,i) => `<div class="avail-grid-head">${s.name}<br><span style="font-weight:400;font-size:9px">${shiftRange(s.name)}</span></div>`).join('')}`;
 
   days.forEach(d => {
     const ds = toDateStr(d);
@@ -1504,9 +1504,8 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
     if (!isOpen) {
       html += `<div class="avail-closed" style="grid-column:2/-1">Closed</div>`;
     } else {
-      shiftDefs.forEach(s => {
-        const type = s.name;
-        const key = shiftKey(ds, type);
+      shiftDefs.forEach((s, shiftIdx) => {
+        const key = shiftKey(ds, shiftIdx);
         const val = shiftData[key];
         const isAvailable = val === 'available' || val === true;
         const isMaybe = val === 'maybe';
@@ -1515,7 +1514,7 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
         const statusText = isAvailable ? '✓' : (isMaybe ? 'can be but prefer not' : '-');
         const styleOverride = isMaybe ? 'style="background:#f59e0b !important; color:#fff !important; border-color:#d97706 !important;"' : '';
         
-        const onclick = isPast ? '' : `onclick="${gridId==='adminStaffAvailGrid' ? 'toggleAdminShift' : 'toggleMyShift'}('${ds}','${type}')"`;
+        const onclick = isPast ? '' : `onclick="${gridId==='adminStaffAvailGrid' ? 'toggleAdminShift' : 'toggleMyShift'}('${ds}',${shiftIdx})"`;
         html += `<button class="avail-shift-btn ${statusClass} ${isPast?'past':''}" ${styleOverride} ${onclick}>
             ${statusText}
         </button>`;
@@ -1527,8 +1526,8 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
   el.innerHTML = html;
 }
 
-function toggleMyShift(dateStr, shiftType) {
-    const key = shiftKey(dateStr, shiftType);
+function toggleMyShift(dateStr, shiftIdx) {
+    const key = shiftKey(dateStr, shiftIdx);
     const current = myShifts[key];
     
     if (!current || current === 'unavailable') {
@@ -1543,8 +1542,8 @@ function toggleMyShift(dateStr, shiftType) {
     renderWeekAvailSummary();
 }
 
-function toggleAdminShift(dateStr, shiftType) {
-  const key = shiftKey(dateStr, shiftType);
+function toggleAdminShift(dateStr, shiftIdx) {
+  const key = shiftKey(dateStr, shiftIdx);
   adminShifts[key] = !adminShifts[key];
   renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
 }
@@ -2707,9 +2706,9 @@ async function loadAdminStaffShifts(staffId) {
       if (!row.available || row.available === 'unavailable') return;
       const t = (row.start_time || '').slice(0,5);
       if (!t) return;
-      const shift = shiftForTime(t);
-      if (!shift) return;
-      const key = shiftKey(row.specific_date, shift.name);
+      const shiftIdx = shiftDefs.findIndex(s => t >= s.start && t < s.end);
+      if (shiftIdx === -1) return; // time falls in a gap between defined shifts
+      const key = shiftKey(row.specific_date, shiftIdx);
       adminShifts[key] = row.available;
     });
   } catch(e) { adminShifts = {}; }
