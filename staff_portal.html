@@ -697,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="field-label">Date <span class="req">*</span></div>
             <input class="field-input" type="date" id="newShiftDate">
           </div>
-          <div class="field-2col">
+<div class="field-2col">
             <div class="field">
               <div class="field-label">Start time <span class="req">*</span></div>
               <input class="field-input" type="time" id="newShiftStart">
@@ -707,8 +707,24 @@ document.addEventListener('DOMContentLoaded', () => {
               <input class="field-input" type="time" id="newShiftEnd">
             </div>
           </div>
+          <div class="field-2col">
+            <div class="field">
+              <div class="field-label">Staff required</div>
+              <input class="field-input" type="number" id="newShiftCount" min="1" value="1">
+            </div>
+            <div class="field">
+              <div class="field-label">Minimum role</div>
+              <select class="field-select" id="newShiftMinRole">
+                <option value="">No restriction</option>
+                <option value="gamemaster_own">Gamemaster (own)</option>
+                <option value="gamemaster">Gamemaster</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
           <div class="field">
-            <div class="field-label">Assign to staff (optional — leave blank to post as open)</div>
+            <div class="field-label">Assign to staff (optional — leave blank to post as open, only used when Staff required = 1)</div>
             <select class="field-select" id="newShiftStaff">
               <option value="">— Post as open shift</option>
             </select>
