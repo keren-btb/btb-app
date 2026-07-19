@@ -573,7 +573,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.0';
+const BUILD_VERSION = '1.2.1'; // faster session restore — skip token refresh unless near expiry,
+// show app immediately from cached role and validate in background instead of blocking on it
 console.log(`%cPOS — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1817,14 +1818,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
     try{
       const cached=JSON.parse(saved);
       currentUser=cached;
-      if(currentUser.refreshToken){
-        // Always refresh the token eagerly on page load — don't assume the
-        // stored token is still valid.
-        await refreshAuthToken();
-        // refreshAuthToken() calls doLogout() if the refresh token itself
-        // has expired — in that case currentUser is now null and we stop.
-        if(!currentUser) return;
-      } else {
+      if(!currentUser.refreshToken){
         // Old-format cached session from before token auto-refresh was added
         // — no refresh token means we can't safely trust it's still valid.
         // Sign out cleanly and let them log in fresh, rather than silently
@@ -1833,21 +1827,36 @@ window.addEventListener('DOMContentLoaded',async()=>{
         doLogout();
         return;
       }
+      // Speed fix: only hit the network to refresh the token if it's actually
+      // close to expiring (under 5 min left) — skip the round-trip otherwise,
+      // since the cached token is still good.
+      const msLeft=(currentUser.expiresAt||0)-Date.now();
+      if(msLeft<5*60*1000){
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null and we stop.
+        if(!currentUser) return;
+      }
       scheduleTokenRefresh();
-      let roleData;
-      try{
-        roleData=await callEdgeFunction('get_my_role',{},currentUser.token);
-      }catch(err){
+      // Speed fix: load data and show the app right away using the cached
+      // role/permissions from last login, instead of waiting on a get_my_role
+      // round-trip first. Validate quietly in the background; only sign out
+      // if that check fails.
+      await loadAppData();
+      showApp();
+      callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
+        if(!currentUser)return;
+        currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
+        currentUser.role=roleData.role;
+        currentUser.name=roleData.name;
+        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+        showApp();
+      }).catch(err=>{
         // The token looked fine locally but Supabase rejected it — don't
         // silently carry on with a broken session, sign out instead.
         console.error('Session validation failed — signing out:',err);
         doLogout();
-        return;
-      }
-      if(roleData){currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);currentUser.role=roleData.role;currentUser.name=roleData.name}
-      sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
-      await loadAppData();
-      showApp();
+      });
     }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
   }
 });
