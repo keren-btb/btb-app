@@ -844,7 +844,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.2.0';
+const BUILD_VERSION = '1.3.0';
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
@@ -998,8 +998,11 @@ function getSlotsForDay(dayIdx) {
 async function loadExistingBookings() {
   try {
     const today = toDateStr(new Date());
+    // Uses the narrow public_booking_slots view (not the raw game_bookings
+    // table) — exposes only what's needed to check slot availability, no
+    // customer info, pricing, or notes.
     const r = await fetch(
-      `${SB_URL}/rest/v1/game_bookings?booking_date=gte.${today}&status=eq.confirmed&select=game_id,booking_date,slot_time,assigned_staff_ids`,
+      `${SB_URL}/rest/v1/public_booking_slots?booking_date=gte.${today}&status=eq.confirmed&select=game_id,booking_date,slot_time,assigned_staff_ids`,
       {headers:SB_H}
     );
     existingBookings = await r.json();
@@ -1840,7 +1843,7 @@ async function submitBooking() {
     // loaded when the page first opened — closes the window where two people
     // could both pass the "is this free?" check for the same slot.
     const takenCheck = await fetch(
-      `${SB_URL}/rest/v1/game_bookings?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=eq.confirmed&select=id`,
+      `${SB_URL}/rest/v1/public_booking_slots?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=eq.confirmed&select=game_id`,
       {headers:SB_H}
     );
     const takenRows = await takenCheck.json();
@@ -1854,15 +1857,18 @@ async function submitBooking() {
     const avail = getAvailableGMs(selGame.id, selDate, selSlot);
 
     // 1. Find or create client record
+    // Uses the public_find_client_id RPC rather than a direct SELECT on
+    // clients — anon can no longer read the clients table directly, only
+    // this narrow function which returns just a matching id, if any.
     let clientId = null;
     if (email) {
       const cr = await fetch(
-        `${SB_URL}/rest/v1/clients?email=eq.${encodeURIComponent(email)}&select=id`,
-        {headers:SB_H}
+        `${SB_URL}/rest/v1/rpc/public_find_client_id`,
+        {method:'POST', headers:SB_H, body:JSON.stringify({p_email: email, p_phone: null})}
       );
-      const existing = await cr.json();
-      if (existing.length > 0) {
-        clientId = existing[0].id;
+      const foundId = await cr.json();
+      if (foundId) {
+        clientId = foundId;
       } else {
         const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
           method:'POST',
@@ -2094,10 +2100,14 @@ async function submitContactEnquiry() {
   const noteText = [`${first} ${last}`.trim(), phone, email, occasion||null, message||null, ref].filter(Boolean).join(' · ');
   try {
     let clientId = null;
-    const qParam = email ? `email=eq.${encodeURIComponent(email)}` : `phone=eq.${encodeURIComponent(phone)}`;
-    const cr = await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`, { headers: SB_H });
-    const existing = await cr.json();
-    if (existing.length > 0) { clientId = existing[0].id; }
+    // Uses the public_find_client_id RPC rather than a direct SELECT on
+    // clients — same reasoning as submitBooking() above.
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method: 'POST', headers: SB_H,
+      body: JSON.stringify({ p_email: email || null, p_phone: phone || null })
+    });
+    const foundId = await cr.json();
+    if (foundId) { clientId = foundId; }
     else {
       const nr = await fetch(`${SB_URL}/rest/v1/clients`, {
         method: 'POST', headers: { ...SB_H, 'Prefer': 'return=representation' },
