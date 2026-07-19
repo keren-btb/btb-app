@@ -1691,7 +1691,6 @@ function copyWeek1ToAllWeeks() {
 
     baseDays.forEach(d => {
         const dateStr = toDateStr(d);
-        shiftDefs.forEach(s => {
         shiftDefs.forEach((s, shiftIdx) => {
             const sourceKey = shiftKey(dateStr, shiftIdx);
             const sourceVal = myShifts[sourceKey] || 'unavailable';
