@@ -1693,8 +1693,12 @@ async function importProductsCSV(input) {
 }
 
 // ── SHIFT TIMES ──
+// WARNING: array order matters. staff_portal.html stores shift_index (array position)
+// against staff availability/overrides. Never reorder this array by hand in Supabase
+// (e.g. editing the settings row directly) — it will silently point old data at the
+// wrong shift. Adding new shifts to the end, or disabling via toggleShiftTimeActive, is safe.
 let shiftTimes = [];
-
+  
 async function loadShiftTimes() {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_shift_times`, {headers:H()});
