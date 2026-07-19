@@ -263,6 +263,7 @@ body{
 .exp-label{font-size:14px;color:var(--text);font-weight:500}
 .exp-price{font-size:13px;color:var(--teal);font-weight:600;white-space:nowrap}
 .exp-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.field-nested{margin-left:18px;padding-left:14px;border-left:2px solid rgba(7,180,197,0.25)}
 
 /* PLAYERS */
 .players-row{display:flex;align-items:center;gap:14px}
@@ -646,12 +647,12 @@ body{
         </select>
       </div>
 
-      <div class="field" id="companyNameWrap" style="display:none">
+      <div class="field field-nested" id="companyNameWrap" style="display:none">
         <div class="field-label">Company name</div>
         <input class="field-input" type="text" id="fCompanyName" placeholder="e.g. Acme Ltd">
       </div>
 
-      <div class="field" id="specialPersonWrap" style="display:none">
+      <div class="field field-nested" id="specialPersonWrap" style="display:none">
         <div class="field-label" id="specialPersonLabel">Name of the birthday / guest of honour</div>
         <input class="field-input" type="text" id="fSpecialName" placeholder="e.g. Emma">
         <div id="specialAgeWrap" style="display:none;margin-top:10px">
@@ -666,15 +667,9 @@ body{
         <div id="personalExpList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
-      <div class="field">
-        <div class="field-label">Escape room experience?</div>
-        <select class="field-select" id="fExperience">
-          <option value="First time">First time — totally new!</option>
-          <option value="Beginner">Done one or two before</option>
-          <option value="Intermediate">A few under our belt</option>
-          <option value="Experienced">Pretty experienced</option>
-          <option value="Expert">Escape room enthusiasts</option>
-        </select>
+      <div class="field" id="fExperienceField">
+        <div class="field-label">Escape room experience? <span style="color:var(--muted);font-weight:400;text-transform:none">(tick all that apply)</span></div>
+        <div id="fExperienceList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
       <!-- Played before -->
@@ -710,7 +705,7 @@ body{
             <div class="radio-dot"></div>
             <span class="radio-label">🏦 Bank transfer</span>
           </div>
-          <div class="radio-opt" data-val="invoice" onclick="setDepositPref('invoice')">
+          <div class="radio-opt" id="depositOptInvoice" data-val="invoice" onclick="setDepositPref('invoice')" style="display:none">
             <div class="radio-dot"></div>
             <span class="radio-label">📧 Invoice me</span>
           </div>
@@ -841,7 +836,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.4.0';
+const BUILD_VERSION = '1.5.0';
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
@@ -907,6 +902,14 @@ let selSlot     = null;
 let playerCount = 2;
 let playedBefore = null;
 let selectedExperiences = [];
+const EXPERIENCE_LEVELS = [
+  {value:'First time',    label:'First time — totally new!'},
+  {value:'Beginner',      label:'Done one or two before'},
+  {value:'Intermediate',  label:'A few under our belt'},
+  {value:'Experienced',   label:'Pretty experienced'},
+  {value:'Expert',        label:'Escape room enthusiasts'},
+];
+let selectedExperienceLevels = ['First time'];
 let depositPref  = null;
 let escapeView  = 'game';
 let enqType     = null;
@@ -1546,8 +1549,9 @@ function showIntakeForm() {
   }
   document.getElementById('playerVal').textContent = playerCount;
   // Show experience only for escape rooms
-  const expField = document.getElementById('fExperience').closest('.field');
+  const expField = document.getElementById('fExperienceField');
   expField.style.display = selGame.category === 'escape' ? '' : 'none';
+  renderExperienceLevels();
   updatePlayedBeforeVisibility();
   // Reset selections for a fresh booking flow
   selectedExperiences = [];
@@ -1616,6 +1620,27 @@ function getSelectedExpTotal() {
   return getSelectedExpRows().reduce((s,e) => s + (parseFloat(e.price)||0), 0);
 }
 
+function renderExperienceLevels() {
+  const list = document.getElementById('fExperienceList');
+  if (!list) return;
+  list.innerHTML = EXPERIENCE_LEVELS.map(o => `
+    <div class="exp-opt ${selectedExperienceLevels.includes(o.value)?'selected':''}" onclick="toggleExperienceLevel('${o.value}')">
+      <div class="exp-check"></div>
+      <div class="exp-body"><div class="exp-label-row"><span class="exp-label">${o.label}</span></div></div>
+    </div>`).join('');
+}
+
+function toggleExperienceLevel(val) {
+  const i = selectedExperienceLevels.indexOf(val);
+  if (i === -1) selectedExperienceLevels.push(val); else selectedExperienceLevels.splice(i,1);
+  renderExperienceLevels();
+  updatePlayedBeforeVisibility();
+}
+
+function getExperienceLabel() {
+  return EXPERIENCE_LEVELS.filter(o => selectedExperienceLevels.includes(o.value)).map(o => o.label).join(', ');
+}
+
 // ============================================================
 // DEPOSIT PAYMENT PREFERENCE
 // ============================================================
@@ -1657,6 +1682,14 @@ document.getElementById('fOccasion').addEventListener('change', function() {
   const isCompany = ['Company team building','Company fun event'].includes(this.value);
   if (companyWrap) companyWrap.style.display = isCompany ? '' : 'none';
   if (!isCompany) { const cn = document.getElementById('fCompanyName'); if (cn) cn.value = ''; }
+  const invoiceOpt = document.getElementById('depositOptInvoice');
+  if (invoiceOpt) {
+    invoiceOpt.style.display = isCompany ? '' : 'none';
+    if (!isCompany && depositPref === 'invoice') {
+      depositPref = null;
+      invoiceOpt.classList.remove('selected');
+    }
+  }
   const lbl = document.getElementById('specialPersonLabel');
   if (lbl) {
     if (this.value === 'Birthday') lbl.textContent = 'Name of the birthday person';
@@ -1695,9 +1728,8 @@ function setPlayedBefore(val) {
 // "First time, totally new" already answers "have you played with us before?" —
 // only relevant for escape rooms, since the experience dropdown is hidden for VR/Cafe.
 function updatePlayedBeforeVisibility() {
-  const expEl = document.getElementById('fExperience');
   const isEscape = selGame && selGame.category === 'escape';
-  const isFirstTime = expEl.value === 'First time';
+  const isFirstTime = selectedExperienceLevels.length === 1 && selectedExperienceLevels[0] === 'First time';
   const wrap = document.getElementById('playedBeforeWrap');
   if (isEscape && isFirstTime) {
     wrap.style.display = 'none';
@@ -1706,7 +1738,6 @@ function updatePlayedBeforeVisibility() {
     wrap.style.display = '';
   }
 }
-document.getElementById('fExperience').addEventListener('change', updatePlayedBeforeVisibility);
 
 function populatePrevGameSelect() {
   const sel = document.getElementById('fPrevGame');
@@ -1744,7 +1775,7 @@ function showReviewScreen() {
   const specialName  = document.getElementById('fSpecialName').value.trim();
   const specialAge   = document.getElementById('fSpecialAge')?.value;
   const companyName  = document.getElementById('fCompanyName')?.value.trim();
-  const experience   = document.getElementById('fExperience').value;
+  const experience   = getExperienceLabel();
   const prevGame     = document.getElementById('fPrevGame').value;
   const expRows      = getSelectedExpRows();
   const depositLabels = {stripe:'💳 Card', bank_transfer:'🏦 Bank transfer', invoice:'📧 Invoice me', cash:'💵 Cash in person'};
@@ -1759,7 +1790,7 @@ function showReviewScreen() {
     ['Phone', phone],
   ];
   if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '') + (companyName ? ' — '+companyName : '')]);
-  if (selGame.category === 'escape') rows.push(['Experience', experience]);
+  if (selGame.category === 'escape' && experience) rows.push(['Experience', experience]);
   if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — '+prevGame : '')]);
   if (expRows.length) rows.push(['Add-ons', expRows.map(e=>e.label).join(', ')]);
   if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
@@ -1788,7 +1819,7 @@ async function submitBooking() {
   const specialAgeVal = document.getElementById('fSpecialAge')?.value;
   const specialAge = specialAgeVal ? parseInt(specialAgeVal) : null;
   const companyName = document.getElementById('fCompanyName')?.value.trim();
-  const experience  = document.getElementById('fExperience').value;
+  const experience  = getExperienceLabel();
   const prevGame    = document.getElementById('fPrevGame').value;
 
   if (!first || !last) { showErr('Please enter your full name.'); return; }
@@ -1953,7 +1984,10 @@ function startOver() {
   });
   document.getElementById('fOccasion').value='';
   document.getElementById('companyNameWrap').style.display='none';
-  document.getElementById('fExperience').value='First time';
+  const invoiceOptReset = document.getElementById('depositOptInvoice');
+  if (invoiceOptReset) { invoiceOptReset.style.display='none'; invoiceOptReset.classList.remove('selected'); }
+  selectedExperienceLevels = ['First time'];
+  renderExperienceLevels();
   document.getElementById('rb-yes').classList.remove('selected');
   document.getElementById('rb-no').classList.remove('selected');
   document.getElementById('prevGameWrap').style.display='none';
