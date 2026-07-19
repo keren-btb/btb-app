@@ -1028,6 +1028,64 @@ function getCycleWeekForDate(d) {
   const weeksSinceAnchor = Math.floor((d - CYCLE_ANCHOR) / msPerWeek);
   return ((weeksSinceAnchor % 4) + 4) % 4; // always returns 0-3, even for dates before the anchor
 }
+  let myRecurringPattern = {}; // { 'weekIdx_dayIdx_shiftIdx': 'available'|'maybe'|'unavailable'|'would_like' }
+let recurringPatternLoaded = false;
+
+async function loadMyRecurringAvailability() {
+  if (!myStaffRecord) return;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/staff_recurring_availability?staff_id=eq.${myStaffRecord.id}&select=cycle_week,day_of_week,shift_index,available`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+    myRecurringPattern = {};
+    rows.forEach(row => {
+      const key = `${row.cycle_week}_${row.day_of_week}_${row.shift_index}`;
+      myRecurringPattern[key] = row.available;
+    });
+    recurringPatternLoaded = true;
+  } catch(e) { console.error('Recurring availability load:', e); }
+}
+
+async function saveMyRecurringAvailability(msgEl) {
+  if (!myStaffRecord) return;
+  try {
+    const rows = [];
+    Object.entries(myRecurringPattern).forEach(([key, val]) => {
+      if (!val || val === 'unavailable') return;
+      const [weekIdx, dayIdx, shiftIdx] = key.split('_').map(Number);
+      rows.push({
+        staff_id: myStaffRecord.id,
+        cycle_week: weekIdx,
+        day_of_week: dayIdx,
+        shift_index: shiftIdx,
+        available: val
+      });
+    });
+
+    await fetch(`${SB_URL}/rest/v1/staff_recurring_availability?staff_id=eq.${myStaffRecord.id}`, {
+      method: 'DELETE', headers: H()
+    });
+
+    if (rows.length > 0) {
+      const resp = await fetch(`${SB_URL}/rest/v1/staff_recurring_availability`, {
+        method: 'POST',
+        headers: {...H(), 'Prefer':'return=minimal'},
+        body: JSON.stringify(rows)
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+    }
+
+    if (msgEl) {
+      msgEl.className = 'msg ok';
+      msgEl.textContent = '✓ Default pattern saved';
+      setTimeout(() => { msgEl.textContent = ''; }, 3000);
+    }
+  } catch(e) {
+    if (msgEl) { msgEl.className = 'msg err'; msgEl.textContent = 'Save failed: ' + e.message; }
+  }
+}  
 let availWeekOffset      = 0;
 let adminStaffWeekOffset = 0;
 let adminViewingStaffId  = null;
