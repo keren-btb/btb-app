@@ -708,11 +708,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <div class="field-2col">
-            <div class="field">
+<div class="field">
               <div class="field-label">Staff required</div>
-              <input class="field-input" type="number" id="newShiftCount" min="1" value="1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <button type="button" class="btn-secondary btn-sm" onclick="adjustShiftCount(-1)" style="width:32px">−</button>
+                <input class="field-input" type="number" id="newShiftCount" min="1" value="1" style="text-align:center" readonly>
+                <button type="button" class="btn-secondary btn-sm" onclick="adjustShiftCount(1)" style="width:32px">+</button>
+              </div>
             </div>
-            <div class="field">
+              <div class="field">
               <div class="field-label">Minimum role</div>
               <select class="field-select" id="newShiftMinRole">
                 <option value="">No restriction</option>
@@ -3805,6 +3809,12 @@ function buildStaffMyShiftCard(s) {
   </div>`;
 }
 
+function adjustShiftCount(delta) {
+  const el = document.getElementById('newShiftCount');
+  const val = Math.max(1, (parseInt(el.value) || 1) + delta);
+  el.value = val;
+}
+
 async function createShift() {
   const date  = document.getElementById('newShiftDate')?.value;
   const start = document.getElementById('newShiftStart')?.value;
@@ -3812,44 +3822,53 @@ async function createShift() {
   const staffId = document.getElementById('newShiftStaff')?.value || null;
   const notes = document.getElementById('newShiftNotes')?.value.trim() || null;
   const isStandby = document.getElementById('newShiftStandby')?.checked || false;
+  const count = Math.max(1, parseInt(document.getElementById('newShiftCount')?.value) || 1);
+  const minRole = document.getElementById('newShiftMinRole')?.value || null;
   const msgEl = document.getElementById('newShiftMsg');
 
   if (!date || !start || !end) { msgEl.className='msg err'; msgEl.textContent='Date, start and end time are required.'; return; }
   if (end <= start) { msgEl.className='msg err'; msgEl.textContent='End time must be after start time.'; return; }
+  if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign to staff only works when Staff required = 1. Leave it blank for multi-staff shifts.'; return; }
   msgEl.className='msg'; msgEl.textContent='Saving…';
   try {
+    const slotGroupId = count > 1 ? crypto.randomUUID() : null;
+    const rowsToCreate = Array.from({length: count}, () => ({
+      shift_date: date,
+      custom_start_time: start,
+      custom_end_time: end,
+      staff_id: staffId,
+      notes,
+      status: staffId ? 'assigned' : 'open',
+      created_by: currentUser?.name || null,
+      assigned_at: staffId ? new Date().toISOString() : null,
+      shift_type: 'custom',
+      is_standby: isStandby,
+      required_role: minRole,
+      slot_group_id: slotGroupId
+    }));
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, {
       method:'POST',
       headers:{...H(),'Prefer':'return=representation'},
-      body: JSON.stringify({
-        shift_date: date,
-        custom_start_time: start,
-        custom_end_time: end,
-        staff_id: staffId,
-        notes,
-        status: staffId ? 'assigned' : 'open',
-        created_by: currentUser?.name || null,
-        assigned_at: staffId ? new Date().toISOString() : null,
-        shift_type: 'custom',
-        is_standby: isStandby
-      })
+      body: JSON.stringify(rowsToCreate)
     });
     if (!r.ok) throw new Error(await r.text());
     const rows = await r.json();
-    if (rows[0]) allShifts.push(rows[0]);
+    allShifts.push(...rows);
     allShifts.sort((a,b) => a.shift_date > b.shift_date ? 1 : a.custom_start_time > b.custom_start_time ? 1 : -1);
-    msgEl.className='msg ok'; msgEl.textContent='✓ Shift created';
+    msgEl.className='msg ok'; msgEl.textContent = count > 1 ? `✓ ${count} shift slots created` : '✓ Shift created';
     document.getElementById('newShiftDate').value='';
     document.getElementById('newShiftStart').value='';
     document.getElementById('newShiftEnd').value='';
     document.getElementById('newShiftNotes').value='';
     document.getElementById('newShiftStaff').value='';
+    document.getElementById('newShiftCount').value='1';
+    document.getElementById('newShiftMinRole').value='';
     if (document.getElementById('newShiftStandby')) document.getElementById('newShiftStandby').checked = false;
     setTimeout(()=>msgEl.textContent='',3000);
     renderAdminShifts();
   } catch(e) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
 }
-
+    
 async function claimShift(id) {
   if (!myStaffRecord) return;
   try {
