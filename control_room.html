@@ -18,10 +18,29 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <div id="loginScreen" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-[#231647] border border-purple-800/60 rounded-2xl p-8 w-full max-w-sm text-center shadow-xl">
+            <div class="text-3xl mb-2">🔮</div>
+            <h1 class="text-lg font-bold tracking-wider text-white mb-1">BEYOND THE BOX</h1>
+            <p class="text-sm text-purple-400/70 mb-6">Control Room — Staff Sign In</p>
+            <input type="email" id="loginEmail" placeholder="you@example.com" class="w-full bg-[#110a24] border border-purple-900/60 rounded-lg px-4 py-2.5 text-white text-sm mb-3 text-center focus:outline-none focus:border-accent" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+            <input type="password" id="loginPass" placeholder="••••••••" class="w-full bg-[#110a24] border border-purple-900/60 rounded-lg px-4 py-2.5 text-white text-sm mb-4 text-center focus:outline-none focus:border-accent" onkeydown="if(event.key==='Enter')doLogin()">
+            <button onclick="doLogin()" class="w-full py-2.5 rounded-lg bg-accent text-slate-900 font-bold text-sm hover:opacity-90 transition">Sign in</button>
+            <p id="loginError" class="text-red-400 text-xs mt-3"></p>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden flex-col flex-grow">
+
     <header class="bg-[#110a24] border-b border-purple-900/40 px-6 py-4 flex justify-between items-center shadow-lg">
         <div class="flex items-center gap-3">
             <span class="text-2xl">🔮</span>
             <h1 class="text-xl font-bold tracking-wider text-white">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="buildVersionTag" class="text-[10px] text-gray-500"></span>
+            <span id="authName" class="text-xs text-gray-400"></span>
+            <button onclick="doLogout()" class="text-xs text-gray-400 hover:text-red-400 transition">Sign out</button>
         </div>
 <div id="active-room-display" class="hidden items-center gap-3">
             <span class="px-3 py-1 rounded-full bg-purple-950 border border-purple-500 text-sm font-semibold tracking-wide" id="current-room-badge">No Booking</span>
@@ -224,13 +243,30 @@
         </div>
     </section>
 
+    </div>
+
     <script>
         // ==========================================
         // 🛠️ SUPABASE CONNECTION — same wrapper as btb_app.html / pos.html
         // ==========================================
         const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
         const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
-        const H = (k=SB_ANON) => ({'Content-Type':'application/json','Authorization':`Bearer ${k}`,'apikey':k});
+        const SB_AUTH = `${SB_URL}/auth/v1`;
+        // SECURITY: H() now sends the real logged-in staff member's session token
+        // for every data request (falls back to the anon key only if nobody is
+        // logged in yet). apikey always stays as the project anon key.
+        const H = (k) => {
+          const token = k || (currentUser && currentUser.token) || SB_ANON;
+          return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+        };
+        const EDGE_FN = `${SB_URL}/functions/v1/btb-admin`;
+        async function callEdgeFunction(action,params={},token=null){
+          const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+          const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+          if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+          return r.json();
+        }
+        let currentUser = null;
 
 // Core App Control Variables
         let currentRoom = "";
@@ -277,14 +313,122 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 5; // increment this each shipped update — check browser console to confirm you're on the latest build
+        const BUILD_VERSION = 6; // increment this each shipped update — check browser console to confirm you're on the latest build
+        // v6: added full staff login gate (same pattern as btb_app.html/pos.html) so the
+        // page can no longer be opened without a valid staff login. Added Reset/Complete
+        // buttons per room to the PIN-gated All Timers admin panel.
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
-        // Initialize App on DOM Load
-document.addEventListener("DOMContentLoaded", async () => {
+        // Bundles the loads that used to fire on plain page load — now only
+        // run once a staff member is actually logged in.
+        async function loadControlRoomData(){
             await loadEscapeGames();
             initDatePicker();
             loadControlRoomPin();
+        }
+
+        // ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+        // Login tokens expire (Supabase default ~1 hour). Without this, a
+        // gamemaster mid-session could get silently logged out. This quietly
+        // renews the token in the background before it expires.
+        let tokenRefreshTimer = null;
+        function scheduleTokenRefresh() {
+            clearTimeout(tokenRefreshTimer);
+            if (!currentUser || !currentUser.expiresAt) return;
+            const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+            tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+        }
+        async function refreshAuthToken() {
+            if (!currentUser || !currentUser.refreshToken) return;
+            try {
+                const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json','apikey':SB_ANON},
+                    body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+                });
+                const data = await r.json();
+                if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+                currentUser.token = data.access_token;
+                currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+                currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+                sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+                scheduleTokenRefresh();
+            } catch(e) {
+                console.error('Token refresh failed — signing out:', e);
+                doLogout();
+            }
+        }
+
+        // ── AUTH ──────────────────────────────────────────
+        async function doLogin(){
+            const email=document.getElementById('loginEmail').value.trim();
+            const pass=document.getElementById('loginPass').value;
+            const errEl=document.getElementById('loginError');errEl.textContent='';
+            if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+            try{
+                const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+                const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+                const userId=data.user.id;const token=data.access_token;
+                const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>({name:email.split('@')[0]}))||{name:email.split('@')[0]};
+                currentUser={id:userId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name};
+                sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+                scheduleTokenRefresh();
+                showApp();
+                await loadControlRoomData();
+            }catch(e){errEl.textContent='Connection error.';console.error(e)}
+        }
+        function doLogout(){
+            clearTimeout(tokenRefreshTimer);
+            currentUser=null;
+            sessionStorage.removeItem('btb_user');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('flex');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginPass').value='';
+        }
+        function showApp(){
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('flex');
+            document.getElementById('authName').textContent=currentUser.name||currentUser.email;
+            const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+        }
+
+        // Initialize App on DOM Load — now gated behind a valid staff login.
+        document.addEventListener("DOMContentLoaded", async () => {
+            const saved=sessionStorage.getItem('btb_user');
+            if(saved){
+                try{
+                    const cached=JSON.parse(saved);
+                    currentUser=cached;
+                    if(!currentUser.refreshToken){
+                        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+                        doLogout();
+                        return;
+                    }
+                    // Speed fix: only hit the network to refresh the token if it's
+                    // actually close to expiring (under 5 min left).
+                    const msLeft=(currentUser.expiresAt||0)-Date.now();
+                    if(msLeft<5*60*1000){
+                        await refreshAuthToken();
+                        if(!currentUser) return; // refreshAuthToken() already signed out
+                    }
+                    scheduleTokenRefresh();
+                    showApp();
+                    await loadControlRoomData();
+                    // Quietly re-validate the session in the background; only sign
+                    // out if Supabase actually rejects the token.
+                    callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
+                        if(!currentUser)return;
+                        currentUser.name=roleData.name||currentUser.name;
+                        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+                        showApp();
+                    }).catch(err=>{
+                        console.error('Session validation failed — signing out:',err);
+                        doLogout();
+                    });
+                }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+            }
         });
 
         async function loadControlRoomPin() {
@@ -357,10 +501,51 @@ let allRunningTimers = [];
                         <div class="font-bold">${b.game_name}</div>
                         <div class="text-xs text-gray-400">${name} · ${b.booking_date} ${b.slot_time ? b.slot_time.substring(0,5) : ''}</div>
                     </div>
-                    <div class="text-2xl font-mono font-extrabold" id="all-timer-value-${b.id}">--:--</div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-2xl font-mono font-extrabold" id="all-timer-value-${b.id}">--:--</div>
+                        <div class="flex gap-1.5">
+                            <button onclick="resetTimerForBooking('${b.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">↺ Reset</button>
+                            <button onclick="completeTimerForBooking('${b.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 transition">🏁 Complete</button>
+                        </div>
+                    </div>
                 </div>`;
             }).join('');
             updateAllTimersDisplay();
+        }
+
+        // Admin actions from the All Timers panel — operate on any room's
+        // booking directly (not just the one currently open on this device),
+        // since this panel oversees every running timer at once.
+        async function resetTimerForBooking(id){
+            if (!confirm("Reset this room's timer to 0?")) return;
+            try {
+                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
+                    method:'PATCH', headers:H(),
+                    body: JSON.stringify({ timer_running:false, timer_sec:0, timer_started_at:null })
+                });
+                await loadAllRunningTimers();
+                if (currentBooking && currentBooking.id === id) checkActiveBooking();
+            } catch(e) {
+                alert('Failed to reset timer: ' + e.message);
+            }
+        }
+        async function completeTimerForBooking(id){
+            if (!confirm("Mark this room's timer complete? This just stops the timer — it does not open the results form.")) return;
+            const b = allRunningTimers.find(x => x.id === id);
+            const elapsedSec = b ? getElapsed(b) : 0;
+            try {
+                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
+                    method:'PATCH', headers:H(),
+                    body: JSON.stringify({
+                        timer_running:false, timer_sec:elapsedSec, timer_started_at:null,
+                        status:'completed', updated_at:new Date().toISOString()
+                    })
+                });
+                await loadAllRunningTimers();
+                if (currentBooking && currentBooking.id === id) checkActiveBooking();
+            } catch(e) {
+                alert('Failed to complete timer: ' + e.message);
+            }
         }
 
         function updateAllTimersDisplay() {
