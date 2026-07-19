@@ -477,8 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="nav-btn admin-only" data-tab="tabClock" onclick="showTab('tabClock',this)" style="display:none"><i class="ti ti-clock-bolt"></i>Clock</button>
       <button class="nav-btn admin-only" data-tab="tabStaff" onclick="showTab('tabStaff',this)" style="display:none"><i class="ti ti-users"></i>Staff</button>
       <button class="nav-btn admin-only" data-tab="tabStaffTraining" onclick="showTab('tabStaffTraining',this)" style="display:none"><i class="ti ti-table"></i>Staff Training</button>
-      <button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
-    </nav>
+<button class="nav-btn admin-only" data-tab="tabApprove" onclick="showTab('tabApprove',this)" style="display:none"><i class="ti ti-check"></i>Approve</button>
+      <button class="nav-btn admin-only" data-tab="tabRoster" onclick="showTab('tabRoster',this)" style="display:none"><i class="ti ti-table"></i>Roster</button>    </nav>
 
     <div class="content-area">
 
@@ -648,9 +648,20 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
+<!-- ══ ADMIN: ROSTER OVERVIEW TAB ══ -->
+  <div id="tabRoster" class="section">
+    <div class="sec-title">Roster Overview</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset--; loadRosterOverview()">← Prev week</button>
+      <span id="rosterWeekLabel" style="font-weight:600;font-size:13px;color:#1f2937"></span>
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset++; loadRosterOverview()">Next week →</button>
+      <button class="btn-secondary btn-sm" onclick="rosterWeekOffset=0; loadRosterOverview()">This week</button>
+    </div>
+    <div id="rosterGridWrap" style="overflow-x:auto"></div>
+  </div>
+
   <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
-  <div id="tabApprove" class="section">
-    <div class="sec-title">Timesheets awaiting approval</div>
+  <div id="tabApprove" class="section">    <div class="sec-title">Timesheets awaiting approval</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
       <button class="btn-secondary btn-sm" style="border-color:#07b4c5;color:#07b4c5" onclick="setTsFilter('all',this)">All pending</button>
       <button class="btn-secondary btn-sm" onclick="setTsFilter('clocked_in',this)">Clocked in</button>
@@ -1179,6 +1190,69 @@ function shiftRange(name) {
 
 function shiftKey(dateStr, shiftIndex) {
   return `${dateStr}_${shiftIndex}`;
+}
+
+// ============================================================
+// ADMIN: ROSTER OVERVIEW (skeleton — data wiring comes next step)
+// ============================================================
+let rosterWeekOffset = 0;
+
+function getRosterWeekDates() {
+  const now = new Date();
+  const jsDay = now.getDay(); // 0=Sun
+  const mondayOffset = (jsDay === 0 ? -6 : 1 - jsDay);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset + rosterWeekOffset * 7);
+  monday.setHours(0,0,0,0);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function loadRosterOverview() {
+  const dates = getRosterWeekDates();
+  const label = document.getElementById('rosterWeekLabel');
+  if (label) {
+    label.textContent = `${dates[0].getDate()} ${MONTHS[dates[0].getMonth()]} – ${dates[6].getDate()} ${MONTHS[dates[6].getMonth()]}`;
+  }
+
+  const visibleShiftIdxs = shiftDefs.map((s,i)=>i).filter(i => shiftDefs[i].active !== false);
+  const wrap = document.getElementById('rosterGridWrap');
+  if (!wrap) return;
+
+  if (visibleShiftIdxs.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings.</div>';
+    return;
+  }
+
+  const activeStaff = allStaff.filter(s => s.active !== false);
+
+  let html = `<table style="border-collapse:collapse;font-size:12px;min-width:700px">
+    <tr>
+      <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #e5e7eb">Staff</th>
+      ${dates.map(d => `<th colspan="${visibleShiftIdxs.length}" style="padding:6px 10px;border-bottom:2px solid #e5e7eb;text-align:center">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</th>`).join('')}
+    </tr>
+    <tr>
+      <th></th>
+      ${dates.map(() => visibleShiftIdxs.map(i => `<th style="padding:4px 6px;font-weight:400;color:#6b7280;border-bottom:1px solid #e5e7eb">${shiftDefs[i].name}</th>`).join('')).join('')}
+    </tr>`;
+
+  activeStaff.forEach(staff => {
+    html += `<tr><td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #f3f4f6">${staff.name}</td>`;
+    dates.forEach(() => {
+      visibleShiftIdxs.forEach(() => {
+        html += `<td style="padding:6px 10px;text-align:center;color:#9ca3af;border-bottom:1px solid #f3f4f6">—</td>`;
+      });
+    });
+    html += `</tr>`;
+  });
+
+  html += `</table>`;
+  wrap.innerHTML = html;
 }
 
 function getSlotsForDay(dayIdx) {
@@ -3401,6 +3475,7 @@ function showTab(id, btn) {
     if (id === 'tabTraining') renderMyTraining();
     if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
+    if (id === 'tabRoster') loadRosterOverview();
 }
 
 // ============================================================
