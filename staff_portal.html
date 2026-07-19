@@ -503,39 +503,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- ══ AVAILABILITY TAB ══ -->
   <div id="tabAvail" class="section">
     <div class="week-nav">
-      <button class="week-nav-btn" onclick="navigateAvailWeek(-1)"><i class="ti ti-chevron-left"></i></button>
-<span class="week-nav-label" id="availWeekLabel" style="font-size:18px; font-weight:700; color:#1a1035;">📋 Set Your Usual Availability</span>
-      <button class="week-nav-btn" onclick="navigateAvailWeek(1)"><i class="ti ti-chevron-right"></i></button>
+      <span class="week-nav-label" style="font-size:18px; font-weight:700; color:#1a1035;">📋 Your Usual Availability Pattern</span>
     </div>
-    <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Tick the shifts you are <strong>usually</strong> available to work each week for the next month. This forms your default master schedule. This doesn't mean you're rostered — we will confirm if you're needed.</p>
-    
-<!-- 4 WEEKS GRID CONTAINER -->
-<div style="display: flex; flex-direction: column; gap: 24px; width: 100%; margin-bottom: 20px;">
-    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 1 of the Month</h4>
-        <div id="availGrid"></div>
-    </div>
-    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 2 of the Month</h4>
-        <div id="availGrid_w2"></div>
-    </div>
-    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 3 of the Month</h4>
-        <div id="availGrid_w3"></div>
-    </div>
-    <div class="card" style="padding: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;">
-        <h4 style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px;">📋 Week 4 of the Month</h4>
-        <div id="availGrid_w4"></div>
-        <button class="week-nav-btn" type="button" onclick="copyWeek1ToAllWeeks()" style="font-size:12px; padding:8px 14px; background-color:#1a1035; color:#fff; font-weight:700; width:100%; margin-top:10px;">📋 Copy Week 1 setup to Weeks 2, 3 & 4</button>
-    </div><!-- /week4 card -->
-</div><!-- /4 weeks grid container -->
+    <p style="font-size:12px;color:#6b7280;margin-bottom:12px">This is your <strong>default, ongoing</strong> pattern — set it once when you start, and only change it here if something in your life changes permanently. For a one-off change to a specific week, use <strong>Request Specific Time Off</strong> instead.</p>
+
+    <div id="recurringPatternGrid"></div>
 
     <div class="btn-row">
-      <button class="btn-primary" onclick="saveAvailability()"><i class="ti ti-device-floppy"></i> Save availability</button>
+      <button class="btn-primary" onclick="saveMyRecurringAvailability(document.getElementById('availMsg'))"><i class="ti ti-device-floppy"></i> Save default pattern</button>
     </div>
     <div class="msg" id="availMsg"></div>
   </div><!-- /tabAvail section -->
-
   <!-- ══ SPECIFIC TIME OFF TAB ══ -->
   <div id="tabSpecificTimeoff" class="section">
     <div class="card" style="padding: 20px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; max-width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -1085,6 +1063,56 @@ async function saveMyRecurringAvailability(msgEl) {
   } catch(e) {
     if (msgEl) { msgEl.className = 'msg err'; msgEl.textContent = 'Save failed: ' + e.message; }
   }
+}  
+   function renderRecurringPatternGrid() {
+  const el = document.getElementById('recurringPatternGrid');
+  if (!el) return;
+
+  const visibleShiftIdxs = shiftDefs.map((s,i)=>i).filter(i => shiftDefs[i].active !== false);
+
+  if (visibleShiftIdxs.length === 0) {
+    el.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings.</div>';
+    return;
+  }
+
+  let html = '';
+  for (let weekIdx = 0; weekIdx < 4; weekIdx++) {
+    html += `<div style="margin-bottom:18px">
+      <div style="font-weight:700;font-size:13px;color:#1f2937;margin-bottom:6px">${CYCLE_WEEK_LABELS[weekIdx]}</div>
+      <div class="avail-grid" style="grid-template-columns:auto repeat(${visibleShiftIdxs.length},1fr)">
+        <div class="avail-grid-head"></div>
+        ${visibleShiftIdxs.map(i => `<div class="avail-grid-head">${shiftDefs[i].name}</div>`).join('')}`;
+
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+      html += `<div class="avail-day-label">${DAY_LABELS_FULL[dayIdx].slice(0,3)}</div>`;
+      visibleShiftIdxs.forEach(shiftIdx => {
+        const key = `${weekIdx}_${dayIdx}_${shiftIdx}`;
+        const state = myRecurringPattern[key] || 'unavailable';
+        const meta = AVAIL_STATE_META[state];
+        html += `<div style="position:relative">
+          <button class="avail-shift-btn" style="background:${meta.bg};color:${meta.color};font-size:9px;width:100%;padding-right:16px"
+            onclick="toggleRecurringSlot('${key}')">${meta.label}</button>
+          <select onchange="setRecurringSlotState('${key}', this.value)" onclick="event.stopPropagation()"
+            style="position:absolute;right:1px;top:1px;bottom:1px;width:16px;opacity:0;cursor:pointer">
+            ${AVAIL_STATE_ORDER.map(s => `<option value="${s}" ${s===state?'selected':''}>${AVAIL_STATE_META[s].label}</option>`).join('')}
+          </select>
+          <span style="position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:8px;color:${meta.color};pointer-events:none">▾</span>
+        </div>`;
+      });
+    }
+    html += `</div></div>`;
+  }
+  el.innerHTML = html;
+}
+
+function toggleRecurringSlot(key) {
+  const current = myRecurringPattern[key] || 'unavailable';
+  myRecurringPattern[key] = nextAvailState(current);
+  renderRecurringPatternGrid();
+} 
+  function setRecurringSlotState(key, newState) {
+  myRecurringPattern[key] = newState;
+  renderRecurringPatternGrid();
 }  
 let availWeekOffset      = 0;
 let adminStaffWeekOffset = 0;
@@ -3436,7 +3464,7 @@ function showTab(id, btn) {
     if (id === 'tabStaff') { renderAdminStaffList(); renderStaffCelebrations(); }
     if (id === 'tabStaffTraining') renderStaffTrainingGrid();
     if (id === 'tabTraining') renderMyTraining();
-    if (id === 'tabAvail') renderAllFourWeeks();
+    if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
 }
 
@@ -3463,7 +3491,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
       scheduleTokenRefresh();
       await initApp();
-      setTimeout(() => { if(document.getElementById('tabAvail')?.classList.contains('active')) renderAllFourWeeks(); }, 500);
+      setTimeout(() => { if(document.getElementById('tabAvail')?.classList.contains('active')) { loadMyRecurringAvailability().then(renderRecurringPatternGrid); } }, 500);
     } catch(e) { console.error('Session restore failed:', e); }
   }
 });
