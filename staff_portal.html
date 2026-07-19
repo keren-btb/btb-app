@@ -1575,14 +1575,14 @@ function copyWeek1ToAllWeeks() {
     baseDays.forEach(d => {
         const dateStr = toDateStr(d);
         shiftDefs.forEach(s => {
-            const shiftType = s.name;
-            const sourceKey = shiftKey(dateStr, shiftType);
+        shiftDefs.forEach((s, shiftIdx) => {
+            const sourceKey = shiftKey(dateStr, shiftIdx);
             const sourceVal = myShifts[sourceKey] || 'unavailable';
 
             for (let delta = 1; delta <= 3; delta++) {
                 const targetDate = new Date(d);
                 targetDate.setDate(targetDate.getDate() + (delta * 7));
-                const targetKey = shiftKey(toDateStr(targetDate), shiftType);
+                const targetKey = shiftKey(toDateStr(targetDate), shiftIdx);
                 myShifts[targetKey] = sourceVal;
             }
         });
@@ -1744,15 +1744,15 @@ async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
     const rows = [];
     Object.entries(shifts).forEach(([key, val]) => {
       if (!val || val === 'unavailable') return;
-      const parts = key.split('_');
+       const parts = key.split('_');
       const dateStr = parts[0];
-      const shiftType = parts.slice(1).join('_'); // shift name may contain underscores
+      const shiftIdx = parseInt(parts[1], 10);
       if (dateStr < today) return;
       const d = new Date(dateStr + 'T12:00');
       if (!isDayOpen(d)) return;
 
-      const shiftDef = shiftDefs.find(s => s.name === shiftType);
-      if (!shiftDef) return; // shift was removed/renamed since this was ticked
+      const shiftDef = shiftDefs[shiftIdx];
+      if (!shiftDef) return; // shift index no longer exists (e.g. shift was deleted)
 
       const daySlots = getSlotsForDay(d.getDay());
 
@@ -1801,15 +1801,15 @@ function renderWeekAvailSummary() {
 
   el.innerHTML = openDays.map(d => {
     const ds = toDateStr(d);
-    const shifts = shiftDefs.map(s => s.name).filter(t => myShifts[shiftKey(ds, t)] && myShifts[shiftKey(ds, t)] !== 'unavailable');
+    const shifts = shiftDefs.map((s, idx) => ({name: s.name, idx})).filter(sd => myShifts[shiftKey(ds, sd.idx)] && myShifts[shiftKey(ds, sd.idx)] !== 'unavailable');
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:12px">
       <span style="font-weight:600;color:#374151;min-width:36px">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</span>
       ${shifts.length
-        ? shifts.map(s => {
-            const isMaybe = myShifts[shiftKey(ds, s)] === 'maybe';
+        ? shifts.map(sd => {
+            const isMaybe = myShifts[shiftKey(ds, sd.idx)] === 'maybe';
             const badgeBg = isMaybe ? '#fef3c7' : '#dcfce7';
             const badgeColor = isMaybe ? '#d97706' : '#15803d';
-            const textLabel = s + (isMaybe ? ' (prefer off)' : '');
+            const textLabel = sd.name + (isMaybe ? ' (prefer off)' : '');
             return `<span style="background:${badgeBg};color:${badgeColor};border-radius:99px;padding:1px 9px;font-size:11px;font-weight:600;margin-right:4px">${textLabel}</span>`;
           }).join('')
         : '<span style="color:#9ca3af">Not available</span>'}
