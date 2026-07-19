@@ -1265,7 +1265,8 @@ const btn = document.getElementById('rosterHideClosedBtn');
     overrideMap[row.staff_id][`${row.specific_date}_${shiftIdx}`] = row.available;
   });
 
-const dayShade = (i) => i % 2 === 0 ? '#e2e8f0' : '#ffffff';
+  // colour for diff days in roster view  
+const dayShade = (i) => i % 2 === 0 ? '#dec4fc' : '#ffffff';
   let html = `<table style="border-collapse:collapse;font-size:12px;min-width:700px">
     <tr>
       <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #e5e7eb">Staff</th>
