@@ -1304,9 +1304,8 @@ async function initApp() {
   await findMyStaffRecord();
   await Promise.all([loadMyShifts(), loadMyTimesheets()]);
 
-  renderClockWidget();
+   renderClockWidget();
   renderWeekAvailSummary();
-  renderAvailGrid();
   renderMyTraining();
   renderMyTimesheets();
   loadTodayBookings();
@@ -1655,63 +1654,15 @@ function toggleMyShift(dateStr, shiftIdx) {
         myShifts[key] = 'unavailable';
     }
     
-    renderAllFourWeeks();
     renderWeekAvailSummary();
 }
+
+function toggleAdminShift(dateStr, shiftIdx) {
 
 function toggleAdminShift(dateStr, shiftIdx) {
   const key = shiftKey(dateStr, shiftIdx);
   adminShifts[key] = !adminShifts[key];
   renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
-}
-
-function renderAllFourWeeks() {
-    const baseOffset = availWeekOffset;
-    
-    renderAvailGrid(null, null, 'availGrid');
-    
-    availWeekOffset = baseOffset + 1;
-    renderAvailGrid(null, null, 'availGrid_w2');
-    
-    availWeekOffset = baseOffset + 2;
-    renderAvailGrid(null, null, 'availGrid_w3');
-    
-    availWeekOffset = baseOffset + 3;
-    renderAvailGrid(null, null, 'availGrid_w4');
-    
-    availWeekOffset = baseOffset;
-}
-
-function copyWeek1ToAllWeeks() {
-    // Bug fix: only copy the 7 days currently shown in the "Week 1" box
-    // (based on availWeekOffset), not every date that happens to exist in
-    // myShifts — previously this could reach into other months/weeks you'd
-    // already set up separately and overwrite them unexpectedly.
-    const baseDays = getWeekDays(availWeekOffset);
-
-    baseDays.forEach(d => {
-        const dateStr = toDateStr(d);
-        shiftDefs.forEach((s, shiftIdx) => {
-            const sourceKey = shiftKey(dateStr, shiftIdx);
-            const sourceVal = myShifts[sourceKey] || 'unavailable';
-
-            for (let delta = 1; delta <= 3; delta++) {
-                const targetDate = new Date(d);
-                targetDate.setDate(targetDate.getDate() + (delta * 7));
-                const targetKey = shiftKey(toDateStr(targetDate), shiftIdx);
-                myShifts[targetKey] = sourceVal;
-            }
-        });
-    });
-
-    renderAllFourWeeks();
-    
-    const msgEl = document.getElementById('availMsg');
-    if (msgEl) {
-        msgEl.className = 'msg';
-        msgEl.style.color = '#15803d';
-        msgEl.textContent = "Copied this Week 1 into Weeks 2, 3 & 4! (Click 'Save availability' below to save changes)";
-    }
 }
 
 function toggleCustomTimeFields() {
@@ -1800,7 +1751,6 @@ async function submitTimeOffBlock() {
         
         await loadMyShifts();
         renderWeekAvailSummary();
-        renderAllFourWeeks();
         
         setTimeout(() => { feedbackEl.textContent = ''; }, 3000);
     } catch(e) {
@@ -1809,25 +1759,13 @@ async function submitTimeOffBlock() {
     }
 }
 
-function navigateAvailWeek(delta) {
-    availWeekOffset += (delta * 4);
-    renderAllFourWeeks();
-}
-
 function navigateAdminStaffWeek(delta) {
   adminStaffWeekOffset += delta;
   renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
 }
 
-async function saveAvailability() {
-  if (!myStaffRecord) return;
-  const msgEl = document.getElementById('availMsg');
-  msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
-  await saveShiftsForStaff(myStaffRecord.id, myShifts, availWeekOffset, msgEl);
-}
-
 async function saveAdminStaffAvail() {
-  if (!adminViewingStaffId) return;
+    if (!adminViewingStaffId) return;
   const msgEl = document.getElementById('adminStaffAvailMsg');
   msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
   await saveShiftsForStaff(adminViewingStaffId, adminShifts, adminStaffWeekOffset, msgEl);
