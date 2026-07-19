@@ -29,7 +29,8 @@
       <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">ENQUIRIES</div>
     </div>
     <div class="header-sub" id="headerSub">Loading…</div>
-    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:4px">
+      <span id="buildVersionTag" style="font-size:10px;color:#9ca3af"></span>
       <span class="auth-badge" id="authBadge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span> · Sign out</span>
     </div>
   </div>
@@ -101,7 +102,15 @@
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
-const H=(k=SB_ANON)=>({'Content-Type':'application/json','Authorization':`Bearer ${k}`,'apikey':k});
+// SECURITY: H() now sends the real logged-in staff member's session token
+// for every data request (falls back to the anon key only if nobody is
+// logged in yet, e.g. requests that fire before login completes).
+// apikey always stays as the project anon key (Supabase requirement,
+// separate from Authorization) — matches the pattern used in pos.html.
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
 const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
 async function callEdgeFunction(action,params={},token=null){
   const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
@@ -109,7 +118,13 @@ async function callEdgeFunction(action,params={},token=null){
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
   return r.json();
 }
-<!-- test -->
+
+// BUILD VERSION — bump this each time this file is shipped, so you can
+// confirm in the header (and browser console) which copy you're looking at.
+const BUILD_VERSION = '1.0.0'; // first tracked build — added full auth pattern
+// (token refresh, expiry tracking, background role re-validation) matching
+// btb_app.html/pos.html, plus the same session-restore speed fix.
+console.log(`%cEnquiries — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 // DEFAULT DATA — matches btb_app.html defaults, overwritten by loadSettings() below
 let games=[
   {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
@@ -303,6 +318,48 @@ function updateHeader(){
   document.getElementById('headerSub').textContent=`${enquiries.length} enquir${enquiries.length!==1?'ies':'y'}`;
 }
 
+// ── TOKEN AUTO-REFRESH ──────────────────────────────────────
+// Login tokens expire (Supabase default ~1 hour). Without this, staff
+// could get silently logged out or start seeing errors mid-shift.
+// This quietly renews the token in the background before it expires.
+let tokenRefreshTimer = null;
+
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+// Bundles the data loads that need a real (not anon) token once the
+// staff table is locked down to authenticated-only. Called after login
+// succeeds and after session restore succeeds — never before.
+async function loadAppData(){
+  await loadSettings();
+  await Promise.all([loadStaff(), loadEnquiries()]);
+}
+
 // AUTH — identical login/token logic to btb_app.html
 async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim();const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
@@ -316,8 +373,12 @@ async function doLogin(){
       || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
     let staffId=userId;
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
-    currentUser={id:userId,staffId,email,token,name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
-    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));showApp();
+    currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
+    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    await loadAppData();
+    showApp();
+    renderEnqFilters();renderEnquiries();updateHeader();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
 function parseAllowedTabs(raw){
@@ -326,24 +387,72 @@ function parseAllowedTabs(raw){
   try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
   catch(e){ return ['calendar']; }
 }
-function doLogout(){currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 // showApp — trimmed: no Settings-only elements (settingsGroupSetup/cardConfig/cardRoles) exist on this page.
 // Adds an allowedTabs check for 'leads', matching the access control already enforced by showTab() in btb_app.html.
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
   document.getElementById('authName').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
   if(currentUser.allowedTabs && !currentUser.allowedTabs.includes('leads')){
     document.getElementById('mainApp').innerHTML='<div style="padding:40px 20px;text-align:center;color:#6b7280">You don\'t have access to Enquiries. Contact an admin.</div>';
   }
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
-  await loadSettings();
-  await Promise.all([loadStaff(), loadEnquiries()]);
   const saved=sessionStorage.getItem('btb_user');
   if(saved){
-    try{ currentUser=JSON.parse(saved); showApp(); }catch(e){}
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(!currentUser.refreshToken){
+        // Old-format cached session from before token auto-refresh was added
+        // — no refresh token means we can't safely trust it's still valid.
+        // Sign out cleanly and let them log in fresh, rather than silently
+        // continuing with what could be an already-expired access token.
+        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+        doLogout();
+        renderEnqFilters();renderEnquiries();updateHeader();
+        return;
+      }
+      // Speed fix: only hit the network to refresh the token if it's actually
+      // close to expiring (under 5 min left) — skip the round-trip otherwise,
+      // since the cached token is still good.
+      const msLeft=(currentUser.expiresAt||0)-Date.now();
+      if(msLeft<5*60*1000){
+        await refreshAuthToken();
+        // refreshAuthToken() calls doLogout() if the refresh token itself
+        // has expired — in that case currentUser is now null and we stop.
+        if(!currentUser){ renderEnqFilters();renderEnquiries();updateHeader(); return; }
+      }
+      scheduleTokenRefresh();
+      // Speed fix: load data and show the app right away using the cached
+      // role/permissions from last login, instead of waiting on a get_my_role
+      // round-trip first. Validate quietly in the background; only sign out
+      // if that check fails.
+      await loadAppData();
+      showApp();
+      renderEnqFilters();renderEnquiries();updateHeader();
+      callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
+        if(!currentUser)return;
+        currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
+        currentUser.role=roleData.role;
+        currentUser.name=roleData.name;
+        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+        showApp();
+      }).catch(err=>{
+        // The token looked fine locally but Supabase rejected it — don't
+        // silently carry on with a broken session, sign out instead.
+        console.error('Session validation failed — signing out:',err);
+        doLogout();
+      });
+      return;
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
   }
+  // No cached session (or restore failed): still load public-safe data so
+  // the login screen's game dropdown etc. isn't empty, but stay logged out.
+  await loadSettings();
+  await Promise.all([loadStaff(), loadEnquiries()]);
   renderEnqFilters();renderEnquiries();updateHeader();
 });
 </script>
