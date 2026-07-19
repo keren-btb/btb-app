@@ -651,13 +651,14 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ══ ADMIN: ROSTER OVERVIEW TAB ══ -->
   <div id="tabRoster" class="section">
     <div class="sec-title">Roster Overview</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset--; loadRosterOverview()">← Prev week</button>
       <span id="rosterWeekLabel" style="font-weight:600;font-size:13px;color:#1f2937"></span>
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset++; loadRosterOverview()">Next week →</button>
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset=0; loadRosterOverview()">This week</button>
+      <button class="btn-secondary btn-sm" id="rosterHideClosedBtn" onclick="rosterHideClosed=!rosterHideClosed; loadRosterOverview()">Hide closed days</button>
     </div>
-    <div id="rosterGridWrap" style="overflow-x:auto"></div>
+      <div id="rosterGridWrap" style="overflow-x:auto"></div>
   </div>
 
   <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
@@ -1196,7 +1197,8 @@ function shiftKey(dateStr, shiftIndex) {
 // ADMIN: ROSTER OVERVIEW (skeleton — data wiring comes next step)
 // ============================================================
 let rosterWeekOffset = 0;
-
+let rosterHideClosed = false;
+    
 function getRosterWeekDates() {
   const now = new Date();
   const jsDay = now.getDay(); // 0=Sun
@@ -1229,10 +1231,15 @@ async function loadRosterOverview() {
     return;
   }
 
+const btn = document.getElementById('rosterHideClosedBtn');
+  if (btn) btn.textContent = rosterHideClosed ? 'Show all days' : 'Hide closed days';
+
+  const visibleDates = rosterHideClosed ? dates.filter(isDayOpen) : dates;
+
   const activeStaff = allStaff.filter(s => s.active !== false);
   const fromDate = toDateStr(dates[0]);
   const toDate = toDateStr(dates[6]);
-
+    
   wrap.innerHTML = '<div class="empty-state">Loading…</div>';
 
   // Pull recurring patterns + specific-date overrides for every active staff member in one go
@@ -1258,19 +1265,21 @@ async function loadRosterOverview() {
     overrideMap[row.staff_id][`${row.specific_date}_${shiftIdx}`] = row.available;
   });
 
+const dayShade = (i) => i % 2 === 0 ? '#f8fafc' : '#ffffff';
+
   let html = `<table style="border-collapse:collapse;font-size:12px;min-width:700px">
     <tr>
       <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #e5e7eb">Staff</th>
-      ${dates.map(d => `<th colspan="${visibleShiftIdxs.length}" style="padding:6px 10px;border-bottom:2px solid #e5e7eb;text-align:center">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</th>`).join('')}
+      ${visibleDates.map((d,di) => `<th colspan="${visibleShiftIdxs.length}" style="padding:6px 10px;border-bottom:2px solid #e5e7eb;text-align:center;background:${dayShade(di)}">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</th>`).join('')}
     </tr>
     <tr>
       <th></th>
-      ${dates.map(() => visibleShiftIdxs.map(i => `<th style="padding:4px 6px;font-weight:400;color:#6b7280;border-bottom:1px solid #e5e7eb">${shiftDefs[i].name}</th>`).join('')).join('')}
+      ${visibleDates.map((d,di) => visibleShiftIdxs.map(i => `<th style="padding:4px 6px;font-weight:400;color:#6b7280;border-bottom:1px solid #e5e7eb;background:${dayShade(di)}">${shiftDefs[i].name}</th>`).join('')).join('')}
     </tr>`;
 
   activeStaff.forEach(staff => {
     html += `<tr><td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #f3f4f6;white-space:nowrap">${staff.name}</td>`;
-    dates.forEach(d => {
+    visibleDates.forEach((d,di) => {
       const dateStr = toDateStr(d);
       const cycleWeek = getCycleWeekForDate(d);
       const dayOfWeek = (d.getDay() + 6) % 7; // convert JS Sun=0 to Mon=0
@@ -1278,12 +1287,13 @@ async function loadRosterOverview() {
         const overrideState = overrideMap[staff.id]?.[`${dateStr}_${shiftIdx}`];
         const state = overrideState || recurMap[staff.id]?.[`${cycleWeek}_${dayOfWeek}_${shiftIdx}`] || 'unavailable';
         const meta = AVAIL_STATE_META[state];
-        html += `<td style="padding:6px 10px;text-align:center;background:${meta.bg};color:${meta.color};border-bottom:1px solid #f3f4f6">${meta.label}</td>`;
+        const bg = state === 'unavailable' ? dayShade(di) : meta.bg;
+        html += `<td style="padding:6px 10px;text-align:center;background:${bg};color:${meta.color};border-bottom:1px solid #f3f4f6">${meta.label}</td>`;
       });
     });
     html += `</tr>`;
   });
-
+    
   html += `</table>`;
   wrap.innerHTML = html;
 }
