@@ -658,9 +658,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset=0; loadRosterOverview()">This week</button>
       <button class="btn-secondary btn-sm" id="rosterHideClosedBtn" onclick="rosterHideClosed=!rosterHideClosed; loadRosterOverview()">Hide closed days</button>
     </div>
-      <div id="rosterGridWrap" style="overflow-x:auto"></div>
+<div id="rosterGridWrap" style="overflow-x:auto"></div>
+    <div class="divider"></div>
+    <div class="sec-title" style="font-size:14px" id="rosterMonthlyLabel">Hours rostered this month</div>
+    <div id="rosterMonthlyHours"></div>
   </div>
-
+      
   <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
   <div id="tabApprove" class="section">    <div class="sec-title">Timesheets awaiting approval</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
@@ -1294,9 +1297,67 @@ const dayShade = (i) => i % 2 === 0 ? '#dec4fc' : '#ffffff';
     html += `</tr>`;
   });
     
-  html += `</table>`;
+html += `</table>`;
   wrap.innerHTML = html;
+
+  await loadRosterMonthlyHours(dates[0]);
 }
+
+function hoursBetween(startStr, endStr) {
+  const [sh, sm] = startStr.split(':').map(Number);
+  const [eh, em] = endStr.split(':').map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins < 0) mins += 24 * 60; // overnight shift
+  return mins / 60;
+}
+
+async function loadRosterMonthlyHours(anyDateInWeek) {
+  const monthStart = new Date(anyDateInWeek.getFullYear(), anyDateInWeek.getMonth(), 1);
+  const monthEnd = new Date(anyDateInWeek.getFullYear(), anyDateInWeek.getMonth() + 1, 0);
+  const fromStr = toDateStr(monthStart);
+  const toStr = toDateStr(monthEnd);
+
+  const labelEl = document.getElementById('rosterMonthlyLabel');
+  if (labelEl) labelEl.textContent = `Hours rostered — ${MONTHS[monthStart.getMonth()]} ${monthStart.getFullYear()}`;
+
+  const el = document.getElementById('rosterMonthlyHours');
+  if (!el) return;
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/assigned_shifts?shift_date=gte.${fromStr}&shift_date=lte.${toStr}&status=neq.open&select=staff_id,custom_start_time,custom_end_time`,
+      {headers:H()}
+    );
+    const rows = await r.json();
+
+    const totals = {}; // staff_id -> hours
+    rows.forEach(row => {
+      if (!row.staff_id || !row.custom_start_time || !row.custom_end_time) return;
+      const hrs = hoursBetween(row.custom_start_time.slice(0,5), row.custom_end_time.slice(0,5));
+      totals[row.staff_id] = (totals[row.staff_id] || 0) + hrs;
+    });
+
+    const activeStaff = allStaff.filter(s => s.active !== false);
+    const summary = activeStaff
+      .map(s => ({ name: s.name, hours: totals[s.id] || 0 }))
+      .sort((a,b) => b.hours - a.hours);
+
+    if (summary.every(s => s.hours === 0)) {
+      el.innerHTML = '<div class="empty-state">No confirmed shifts this month yet.</div>';
+      return;
+    }
+
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">
+      ${summary.map(s => `<div style="display:flex;justify-content:space-between;max-width:320px;padding:4px 10px;font-size:13px;border-bottom:1px solid #f3f4f6">
+        <span>${s.name}</span><span style="font-weight:600">${s.hours.toFixed(1)} hrs</span>
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state">Couldn\'t load hours: ' + e.message + '</div>';
+  }
+}
+    
     
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
