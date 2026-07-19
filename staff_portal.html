@@ -970,6 +970,7 @@ function renderTimeOffTypeOptions() {
   sel.querySelectorAll('option[data-shift]').forEach(o => o.remove());
   const customOpt = sel.querySelector('option[value="custom"]');
   shiftDefs.forEach(s => {
+    if (s.active === false) return;
     const opt = document.createElement('option');
     opt.value = s.name;
     opt.dataset.shift = '1';
@@ -1488,10 +1489,15 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
     el.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings → Initial Setup → Shift Times.</div>';
     return;
   }
+    const visibleShiftIdxs = shiftDefs.map((s,i)=>i).filter(i => shiftDefs[i].active !== false);
 
-  let html = `<div class="avail-grid" style="grid-template-columns:auto repeat(${shiftDefs.length},1fr)">
+  if (visibleShiftIdxs.length === 0) {
+    el.innerHTML = '<div class="empty-state">All shifts are currently disabled. Ask an admin to re-enable one in Settings → Initial Setup → Shift Times.</div>';
+    return;
+  }  
+let html = `<div class="avail-grid" style="grid-template-columns:auto repeat(${visibleShiftIdxs.length},1fr)">
     <div class="avail-grid-head"></div>
-    ${shiftDefs.map((s,i) => `<div class="avail-grid-head">${s.name}<br><span style="font-weight:400;font-size:9px">${shiftRange(s.name)}</span></div>`).join('')}`;
+        ${visibleShiftIdxs.map(i => `<div class="avail-grid-head">${shiftDefs[i].name}<br><span style="font-weight:400;font-size:9px">${shiftRange(shiftDefs[i].name)}</span></div>`).join('')}`;
 
   days.forEach(d => {
     const ds = toDateStr(d);
@@ -1504,7 +1510,8 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
     if (!isOpen) {
       html += `<div class="avail-closed" style="grid-column:2/-1">Closed</div>`;
     } else {
-      shiftDefs.forEach((s, shiftIdx) => {
+      visibleShiftIdxs.forEach(shiftIdx => {
+        const s = shiftDefs[shiftIdx];
         const key = shiftKey(ds, shiftIdx);
         const val = shiftData[key];
         const isAvailable = val === 'available' || val === true;
@@ -1801,7 +1808,7 @@ function renderWeekAvailSummary() {
 
   el.innerHTML = openDays.map(d => {
     const ds = toDateStr(d);
-    const shifts = shiftDefs.map((s, idx) => ({name: s.name, idx})).filter(sd => myShifts[shiftKey(ds, sd.idx)] && myShifts[shiftKey(ds, sd.idx)] !== 'unavailable');
+    const shifts = shiftDefs.map((s, idx) => ({name: s.name, idx})).filter(sd => shiftDefs[sd.idx].active !== false && myShifts[shiftKey(ds, sd.idx)] && myShifts[shiftKey(ds, sd.idx)] !== 'unavailable');
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:12px">
       <span style="font-weight:600;color:#374151;min-width:36px">${DAYS_SHORT[d.getDay()]} ${d.getDate()}</span>
       ${shifts.length
