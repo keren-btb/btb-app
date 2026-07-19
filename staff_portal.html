@@ -1658,8 +1658,6 @@ function toggleMyShift(dateStr, shiftIdx) {
 }
 
 function toggleAdminShift(dateStr, shiftIdx) {
-
-function toggleAdminShift(dateStr, shiftIdx) {
   const key = shiftKey(dateStr, shiftIdx);
   adminShifts[key] = !adminShifts[key];
   renderAvailGrid(null, adminShifts, 'adminStaffAvailGrid');
