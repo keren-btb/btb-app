@@ -277,6 +277,24 @@
         let timerInterval = null;       // Local interval for live countdown display
 let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the picker screen
         let controlRoomPin = null;      // Loaded from settings (btb_control_room_pin)
+        let staff = [];                 // Loaded once logged in — used to resolve assigned_staff_ids to names
+
+        async function loadStaff(){
+            try{
+                const r = await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&select=id,name`, {headers:H()});
+                const rows = await r.json();
+                if(rows && rows.length) staff = rows;
+            }catch(e){ console.error('Failed to load staff:', e); }
+        }
+
+        // Resolves a booking's assigned_staff_ids (JSON string of staff IDs) to
+        // display names, matching the pattern used in btb_app.html.
+        function gmNamesFor(booking){
+            let ids = [];
+            try{ ids = booking.assigned_staff_ids ? JSON.parse(booking.assigned_staff_ids) : []; }catch(e){ ids = []; }
+            if(!Array.isArray(ids) || !ids.length) return 'Unassigned';
+            return ids.map(id => { const p = staff.find(x => x.id === id); return p ? p.name : '?'; }).join(', ');
+        }
 
         function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
         function getElapsed(b){
@@ -313,16 +331,15 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 6; // increment this each shipped update — check browser console to confirm you're on the latest build
-        // v6: added full staff login gate (same pattern as btb_app.html/pos.html) so the
-        // page can no longer be opened without a valid staff login. Added Reset/Complete
-        // buttons per room to the PIN-gated All Timers admin panel.
+        const BUILD_VERSION = 7; // increment this each shipped update — check browser console to confirm you're on the latest build
+        // v7: added assigned gamemaster name(s) as a middle column in both the
+        // Welcome Gamemaster booking list and the All Timers admin panel.
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
         // Bundles the loads that used to fire on plain page load — now only
         // run once a staff member is actually logged in.
         async function loadControlRoomData(){
-            await loadEscapeGames();
+            await Promise.all([loadEscapeGames(), loadStaff()]);
             initDatePicker();
             loadControlRoomPin();
         }
@@ -496,11 +513,12 @@ let allRunningTimers = [];
             }
             list.innerHTML = allRunningTimers.map(b => {
                 const name = bookingCustomerName(b);
-                return `<div class="p-4 rounded-xl bg-[#231647] border border-purple-800/40 flex justify-between items-center" data-booking-id="${b.id}">
+                return `<div class="p-4 rounded-xl bg-[#231647] border border-purple-800/40 flex justify-between items-center gap-3" data-booking-id="${b.id}">
                     <div>
                         <div class="font-bold">${b.game_name}</div>
                         <div class="text-xs text-gray-400">${name} · ${b.booking_date} ${b.slot_time ? b.slot_time.substring(0,5) : ''}</div>
                     </div>
+                    <div class="text-xs text-purple-300 text-center flex-shrink-0">🧑‍💼 ${gmNamesFor(b)}</div>
                     <div class="flex items-center gap-3">
                         <div class="text-2xl font-mono font-extrabold" id="all-timer-value-${b.id}">--:--</div>
                         <div class="flex gap-1.5">
@@ -652,11 +670,12 @@ async function checkActiveBooking() {
                 const statusBadge = b.status === 'completed'
                     ? '<span class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300">Completed</span>'
                     : '<span class="text-xs px-2 py-0.5 rounded bg-emerald-700/40 text-emerald-300">Active</span>';
-                return `<button onclick="selectBookingFromList(${i})" class="w-full text-left p-4 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 transition flex justify-between items-center">
+                return `<button onclick="selectBookingFromList(${i})" class="w-full text-left p-4 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 transition flex justify-between items-center gap-3">
                     <div>
                         <div class="font-bold">${time} — ${b.game_name}</div>
                         <div class="text-xs text-gray-400">${name} · ${b.players_booked||0} players</div>
                     </div>
+                    <div class="text-xs text-purple-300 text-center flex-shrink-0">🧑‍💼 ${gmNamesFor(b)}</div>
                     ${statusBadge}
                 </button>`;
             }).join('');
