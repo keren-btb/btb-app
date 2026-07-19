@@ -238,10 +238,6 @@ body{
 .field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
 
 /* MORE DETAILS TOGGLE */
-.more-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1.5px dashed rgba(7,180,197,0.35);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:18px;transition:all .2s;font-size:13px;color:var(--teal)}
-.more-toggle:hover{border-color:var(--teal);background:var(--card2)}
-.more-toggle-arrow{transition:transform .25s;flex-shrink:0;font-size:14px}
-.more-toggle-arrow.open{transform:rotate(180deg)}
 
 /* RADIO GROUP (played before) */
 .radio-group{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -633,26 +629,26 @@ body{
       <input class="field-input" type="tel" id="fPhone" placeholder="021 123 4567" autocomplete="tel">
     </div>
 
-    <!-- Optional extras toggle -->
-    <div class="more-toggle" id="moreToggle" onclick="toggleMoreDetails()">
-      <span id="moreToggleLabel">✨ Birthday, hen/stag do, or other occasion? Tap to add details</span>
-      <span class="more-toggle-arrow" id="moreToggleArrow">▾</span>
-    </div>
-
-    <div id="moreDetailsWrap" style="display:none">
+    <div id="moreDetailsWrap">
 
       <div class="field">
         <div class="field-label">What's the occasion?</div>
         <select class="field-select" id="fOccasion">
           <option value="">Just for fun</option>
           <option value="Birthday">🎂 Birthday celebration</option>
-          <option value="Team building">💼 Team building</option>
           <option value="Date night">💑 Date night</option>
           <option value="Family outing">👨‍👩‍👧 Family outing</option>
           <option value="School group">🎒 School group</option>
           <option value="Hen/Stag do">🥂 Hen / Stag do</option>
+          <option value="Company team building">🏢 Company team building</option>
+          <option value="Company fun event">🎉 Company fun event</option>
           <option value="Other">Other</option>
         </select>
+      </div>
+
+      <div class="field" id="companyNameWrap" style="display:none">
+        <div class="field-label">Company name</div>
+        <input class="field-input" type="text" id="fCompanyName" placeholder="e.g. Acme Ltd">
       </div>
 
       <div class="field" id="specialPersonWrap" style="display:none">
@@ -784,11 +780,12 @@ body{
       <select class="field-select" id="cOccasion">
         <option value="">Just for fun</option>
         <option value="Birthday">Birthday 🎂</option>
-        <option value="Team building">Team building 💼</option>
         <option value="Date night">Date night 💑</option>
         <option value="Family outing">Family outing 👨‍👩‍👧</option>
         <option value="School group">School group 🎒</option>
         <option value="Hen/Stag do">Hen/Stag do 🥂</option>
+        <option value="Company team building">Company team building 🏢</option>
+        <option value="Company fun event">Company fun event 🎉</option>
         <option value="Other">Other</option>
       </select>
     </div>
@@ -844,7 +841,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.3.1';
+const BUILD_VERSION = '1.4.0';
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
@@ -1558,35 +1555,9 @@ function showIntakeForm() {
   document.querySelectorAll('#depositPrefGroup .radio-opt').forEach(el => el.classList.remove('selected'));
   const ageInput = document.getElementById('fSpecialAge');
   if (ageInput) ageInput.value = '';
-  collapseMoreDetails();
   renderPersonalExp();
   updatePriceDisplay();
   goTo('s3', 3);
-}
-
-function toggleMoreDetails() {
-  const wrap = document.getElementById('moreDetailsWrap');
-  const arrow = document.getElementById('moreToggleArrow');
-  const label = document.getElementById('moreToggleLabel');
-  const isOpen = wrap.style.display !== 'none';
-  if (isOpen) {
-    collapseMoreDetails();
-  } else {
-    wrap.style.display = '';
-    arrow.classList.add('open');
-    label.textContent = 'Hide extra details';
-    wrap.scrollIntoView({behavior:'smooth', block:'start'});
-  }
-}
-
-function collapseMoreDetails() {
-  const wrap = document.getElementById('moreDetailsWrap');
-  const arrow = document.getElementById('moreToggleArrow');
-  const label = document.getElementById('moreToggleLabel');
-  if (!wrap) return;
-  wrap.style.display = 'none';
-  if (arrow) arrow.classList.remove('open');
-  if (label) label.textContent = '✨ Birthday, hen/stag do, or other occasion? Tap to add details';
 }
 
 function adjPlayers(d) {
@@ -1677,10 +1648,15 @@ function updatePriceDisplay() {
     <div class="deposit-note"><strong>💳 Deposit to secure your booking: $${dep}</strong>${depositNote}</div>`;
 }
 
-// Occasion → show name field for birthday/hen/stag, age field for birthday, and any matching add-ons
+// Occasion → show name field for birthday/hen/stag, age field for birthday,
+// company name field for the two company occasions, and any matching add-ons
 document.getElementById('fOccasion').addEventListener('change', function() {
   const show = ['Birthday','Hen/Stag do'].includes(this.value);
   document.getElementById('specialPersonWrap').style.display = show ? '' : 'none';
+  const companyWrap = document.getElementById('companyNameWrap');
+  const isCompany = ['Company team building','Company fun event'].includes(this.value);
+  if (companyWrap) companyWrap.style.display = isCompany ? '' : 'none';
+  if (!isCompany) { const cn = document.getElementById('fCompanyName'); if (cn) cn.value = ''; }
   const lbl = document.getElementById('specialPersonLabel');
   if (lbl) {
     if (this.value === 'Birthday') lbl.textContent = 'Name of the birthday person';
@@ -1767,6 +1743,7 @@ function showReviewScreen() {
   const occasion     = document.getElementById('fOccasion').value;
   const specialName  = document.getElementById('fSpecialName').value.trim();
   const specialAge   = document.getElementById('fSpecialAge')?.value;
+  const companyName  = document.getElementById('fCompanyName')?.value.trim();
   const experience   = document.getElementById('fExperience').value;
   const prevGame     = document.getElementById('fPrevGame').value;
   const expRows      = getSelectedExpRows();
@@ -1781,7 +1758,7 @@ function showReviewScreen() {
     ['Email', email],
     ['Phone', phone],
   ];
-  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '')]);
+  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '') + (companyName ? ' — '+companyName : '')]);
   if (selGame.category === 'escape') rows.push(['Experience', experience]);
   if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — '+prevGame : '')]);
   if (expRows.length) rows.push(['Add-ons', expRows.map(e=>e.label).join(', ')]);
@@ -1810,6 +1787,7 @@ async function submitBooking() {
   const specialName = document.getElementById('fSpecialName').value.trim();
   const specialAgeVal = document.getElementById('fSpecialAge')?.value;
   const specialAge = specialAgeVal ? parseInt(specialAgeVal) : null;
+  const companyName = document.getElementById('fCompanyName')?.value.trim();
   const experience  = document.getElementById('fExperience').value;
   const prevGame    = document.getElementById('fPrevGame').value;
 
@@ -1907,7 +1885,7 @@ async function submitBooking() {
       assigned_staff_ids: JSON.stringify(avail.slice(0,1)),
       tags:               JSON.stringify([]),
       staff_notes:        JSON.stringify([]),
-      notes_when_booked:  `${first} ${last} · ${ref}`,
+      notes_when_booked:  `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : ''),
     };
 
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
@@ -1970,10 +1948,11 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
 function startOver() {
   selCategory=null; selGame=null; selDate=null; selSlot=null;
   playerCount=2; playedBefore=null; escapeView='game';
-  ['fFirst','fLast','fEmail','fPhone','fSpecialName'].forEach(id => {
+  ['fFirst','fLast','fEmail','fPhone','fSpecialName','fCompanyName'].forEach(id => {
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('fOccasion').value='';
+  document.getElementById('companyNameWrap').style.display='none';
   document.getElementById('fExperience').value='First time';
   document.getElementById('rb-yes').classList.remove('selected');
   document.getElementById('rb-no').classList.remove('selected');
