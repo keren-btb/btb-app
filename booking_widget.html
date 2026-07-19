@@ -652,6 +652,15 @@ body{
         <input class="field-input" type="text" id="fCompanyName" placeholder="e.g. Acme Ltd">
       </div>
 
+      <div class="field field-nested" id="schoolGroupWrap" style="display:none">
+        <div class="field-label">School name</div>
+        <input class="field-input" type="text" id="fSchoolName" placeholder="e.g. Hastings Primary School">
+        <div style="margin-top:10px">
+          <div class="field-label">Age group</div>
+          <input class="field-input" type="text" id="fSchoolAgeGroup" placeholder="e.g. Year 7-8, or ages 11-13">
+        </div>
+      </div>
+
       <div class="field field-nested" id="specialPersonWrap" style="display:none">
         <div class="field-label" id="specialPersonLabel">Name of the birthday / guest of honour</div>
         <input class="field-input" type="text" id="fSpecialName" placeholder="e.g. Emma">
@@ -669,7 +678,7 @@ body{
 
       <div class="field" id="fExperienceField">
         <div class="field-label">Escape room experience? <span style="color:var(--muted);font-weight:400;text-transform:none">(tick all that apply)</span></div>
-        <div id="fExperienceList" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="fExperienceList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
       </div>
 
       <!-- Played before -->
@@ -836,7 +845,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.5.0';
+const BUILD_VERSION = '1.6.0';
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
@@ -1682,6 +1691,13 @@ document.getElementById('fOccasion').addEventListener('change', function() {
   const isCompany = ['Company team building','Company fun event'].includes(this.value);
   if (companyWrap) companyWrap.style.display = isCompany ? '' : 'none';
   if (!isCompany) { const cn = document.getElementById('fCompanyName'); if (cn) cn.value = ''; }
+  const schoolWrap = document.getElementById('schoolGroupWrap');
+  const isSchool = this.value === 'School group';
+  if (schoolWrap) schoolWrap.style.display = isSchool ? '' : 'none';
+  if (!isSchool) {
+    const sn = document.getElementById('fSchoolName'); if (sn) sn.value = '';
+    const sa = document.getElementById('fSchoolAgeGroup'); if (sa) sa.value = '';
+  }
   const invoiceOpt = document.getElementById('depositOptInvoice');
   if (invoiceOpt) {
     invoiceOpt.style.display = isCompany ? '' : 'none';
@@ -1775,6 +1791,8 @@ function showReviewScreen() {
   const specialName  = document.getElementById('fSpecialName').value.trim();
   const specialAge   = document.getElementById('fSpecialAge')?.value;
   const companyName  = document.getElementById('fCompanyName')?.value.trim();
+  const schoolName    = document.getElementById('fSchoolName')?.value.trim();
+  const schoolAgeGroup = document.getElementById('fSchoolAgeGroup')?.value.trim();
   const experience   = getExperienceLabel();
   const prevGame     = document.getElementById('fPrevGame').value;
   const expRows      = getSelectedExpRows();
@@ -1789,7 +1807,7 @@ function showReviewScreen() {
     ['Email', email],
     ['Phone', phone],
   ];
-  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '') + (companyName ? ' — '+companyName : '')]);
+  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — '+specialName+(specialAge?' ('+specialAge+')':'') : '') + (companyName ? ' — '+companyName : '') + (schoolName ? ' — '+schoolName+(schoolAgeGroup?' ('+schoolAgeGroup+')':'') : '')]);
   if (selGame.category === 'escape' && experience) rows.push(['Experience', experience]);
   if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — '+prevGame : '')]);
   if (expRows.length) rows.push(['Add-ons', expRows.map(e=>e.label).join(', ')]);
@@ -1819,6 +1837,8 @@ async function submitBooking() {
   const specialAgeVal = document.getElementById('fSpecialAge')?.value;
   const specialAge = specialAgeVal ? parseInt(specialAgeVal) : null;
   const companyName = document.getElementById('fCompanyName')?.value.trim();
+  const schoolName = document.getElementById('fSchoolName')?.value.trim();
+  const schoolAgeGroup = document.getElementById('fSchoolAgeGroup')?.value.trim();
   const experience  = getExperienceLabel();
   const prevGame    = document.getElementById('fPrevGame').value;
 
@@ -1916,7 +1936,7 @@ async function submitBooking() {
       assigned_staff_ids: JSON.stringify(avail.slice(0,1)),
       tags:               JSON.stringify([]),
       staff_notes:        JSON.stringify([]),
-      notes_when_booked:  `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : ''),
+      notes_when_booked:  `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' ('+schoolAgeGroup+')' : ''}` : ''),
     };
 
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
@@ -1979,11 +1999,12 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
 function startOver() {
   selCategory=null; selGame=null; selDate=null; selSlot=null;
   playerCount=2; playedBefore=null; escapeView='game';
-  ['fFirst','fLast','fEmail','fPhone','fSpecialName','fCompanyName'].forEach(id => {
+  ['fFirst','fLast','fEmail','fPhone','fSpecialName','fCompanyName','fSchoolName','fSchoolAgeGroup'].forEach(id => {
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('fOccasion').value='';
   document.getElementById('companyNameWrap').style.display='none';
+  document.getElementById('schoolGroupWrap').style.display='none';
   const invoiceOptReset = document.getElementById('depositOptInvoice');
   if (invoiceOptReset) { invoiceOptReset.style.display='none'; invoiceOptReset.classList.remove('selected'); }
   selectedExperienceLevels = ['First time'];
