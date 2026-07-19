@@ -951,7 +951,10 @@ const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 // Replaces the old hardcoded Morning/Afternoon/Evening blocks so admin can
 // define any number of named shifts with custom start/end times.
 let shiftDefs = []; // [{name, start, end}, ...]
-
+// WARNING: this array's ORDER is meaningful. Availability/overrides in the DB store
+// shift_index = position in this array. If the order of shifts in Settings > Shift Times
+// ever changes (currently not possible via the UI, only via a direct DB edit), historical
+// availability data will be silently reassigned to the wrong shift.
 function shiftForTime(t) {
   // Finds which defined shift a given HH:MM slot time falls into.
   // Returns null if the time doesn't fall in any defined shift (a gap).
