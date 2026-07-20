@@ -1001,11 +1001,9 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.2';
-// v1.9.2: "All shifts" list now shows every day in the 8-week window (empty days
-// shown as a single muted line "Day, Date — No shifts scheduled") instead of only
-// listing days that already have shifts. Added "unpaid unless called in" note under
-// the standby/on-call checkbox.
+const BUILD_VERSION = '1.9.3';
+// v1.9.3: empty days in "All shifts" list now show "Closed" for Sun/Mon
+// instead of "No shifts scheduled", matching BtB's actual weekly schedule.
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3845,7 +3843,9 @@ function renderAdminShifts() {
   el.innerHTML = dates.map(date => {
     const dayShifts = groups[date];
     if (!dayShifts || !dayShifts.length) {
-      return `<div class="shift-date-header shift-date-empty">${fmtShiftDate(date)} — No shifts scheduled</div>`;
+      const dayOfWeek = new Date(date + 'T12:00').getDay(); // 0=Sun, 1=Mon
+      const label = (dayOfWeek === 0 || dayOfWeek === 1) ? 'Closed' : 'No shifts scheduled';
+      return `<div class="shift-date-header shift-date-empty">${fmtShiftDate(date)} — ${label}</div>`;
     }
     const collapsed = collapseShiftGroups(dayShifts);
     return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
