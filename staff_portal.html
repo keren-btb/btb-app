@@ -3994,19 +3994,23 @@ if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign
   } catch(e) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
 }
     
+function timeRangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
 async function claimShift(id) {
   if (!myStaffRecord) return;
   const target = allShifts.find(x => x.id === id);
   if (!target) return;
-  const alreadyHasIt = allShifts.some(x =>
+  const conflict = allShifts.find(x =>
     x.staff_id === myStaffRecord.id &&
     (x.status === 'assigned' || x.status === 'claimed') &&
     x.shift_date === target.shift_date &&
-    x.custom_start_time === target.custom_start_time &&
-    x.custom_end_time === target.custom_end_time
+    timeRangesOverlap(x.custom_start_time, x.custom_end_time, target.custom_start_time, target.custom_end_time)
   );
-  if (alreadyHasIt) { alert('You already have this shift — you can\'t claim it twice.'); return; }
-  try {
+  if (conflict) { alert(`You already have a shift that day from ${fmt12(conflict.custom_start_time)} to ${fmt12(conflict.custom_end_time)}, which overlaps this one — you can't claim it.`); return; }
+  try 
+  {
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
       method:'PATCH', headers:H(),
       body: JSON.stringify({staff_id: myStaffRecord.id, status:'claimed', claimed_at: new Date().toISOString()})
