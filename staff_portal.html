@@ -3996,6 +3996,16 @@ if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign
     
 async function claimShift(id) {
   if (!myStaffRecord) return;
+  const target = allShifts.find(x => x.id === id);
+  if (!target) return;
+  const alreadyHasIt = allShifts.some(x =>
+    x.staff_id === myStaffRecord.id &&
+    (x.status === 'assigned' || x.status === 'claimed') &&
+    x.shift_date === target.shift_date &&
+    x.custom_start_time === target.custom_start_time &&
+    x.custom_end_time === target.custom_end_time
+  );
+  if (alreadyHasIt) { alert('You already have this shift — you can\'t claim it twice.'); return; }
   try {
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
       method:'PATCH', headers:H(),
@@ -4008,7 +4018,7 @@ async function claimShift(id) {
     updateShiftBadge();
   } catch(e) { alert('Could not claim shift: '+e.message); }
 }
-
+    
 async function confirmClaim(id) {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
