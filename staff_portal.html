@@ -697,7 +697,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="field-label">Date <span class="req">*</span></div>
             <input class="field-input" type="date" id="newShiftDate">
           </div>
-<div class="field-2col">
+<div class="field">
+            <div class="field-label">Quick-fill from a defined shift time (optional)</div>
+            <select class="field-select" id="newShiftQuickFill" onchange="applyShiftQuickFill()">
+              <option value="">— Choose a defined shift —</option>
+            </select>
+          </div>
+          <div class="field-2col">
             <div class="field">
               <div class="field-label">Start time <span class="req">*</span></div>
               <input class="field-input" type="time" id="newShiftStart">
@@ -707,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <input class="field-input" type="time" id="newShiftEnd">
             </div>
           </div>
-          <div class="field-2col">
+            <div class="field-2col">
 <div class="field">
               <div class="field-label">Staff required</div>
               <div style="display:flex;align-items:center;gap:8px">
@@ -741,14 +747,24 @@ document.addEventListener('DOMContentLoaded', () => {
             </label>
             <p class="field-hint" style="margin-left: 24px; color:#92400e; font-weight: 500;">Staff must stay reachable but shouldn't travel to the venue unless called.</p>
           </div>
-          <div class="field">
+<div class="field">
             <div class="field-label">Notes (optional)</div>
-<input class="field-input" type="text" id="newShiftNotes" placeholder="e.g. Normal Sat, Busy Friday night, need experienced GM">
+            <input class="field-input" type="text" id="newShiftNotes" placeholder="e.g. Normal Sat, Busy Friday night, need experienced GM">
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#475569;cursor:pointer">
+              <input type="checkbox" id="newShiftRepeat" style="width:16px;height:16px" onchange="document.getElementById('newShiftRepeatWeeksRow').style.display=this.checked?'flex':'none'">
+              🔁 Repeat weekly (same day/time/roles each week)
+            </label>
+          </div>
+          <div class="field" id="newShiftRepeatWeeksRow" style="display:none;align-items:center;gap:8px">
+            <div class="field-label" style="margin:0">For how many weeks (incl. this one)</div>
+            <input class="field-input" type="number" id="newShiftRepeatWeeks" min="2" max="52" value="8" style="width:70px">
           </div>
           <div class="btn-row">
             <button class="btn-primary" onclick="createShift()"><i class="ti ti-plus"></i> Create shift</button>
           </div>
-          <div class="msg" id="newShiftMsg"></div>
+            <div class="msg" id="newShiftMsg"></div>
         </div>
 
         <!-- Right: All shifts list -->
@@ -1515,8 +1531,9 @@ async function initApp() {
   await loadShifts();
   document.getElementById('shiftsAdminView').style.display = isAdmin ? '' : 'none';
   document.getElementById('shiftsStaffView').style.display = isAdmin ? 'none' : '';
-  populateShiftStaffDropdown();
-  if (isAdmin) renderAdminShifts(); else renderStaffShifts();
+populateShiftStaffDropdown();
+  populateShiftQuickFillDropdown();
+    if (isAdmin) renderAdminShifts(); else renderStaffShifts();
   updateShiftBadge();
 
   if (isAdmin) {
@@ -3916,24 +3933,37 @@ async function createShift() {
 
   if (!date || !start || !end) { msgEl.className='msg err'; msgEl.textContent='Date, start and end time are required.'; return; }
   if (end <= start) { msgEl.className='msg err'; msgEl.textContent='End time must be after start time.'; return; }
-  if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign to staff only works when Staff required = 1. Leave it blank for multi-staff shifts.'; return; }
+if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign to staff only works when Staff required = 1. Leave it blank for multi-staff shifts.'; return; }
+  const repeat = document.getElementById('newShiftRepeat')?.checked || false;
+  const repeatWeeks = repeat ? Math.max(2, Math.min(52, parseInt(document.getElementById('newShiftRepeatWeeks')?.value) || 8)) : 1;
+  if (repeat && staffId) { msgEl.className='msg err'; msgEl.textContent='Repeat weekly only works for open shifts (leave "Assign to staff" blank), since each week needs its own claim/assign.'; return; }
   msgEl.className='msg'; msgEl.textContent='Saving…';
   try {
-    const slotGroupId = count > 1 ? crypto.randomUUID() : null;
-    const rowsToCreate = Array.from({length: count}, () => ({
-      shift_date: date,
-      custom_start_time: start,
-      custom_end_time: end,
-      staff_id: staffId,
-      notes,
-      status: staffId ? 'assigned' : 'open',
-      created_by: currentUser?.name || null,
-      assigned_at: staffId ? new Date().toISOString() : null,
-      shift_type: 'custom',
-      is_standby: isStandby,
-      required_role: minRole,
-      slot_group_id: slotGroupId
-    }));
+    const seriesId = repeat ? crypto.randomUUID() : null;
+    const rowsToCreate = [];
+    for (let w = 0; w < repeatWeeks; w++) {
+      const d = new Date(date + 'T00:00:00');
+      d.setDate(d.getDate() + (w * 7));
+      const weekDate = d.toISOString().slice(0,10);
+      const slotGroupId = count > 1 ? crypto.randomUUID() : null;
+      for (let i = 0; i < count; i++) {
+        rowsToCreate.push({
+          shift_date: weekDate,
+          custom_start_time: start,
+          custom_end_time: end,
+          staff_id: staffId,
+          notes,
+          status: staffId ? 'assigned' : 'open',
+          created_by: currentUser?.name || null,
+          assigned_at: staffId ? new Date().toISOString() : null,
+          shift_type: 'custom',
+          is_standby: isStandby,
+          required_role: minRole,
+          slot_group_id: slotGroupId,
+          series_id: seriesId
+        });
+      }
+    }
     const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, {
       method:'POST',
       headers:{...H(),'Prefer':'return=representation'},
@@ -3943,7 +3973,7 @@ async function createShift() {
     const rows = await r.json();
     allShifts.push(...rows);
     allShifts.sort((a,b) => a.shift_date > b.shift_date ? 1 : a.custom_start_time > b.custom_start_time ? 1 : -1);
-    msgEl.className='msg ok'; msgEl.textContent = count > 1 ? `✓ ${count} shift slots created` : '✓ Shift created';
+    msgEl.className='msg ok'; msgEl.textContent = rows.length > 1 ? `✓ ${rows.length} shift slots created` : '✓ Shift created';
     document.getElementById('newShiftDate').value='';
     document.getElementById('newShiftStart').value='';
     document.getElementById('newShiftEnd').value='';
@@ -3951,6 +3981,9 @@ async function createShift() {
     document.getElementById('newShiftStaff').value='';
     document.getElementById('newShiftCount').value='1';
     document.getElementById('newShiftMinRole').value='';
+    document.getElementById('newShiftQuickFill').value='';
+    document.getElementById('newShiftRepeat').checked = false;
+    document.getElementById('newShiftRepeatWeeksRow').style.display = 'none';
     if (document.getElementById('newShiftStandby')) document.getElementById('newShiftStandby').checked = false;
     setTimeout(()=>msgEl.textContent='',3000);
     renderAdminShifts();
@@ -4092,6 +4125,20 @@ function populateShiftStaffDropdown() {
       .map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 }
 
+function populateShiftQuickFillDropdown() {
+  const sel = document.getElementById('newShiftQuickFill'); if (!sel) return;
+  sel.innerHTML = '<option value="">— Choose a defined shift —</option>' +
+    shiftDefs.map((s,i) => s.active !== false ? `<option value="${i}">${s.name} (${fmt12(s.start)} – ${fmt12(s.end)})</option>` : '').join('');
+}
+
+function applyShiftQuickFill() {
+  const idx = document.getElementById('newShiftQuickFill')?.value;
+  if (idx === '' || idx === undefined) return;
+  const def = shiftDefs[parseInt(idx)]; if (!def) return;
+  document.getElementById('newShiftStart').value = def.start;
+  document.getElementById('newShiftEnd').value = def.end;
+}
+    
 </script>
 </body>
 </html>
