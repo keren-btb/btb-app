@@ -124,7 +124,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.1.0'; // enquiry email reply templates (send + admin management)
+const BUILD_VERSION = '1.2.0'; // awaiting-reply tracking via client_interactions
 // (token refresh, expiry tracking, background role re-validation) matching
 // btb_app.html/pos.html, plus the same session-restore speed fix.
 console.log(`%cEnquiries — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -144,6 +144,7 @@ let currentUser=null;
 let enquiryTemplates=[];
 let openReplyId=null;
 let tplAdminOpen=false;
+let openEmailInteractions={}; // clientId -> most recent open interaction created_at
 
 function initials(n){return n.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -179,6 +180,16 @@ async function loadEnquiryTemplates(){
     enquiryTemplates=await callEdgeFunction('list_enquiry_templates',{},currentUser.token);
   }catch(e){console.error('Templates load:',e)}
 }
+async function loadOpenEmailInteractions(){
+  if(!currentUser)return;
+  try{
+    const rows=await callEdgeFunction('list_open_email_interactions',{},currentUser.token);
+    openEmailInteractions={};
+    (rows||[]).forEach(r=>{
+      if(!openEmailInteractions[r.client_id])openEmailInteractions[r.client_id]=r.created_at;
+    });
+  }catch(e){console.error('Open interactions load:',e)}
+}
 
 // ENQUIRIES
 async function loadEnquiries(){
@@ -195,6 +206,7 @@ async function loadEnquiries(){
       return{
         id:row.id,name,
         detail:row.notes_when_booked||'',
+        clientId:row.client_id||null,
         game:row.game_name,date:row.booking_date,
         players:row.players_booked,
         phone:row.clients?.phone||(phoneMatch?phoneMatch[0]:''),
@@ -294,6 +306,8 @@ function renderEnquiries(){
       return `<div class="note-line">📝 ${escapeHtml(n)}</div>`;
     }).join('');
   const srcBadge=e.source==='online'?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:1px 7px;border-radius:99px;font-weight:600">🌐 Online</span>':'<span style="font-size:10px;background:#e0f7f9;color:#07b4c5;padding:1px 7px;border-radius:99px;font-weight:600">Staff</span>';
+    const awaitingAt=e.clientId?openEmailInteractions[e.clientId]:null;
+    const awaitBadge=awaitingAt?`<span style="font-size:10px;background:#fef3c7;color:#b45309;padding:1px 7px;border-radius:99px;font-weight:600">⏳ Awaiting reply — sent ${new Date(awaitingAt).toLocaleDateString('en-NZ',{day:'numeric',month:'short'})}</span>`:'';
     return`<div class="enq-card ${e.source==='online'?'online':''}">
       <div style="display:flex;align-items:flex-start;gap:9px">
         <div class="enq-avatar">${escapeHtml(e.initials)}</div>
@@ -301,6 +315,7 @@ function renderEnquiries(){
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <div class="enq-name">${escapeHtml(e.name)}</div>
             ${srcBadge}
+            ${awaitBadge}
           </div>
           <div class="enq-detail" style="margin-top:2px">${escapeHtml(e.detail||'')}</div>
           ${e.phone?`<div style="font-size:11px;color:#6b7280;margin-top:2px">📞 ${escapeHtml(e.phone)}</div>`:''}
@@ -459,10 +474,11 @@ async function sendReply(id){
       to:e.email,subject:st.subject,htmlBody,
       fromEmail:tpl?.from_email,fromName:tpl?.from_name,
       enquiryId:id,templateName:tpl?.name||st.subject,
+      clientId:e.clientId,staffId:currentUser.staffId,
     },currentUser.token);
     if(msgEl){msgEl.textContent='Sent ✓';msgEl.style.color='#059669'}
     delete replyState[id];openReplyId=null;
-    await loadEnquiries();renderEnquiries();
+    await Promise.all([loadEnquiries(),loadOpenEmailInteractions()]);renderEnquiries();
   }catch(err){
     if(msgEl){msgEl.textContent='Error: '+err.message;msgEl.style.color='#dc2626'}
   }
@@ -483,6 +499,12 @@ function setEnqStatusFilter(id){activeEnqStatus=id;renderEnqFilters();renderEnqu
 async function setEnqStatus(id,statusId){
   const e=enquiries.find(x=>x.id===id);if(!e)return;e.status=statusId;
   try{await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({enquiry_status:statusId})})}catch(ex){}
+  if(e.clientId){
+    try{
+      await callEdgeFunction('close_open_email_interactions',{clientId:e.clientId},currentUser.token);
+      delete openEmailInteractions[e.clientId];
+    }catch(ex){console.error('Close interaction:',ex)}
+  }
   renderEnquiries();
 }
 async function saveEnqNote(id,btnEl){
@@ -537,7 +559,7 @@ async function refreshAuthToken() {
 // succeeds and after session restore succeeds — never before.
 async function loadAppData(){
   await loadSettings();
-  await Promise.all([loadStaff(), loadEnquiries(), loadEnquiryTemplates()]);
+  await Promise.all([loadStaff(), loadEnquiries(), loadEnquiryTemplates(), loadOpenEmailInteractions()]);
 }
 
 // AUTH — identical login/token logic to btb_app.html
