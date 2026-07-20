@@ -895,7 +895,8 @@ let bookingConfig = {
 
 let staffAvail    = {}; // {staffId: {'YYYY-MM-DD': ['HH:MM',...]}}
 let staffTraining = []; // [{staff_id, game_id, status}]
-let staffAvailStatus = {}; // { staff_id: { 'YYYY-MM-DD_HH:MM': 'available'|'maybe' } }
+let staffAvailStatus = {}; // { staff_id: { 'YYYY-MM-DD_HH:MM': 'available'|'maybe' } } — time-off overrides only
+let rosterShifts  = []; // [{staff_id, shift_date, custom_start_time, custom_end_time}] — the actual confirmed roster (assigned_shifts), source of truth for who's working
 let staffFlags = {}; // { staff_id: true/false } — trusted_opener
 let trainingStatuses = [{id:'trained',qualifies:true},{id:'can_supervise',qualifies:true}];
 let existingBookings = [];
@@ -984,6 +985,18 @@ async function loadStaffData() {
 
     const tr = await fetch(`${SB_URL}/rest/v1/public_staff_training`, {headers:SB_H});
     staffTraining = await tr.json();
+
+    // The confirmed roster — who is actually assigned/claimed to work each
+    // shift. This is the source of truth for "is anyone here to run this
+    // game", not the weekly availability pattern (that's just a preference
+    // staff set; the roster is what Keren has actually locked in).
+    // assigned_shifts already has an open RLS policy for anon, so no view needed.
+    const rs = await fetch(
+      `${SB_URL}/rest/v1/assigned_shifts?shift_date=gte.${today}&shift_date=lte.${future}&status=neq.open&select=staff_id,shift_date,custom_start_time,custom_end_time`,
+      {headers: SB_H}
+    );
+    rosterShifts = await rs.json();
+    if (!Array.isArray(rosterShifts)) rosterShifts = [];
 
     // Trusted Opener flags — a separate minimal view (id + trusted_opener only).
     // If this view doesn't exist yet (SQL not run), fails safe: staffFlags stays
@@ -1081,12 +1094,12 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   );
   if (alreadyBooked) return 'booked';
 
-  // Fail-safe: if there's no staff/training data in the system at all (fresh
+  // Fail-safe: if there's no roster/training data in the system at all (fresh
   // install, or data wiped), we can't verify anyone can actually run this —
   // so don't claim it's available, ask the customer to call instead.
-  const anyStaffData = Object.keys(staffAvail).length > 0 || staffTraining.length > 0;
+  const anyStaffData = rosterShifts.length > 0 || staffTraining.length > 0;
   if (!anyStaffData) return 'call';
-
+  
   const pool = getQualifiedStaffPool(gameId, dateStr, slotTime);
   if (pool.fullyAvailable.length === 0 && pool.maybeAvailable.length === 0) return 'booked'; // nobody qualified & free at all
 
@@ -1102,24 +1115,35 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   return pool.fullyAvailable.length > 0 ? 'available' : 'call';
 }
 
-// Splits qualified, unassigned staff for a slot into fully-available vs "maybe".
+// Splits qualified staff for a slot by whether they're actually rostered on.
+// The roster (assigned_shifts) decides who's working — the weekly
+// availability pattern is not consulted here at all, only a specific-date
+// time-off block (staff_availability) can still exclude someone even if
+// they're on the roster.
 function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   const fullyAvailable = [];
-  const maybeAvailable = [];
-  Object.keys(staffAvail).forEach(sid => {
+  const maybeAvailable = []; // kept for compatibility with getSlotStatus's cutoff logic — always empty now the roster decides
+  const rosteredIds = new Set(
+    rosterShifts
+      .filter(r => r.shift_date === dateStr &&
+        slotTime >= (r.custom_start_time||'').slice(0,5) &&
+        slotTime <  (r.custom_end_time||'').slice(0,5))
+      .map(r => r.staff_id)
+  );
+  rosteredIds.forEach(sid => {
     const training  = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
     const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
     if (!statusObj || !statusObj.qualifies) return;
-    const slots = (staffAvail[sid][dateStr] || []);
-    if (!slots.includes(slotTime)) return;
+    // Time-off block for this exact date+slot still overrides the roster —
+    // covers a last-minute block after already being rostered.
+    const blocked = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable';
+    if (blocked) return;
     const taken = existingBookings.some(b => {
       const ids = JSON.parse(b.assigned_staff_ids || '[]');
       return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time||'').slice(0,5) === slotTime;
     });
     if (taken) return;
-    const availStatus = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime];
-    if (availStatus === 'maybe') maybeAvailable.push(sid);
-    else fullyAvailable.push(sid);
+    fullyAvailable.push(sid);
   });
   return { fullyAvailable, maybeAvailable };
 }
