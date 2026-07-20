@@ -1440,6 +1440,11 @@ async function doLogin(){
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
     sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
     scheduleTokenRefresh();
+    // Reload with the real staff token now that we're authenticated — the initial
+    // DOMContentLoaded load ran on the anon key, and RLS on settings only allows anon
+    // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
+    // so shiftTimes came back empty. Refresh it before showing the app.
+    await loadShiftTimes();
     showApp();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
@@ -1785,7 +1790,12 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = 13; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = 14; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v14: fixed loadShiftTimes() timing — it now reloads with the authenticated staff
+// token right before showApp() (both fresh login and restored-session paths), instead
+// of only running once on the anon key at DOMContentLoaded. Anon RLS on settings only
+// allows btb_booking_config/btb_games/btb_training_statuses, so btb_shift_times was
+// always coming back empty and Shift Times never showed saved Morn/Mid/Even shifts.
 // v13: per-game room buffer, shared pricing presets library, surcharge moved to POS group,
 // Personalised Experiences own card, full tab list + real gating for Logins & Roles.
 // Also: faster session restore — skip token refresh unless near expiry, show app
@@ -1826,6 +1836,11 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
       }
       if(currentUser){
         scheduleTokenRefresh();
+        // Reload with the real staff token now that we're authenticated — the initial
+        // DOMContentLoaded load ran on the anon key, and RLS on settings only allows anon
+        // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
+        // so shiftTimes came back empty. Refresh it before showing the app.
+        await loadShiftTimes();
         // Speed fix: show the app right away using the cached role/permissions
         // from last login, instead of waiting on a get_my_role round-trip first.
         // Validate quietly in the background; only sign out if that check fails,
