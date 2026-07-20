@@ -38,6 +38,7 @@
             <h1 class="text-xl font-bold tracking-wider text-white">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
         </div>
         <div class="flex items-center gap-3">
+            <a href="btb_app.html" class="text-xs text-gray-400 hover:text-accent transition">&larr; Btb App</a>
             <span id="buildVersionTag" class="text-[10px] text-gray-500"></span>
             <span id="authName" class="text-xs text-gray-400"></span>
             <button onclick="doLogout()" class="text-xs text-gray-400 hover:text-red-400 transition">Sign out</button>
@@ -331,9 +332,8 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 7; // increment this each shipped update — check browser console to confirm you're on the latest build
-        // v7: added assigned gamemaster name(s) as a middle column in both the
-        // Welcome Gamemaster booking list and the All Timers admin panel.
+        const BUILD_VERSION = 8; // increment this each shipped update — check browser console to confirm you're on the latest build
+        // v8: added a return-to-btb_app.html link in the header.
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
         // Bundles the loads that used to fire on plain page load — now only
