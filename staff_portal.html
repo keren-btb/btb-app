@@ -520,11 +520,15 @@ document.addEventListener('DOMContentLoaded', () => {
   <div id="tabSpecificTimeoff" class="section">
     <div class="card" style="padding: 20px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; max-width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <h3 style="font-size: 16px; font-weight: 700; color: #991b1b; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">🚫 Request Specific Time Off</h3>
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Block out upcoming holidays, exams, appointments, or specific hours you cannot work.</p>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Block out upcoming holidays, exams, appointments, or specific hours you cannot work. For a holiday spanning several days, fill in both "Which Date?" and "To Date".</p>
         <div style="display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; flex-direction: column; gap: 4px;">
                 <label style="font-size: 12px; font-weight: 600; color: #475569;">Which Date?</label>
                 <input type="date" id="excDate" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit;">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 12px; font-weight: 600; color: #475569;">To Date (optional — for holidays covering several days)</label>
+                <input type="date" id="excDateTo" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit;">
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
                 <label style="font-size: 12px; font-weight: 600; color: #475569;">Time-Off Type:</label>
@@ -1001,9 +1005,10 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.3';
-// v1.9.3: empty days in "All shifts" list now show "Closed" for Sun/Mon
-// instead of "No shifts scheduled", matching BtB's actual weekly schedule.
+const BUILD_VERSION = '1.9.4';
+// v1.9.4: "Request Specific Time Off" now supports an optional date range
+// (e.g. a holiday from 21 Sep to 30 Sep) via a new "To Date" field, instead
+// of only blocking a single day at a time.
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1927,6 +1932,7 @@ async function submitTimeOffBlock() {
         return;
     }
     const dateVal = document.getElementById('excDate')?.value;
+    const dateToVal = document.getElementById('excDateTo')?.value;
     const typeVal = document.getElementById('excType')?.value;
     const feedbackEl = document.getElementById('excFeedback');
     if (!feedbackEl) return;
@@ -1936,70 +1942,102 @@ async function submitTimeOffBlock() {
         feedbackEl.textContent = 'Please select a date.';
         return;
     }
-    
+
+    if (dateToVal && dateToVal < dateVal) {
+        feedbackEl.style.color = '#ef4444';
+        feedbackEl.textContent = '"To Date" must be on or after "Which Date?".';
+        return;
+    }
+
+    // Build the list of dates to block — just the one date, or every date
+    // in the range if "To Date" was filled in for a multi-day holiday.
+    const datesToBlock = [];
+    if (dateToVal) {
+        let d = new Date(dateVal + 'T12:00');
+        const end = new Date(dateToVal + 'T12:00');
+        while (d <= end) {
+            datesToBlock.push(toDateStr(d));
+            d.setDate(d.getDate() + 1);
+        }
+    } else {
+        datesToBlock.push(dateVal);
+    }
+
     feedbackEl.style.color = '#374151';
     feedbackEl.textContent = 'Submitting request...';
-    
+
     try {
-        const d = new Date(dateVal + 'T12:00');
-        const daySlots = getSlotsForDay(d.getDay());
-
-        // Bug fix: work out exactly which slot times this block covers FIRST,
-        // so we only clear/replace those — not the entire day. Previously this
-        // deleted every row for the date, which silently wiped out any other
-        // shift (e.g. morning) already set for that same day.
-        let timesToBlock = [];
-
-        if (typeVal === 'all') {
-            timesToBlock = daySlots;
-        } else if (typeVal === 'custom') {
-            const startT = document.getElementById('excStartTime')?.value;
-            const endT = document.getElementById('excEndTime')?.value;
+        let startT, endT;
+        if (typeVal === 'custom') {
+            startT = document.getElementById('excStartTime')?.value;
+            endT = document.getElementById('excEndTime')?.value;
             if (!startT || !endT) {
                 feedbackEl.style.color = '#ef4444';
                 feedbackEl.textContent = 'Please provide start and end times.';
                 return;
             }
-            timesToBlock = daySlots.filter(t => t >= startT && t <= endT);
-        } else {
-            // typeVal is the name of one of the admin-defined shifts
-            const shiftDef = shiftDefs.find(s => s.name === typeVal);
-            if (shiftDef) timesToBlock = daySlots.filter(t => t >= shiftDef.start && t < shiftDef.end);
         }
 
-        if (timesToBlock.length > 0) {
-            // Only remove existing rows for THESE specific times on this date —
-            // any other slots already set for the day (outside this block) are left alone.
-            const timesFilter = timesToBlock.map(t => t + ':00').join(',');
-            await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${myStaffRecord.id}&specific_date=eq.${dateVal}&start_time=in.(${timesFilter})`, {
-                method: 'DELETE',
-                headers: H()
-            });
-        }
+        // Block each date in turn — closed days (Sun/Mon) naturally have no
+        // slots, so they're just skipped with nothing to block.
+        for (const dateStr of datesToBlock) {
+            const d = new Date(dateStr + 'T12:00');
+            const daySlots = getSlotsForDay(d.getDay());
 
-        const rows = timesToBlock.map(t => ({
-            staff_id: myStaffRecord.id,
-            specific_date: dateVal,
-            start_time: t + ':00',
-            available: 'unavailable'
-        }));
+            // Bug fix: work out exactly which slot times this block covers FIRST,
+            // so we only clear/replace those — not the entire day. Previously this
+            // deleted every row for the date, which silently wiped out any other
+            // shift (e.g. morning) already set for that same day.
+            let timesToBlock = [];
 
-        if (rows.length > 0) {
-            const r = await fetch(`${SB_URL}/rest/v1/staff_availability`, {
-                method: 'POST',
-                headers: { ...H(), 'Prefer': 'return=minimal' },
-                body: JSON.stringify(rows)
-            });
-            if (!r.ok) throw new Error(await r.text());
+            if (typeVal === 'all') {
+                timesToBlock = daySlots;
+            } else if (typeVal === 'custom') {
+                timesToBlock = daySlots.filter(t => t >= startT && t <= endT);
+            } else {
+                // typeVal is the name of one of the admin-defined shifts
+                const shiftDef = shiftDefs.find(s => s.name === typeVal);
+                if (shiftDef) timesToBlock = daySlots.filter(t => t >= shiftDef.start && t < shiftDef.end);
+            }
+
+            if (timesToBlock.length > 0) {
+                // Only remove existing rows for THESE specific times on this date —
+                // any other slots already set for the day (outside this block) are left alone.
+                const timesFilter = timesToBlock.map(t => t + ':00').join(',');
+                await fetch(`${SB_URL}/rest/v1/staff_availability?staff_id=eq.${myStaffRecord.id}&specific_date=eq.${dateStr}&start_time=in.(${timesFilter})`, {
+                    method: 'DELETE',
+                    headers: H()
+                });
+
+                const rows = timesToBlock.map(t => ({
+                    staff_id: myStaffRecord.id,
+                    specific_date: dateStr,
+                    start_time: t + ':00',
+                    available: 'unavailable'
+                }));
+
+                const r = await fetch(`${SB_URL}/rest/v1/staff_availability`, {
+                    method: 'POST',
+                    headers: { ...H(), 'Prefer': 'return=minimal' },
+                    body: JSON.stringify(rows)
+                });
+                if (!r.ok) throw new Error(await r.text());
+            }
         }
         
-        feedbackEl.style.color = '#15803d';
-        feedbackEl.textContent = '✓ Time off successfully blocked!';
+        if (datesToBlock.length > 1) {
+            const fmtShort = (ds) => new Date(ds + 'T12:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
+            feedbackEl.style.color = '#15803d';
+            feedbackEl.textContent = `✓ Time off blocked for ${datesToBlock.length} days (${fmtShort(datesToBlock[0])}–${fmtShort(datesToBlock[datesToBlock.length-1])})`;
+        } else {
+            feedbackEl.style.color = '#15803d';
+            feedbackEl.textContent = '✓ Time off successfully blocked!';
+        }
         
         await loadMyShifts();
         renderWeekAvailSummary();
         
-        setTimeout(() => { feedbackEl.textContent = ''; }, 3000);
+        setTimeout(() => { feedbackEl.textContent = ''; }, 4000);
     } catch(e) {
         feedbackEl.style.color = '#ef4444';
         feedbackEl.textContent = 'Submission failed: ' + e.message;
