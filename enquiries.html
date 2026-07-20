@@ -94,11 +94,12 @@
         <button class="form-submit" onclick="submitEnquiry()">Save</button>
       </div>
     </div>
+    <div class="filter-row" id="enqViewTabs" style="margin-bottom:8px"></div>
     <div class="filter-row" id="enqFilterRow"></div>
     <div id="enqList"></div>
   </div>
 </div>
-<script>
+    <script>
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -135,9 +136,9 @@ let games=[
 ];
 let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepaid',colorIdx:0},{id:'vip',label:'VIP',colorIdx:4},{id:'allergy',label:'Allergy',colorIdx:5}];
 let statuses=[{id:'new',label:'New',emoji:'🔵'},{id:'followup',label:'Follow up',emoji:'🟡'},{id:'hot',label:'Hot',emoji:'🔥'},{id:'converted',label:'Converted',emoji:'✅'}];
-let staff=[],enquiries=[];
-let activeEnqStatus=null,enqOpen=false;
-let currentUser=null;
+let staff=[],enquiries=[],abandonedDrafts=[];
+let activeEnqStatus=null,enqOpen=false,activeEnqView='enquiry';
+  let currentUser=null;
 
 function initials(n){return n.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -169,31 +170,38 @@ async function loadStaff(){
 // ENQUIRIES
 async function loadEnquiries(){
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?status=eq.enquiry&order=created_at.desc&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?status=in.(enquiry,abandoned)&order=created_at.desc&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
     const rows=await r.json();
-    enquiries=rows.map(row=>{
+    const mapped=rows.map(row=>{
       const nameParts=row.notes_when_booked?.split('·')||[];
       const name=nameParts[0]?.trim()||'Unknown';
+      // Abandoned drafts have no client_id, so phone/email are pulled out of
+      // the notes text instead of the clients join.
+      const emailMatch=row.notes_when_booked?.match(/\S+@\S+\.\S+/);
+      const phoneMatch=row.notes_when_booked?.match(/(\+?\d[\d \-]{6,}\d)/);
       return{
         id:row.id,name,
         detail:row.notes_when_booked||'',
         game:row.game_name,date:row.booking_date,
         players:row.players_booked,
-        phone:row.clients?.phone||'',
-        email:row.clients?.email||'',
+        phone:row.clients?.phone||(phoneMatch?phoneMatch[0]:''),
+        email:row.clients?.email||(emailMatch?emailMatch[0]:''),
         occasion:row.occasion||'',
         experience:row.experience||'',
         source:row.source||'online',
         notes:JSON.parse(row.staff_notes||'[]'),
         created_at:row.created_at,
         status:row.enquiry_status||'new',
+        bookingStatus:row.status,
         initials:'??',
       };
     });
-    enquiries.forEach(e=>{e.initials=initials(e.name)});
+    enquiries=mapped.filter(e=>e.bookingStatus==='enquiry');
+    abandonedDrafts=mapped.filter(e=>e.bookingStatus==='abandoned');
+    [...enquiries,...abandonedDrafts].forEach(e=>{e.initials=initials(e.name)});
   }catch(e){console.error('Enquiries load:',e)}
 }
-function toggleEnqForm(){
+  function toggleEnqForm(){
   enqOpen=!enqOpen;document.getElementById('enqForm').style.display=enqOpen?'':'none';
   if(enqOpen){
     document.getElementById('eqStatus').innerHTML=statuses.map(s=>`<option value="${s.id}">${s.emoji} ${s.label}</option>`).join('');
@@ -261,11 +269,13 @@ async function submitEnquiry(){
 }
 function renderEnquiries(){
   const list=document.getElementById('enqList');
-  let filtered=[...enquiries];
-  if(activeEnqStatus)filtered=filtered.filter(e=>e.status===activeEnqStatus);
-  if(!filtered.length){list.innerHTML='<div class="empty-state">No enquiries.</div>';return}
+  const source=activeEnqView==='abandoned'?abandonedDrafts:enquiries;
+  let filtered=[...source];
+  if(activeEnqView==='enquiry'&&activeEnqStatus)filtered=filtered.filter(e=>e.status===activeEnqStatus);
+  if(!filtered.length){list.innerHTML=`<div class="empty-state">No ${activeEnqView==='abandoned'?'abandoned bookings':'enquiries'}.</div>`;return}
   list.innerHTML=filtered.map(e=>{
-    const statusBtns=statuses.map(s=>`<button class="enq-status-btn ${e.status===s.id?'active':''}" onclick="setEnqStatus('${e.id}','${s.id}')">${s.emoji} ${s.label}</button>`).join('');
+    const statusBtns=activeEnqView==='abandoned'?'':statuses.map(s=>`<button class="enq-status-btn ${e.status===s.id?'active':''}" onclick="setEnqStatus('${e.id}','${s.id}')">${s.emoji} ${s.label}</button>`).join('');
+      
     const noteLines=(e.notes||[]).map(n=>{
       if(typeof n==='object'&&n.text) return `<div class="note-line">📝 ${escapeHtml(n.text)}<span style="font-size:10px;color:#9ca3af;margin-left:6px">${escapeHtml(n.by||'')}${n.at?' · '+new Date(n.at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span></div>`;
       return `<div class="note-line">📝 ${escapeHtml(n)}</div>`;
@@ -286,18 +296,27 @@ function renderEnquiries(){
           ${e.occasion?`<div style="font-size:11px;color:#6b7280">🎉 ${escapeHtml(e.occasion)}</div>`:''}
           ${e.experience?`<div style="font-size:11px;color:#6b7280">⭐ ${escapeHtml(e.experience)}</div>`:''}
 ${noteLines?`<div style="margin-top:5px">${noteLines}</div>`:''}
-          <div class="note-input-row" style="margin-top:7px">
+         ${activeEnqView==='abandoned'?'':`<div class="note-input-row" style="margin-top:7px">
             <input class="note-input" type="text" placeholder="Add note…" data-enq="${e.id}">
             <button class="note-save-btn" onclick="saveEnqNote('${e.id}',this)">Save</button>
           </div>
-          <div class="enq-status-row">${statusBtns}</div>
+          <div class="enq-status-row">${statusBtns}</div>`}
         </div>
       </div>
     </div>`;
   }).join('');
 }
+function renderEnqViewTabs(){
+  document.getElementById('enqViewTabs').innerHTML=`
+    <button class="filter-chip ${activeEnqView==='enquiry'?'active':''}" onclick="setEnqView('enquiry')">💬 Enquiries (${enquiries.length})</button>
+    <button class="filter-chip ${activeEnqView==='abandoned'?'active':''}" onclick="setEnqView('abandoned')">🚪 Abandoned bookings (${abandonedDrafts.length})</button>`;
+}
+function setEnqView(v){activeEnqView=v;renderEnqFilters();renderEnquiries()}
 function renderEnqFilters(){
+  renderEnqViewTabs();
+  if(activeEnqView==='abandoned'){document.getElementById('enqFilterRow').innerHTML='';return}
   document.getElementById('enqFilterRow').innerHTML=`<button class="filter-chip ${!activeEnqStatus?'active':''}" onclick="setEnqStatusFilter(null)">All</button>`+statuses.map(s=>`<button class="filter-chip ${activeEnqStatus===s.id?'active':''}" onclick="setEnqStatusFilter('${s.id}')">${s.emoji} ${s.label}</button>`).join('');
+
 }
 function setEnqStatusFilter(id){activeEnqStatus=id;renderEnqFilters();renderEnquiries()}
 async function setEnqStatus(id,statusId){
