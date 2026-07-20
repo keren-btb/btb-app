@@ -468,7 +468,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="nav-btn active" data-tab="tabHome"   onclick="showTab('tabHome',this)"><i class="ti ti-home"></i>Home</button>
 <button class="nav-btn" data-tab="tabAvail" onclick="showTab('tabAvail',this)"><i class="ti ti-calendar-check"></i>Usual Weekly Routine</button>
 <button class="nav-btn" data-tab="tabSpecificTimeoff" onclick="showTab('tabSpecificTimeoff',this)"><i class="ti ti-calendar-x"></i>Request Specific Time Off</button>
-      <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
+<button class="nav-btn" data-tab="tabHoursRequest" onclick="showTab('tabHoursRequest',this)"><i class="ti ti-clock-plus"></i>Request More Hours</button>
+        <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
       <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
       <button class="nav-btn"        data-tab="tabTraining" onclick="showTab('tabTraining',this)"><i class="ti ti-certificate"></i>My Training</button>
 <button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
@@ -546,12 +547,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 🔒 Confirm & Block This Time Slot
             </button>
         </div>
-        <div id="excFeedback" style="margin-top: 12px; font-size: 13px; font-weight: 600; text-align: center;"></div>
+<div id="excFeedback" style="margin-top: 12px; font-size: 13px; font-weight: 600; text-align: center;"></div>
     </div>
   </div>
-  
+
+  <!-- ══ REQUEST MORE HOURS TAB ══ -->
+  <div id="tabHoursRequest" class="section">
+    <div class="card" style="padding: 20px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; max-width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <h3 style="font-size: 16px; font-weight: 700; color: #075985; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">⏫ Request More Hours</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Let admin know you'd like more shifts or a permanent increase to your hours. This doesn't change your availability automatically — admin will follow up with you.</p>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 12px; font-weight: 600; color: #475569;">Tell us what you're after</label>
+        <textarea id="hoursRequestMsg" rows="4" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; font-family: inherit; resize:vertical" placeholder="e.g. I'd like to pick up an extra shift or two a week, happy to work weekends"></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button type="button" class="btn-primary" onclick="submitHoursRequest()"><i class="ti ti-send"></i> Send request</button>
+      </div>
+      <div class="msg" id="hoursRequestMsgFeedback"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-title" style="font-size:14px">Your requests so far</div>
+    <div id="myHoursRequestsList"></div>
+  </div><!-- /tabHoursRequest section -->
+
   <!-- ══ TIMESHEETS TAB ══ -->
-  <div id="tabTs" class="section">
+        <div id="tabTs" class="section">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
       <div class="sec-title" style="margin-bottom:0">My Weekly Timesheets</div>
       <div class="week-nav" style="margin-bottom:0">
@@ -664,9 +684,13 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="rosterMonthlyHours"></div>
   </div>
       
-  <!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
-  <div id="tabApprove" class="section">    <div class="sec-title">Timesheets awaiting approval</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
+<!-- ══ ADMIN: APPROVE TIMESHEETS TAB ══ -->
+  <div id="tabApprove" class="section">
+    <div class="sec-title" style="font-size:14px">Hours increase requests</div>
+    <div id="adminHoursRequestsList" style="margin-bottom:20px"></div>
+    <div class="divider"></div>
+    <div class="sec-title">Timesheets awaiting approval</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="tsFilterRow">
       <button class="btn-secondary btn-sm" style="border-color:#07b4c5;color:#07b4c5" onclick="setTsFilter('all',this)">All pending</button>
       <button class="btn-secondary btn-sm" onclick="setTsFilter('clocked_in',this)">Clocked in</button>
       <button class="btn-secondary btn-sm" onclick="setTsFilter('staff_approved',this)">Staff approved</button>
@@ -1528,14 +1552,17 @@ async function initApp() {
   loadTodayBookings();
   loadProfile();
 
-  await loadShifts();
+await loadShifts();
   document.getElementById('shiftsAdminView').style.display = isAdmin ? '' : 'none';
   document.getElementById('shiftsStaffView').style.display = isAdmin ? 'none' : '';
-populateShiftStaffDropdown();
-  populateShiftQuickFillDropdown();
-    if (isAdmin) renderAdminShifts(); else renderStaffShifts();
+  populateShiftStaffDropdown();
+  if (isAdmin) renderAdminShifts(); else renderStaffShifts();
   updateShiftBadge();
 
+  await loadHoursRequests();
+  renderMyHoursRequests();
+  if (isAdmin) renderAdminHoursRequests();
+    
   if (isAdmin) {
     await loadAdminTimesheets();
     await loadAdminRoles();
@@ -3656,6 +3683,80 @@ window.addEventListener('DOMContentLoaded', async () => {
 let allShifts = [];
 let shiftFilter = 'all';
 
+let allHoursRequests = [];
+
+async function loadHoursRequests() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/hours_requests?order=created_at.desc`, {headers:H()});
+    allHoursRequests = await r.json();
+  } catch(e) { console.error('Hours requests load:', e); allHoursRequests = []; }
+}
+
+async function submitHoursRequest() {
+  const feedbackEl = document.getElementById('hoursRequestMsgFeedback');
+  const msg = document.getElementById('hoursRequestMsg')?.value.trim();
+  if (!msg) { feedbackEl.className='msg err'; feedbackEl.textContent='Please add a note so admin knows what you\'re after.'; return; }
+  if (!myStaffRecord) { feedbackEl.className='msg err'; feedbackEl.textContent='No staff profile linked to your account.'; return; }
+  feedbackEl.className='msg'; feedbackEl.textContent='Sending…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/hours_requests`, {
+      method:'POST', headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify({staff_id: myStaffRecord.id, staff_name: myStaffRecord.name, message: msg, status:'pending'})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    if (rows[0]) allHoursRequests.unshift(rows[0]);
+    document.getElementById('hoursRequestMsg').value = '';
+    feedbackEl.className='msg ok'; feedbackEl.textContent='✓ Request sent';
+    setTimeout(()=>feedbackEl.textContent='',3000);
+    renderMyHoursRequests();
+  } catch(e) { feedbackEl.className='msg err'; feedbackEl.textContent='Failed: '+e.message; }
+}
+
+function renderMyHoursRequests() {
+  const el = document.getElementById('myHoursRequestsList'); if (!el || !myStaffRecord) return;
+  const mine = allHoursRequests.filter(r => r.staff_id === myStaffRecord.id);
+  if (!mine.length) { el.innerHTML = '<div class="empty-state"><i class="ti ti-clock-plus"></i>No requests sent yet.</div>'; return; }
+  const statusLabels = {pending:'Pending review', approved:'Approved', declined:'Declined'};
+  const statusColors = {pending:'#d97706', approved:'#15803d', declined:'#dc2626'};
+  el.innerHTML = mine.map(r => `<div class="shift-card">
+    <span class="shift-status-badge" style="background:${statusColors[r.status]}1a;color:${statusColors[r.status]}">${statusLabels[r.status]||r.status}</span>
+    <div class="shift-notes" style="margin-top:6px">${r.message}</div>
+    ${r.admin_note ? `<div class="shift-notes" style="margin-top:4px"><strong>Admin:</strong> ${r.admin_note}</div>` : ''}
+    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+  </div>`).join('');
+}
+
+function renderAdminHoursRequests() {
+  const el = document.getElementById('adminHoursRequestsList'); if (!el) return;
+  const pending = allHoursRequests.filter(r => r.status === 'pending');
+  if (!pending.length) { el.innerHTML = '<div class="empty-state"><i class="ti ti-check"></i>No hours requests pending.</div>'; return; }
+  el.innerHTML = pending.map(r => `<div class="shift-card">
+    <div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${r.staff_name||'Unknown'}</div>
+    <div class="shift-notes" style="margin-top:4px">${r.message}</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+    <div class="shift-actions">
+      <button class="btn-primary btn-sm" onclick="resolveHoursRequest('${r.id}','approved')"><i class="ti ti-check"></i> Approve</button>
+      <button class="btn-secondary btn-sm" onclick="resolveHoursRequest('${r.id}','declined')"><i class="ti ti-x"></i> Decline</button>
+    </div>
+  </div>`).join('');
+}
+
+async function resolveHoursRequest(id, decision) {
+  const note = prompt(decision === 'approved' ? 'Optional note for the staff member (e.g. next steps):' : 'Optional reason for declining:');
+  if (note === null) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/hours_requests?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status: decision, admin_note: note.trim() || null, resolved_at: new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const req = allHoursRequests.find(x => x.id === id);
+    if (req) { req.status = decision; req.admin_note = note.trim() || null; }
+    renderAdminHoursRequests();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+    
 async function loadShifts() {
   const today = toDateStr(new Date());
   const future = new Date(); future.setDate(future.getDate() + 56);
