@@ -375,7 +375,7 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     background: #fffbeb !important;
 }
 
-.shift-date-header{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #f3f4f6}
+.shift-date-header{font-size:16px;font-weight:800;color:#111827;letter-spacing:.2px;margin:22px 0 10px;padding:8px 14px;background:#f3f4f6;border-radius:8px;border-left:4px solid #07b4c5}
 .shift-time{font-size:16px;font-weight:700;color:#111827}
 .shift-duration{font-size:12px;color:#9ca3af;margin-left:6px}
 .shift-status-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600}
@@ -3757,11 +3757,14 @@ function buildAdminShiftCard(s) {
         </div>
         ${staffMember ? `<div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${staffMember.name}</div>` : '<div class="shift-notes">No staff assigned</div>'}
         ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
-        ${isUnclaim && s.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;margin-top:4px;background:#fee2e2;padding:4px 8px;border-radius:6px">Reason: ${s.unclaim_reason}</div>` : ''}
+${isUnclaim && s.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;margin-top:4px;background:#fee2e2;padding:4px 8px;border-radius:6px">Reason: ${s.unclaim_reason}</div>` : ''}
       </div>
-      <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#d1d5db;font-size:16px;padding:2px" title="Delete shift"><i class="ti ti-trash"></i></button>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#d1d5db;font-size:16px;padding:2px" title="Delete shift"><i class="ti ti-trash"></i></button>
+        ${s.series_id ? `<button onclick="deleteShiftSeries('${s.series_id}','${s.shift_date}')" class="btn-secondary btn-sm" style="font-size:10px;white-space:nowrap" title="Delete this and every future week in this series"><i class="ti ti-repeat-off"></i> Delete series</button>` : ''}
+      </div>
     </div>
-    <div class="shift-actions">
+<div class="shift-actions">
       ${s.status === 'claimed' ? `<button class="btn-primary btn-sm" onclick="confirmClaim('${s.id}')"><i class="ti ti-check"></i> Confirm assignment</button>` : ''}
       ${s.status === 'unclaim_requested' ? `<button class="btn-primary btn-sm" onclick="approveUnclaim('${s.id}')"><i class="ti ti-check"></i> Approve unclaim</button>` : ''}
       ${s.status === 'assigned' || s.status === 'claimed' ? `<button class="btn-secondary btn-sm" onclick="unassignShift('${s.id}')"><i class="ti ti-x"></i> Unassign</button>` : ''}
@@ -3784,40 +3787,41 @@ function buildAdminGroupCard(rows) {
   const statusLabels = {open:'Open',claimed:'Claimed — needs confirmation',assigned:'Assigned',unclaim_requested:'⚠️ Unclaim requested'};
 
   return `<div class="shift-card ${isStandby?'standby-active':''}">
-    <div>
-      <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
-      ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
-      <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-        <span class="shift-status-badge" style="background:#e0e7ff;color:#4338ca">${filledCount} of ${rows.length} filled</span>
-        ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
-        ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Standby / On-Call</span>` : ''}
-      </div>
-      ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
-    </div>
-    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-      ${rows.map(r => `<div style="border-top:1px solid #f3f4f6;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <div>
-          <span class="shift-status-badge ss-${r.status}" style="font-size:11px">${statusLabels[r.status]||r.status}</span>
-          ${r.staff_id ? `<div class="shift-staff-name" style="margin-top:2px"><i class="ti ti-user" style="font-size:12px"></i> ${(allStaff.find(x=>x.id===r.staff_id)||{}).name||'Unknown'}</div>` : '<div class="shift-notes" style="margin-top:2px">No staff assigned</div>'}
-          ${r.status==='unclaim_requested' && r.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;margin-top:2px">Reason: ${r.unclaim_reason}</div>` : ''}
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+      <div>
+        <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+        ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+        <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+          <span class="shift-status-badge" style="background:#e0e7ff;color:#4338ca">${filledCount} of ${rows.length} filled</span>
+          ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
+          ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Standby / On-Call</span>` : ''}
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          ${r.status === 'claimed' ? `<button class="btn-primary btn-sm" onclick="confirmClaim('${r.id}')"><i class="ti ti-check"></i> Confirm</button>` : ''}
-          ${r.status === 'unclaim_requested' ? `<button class="btn-primary btn-sm" onclick="approveUnclaim('${r.id}')"><i class="ti ti-check"></i> Approve unclaim</button>` : ''}
-          ${r.status === 'assigned' || r.status === 'claimed' ? `<button class="btn-secondary btn-sm" onclick="unassignShift('${r.id}')"><i class="ti ti-x"></i> Unassign</button>` : ''}
+        ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+      </div>
+      ${s.series_id ? `<button onclick="deleteShiftSeries('${s.series_id}','${s.shift_date}')" class="btn-secondary btn-sm" style="font-size:11px;white-space:nowrap" title="Delete this and every future week in this series"><i class="ti ti-repeat-off"></i> Delete series</button>` : ''}
+    </div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+      ${rows.map(r => `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;position:relative;display:flex;flex-direction:column;gap:5px">
+        <button onclick="deleteShift('${r.id}')" style="position:absolute;top:5px;right:5px;background:none;border:none;cursor:pointer;color:#d1d5db;font-size:13px;padding:2px" title="Delete this slot"><i class="ti ti-trash"></i></button>
+        <span class="shift-status-badge ss-${r.status}" style="font-size:10px;width:fit-content">${statusLabels[r.status]||r.status}</span>
+        ${r.staff_id ? `<div class="shift-staff-name" style="font-size:12px"><i class="ti ti-user" style="font-size:11px"></i> ${(allStaff.find(x=>x.id===r.staff_id)||{}).name||'Unknown'}</div>` : '<div class="shift-notes" style="font-size:11px">No staff assigned</div>'}
+        ${r.status==='unclaim_requested' && r.unclaim_reason ? `<div style="font-size:11px;color:#dc2626">Reason: ${r.unclaim_reason}</div>` : ''}
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${r.status === 'claimed' ? `<button class="btn-primary btn-sm" onclick="confirmClaim('${r.id}')" style="font-size:11px"><i class="ti ti-check"></i> Confirm</button>` : ''}
+          ${r.status === 'unclaim_requested' ? `<button class="btn-primary btn-sm" onclick="approveUnclaim('${r.id}')" style="font-size:11px"><i class="ti ti-check"></i> Approve unclaim</button>` : ''}
+          ${r.status === 'assigned' || r.status === 'claimed' ? `<button class="btn-secondary btn-sm" onclick="unassignShift('${r.id}')" style="font-size:11px"><i class="ti ti-x"></i> Unassign</button>` : ''}
           ${!r.staff_id ? `
-            <select class="field-select" style="font-size:12px;padding:4px 8px;max-width:160px" id="assignSelect-${r.id}">
+            <select class="field-select" style="font-size:11px;padding:3px 6px" id="assignSelect-${r.id}">
               <option value="">Assign to…</option>
               ${allStaff.filter(x=>x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}
             </select>
-            <button class="btn-secondary btn-sm" onclick="adminAssignShift('${r.id}')"><i class="ti ti-user-plus"></i> Assign</button>` : ''}
-          <button onclick="deleteShift('${r.id}')" style="background:none;border:none;cursor:pointer;color:#d1d5db;font-size:16px;padding:2px" title="Delete this slot"><i class="ti ti-trash"></i></button>
+            <button class="btn-secondary btn-sm" onclick="adminAssignShift('${r.id}')" style="font-size:11px"><i class="ti ti-user-plus"></i> Assign</button>` : ''}
         </div>
       </div>`).join('')}
     </div>
   </div>`;
 }
-
+    
 function renderStaffShifts() {
   if (!myStaffRecord) return;
   const openEl = document.getElementById('openShiftsList');
@@ -4059,6 +4063,17 @@ async function deleteShift(id) {
   } catch(e) { alert('Failed: '+e.message); }
 }
 
+async function deleteShiftSeries(seriesId, fromDate) {
+  if (!confirm('Delete this shift and every future week in this repeating series? This cannot be undone.')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?series_id=eq.${seriesId}&shift_date=gte.${fromDate}`, {method:'DELETE', headers:H()});
+    if (!r.ok) throw new Error(await r.text());
+    allShifts = allShifts.filter(x => !(x.series_id === seriesId && x.shift_date >= fromDate));
+    renderAdminShifts();
+    renderStaffShifts();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+    
 async function requestUnclaim(id) {
   const reason = prompt('Please give a reason for your unclaim request:');
   if (reason === null) return;
