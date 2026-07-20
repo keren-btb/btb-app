@@ -922,7 +922,7 @@ let selectedExperienceLevels = ['First time'];
 let depositPref  = null;
 let escapeView  = 'game';
 let enqType     = null;
-
+let draftSaved  = false; // true once an abandoned-booking draft has been saved this session
 // ============================================================
 // INIT
 // ============================================================
@@ -2179,6 +2179,61 @@ async function submitContactEnquiry() {
     console.error('Enquiry submit error:', e);
   }
 }
+
+// ============================================================
+// ABANDONED BOOKING CAPTURE
+// Fires when the tab is closed/switched away from while the person is on
+// the details form or review screen, but hasn't clicked Confirm Booking.
+// Saved as one single request (no client find/create round trip) since
+// the tab can be killed mid-request during page unload.
+// ============================================================
+function saveAbandonedDraft() {
+  if (draftSaved) return;
+  const s3active = document.getElementById('s3')?.classList.contains('active');
+  const s3rActive = document.getElementById('s3review')?.classList.contains('active');
+  if (!s3active && !s3rActive) return;
+
+  const first = document.getElementById('fFirst')?.value.trim();
+  const last  = document.getElementById('fLast')?.value.trim();
+  const email = document.getElementById('fEmail')?.value.trim();
+  const phone = document.getElementById('fPhone')?.value.trim();
+  if (!first || (!email && !phone)) return; // not far enough along to count
+
+  draftSaved = true; // mark before sending — can't await a response during unload
+
+  const occasion = document.getElementById('fOccasion')?.value || '';
+  const noteText = [
+    `${first} ${last||''}`.trim(),
+    phone || '',
+    email || '',
+    occasion || '',
+    'Abandoned before confirming',
+  ].filter(Boolean).join(' · ');
+
+  const draftData = {
+    game_id:       selGame?.id || 'unknown',
+    game_name:     selGame?.name || 'Unknown',
+    booking_date:  selDate || toDateStr(new Date()),
+    slot_time:     (selSlot||'12:00') + ':00',
+    players_booked: playerCount || 1,
+    occasion:      occasion || null,
+    status:        'abandoned',
+    source:        'online',
+    notes_when_booked: noteText,
+    tags:          JSON.stringify([]),
+    staff_notes:   JSON.stringify([]),
+    assigned_staff_ids: JSON.stringify([]),
+  };
+
+  fetch(`${SB_URL}/rest/v1/game_bookings`, {
+    method: 'POST',
+    headers: { ...SB_H, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(draftData),
+    keepalive: true,
+  }).catch(()=>{}); // best-effort — page is closing, nothing to react to
+}
+
+window.addEventListener('pagehide', saveAbandonedDraft);
 
 init();
 </script>
