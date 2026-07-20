@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="field">
             <div class="field-label">Notes (optional)</div>
-            <input class="field-input" type="text" id="newShiftNotes" placeholder="e.g. Busy Friday night, need experienced GM">
+<input class="field-input" type="text" id="newShiftNotes" placeholder="e.g. Normal Sat, Busy Friday night, need experienced GM">
           </div>
           <div class="btn-row">
             <button class="btn-primary" onclick="createShift()"><i class="ti ti-plus"></i> Create shift</button>
@@ -3689,6 +3689,21 @@ function fmtShiftDate(ds) {
   return d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
+function collapseShiftGroups(list) {
+  const seen = new Set();
+  const out = [];
+  list.forEach(s => {
+    if (s.slot_group_id) {
+      if (seen.has(s.slot_group_id)) return;
+      seen.add(s.slot_group_id);
+      out.push({ isGroup: true, rows: allShifts.filter(x => x.slot_group_id === s.slot_group_id) });
+    } else {
+      out.push({ isGroup: false, rows: [s] });
+    }
+  });
+  return out;
+}
+
 function renderAdminShifts() {
   const el = document.getElementById('adminShiftsList'); if (!el) return;
   let filtered = shiftFilter === 'all' ? allShifts : allShifts.filter(s => s.status === shiftFilter);
@@ -3698,9 +3713,9 @@ function renderAdminShifts() {
   }
   const groups = groupByDate(filtered);
   el.innerHTML = Object.keys(groups).sort().map(date => {
-    const shifts = groups[date];
+    const collapsed = collapseShiftGroups(groups[date]);
     return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
-      shifts.map(s => buildAdminShiftCard(s)).join('');
+      collapsed.map(c => c.isGroup ? buildAdminGroupCard(c.rows) : buildAdminShiftCard(c.rows[0])).join('');
   }).join('');
 }
 
@@ -3709,9 +3724,9 @@ function buildAdminShiftCard(s) {
   const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
   const statusLabels = {open:'Open',claimed:'Claimed — needs confirmation',assigned:'Assigned',unclaim_requested:'⚠️ Unclaim requested'};
   const isUnclaim = s.status === 'unclaim_requested';
-  
   const isStandby = s.is_standby === true;
   const standbyCls = isStandby ? 'standby-active' : '';
+  const roleLabel = s.required_role ? (ROLE_LABELS[s.required_role] || s.required_role) : null;
 
   return `<div class="shift-card ${s.status} ${standbyCls}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
@@ -3720,6 +3735,7 @@ function buildAdminShiftCard(s) {
         ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
         <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
           <span class="shift-status-badge ss-${s.status}">${statusLabels[s.status]||s.status}</span>
+          ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
           ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Standby / On-Call</span>` : ''}
         </div>
         ${staffMember ? `<div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${staffMember.name}</div>` : '<div class="shift-notes">No staff assigned</div>'}
@@ -3742,6 +3758,49 @@ function buildAdminShiftCard(s) {
   </div>`;
 }
 
+function buildAdminGroupCard(rows) {
+  const s = rows[0];
+  const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
+  const filledCount = rows.filter(r => r.staff_id).length;
+  const isStandby = s.is_standby === true;
+  const roleLabel = s.required_role ? (ROLE_LABELS[s.required_role] || s.required_role) : null;
+  const statusLabels = {open:'Open',claimed:'Claimed — needs confirmation',assigned:'Assigned',unclaim_requested:'⚠️ Unclaim requested'};
+
+  return `<div class="shift-card ${isStandby?'standby-active':''}">
+    <div>
+      <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+      ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+      <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="shift-status-badge" style="background:#e0e7ff;color:#4338ca">${filledCount} of ${rows.length} filled</span>
+        ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
+        ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Standby / On-Call</span>` : ''}
+      </div>
+      ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+    </div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+      ${rows.map(r => `<div style="border-top:1px solid #f3f4f6;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div>
+          <span class="shift-status-badge ss-${r.status}" style="font-size:11px">${statusLabels[r.status]||r.status}</span>
+          ${r.staff_id ? `<div class="shift-staff-name" style="margin-top:2px"><i class="ti ti-user" style="font-size:12px"></i> ${(allStaff.find(x=>x.id===r.staff_id)||{}).name||'Unknown'}</div>` : '<div class="shift-notes" style="margin-top:2px">No staff assigned</div>'}
+          ${r.status==='unclaim_requested' && r.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;margin-top:2px">Reason: ${r.unclaim_reason}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          ${r.status === 'claimed' ? `<button class="btn-primary btn-sm" onclick="confirmClaim('${r.id}')"><i class="ti ti-check"></i> Confirm</button>` : ''}
+          ${r.status === 'unclaim_requested' ? `<button class="btn-primary btn-sm" onclick="approveUnclaim('${r.id}')"><i class="ti ti-check"></i> Approve unclaim</button>` : ''}
+          ${r.status === 'assigned' || r.status === 'claimed' ? `<button class="btn-secondary btn-sm" onclick="unassignShift('${r.id}')"><i class="ti ti-x"></i> Unassign</button>` : ''}
+          ${!r.staff_id ? `
+            <select class="field-select" style="font-size:12px;padding:4px 8px;max-width:160px" id="assignSelect-${r.id}">
+              <option value="">Assign to…</option>
+              ${allStaff.filter(x=>x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}
+            </select>
+            <button class="btn-secondary btn-sm" onclick="adminAssignShift('${r.id}')"><i class="ti ti-user-plus"></i> Assign</button>` : ''}
+          <button onclick="deleteShift('${r.id}')" style="background:none;border:none;cursor:pointer;color:#d1d5db;font-size:16px;padding:2px" title="Delete this slot"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function renderStaffShifts() {
   if (!myStaffRecord) return;
   const openEl = document.getElementById('openShiftsList');
@@ -3755,8 +3814,9 @@ function renderStaffShifts() {
   } else {
     const groups = groupByDate(openShifts);
     openEl.innerHTML = Object.keys(groups).sort().map(date => {
+      const collapsed = collapseShiftGroups(groups[date]);
       return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
-        groups[date].map(s => buildStaffOpenShiftCard(s)).join('');
+        collapsed.map(c => c.isGroup ? buildStaffOpenGroupCard(c.rows) : buildStaffOpenShiftCard(c.rows[0])).join('');
     }).join('');
   }
 
@@ -3775,14 +3835,41 @@ function buildStaffOpenShiftCard(s) {
   const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
   const isStandby = s.is_standby === true;
   const standbyCls = isStandby ? 'standby-active' : '';
+  const roleLabel = s.required_role ? (ROLE_LABELS[s.required_role] || s.required_role) : null;
 
   return `<div class="shift-card open ${standbyCls}">
     <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
     ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
-    ${isStandby ? `<div style="margin-top:4px; margin-bottom:4px;"><span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Open Standby Shift</span></div>` : ''}
+    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+      ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
+      ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Open Standby Shift</span>` : ''}
+    </div>
     ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
     <div class="shift-actions">
       <button class="btn-primary btn-sm" onclick="claimShift('${s.id}')"><i class="ti ti-hand-stop"></i> Claim this shift</button>
+    </div>
+  </div>`;
+}
+
+function buildStaffOpenGroupCard(rows) {
+  const openRows = rows.filter(r => r.status === 'open');
+  const s = rows[0];
+  const dur = shiftDuration(s.custom_start_time, s.custom_end_time);
+  const isStandby = s.is_standby === true;
+  const roleLabel = s.required_role ? (ROLE_LABELS[s.required_role] || s.required_role) : null;
+  const claimId = openRows[0]?.id;
+
+  return `<div class="shift-card open ${isStandby?'standby-active':''}">
+    <span class="shift-time">${fmt12(s.custom_start_time)} – ${fmt12(s.custom_end_time)}</span>
+    ${dur ? `<span class="shift-duration">(${dur})</span>` : ''}
+    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+      <span class="shift-status-badge" style="background:#e0e7ff;color:#4338ca">${openRows.length} of ${rows.length} spots open</span>
+      ${roleLabel ? `<span class="badge" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;font-size:11px">Min role: ${roleLabel}</span>` : ''}
+      ${isStandby ? `<span class="badge" style="background:#fef3c7;color:#d97706;border:1px solid #fbbf24;font-size:11px">📞 Open Standby Shift</span>` : ''}
+    </div>
+    ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+    <div class="shift-actions">
+      <button class="btn-primary btn-sm" onclick="claimShift('${claimId}')"><i class="ti ti-hand-stop"></i> Claim this shift</button>
     </div>
   </div>`;
 }
@@ -3802,13 +3889,14 @@ function buildStaffMyShiftCard(s) {
     </div>
     ${isStandby ? `<div style="font-size:11px; color:#d97706; font-weight:600; margin-top:4px; background:#fffcf5; padding:4px 8px; border-radius:6px; border: 1px dashed #fcd34d;">⚠️ Standby Rule: Stay within 20 mins travel radius. Stay reachable.</div>` : ''}
     ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
+    ${s.slot_group_id ? `<div class="shift-notes" style="font-size:11px">Part of a multi-staff shift</div>` : ''}
     <div class="shift-actions">
       ${canUnclaim ? `<button class="btn-danger btn-sm" onclick="requestUnclaim('${s.id}')"><i class="ti ti-x"></i> Request to unclaim</button>` : ''}
       ${s.status === 'unclaim_requested' ? `<div style="font-size:12px;color:#dc2626">Unclaim request sent — awaiting admin</div>` : ''}
     </div>
   </div>`;
 }
-
+    
 function adjustShiftCount(delta) {
   const el = document.getElementById('newShiftCount');
   const val = Math.max(1, (parseInt(el.value) || 1) + delta);
