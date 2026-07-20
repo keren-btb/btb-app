@@ -43,6 +43,8 @@
   <div id="leads" class="section active">
     <p class="sec-title">Enquiries & contact messages</p>
     <button class="add-trigger" onclick="toggleEnqForm()"><i class="ti ti-plus"></i> Add enquiry</button>
+    <button class="add-trigger" id="tplAdminBtn" style="display:none;margin-left:8px" onclick="toggleTemplateAdmin()"><i class="ti ti-mail"></i> Manage templates</button>
+    <div class="form-wrap" id="tplAdminPanel" style="display:none"></div>
     <div class="form-wrap" id="enqForm" style="display:none">
       <div class="form-title"><i class="ti ti-user-plus"></i> New enquiry</div>
       <div class="form-2col">
@@ -122,7 +124,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.1'; // firstname-only login, auto-appends @btbescaperooms.co.nz
+const BUILD_VERSION = '1.1.0'; // enquiry email reply templates (send + admin management)
 // (token refresh, expiry tracking, background role re-validation) matching
 // btb_app.html/pos.html, plus the same session-restore speed fix.
 console.log(`%cEnquiries — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -138,7 +140,10 @@ let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepa
 let statuses=[{id:'new',label:'New',emoji:'🔵'},{id:'followup',label:'Follow up',emoji:'🟡'},{id:'hot',label:'Hot',emoji:'🔥'},{id:'converted',label:'Converted',emoji:'✅'}];
 let staff=[],enquiries=[],abandonedDrafts=[];
 let activeEnqStatus=null,enqOpen=false,activeEnqView='enquiry';
-  let currentUser=null;
+let currentUser=null;
+let enquiryTemplates=[];
+let openReplyId=null;
+let tplAdminOpen=false;
 
 function initials(n){return n.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -165,6 +170,14 @@ async function loadStaff(){
     const rows=await r.json();
     if(rows&&rows.length>0)staff=rows;
   }catch(e){console.error('Staff load:',e)}
+}
+
+// ENQUIRY EMAIL TEMPLATES
+async function loadEnquiryTemplates(){
+  if(!currentUser)return;
+  try{
+    enquiryTemplates=await callEdgeFunction('list_enquiry_templates',{},currentUser.token);
+  }catch(e){console.error('Templates load:',e)}
 }
 
 // ENQUIRIES
@@ -300,11 +313,159 @@ ${noteLines?`<div style="margin-top:5px">${noteLines}</div>`:''}
             <input class="note-input" type="text" placeholder="Add note…" data-enq="${e.id}">
             <button class="note-save-btn" onclick="saveEnqNote('${e.id}',this)">Save</button>
           </div>
-          <div class="enq-status-row">${statusBtns}</div>`}
+          <div class="enq-status-row">${statusBtns}</div>
+          ${e.email?`<div style="margin-top:7px"><button class="note-save-btn" style="background:#07b4c5" onclick="toggleReplyPanel('${e.id}')">✉️ ${openReplyId===e.id?'Close':'Reply'}</button></div>`:''}
+          ${openReplyId===e.id?renderReplyPanel(e):''}`}
         </div>
       </div>
     </div>`;
   }).join('');
+}
+function renderReplyPanel(e){
+  const first=(e.name||'').trim().split(' ')[0]||'there';
+  const tpl=enquiryTemplates.find(t=>t.id===(replyState[e.id]?.templateId))||null;
+  const subject=replyState[e.id]?.subject??'';
+  const bodyText=replyState[e.id]?.body??'';
+  return `<div class="form-wrap" style="margin-top:9px;padding:12px">
+    <div class="form-row"><div class="form-label">Template</div>
+      <select class="form-select" onchange="applyTemplate('${e.id}',this.value)">
+        <option value="">Choose a template…</option>
+        ${enquiryTemplates.map(t=>`<option value="${t.id}" ${tpl&&tpl.id===t.id?'selected':''}>${escapeHtml(t.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><div class="form-label">To</div><input class="form-input" type="text" value="${escapeHtml(e.email)}" disabled></div>
+    <div class="form-row"><div class="form-label">Subject</div><input class="form-input" type="text" id="replySubject_${e.id}" value="${escapeHtml(subject)}" oninput="replyState['${e.id}']={...(replyState['${e.id}']||{}),subject:this.value}"></div>
+    <div class="form-row"><div class="form-label">Message</div><textarea class="form-input" id="replyBody_${e.id}" rows="8" oninput="replyState['${e.id}']={...(replyState['${e.id}']||{}),body:this.value}">${escapeHtml(bodyText)}</textarea></div>
+    <div style="font-size:11px;color:#9ca3af;margin-bottom:8px">From: ${tpl?escapeHtml(tpl.from_name+' <'+tpl.from_email+'>'):'(choose a template first)'}</div>
+    <div id="replyMsg_${e.id}" style="font-size:12px;margin-bottom:6px"></div>
+    <button class="note-save-btn" style="background:#07b4c5" onclick="sendReply('${e.id}')">Send email</button>
+  </div>`;
+}
+// TEMPLATE ADMIN (admin role only — button is hidden otherwise, and the
+// Edge Function also enforces admin-only server-side for save/delete)
+function toggleTemplateAdmin(){
+  tplAdminOpen=!tplAdminOpen;
+  document.getElementById('tplAdminPanel').style.display=tplAdminOpen?'':'none';
+  if(tplAdminOpen)renderTemplateAdmin();
+}
+function renderTemplateAdmin(){
+  const panel=document.getElementById('tplAdminPanel');
+  const existing=enquiryTemplates.map(t=>`
+    <div class="form-wrap" style="margin-bottom:10px;padding:12px">
+      <div class="form-2col">
+        <div><div class="form-label">Name</div><input class="form-input" id="tplName_${t.id}" value="${escapeHtml(t.name)}"></div>
+        <div><div class="form-label">Subject</div><input class="form-input" id="tplSubject_${t.id}" value="${escapeHtml(t.subject)}"></div>
+      </div>
+      <div class="form-2col">
+        <div><div class="form-label">From name</div><input class="form-input" id="tplFromName_${t.id}" value="${escapeHtml(t.from_name)}"></div>
+        <div><div class="form-label">From email</div><input class="form-input" id="tplFromEmail_${t.id}" value="${escapeHtml(t.from_email)}"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Body (use {{first_name}} for the client's first name)</div>
+        <textarea class="form-input" id="tplBody_${t.id}" rows="8">${escapeHtml(t.body)}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="note-save-btn" onclick="saveTemplate('${t.id}')">Save</button>
+        <button class="note-save-btn" style="background:#dc2626" onclick="deleteTemplate('${t.id}')">Delete</button>
+        <span id="tplMsg_${t.id}" style="font-size:12px"></span>
+      </div>
+    </div>`).join('');
+  panel.innerHTML=`
+    <div class="form-title"><i class="ti ti-mail"></i> Enquiry email templates</div>
+    ${existing||'<div style="font-size:13px;color:#6b7280;margin-bottom:10px">No templates yet.</div>'}
+    <div class="form-wrap" style="padding:12px;border:1px dashed #d1d5db">
+      <div class="form-title" style="font-size:13px">Add new template</div>
+      <div class="form-2col">
+        <div><div class="form-label">Name</div><input class="form-input" id="tplNewName" placeholder="e.g. Board Games Info"></div>
+        <div><div class="form-label">Subject</div><input class="form-input" id="tplNewSubject" placeholder="Subject line"></div>
+      </div>
+      <div class="form-2col">
+        <div><div class="form-label">From name</div><input class="form-input" id="tplNewFromName" value="Beyond the Box"></div>
+        <div><div class="form-label">From email</div><input class="form-input" id="tplNewFromEmail" value="enquiries@btbescaperooms.co.nz"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Body (use {{first_name}} for the client's first name)</div>
+        <textarea class="form-input" id="tplNewBody" rows="8" placeholder="Hi {{first_name}}, ..."></textarea>
+      </div>
+      <button class="note-save-btn" onclick="createTemplate()">Create template</button>
+      <span id="tplNewMsg" style="font-size:12px;margin-left:8px"></span>
+    </div>`;
+}
+async function saveTemplate(id){
+  const msgEl=document.getElementById(`tplMsg_${id}`);
+  const t=enquiryTemplates.find(x=>x.id===id);
+  try{
+    await callEdgeFunction('save_enquiry_template',{
+      id,
+      name:document.getElementById(`tplName_${id}`).value.trim(),
+      subject:document.getElementById(`tplSubject_${id}`).value.trim(),
+      from_name:document.getElementById(`tplFromName_${id}`).value.trim(),
+      from_email:document.getElementById(`tplFromEmail_${id}`).value.trim(),
+      body:document.getElementById(`tplBody_${id}`).value,
+      active:true,sort_order:t?.sort_order??0,
+    },currentUser.token);
+    if(msgEl){msgEl.textContent='Saved ✓';msgEl.style.color='#059669'}
+    await loadEnquiryTemplates();
+  }catch(e){if(msgEl){msgEl.textContent='Error: '+e.message;msgEl.style.color='#dc2626'}}
+}
+async function deleteTemplate(id){
+  if(!confirm('Delete this template? This can\'t be undone.'))return;
+  try{
+    await callEdgeFunction('delete_enquiry_template',{id},currentUser.token);
+    await loadEnquiryTemplates();renderTemplateAdmin();
+  }catch(e){alert('Error: '+e.message)}
+}
+async function createTemplate(){
+  const msgEl=document.getElementById('tplNewMsg');
+  const name=document.getElementById('tplNewName').value.trim();
+  const subject=document.getElementById('tplNewSubject').value.trim();
+  if(!name||!subject){if(msgEl){msgEl.textContent='Name and subject required.';msgEl.style.color='#dc2626'}return}
+  try{
+    await callEdgeFunction('save_enquiry_template',{
+      name,subject,
+      from_name:document.getElementById('tplNewFromName').value.trim()||'Beyond the Box',
+      from_email:document.getElementById('tplNewFromEmail').value.trim()||'enquiries@btbescaperooms.co.nz',
+      body:document.getElementById('tplNewBody').value,
+      active:true,sort_order:enquiryTemplates.length,
+    },currentUser.token);
+    await loadEnquiryTemplates();renderTemplateAdmin();
+  }catch(e){if(msgEl){msgEl.textContent='Error: '+e.message;msgEl.style.color='#dc2626'}}
+}
+let replyState={};
+function toggleReplyPanel(id){
+  openReplyId=(openReplyId===id)?null:id;
+  if(openReplyId&&!replyState[id])replyState[id]={};
+  renderEnquiries();
+}
+function applyTemplate(id,templateId){
+  const e=[...enquiries,...abandonedDrafts].find(x=>x.id===id);
+  const tpl=enquiryTemplates.find(t=>t.id===templateId);
+  const first=(e?.name||'').trim().split(' ')[0]||'there';
+  if(!tpl){replyState[id]={templateId:''};renderEnquiries();return}
+  const filledSubject=tpl.subject;
+  const filledBody=(tpl.body||'').replace(/\{\{first_name\}\}/g,first);
+  replyState[id]={templateId,subject:filledSubject,body:filledBody};
+  renderEnquiries();
+}
+async function sendReply(id){
+  const e=[...enquiries,...abandonedDrafts].find(x=>x.id===id);
+  const st=replyState[id]||{};
+  const tpl=enquiryTemplates.find(t=>t.id===st.templateId);
+  const msgEl=document.getElementById(`replyMsg_${id}`);
+  if(!e?.email){if(msgEl)msgEl.textContent='No email address on file.';return}
+  if(!st.subject||!st.body){if(msgEl)msgEl.textContent='Choose a template or fill in subject and message.';return}
+  if(msgEl){msgEl.textContent='Sending…';msgEl.style.color='#6b7280'}
+  try{
+    const htmlBody=escapeHtml(st.body).replace(/\n/g,'<br>');
+    await callEdgeFunction('send_enquiry_template_email',{
+      to:e.email,subject:st.subject,htmlBody,
+      fromEmail:tpl?.from_email,fromName:tpl?.from_name,
+      enquiryId:id,templateName:tpl?.name||st.subject,
+    },currentUser.token);
+    if(msgEl){msgEl.textContent='Sent ✓';msgEl.style.color='#059669'}
+    delete replyState[id];openReplyId=null;
+    await loadEnquiries();renderEnquiries();
+  }catch(err){
+    if(msgEl){msgEl.textContent='Error: '+err.message;msgEl.style.color='#dc2626'}
+  }
 }
 function renderEnqViewTabs(){
   document.getElementById('enqViewTabs').innerHTML=`
@@ -376,7 +537,7 @@ async function refreshAuthToken() {
 // succeeds and after session restore succeeds — never before.
 async function loadAppData(){
   await loadSettings();
-  await Promise.all([loadStaff(), loadEnquiries()]);
+  await Promise.all([loadStaff(), loadEnquiries(), loadEnquiryTemplates()]);
 }
 
 // AUTH — identical login/token logic to btb_app.html
@@ -413,6 +574,7 @@ function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
   document.getElementById('authName').textContent=currentUser.name;
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  const tplBtn=document.getElementById('tplAdminBtn');if(tplBtn)tplBtn.style.display=(currentUser.role==='admin')?'':'none';
   if(currentUser.allowedTabs && !currentUser.allowedTabs.includes('leads')){
     document.getElementById('mainApp').innerHTML='<div style="padding:40px 20px;text-align:center;color:#6b7280">You don\'t have access to Enquiries. Contact an admin.</div>';
   }
