@@ -1005,10 +1005,10 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.4';
-// v1.9.4: "Request Specific Time Off" now supports an optional date range
-// (e.g. a holiday from 21 Sep to 30 Sep) via a new "To Date" field, instead
-// of only blocking a single day at a time.
+const BUILD_VERSION = '1.9.5';
+// v1.9.5: Roster Overview now flags specific time-off requests distinctly
+// (🚫 Time off, red highlight) instead of blending them into the normal
+// "unavailable" background — so admin can spot requested time off at a glance.
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1360,10 +1360,16 @@ const dayShade = (i) => i % 2 === 0 ? '#dec4fc' : '#ffffff';
       const dayOfWeek = (d.getDay() + 6) % 7; // convert JS Sun=0 to Mon=0
       visibleShiftIdxs.forEach(shiftIdx => {
         const overrideState = overrideMap[staff.id]?.[`${dateStr}_${shiftIdx}`];
+        // A specific-date override of 'unavailable' means the staff member actively
+        // blocked this slot (via Request Specific Time Off) — different from just
+        // their normal recurring pattern being unavailable, so flag it distinctly.
+        const isTimeOff = overrideState === 'unavailable';
         const state = overrideState || recurMap[staff.id]?.[`${cycleWeek}_${dayOfWeek}_${shiftIdx}`] || 'unavailable';
         const meta = AVAIL_STATE_META[state];
-        const bg = state === 'unavailable' ? dayShade(di) : meta.bg;
-        html += `<td style="padding:6px 10px;text-align:center;background:${bg};color:${meta.color};border-bottom:1px solid #f3f4f6">${meta.label}</td>`;
+        const bg = isTimeOff ? '#fee2e2' : (state === 'unavailable' ? dayShade(di) : meta.bg);
+        const color = isTimeOff ? '#b91c1c' : meta.color;
+        const label = isTimeOff ? '🚫 Time off' : meta.label;
+        html += `<td style="padding:6px 10px;text-align:center;background:${bg};color:${color};border-bottom:1px solid #f3f4f6" ${isTimeOff ? 'title="Specific time-off request"' : ''}>${label}</td>`;
       });
     });
     html += `</tr>`;
