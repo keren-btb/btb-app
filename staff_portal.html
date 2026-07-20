@@ -376,6 +376,7 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 }
 
 .shift-date-header{font-size:16px;font-weight:800;color:#111827;letter-spacing:.2px;margin:22px 0 10px;padding:8px 14px;background:#f3f4f6;border-radius:8px;border-left:4px solid #07b4c5}
+.shift-date-header.shift-date-empty{font-size:14px;font-weight:600;color:#9ca3af;background:#f9fafb;border-left-color:#d1d5db;margin:10px 0}
 .shift-time{font-size:16px;font-weight:700;color:#111827}
 .shift-duration{font-size:12px;color:#9ca3af;margin-left:6px}
 .shift-status-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600}
@@ -770,6 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
               📞 Mark as On-Call / Standby Shift
             </label>
             <p class="field-hint" style="margin-left: 24px; color:#92400e; font-weight: 500;">Staff must stay reachable but shouldn't travel to the venue unless called.</p>
+            <p class="field-hint" style="margin-left: 24px; color:#92400e;">Unpaid unless called in — pay is only recorded when staff clock on.</p>
           </div>
 <div class="field">
             <div class="field-label">Notes (optional)</div>
@@ -999,7 +1001,11 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.1';
+const BUILD_VERSION = '1.9.2';
+// v1.9.2: "All shifts" list now shows every day in the 8-week window (empty days
+// shown as a single muted line "Day, Date — No shifts scheduled") instead of only
+// listing days that already have shifts. Added "unpaid unless called in" note under
+// the standby/on-call checkbox.
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3824,14 +3830,24 @@ function collapseShiftGroups(list) {
 
 function renderAdminShifts() {
   const el = document.getElementById('adminShiftsList'); if (!el) return;
-  let filtered = shiftFilter === 'all' ? allShifts : allShifts.filter(s => s.status === shiftFilter);
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty-state"><i class="ti ti-calendar-off"></i>No shifts found.</div>';
-    return;
-  }
+  const filtered = shiftFilter === 'all' ? allShifts : allShifts.filter(s => s.status === shiftFilter);
   const groups = groupByDate(filtered);
-  el.innerHTML = Object.keys(groups).sort().map(date => {
-    const collapsed = collapseShiftGroups(groups[date]);
+
+  // Same 8-week (56-day) window as loadShifts(), so every day appears even
+  // if it has no shifts assigned yet.
+  const start = new Date();
+  const dates = [];
+  for (let i = 0; i <= 56; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    dates.push(toDateStr(d));
+  }
+
+  el.innerHTML = dates.map(date => {
+    const dayShifts = groups[date];
+    if (!dayShifts || !dayShifts.length) {
+      return `<div class="shift-date-header shift-date-empty">${fmtShiftDate(date)} — No shifts scheduled</div>`;
+    }
+    const collapsed = collapseShiftGroups(dayShifts);
     return `<div class="shift-date-header">${fmtShiftDate(date)}</div>` +
       collapsed.map(c => c.isGroup ? buildAdminGroupCard(c.rows) : buildAdminShiftCard(c.rows[0])).join('');
   }).join('');
