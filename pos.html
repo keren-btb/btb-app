@@ -308,8 +308,8 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   <div class="login-sub">POS</div>
   <div class="login-card">
     <div class="login-title">Sign in</div>
-    <div class="login-field"><div class="login-label">Email</div>
-      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    <div class="login-field"><div class="login-label">Username</div>
+      <input class="login-input" type="text" id="loginEmail" placeholder="firstname" autocapitalize="off" autocorrect="off" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
     </div>
     <div class="login-field"><div class="login-label">Password</div>
       <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
@@ -573,7 +573,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.1'; // faster session restore — skip token refresh unless near expiry,
+const BUILD_VERSION = '1.2.2'; // firstname-only login, auto-appends @btbescaperooms.co.nz
 // show app immediately from cached role and validate in background instead of blocking on it
 console.log(`%cPOS — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
@@ -738,7 +738,8 @@ async function loadAppData(){
 
 // ── Auth ───────────────────────────────────────────
 async function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
   const pass=document.getElementById('loginPass').value;
   const errEl=document.getElementById('loginError');errEl.textContent='';
   if(!email||!pass){errEl.textContent='Please enter email and password.';return}
