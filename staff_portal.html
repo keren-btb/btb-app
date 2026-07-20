@@ -421,8 +421,8 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   <div class="login-card">
     <div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:18px">Sign in</div>
     <div class="login-field">
-      <div class="login-label">Email</div>
-      <input class="login-input" type="email" id="loginEmail" placeholder="you@example.com"
+      <div class="login-label">Username</div>
+      <input class="login-input" type="text" id="loginEmail" placeholder="firstname" autocapitalize="off" autocorrect="off"
         onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
     </div>
     <div class="login-field">
@@ -1005,7 +1005,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.5';
+const BUILD_VERSION = '1.9.6';
 // v1.9.5: Roster Overview now flags specific time-off requests distinctly
 // (🚫 Time off, red highlight) instead of blending them into the normal
 // "unavailable" background — so admin can spot requested time off at a glance.
@@ -1498,7 +1498,8 @@ function parseAllowedTabs(raw) {
 }
 
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
+  let email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  if (email && !email.includes('@')) email += '@btbescaperooms.co.nz';
   const pass  = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
