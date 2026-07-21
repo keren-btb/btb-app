@@ -846,7 +846,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.2'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
+const BUILD_VERSION = '1.6.3'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
@@ -1323,8 +1323,6 @@ function renderEscapeGames() {
     </div>`).join('');
 }
 
-function setEscapeView(v) {
-  
 
 function setEscapeView(v) {
   escapeView = v;
