@@ -1853,7 +1853,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = 16; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.1.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
 // v16: NZ timezone fix — 'today' (calendar defaults, walk-in time default) is now
 // always calculated in Pacific/Auckland time, not the device's local timezone/clock.
 // v14: fixed loadShiftTimes() timing — it now reloads with the authenticated staff
