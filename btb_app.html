@@ -395,7 +395,20 @@ async function loadSettings(){
 async function saveSetting(key,data){
   await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
 }
-const saveGames=()=>saveSetting('btb_games',games);
+// Tags/statuses can be edited from more than one open tab/session. Without
+// this, an add/delete here would overwrite whatever's in this tab's stale
+// in-memory copy — silently wiping out anything added elsewhere since this
+// tab last loaded. Pull the latest saved version first, mutate that instead.
+async function fetchLatestSetting(key,fallback)
+{
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/settings?key=eq.${key}&select=value`,{headers:H()});
+    const rows=await r.json();
+    if(rows&&rows[0]){const d=JSON.parse(rows[0].value);if(Array.isArray(d))return d}
+  }catch(e){}
+  return fallback;
+}
+    const saveGames=()=>saveSetting('btb_games',games);
 const saveTags=()=>saveSetting('btb_tags',tags);
 const saveStatuses=()=>saveSetting('btb_statuses',statuses);
 const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
@@ -1127,17 +1140,17 @@ function renderTagList(){
     </div>
   </div>`}).join('');
 }
-function changeTagColor(id,colorIdx){const t=tags.find(x=>x.id===id);if(t){t.colorIdx=colorIdx;renderTagList();renderTagFilters();renderActiveView();saveTags()}}
-function addTag(){const input=document.getElementById('newTagInput');const val=input.value.trim();if(!val)return;tags.push({id:'tag_'+Date.now(),label:val,colorIdx:selectedColorIdx});input.value='';renderTagList();renderTagFilters();renderActiveView();saveTags()}
-function deleteTag(id){tags=tags.filter(t=>t.id!==id);renderTagList();renderTagFilters();renderActiveView();saveTags()}
-function renderColorPicker(){document.getElementById('colorPicker').innerHTML=COLORS.map((c,i)=>`<div class="color-dot ${i===selectedColorIdx?'selected':''}" style="background:${c.dot}" onclick="selectColor(${i})"></div>`).join('')}
+async function changeTagColor(id,colorIdx){tags=await fetchLatestSetting('btb_tags',tags);const t=tags.find(x=>x.id===id);if(t){t.colorIdx=colorIdx;renderTagList();renderTagFilters();renderActiveView();saveTags()}}
+async function addTag(){const input=document.getElementById('newTagInput');const val=input.value.trim();if(!val)return;tags=await fetchLatestSetting('btb_tags',tags);tags.push({id:'tag_'+Date.now(),label:val,colorIdx:selectedColorIdx});input.value='';renderTagList();renderTagFilters();renderActiveView();saveTags()}
+async function deleteTag(id){tags=await fetchLatestSetting('btb_tags',tags);tags=tags.filter(t=>t.id!==id);renderTagList();renderTagFilters();renderActiveView();saveTags()}
+    function renderColorPicker(){document.getElementById('colorPicker').innerHTML=COLORS.map((c,i)=>`<div class="color-dot ${i===selectedColorIdx?'selected':''}" style="background:${c.dot}" onclick="selectColor(${i})"></div>`).join('')}
 function selectColor(idx){selectedColorIdx=idx;renderColorPicker()}
 
 // SETTINGS — STATUSES
 function renderStatusList(){const el=document.getElementById('statusList');if(!el)return;el.innerHTML=statuses.map(s=>`<div class="manage-row"><span style="font-size:18px">${s.emoji}</span><span class="row-label">${s.label}</span><button class="icon-btn danger" onclick="deleteStatus('${s.id}')"><i class="ti ti-trash"></i></button></div>`).join('')}
-function addStatus(){const label=document.getElementById('newStatusLabel').value.trim();if(!label)return;const emoji=document.getElementById('newStatusEmoji').value.trim()||'⚪';statuses.push({id:'status_'+Date.now(),label,emoji});document.getElementById('newStatusLabel').value='';document.getElementById('newStatusEmoji').value='';renderStatusList();saveStatuses()}
-function deleteStatus(id){if(statuses.length<=1){alert('Need at least one status.');return}statuses=statuses.filter(s=>s.id!==id);renderStatusList();saveStatuses()}
-
+async function addStatus(){const label=document.getElementById('newStatusLabel').value.trim();if(!label)return;const emoji=document.getElementById('newStatusEmoji').value.trim()||'⚪';statuses=await fetchLatestSetting('btb_statuses',statuses);statuses.push({id:'status_'+Date.now(),label,emoji});document.getElementById('newStatusLabel').value='';document.getElementById('newStatusEmoji').value='';renderStatusList();saveStatuses()}
+async function deleteStatus(id){if(statuses.length<=1){alert('Need at least one status.');return}statuses=await fetchLatestSetting('btb_statuses',statuses);statuses=statuses.filter(s=>s.id!==id);renderStatusList();saveStatuses()}
+    
 // SETTINGS — TRAINING
 function renderTrainingList(){
   const el=document.getElementById('trainingList');if(!el)return;
@@ -1445,7 +1458,14 @@ async function doLogin(){
     // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
     // so shiftTimes came back empty. Refresh it before showing the app.
     await loadShiftTimes();
+await loadShiftTimes();
+    // Same fix as shift times above — RLS on the `staff` table is
+    // authenticated-only, so the initial DOMContentLoaded load (anon key)
+    // never got any staff back, leaving the calendar's assign-staff chips
+    // empty all session. Reload now with the real token.
+    await loadStaff();
     showApp();
+    renderActiveView();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
 function parseAllowedTabs(raw){
@@ -1841,11 +1861,17 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
         // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
         // so shiftTimes came back empty. Refresh it before showing the app.
         await loadShiftTimes();
+        // Same fix as shift times above — RLS on the `staff` table is
+        // authenticated-only, so the initial DOMContentLoaded load (anon key)
+        // never got any staff back, leaving the calendar's assign-staff chips
+        // empty all session. Reload now with the real token.
+        await loadStaff();
         // Speed fix: show the app right away using the cached role/permissions
         // from last login, instead of waiting on a get_my_role round-trip first.
         // Validate quietly in the background; only sign out if that check fails,
         // and silently re-apply gating if the role/tabs changed since last login.
         showApp();
+        renderActiveView();
         callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
           if(!currentUser)return;
           currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
