@@ -1005,11 +1005,31 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.6';
+const BUILD_VERSION = '1.9.7';
+// v1.9.7: NZ timezone fix — 'today' and clock-in/out day calculations now always
+// use Pacific/Auckland time, not the device's local timezone/clock.
 // v1.9.5: Roster Overview now flags specific time-off requests distinctly
 // (🚫 Time off, red highlight) instead of blending them into the normal
 // "unavailable" background — so admin can spot requested time off at a glance.
 console.log(`%cStaff Portal — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
+// ============================================================
+function nzToday() {
+  // Returns 'YYYY-MM-DD' for the current date in Pacific/Auckland, regardless of device timezone
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+function nzNow() {
+  // Returns a Date object whose fields (getDay, getHours, setHours, etc.) reflect NZ wall-clock time
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -1218,7 +1238,7 @@ function toDateStr(d) {
 }
 
 function getMonday(offset=0) {
-  const d = new Date();
+  const d = nzNow();
   d.setHours(0,0,0,0);
   const day = d.getDay(); // 0=Sun
   const diff = (day === 0) ? -6 : 1 - day; // adjust to Monday
@@ -1275,7 +1295,7 @@ let rosterWeekOffset = 0;
 let rosterHideClosed = false;
     
 function getRosterWeekDates() {
-  const now = new Date();
+  const now = nzNow();
   const jsDay = now.getDay(); // 0=Sun
   const mondayOffset = (jsDay === 0 ? -6 : 1 - jsDay);
   const monday = new Date(now);
@@ -1588,7 +1608,7 @@ await loadShifts();
   }
 
   document.getElementById('headerSub').textContent =
-    `${currentUser.role} · ${new Date().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'long'})}`;
+    `${currentUser.role} · ${nzNow().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'long'})}`;
 }
 
 // ============================================================
@@ -1642,8 +1662,8 @@ async function loadMyTraining() {
 async function loadMyShifts() {
   if (!myStaffRecord) return;
   try {
-    const today = toDateStr(new Date());
-    const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 56);
+    const today = nzToday();
+    const futureDate = nzNow(); futureDate.setDate(futureDate.getDate() + 56);
     const future = toDateStr(futureDate);
     const r = await fetch(
       `${SB_URL}/rest/v1/staff_availability?staff_id=eq.${myStaffRecord.id}&specific_date=gte.${today}&specific_date=lte.${future}&select=specific_date,start_time,available`,
@@ -1686,7 +1706,7 @@ async function loadAdminTimesheets() {
 }
 
 async function loadTodayBookings() {
-  const today = toDateStr(new Date());
+  const today = nzToday();
   try {
     const r = await fetch(
       `${SB_URL}/rest/v1/game_bookings?booking_date=eq.${today}&status=neq.cancelled&order=slot_time&select=*`,
@@ -1735,7 +1755,7 @@ async function clockIn() {
       headers: {...H(), 'Prefer':'return=representation'},
       body: JSON.stringify({
         staff_id: myStaffRecord.id,
-        work_date: toDateStr(new Date()),
+        work_date: nzToday(),
         clock_in: new Date().toISOString(),
         hourly_rate_used: myStaffRecord.hourly_rate || 0,
         status: 'clocked_in'
@@ -1782,7 +1802,7 @@ async function clockOut() {
 }
 
 function getActiveClock() {
-  return timesheets.find(t => t.status === 'clocked_in' && t.work_date === toDateStr(new Date()));
+  return timesheets.find(t => t.status === 'clocked_in' && t.work_date === nzToday());
 }
 
 function renderClockWidget() {
@@ -1808,7 +1828,7 @@ function renderClockWidget() {
       <div class="clock-idle">
         <div class="clock-idle-label">
           <div style="font-weight:700;color:#374151;margin-bottom:2px">Not clocked in</div>
-          <div style="font-size:11px;color:#9ca3af">${new Date().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'})}</div>
+          <div style="font-size:11px;color:#9ca3af">${nzNow().toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'})}</div>
         </div>
         <button class="clock-idle-btn" id="clockInBtn" onclick="clockIn()">
           <i class="ti ti-player-play" style="margin-right:4px"></i>Clock in
@@ -1853,7 +1873,7 @@ function renderAvailGrid(staffId=null, shifts=null, gridId='availGrid') {
   document.getElementById(labelId).textContent = getWeekLabel(offset);
 
   const days = getWeekDays(offset);
-  const today = toDateStr(new Date());
+  const today = nzToday();
 
   if (shiftDefs.length === 0) {
     el.innerHTML = '<div class="empty-state">No shifts have been set up yet. Ask an admin to add them in Settings → Initial Setup → Shift Times.</div>';
@@ -2065,7 +2085,7 @@ async function saveAdminStaffAvail() {
 
 async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
   try {
-    const today = toDateStr(new Date());
+    const today = nzToday();
 
     const datesToSave = new Set();
     Object.keys(shifts).forEach(key => {
@@ -2137,7 +2157,7 @@ async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
 function renderWeekAvailSummary() {
   const el = document.getElementById('weekAvailSummary'); if (!el) return;
   const days = getWeekDays(0);
-  const today = toDateStr(new Date());
+  const today = nzToday();
   const openDays = days.filter(d => isDayOpen(d) && toDateStr(d) >= today);
 
   if (!openDays.length) {
@@ -2781,7 +2801,7 @@ async function queryTs(id) {
 function daysUntilNextAnniversary(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr + 'T12:00');
-  const today = new Date(); today.setHours(12,0,0,0);
+  const today = nzNow(); today.setHours(12,0,0,0);
   let next = new Date(today.getFullYear(), d.getMonth(), d.getDate(), 12);
   if (next < today) next = new Date(today.getFullYear()+1, d.getMonth(), d.getDate(), 12);
   const diffDays = Math.round((next - today) / 86400000);
@@ -3039,8 +3059,8 @@ function cycleTraining(staffId, gameId) {
 
 async function loadAdminStaffShifts(staffId) {
   try {
-    const today = toDateStr(new Date());
-    const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 56);
+    const today = nzToday();
+    const futureDate = nzNow(); futureDate.setDate(futureDate.getDate() + 56);
     const future = toDateStr(futureDate);
     const r = await fetch(
       `${SB_URL}/rest/v1/staff_availability?staff_id=eq.${staffId}&specific_date=gte.${today}&specific_date=lte.${future}&select=specific_date,start_time,available`,
@@ -3070,8 +3090,8 @@ async function loadAdminStaffShifts(staffId) {
 // ============================================================
 let granAvailOpen  = false;
 let granAvailData  = {};              // { 'YYYY-MM-DD': ['10:30','11:00',...] }
-let granAvailMonth = new Date().getMonth() + 1;
-let granAvailYear  = new Date().getFullYear();
+let granAvailMonth = nzNow().getMonth() + 1;
+let granAvailYear  = nzNow().getFullYear();
 
 function toggleGranularAvailPanel() {
   granAvailOpen = !granAvailOpen;
@@ -3080,7 +3100,7 @@ function toggleGranularAvailPanel() {
   if (panel) panel.style.display = granAvailOpen ? '' : 'none';
   if (label) label.textContent = granAvailOpen ? 'Hide individual slots' : 'Fine-tune individual slots';
   if (granAvailOpen && adminViewingStaffId) {
-    granAvailMonth = new Date().getMonth() + 1; granAvailYear = new Date().getFullYear();
+    granAvailMonth = nzNow().getMonth() + 1; granAvailYear = nzNow().getFullYear();
     loadGranularAvailability(adminViewingStaffId);
   }
 }
@@ -3120,7 +3140,7 @@ function renderGranularAvailGrid() {
   if (!adminViewingStaffId) { el.innerHTML = '<div class="empty-state">No staff member selected.</div>'; return; }
 
   const daysInMonth = new Date(granAvailYear, granAvailMonth, 0).getDate();
-  const todayStr = toDateStr(new Date());
+  const todayStr = nzToday();
 
   let html = `<div style="background:#f0fafb;border:1px solid #07b4c5;border-radius:10px;padding:10px 12px;margin-bottom:12px">
     <div style="font-size:11px;font-weight:600;color:#07b4c5;margin-bottom:8px">⚡ Quick apply — fill all open days this month with a pattern</div>
@@ -3165,7 +3185,7 @@ function renderGranularAvailGrid() {
 
 function applyGranularAvailPattern(pattern) {
   const daysInMonth = new Date(granAvailYear, granAvailMonth, 0).getDate();
-  const todayStr = toDateStr(new Date());
+  const todayStr = nzToday();
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(granAvailYear, granAvailMonth-1, d);
     const ds = toDateStr(date);
@@ -3437,7 +3457,7 @@ async function saveProfile() {
 let todayTimesheets = [];
 
 async function loadClockGrid() {
-  const today = toDateStr(new Date());
+  const today = nzToday();
   try {
     const r = await fetch(
       `${SB_URL}/rest/v1/timesheets?work_date=eq.${today}&order=clock_in`,
@@ -3567,7 +3587,7 @@ async function adminClockIn(staffId) {
       headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({
         staff_id: staffId,
-        work_date: toDateStr(new Date()),
+        work_date: nzToday(),
         clock_in: new Date().toISOString(),
         hourly_rate_used: s?.hourly_rate || 0,
         status: 'clocked_in'
@@ -3807,8 +3827,8 @@ async function resolveHoursRequest(id, decision) {
 }
     
 async function loadShifts() {
-  const today = toDateStr(new Date());
-  const future = new Date(); future.setDate(future.getDate() + 56);
+  const today = nzToday();
+  const future = nzNow(); future.setDate(future.getDate() + 56);
   const futureDateStr = toDateStr(future);
   try {
     const r = await fetch(
@@ -3849,7 +3869,7 @@ function groupByDate(shifts) {
 
 function fmtShiftDate(ds) {
   const d = new Date(ds + 'T12:00');
-  const today = toDateStr(new Date());
+  const today = nzToday();
   const tomorrow = toDateStr(new Date(Date.now() + 86400000));
   if (ds === today) return 'Today — ' + d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'});
   if (ds === tomorrow) return 'Tomorrow — ' + d.toLocaleDateString('en-NZ',{weekday:'long',day:'numeric',month:'short'});
@@ -3878,7 +3898,7 @@ function renderAdminShifts() {
 
   // Same 8-week (56-day) window as loadShifts(), so every day appears even
   // if it has no shifts assigned yet.
-  const start = new Date();
+  const start = nzNow();
   const dates = [];
   for (let i = 0; i <= 56; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i);

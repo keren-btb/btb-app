@@ -298,6 +298,22 @@
   </div>
 </div>
 <script>
+// ============================================================
+// NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
+// ============================================================
+function nzToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+function nzNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -358,7 +374,7 @@ let bookingConfig={
 };
 let staff=[],staffTraining=[],bookings=[],enquiries=[];
 let openTrainingPanels=new Set(),openPanels=new Set();
-const _n=new Date();
+const _n=nzNow();
 const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
 let activeTagFilter=null,activeEnqStatus=null,calView='cal';
@@ -580,7 +596,7 @@ function toggleWalkin(){
   const form=document.getElementById('walkinForm');
   form.style.display=walkinOpen?'':'none';
   if(walkinOpen){
-    const n=new Date();
+    const n=nzNow();
     document.getElementById('wTime').value=`${String(n.getHours()).padStart(2,'0')}:${String(Math.round(n.getMinutes()/5)*5%60).padStart(2,'0')}`;
     document.getElementById('wGame').innerHTML=games.map(g=>`<option value="${g.id}">${g.name} (${g.duration}min)</option>`).join('');
     walkinGMs=[];renderWalkinGMChips();document.getElementById('wNote').value='';document.getElementById('wName').focus();
@@ -1810,7 +1826,9 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = 15; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = 16; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16: NZ timezone fix — 'today' (calendar defaults, walk-in time default) is now
+// always calculated in Pacific/Auckland time, not the device's local timezone/clock.
 // v14: fixed loadShiftTimes() timing — it now reloads with the authenticated staff
 // token right before showApp() (both fresh login and restored-session paths), instead
 // of only running once on the anon key at DOMContentLoaded. Anon RLS on settings only

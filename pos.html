@@ -573,13 +573,29 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.2'; // firstname-only login, auto-appends @btbescaperooms.co.nz
+const BUILD_VERSION = '1.2.3'; // NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
 // show app immediately from cached role and validate in background instead of blocking on it
 console.log(`%cPOS — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
+// ============================================================
+// NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
+// ============================================================
+function nzToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+function nzNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const _n=new Date();
+const _n=nzNow();
 const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 
 // ── State ──────────────────────────────────────────
@@ -607,7 +623,7 @@ let posCategories=[
   {id:'boardgame',label:'Boardgame',icon:'ti-puzzle',color:'#1d9e75',type:'products',filter:'Boardgame'},
 ];
 let currentUser=null;
-let posRangeStart=new Date(); // earliest date loaded (go back by 14 days at a time)
+let posRangeStart=nzNow(); // earliest date loaded (go back by 14 days at a time)
 let selectedBookingId=null;
 // per-booking state keyed by id
 let openPOSHistory=new Set();
@@ -824,7 +840,7 @@ function showBookings(){
   const totals=document.getElementById('posTotals');
   if(totals)totals.style.display=currentUser?.role==='admin'?'':'none';
   // Reset to today + 14 days forward
-  posRangeStart=new Date();
+  posRangeStart=nzNow();
   posRangeStart.setHours(0,0,0,0);
   renderPOS();
 }
@@ -854,7 +870,7 @@ async function loadEarlier(){
 }
 
 async function renderPOS(){
-  const today=new Date();today.setHours(0,0,0,0);
+  const today=nzNow();today.setHours(0,0,0,0);
   const fromStr=toDateStr(posRangeStart);
   const futureEnd=new Date(today);futureEnd.setDate(futureEnd.getDate()+27);
   const toStr=toDateStr(futureEnd);
@@ -876,7 +892,7 @@ async function renderPOS(){
 
 function renderBookingRows(visibleBookings){
   const list=document.getElementById('posList');
-  const today=new Date();today.setHours(0,0,0,0);
+  const today=nzNow();today.setHours(0,0,0,0);
   const todayStr=toDateStr(today);
 
   // Group by date

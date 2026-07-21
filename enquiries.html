@@ -124,10 +124,21 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.0'; // awaiting-reply tracking via client_interactions
+const BUILD_VERSION = '1.2.1'; // NZ timezone fix — see below
+// v1.2.1: fixed a real bug — the default enquiry date was using
+// new Date().toISOString().slice(0,10), which is UTC, not NZ time. Since NZ
+// is UTC+12/+13, that showed *yesterday's* date as the default for roughly
+// the first half of every NZ day. Now uses nzToday() (Pacific/Auckland).
 // (token refresh, expiry tracking, background role re-validation) matching
 // btb_app.html/pos.html, plus the same session-restore speed fix.
 console.log(`%cEnquiries — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// NZ TIMEZONE HELPER — always use this instead of new Date() when you mean "today" in NZ
+// ============================================================
+function nzToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
 // DEFAULT DATA — matches btb_app.html defaults, overwritten by loadSettings() below
 let games=[
   {id:'g1',name:'Sherlock',duration:60,pricingType:'per_person_tiered',icon:'🔍',bookable:true,category:'escape'},
@@ -245,7 +256,7 @@ async function submitEnquiry(){
   const email=document.getElementById('eqEmail').value.trim();
   const gameId=document.getElementById('eqGame').value;
   const gameName=gameId?games.find(g=>g.id===gameId)?.name||'Enquiry':'Enquiry';
-  const eqDate=document.getElementById('eqDate').value||new Date().toISOString().slice(0,10);
+  const eqDate=document.getElementById('eqDate').value||nzToday();
   const players=parseInt(document.getElementById('eqPlayers').value)||1;
   const occasion=document.getElementById('eqOccasion').value;
   const experience=document.getElementById('eqExperience').value;

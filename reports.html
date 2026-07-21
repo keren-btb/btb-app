@@ -401,8 +401,21 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.1'; // firstname-only login, auto-appends @btbescaperooms.co.nz
+const BUILD_VERSION = '1.0.2'; // NZ timezone fix: date range presets (week/month/etc.) now always use Pacific/Auckland time
 console.log(`%cReports — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// NZ TIMEZONE HELPER — always use this instead of new Date() when you mean "now" in NZ
+// ============================================================
+function nzNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
 
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -500,7 +513,7 @@ function doLogout(){
 function setRange(type,btn){
   document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  const now=new Date();
+  const now=nzNow();
   const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
   if(type==='week'){
     const dow=(now.getDay()+6)%7;

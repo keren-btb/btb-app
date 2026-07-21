@@ -845,8 +845,26 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.0';
+const BUILD_VERSION = '1.6.1'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
+// ============================================================
+function nzToday() {
+  // Returns 'YYYY-MM-DD' for the current date in Pacific/Auckland, regardless of visitor's device timezone
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+function nzNow() {
+  // Returns a Date object whose fields (getDay, getHours, setHours, etc.) reflect NZ wall-clock time
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
 
@@ -954,7 +972,7 @@ async function loadSettings() {
 async function loadStaffData() {
   try {
     // Load from staff_availability (specific_date rows where available = 'available' or 'maybe')
-    const today = toDateStr(new Date());
+    const today = nzToday();
     const futureDate = new Date(); futureDate.setDate(futureDate.getDate() + 90);
     const future = toDateStr(futureDate);
 
@@ -1019,7 +1037,7 @@ function getSlotsForDay(dayIdx) {
 
 async function loadExistingBookings() {
   try {
-    const today = toDateStr(new Date());
+    const today = nzToday();
     // Uses the narrow public_booking_slots view (not the raw game_bookings
     // table) — exposes only what's needed to check slot availability, no
     // customer info, pricing, or notes.
@@ -1083,7 +1101,7 @@ function gamePriceLabel(g) {
 // ============================================================
 function getSlotStatus(gameId, dateStr, slotTime) {
   const d   = new Date(dateStr + 'T' + slotTime + ':00');
-  const now = new Date();
+  const now = nzNow();
   const cut = (bookingConfig.callToBookCutoffHours||3) * 3600000;
   if (d < now) return 'past';
   // Check if already booked
@@ -1171,7 +1189,7 @@ function fmt12(t) {
 }
 
 function getUpcomingDates(count=30) {
-  const dates=[], d=new Date();
+  const dates=[], d=nzNow();
   d.setHours(0,0,0,0);
   let checked=0;
   while (dates.length < count && checked < 120) {
@@ -1270,7 +1288,7 @@ function selectCategory(cat) {
     const sel = document.getElementById('cGame');
     if(sel) sel.innerHTML = '<option value="">Not sure yet</option>' + games.filter(g=>g.bookable!==false).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
     // Pre-fill today's date
-    const today = toDateStr(new Date());
+    const today = nzToday();
     const cd = document.getElementById('cDate'); if(cd) cd.value = today;
     goTo('s2-enquiry', 2);
     return;
@@ -1327,7 +1345,7 @@ function selectEscapeGame(gameId) {
 }
 
 function renderGameDates() {
-  const today = new Date(); today.setHours(0,0,0,0);
+  const today = nzNow(); today.setHours(0,0,0,0);
   const dow = (today.getDay()+6)%7;
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - dow + (gameWeekOffset * 7));
@@ -2061,7 +2079,7 @@ function openEnquiry(type) {
   const cfg = ENQ_CONFIG[type] || ENQ_CONFIG['general'];
   document.getElementById('enqTitle').textContent = cfg.title;
   document.getElementById('enqSub').textContent   = cfg.sub;
-  const today = toDateStr(new Date());
+  const today = nzToday();
   document.getElementById('enqDate').value = today;
   document.getElementById('enqErr').classList.remove('show');
   document.getElementById('enqOverlay').classList.add('open');
@@ -2087,7 +2105,7 @@ async function submitEnquiry() {
     return;
   }
 
-  const d = date ? new Date(date+'T12:00') : new Date();
+  const d = date ? new Date(date+'T12:00') : nzNow();
   const typeLabels = {'casual-vr':'Casual VR','cafe':'Cafe table hire','general':'General'};
   const noteText = [
     typeLabels[enqType]||'Enquiry',
@@ -2106,7 +2124,7 @@ async function submitEnquiry() {
       body:JSON.stringify({
         game_id:       enqType==='casual-vr' ? 'g4' : 'g5',
         game_name:     typeLabels[enqType]||'Enquiry',
-        booking_date:  date || toDateStr(new Date()),
+        booking_date:  date || nzToday(),
         slot_time:     (time||'12:00')+':00',
         players_booked: parseInt(players)||1,
         status:        'enquiry',
@@ -2175,7 +2193,7 @@ async function submitContactEnquiry() {
       method: 'POST', headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
         client_id: clientId, game_id: gameId||'enquiry', game_name: gameName,
-        booking_date: date||toDateStr(new Date()), slot_time: '12:00:00',
+        booking_date: date||nzToday(), slot_time: '12:00:00',
         players_booked: players, occasion: occasion||null,
         status: 'enquiry', source: 'online',
         notes_when_booked: noteText,
@@ -2237,7 +2255,7 @@ function saveAbandonedDraft() {
   const draftData = {
     game_id:       selGame?.id || 'unknown',
     game_name:     selGame?.name || 'Unknown',
-    booking_date:  selDate || toDateStr(new Date()),
+    booking_date:  selDate || nzToday(),
     slot_time:     (selSlot||'12:00') + ':00',
     players_booked: playerCount || 1,
     occasion:      occasion || null,
