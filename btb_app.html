@@ -411,6 +411,19 @@ async function loadSettings(){
 async function saveSetting(key,data){
   await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
 }
+function gameFromRow(r){
+  return {id:r.id,name:r.name,duration:r.duration,bufferMinutes:r.buffer_minutes,icon:r.icon,photoUrl:r.photo_url,thumbnailUrl:r.thumbnail_url,category:r.category,pricingType:r.pricing_type,pricingPresetId:r.pricing_preset_id,maxPlayers:r.max_players,minPlayers:r.min_players,bookable:r.bookable,showOnQuickBook:r.show_on_quick_book,trackPlayers:r.track_players,active:r.active,sortOrder:r.sort_order};
+}
+function rowFromGame(g,idx){
+  return {id:g.id,name:g.name,duration:g.duration,buffer_minutes:g.bufferMinutes,icon:g.icon,photo_url:g.photoUrl||null,thumbnail_url:g.thumbnailUrl||null,category:g.category,pricing_type:g.pricingType,pricing_preset_id:g.pricingPresetId,max_players:g.maxPlayers,min_players:g.minPlayers,bookable:g.bookable,show_on_quick_book:g.showOnQuickBook,track_players:g.trackPlayers,active:g.active!==false,sort_order:idx};
+}
+async function loadGames(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/games?select=*&order=sort_order`,{headers:H()});
+    const rows=await r.json();
+    if(Array.isArray(rows)&&rows.length)games=rows.map(gameFromRow);
+  }catch(e){console.error('Games load:',e)}
+}
 // Tags/statuses can be edited from more than one open tab/session. Without
 // this, an add/delete here would overwrite whatever's in this tab's stale
 // in-memory copy — silently wiping out anything added elsewhere since this
@@ -424,8 +437,13 @@ async function fetchLatestSetting(key,fallback)
   }catch(e){}
   return fallback;
 }
-    const saveGames=()=>saveSetting('btb_games',games);
-const saveTags=()=>saveSetting('btb_tags',tags);
+async function saveGames(){
+      saveSetting('btb_games',games);
+      try{
+        await fetch(`${SB_URL}/rest/v1/games`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(games.map(rowFromGame))});
+      }catch(e){console.error('Games save:',e)}
+    }
+  const saveTags=()=>saveSetting('btb_tags',tags);
 const saveStatuses=()=>saveSetting('btb_statuses',statuses);
 const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
 const saveBookingConfigSetting=()=>saveSetting('btb_booking_config',bookingConfig);
@@ -1103,8 +1121,13 @@ function addGame(){
   document.getElementById('newGameName').value='';document.getElementById('newGameDur').value='';document.getElementById('newGameIcon').value='';
   renderGamesList();saveGames();saveBookingConfigSetting();
 }
-function deleteGame(id){if(games.length<=1){alert('Need at least one game.');return}games=games.filter(g=>g.id!==id);renderGamesList();saveGames()}
-function toggleBookable(id){const g=games.find(x=>x.id===id);if(g)g.bookable=g.bookable===false?true:false;renderGamesList();saveGames()}
+function deleteGame(id){
+  if(games.length<=1){alert('Need at least one game.');return}
+  games=games.filter(g=>g.id!==id);
+  renderGamesList();saveGames();
+  fetch(`${SB_URL}/rest/v1/games?id=eq.${id}`,{method:'DELETE',headers:H()}).catch(e=>console.error('Delete game:',e));
+}
+  function toggleBookable(id){const g=games.find(x=>x.id===id);if(g)g.bookable=g.bookable===false?true:false;renderGamesList();saveGames()}
 
 // SETTINGS — STAFF
 function renderPersonList(){
@@ -1475,6 +1498,10 @@ async function doLogin(){
     // so shiftTimes came back empty. Refresh it before showing the app.
     await loadShiftTimes();
 await loadShiftTimes();
+    // Same fix as shift times above — RLS on `games` only lets anon see
+    // active=true rows, so any inactive games were missing from the initial
+    // load. Reload now with the real token to get the full list for admin.
+    await loadGames();
     // Same fix as shift times above — RLS on the `staff` table is
     // authenticated-only, so the initial DOMContentLoaded load (anon key)
     // never got any staff back, leaving the calendar's assign-staff chips
@@ -1484,7 +1511,7 @@ await loadShiftTimes();
     renderActiveView();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
-function parseAllowedTabs(raw){
+  function parseAllowedTabs(raw){
   if(!raw) return ['calendar'];
   if(Array.isArray(raw)) return raw;
   try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
@@ -1841,8 +1868,9 @@ const BUILD_VERSION = 16; // increment this each shipped update — check browse
 console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
   window.addEventListener('DOMContentLoaded',async()=>{
-  // Load all settings and data first
+// Load all settings and data first
   await loadSettings();
+  await loadGames();
   await loadShiftTimes();
   migrateQuickBookFlag();
   const migratedPricing=migratePricingPresets();
@@ -1878,7 +1906,11 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
         // DOMContentLoaded load ran on the anon key, and RLS on settings only allows anon
         // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
         // so shiftTimes came back empty. Refresh it before showing the app.
-        await loadShiftTimes();
+await loadShiftTimes();
+        // Same fix as shift times above — RLS on `games` only lets anon see
+        // active=true rows, so any inactive games were missing from the initial
+        // load. Reload now with the real token to get the full list for admin.
+        await loadGames();
         // Same fix as shift times above — RLS on the `staff` table is
         // authenticated-only, so the initial DOMContentLoaded load (anon key)
         // never got any staff back, leaving the calendar's assign-staff chips
