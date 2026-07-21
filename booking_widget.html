@@ -161,7 +161,8 @@ body{
 .game-card{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .2s}
 .game-card:hover{border-color:rgba(7,180,197,0.35)}
 .game-card.selected{border-color:var(--teal);background:var(--card2)}
-.game-icon{width:46px;height:46px;border-radius:10px;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--border)}
+.game-icon{width:46px;height:46px;border-radius:10px;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--border);overflow:hidden}
+.game-icon img{width:100%;height:100%;object-fit:cover}
 .game-info{flex:1;min-width:0}
 .game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#fff;letter-spacing:0.3px}
 .game-meta{font-size:12px;color:var(--muted);margin-top:2px}
@@ -845,7 +846,7 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.1'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
+const BUILD_VERSION = '1.6.2'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
@@ -1312,7 +1313,7 @@ function renderEscapeGames() {
   const cats = games.filter(g => g.category === 'escape' && g.bookable !== false);
   document.getElementById('escapeGameList').innerHTML = cats.map(g => `
     <div class="game-card" id="gc-${g.id}" onclick="selectEscapeGame('${g.id}')">
-      <div class="game-icon">${g.icon||'🚪'}</div>
+<div class="game-icon">${g.photoUrl?`<img src="${g.photoUrl}" alt="${g.name}">`:(g.icon||'🚪')}</div>
       <div class="game-info">
         <div class="game-name">${g.name}</div>
         <div class="game-meta">${g.duration} min</div>
@@ -1321,6 +1322,9 @@ function renderEscapeGames() {
       <div class="game-chevron">›</div>
     </div>`).join('');
 }
+
+function setEscapeView(v) {
+  
 
 function setEscapeView(v) {
   escapeView = v;
@@ -1430,8 +1434,8 @@ function renderVRGames() {
   const vrGames = games.filter(g => g.category==='vr' && g.bookable!==false);
   document.getElementById('vrGameList').innerHTML = vrGames.map(g => `
     <div class="game-card" id="vgc-${g.id}" onclick="selectVRGame('${g.id}')">
-      <div class="game-icon">${g.icon||'🥽'}</div>
-      <div class="game-info">
+<div class="game-icon">${g.photoUrl?`<img src="${g.photoUrl}" alt="${g.name}">`:(g.icon||'🥽')}</div>
+<div class="game-info">
         <div class="game-name">${g.name}</div>
         <div class="game-meta">${g.duration} min</div>
         <div class="game-price">${gamePriceLabel(g)}</div>
@@ -1487,8 +1491,8 @@ function renderCafeGames() {
   const cafeGames = games.filter(g => g.category==='cafe' && g.bookable!==false);
   document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => `
     <div class="game-card" id="cgc-${g.id}" onclick="selectCafeGame('${g.id}')">
-      <div class="game-icon">${g.icon||'☕'}</div>
-      <div class="game-info">
+<div class="game-icon">${g.photoUrl?`<img src="${g.photoUrl}" alt="${g.name}">`:(g.icon||'☕')}</div>
+<div class="game-info">
         <div class="game-name">${g.name}</div>
         <div class="game-meta">${g.duration} min</div>
         <div class="game-price">${gamePriceLabel(g)}</div>
