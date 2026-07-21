@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Client Inbox</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="btb_app.css">
+<style>
+/* Inbox-specific additions — everything else reuses btb_app.css */
+.inbox-row{display:flex;align-items:flex-start;gap:10px;padding:11px 10px;border-radius:10px;background:#f9fafb;margin-bottom:8px;cursor:pointer;transition:background .15s}
+.inbox-row:hover{background:#f0fafb}
+.inbox-name{font-size:14px;font-weight:700;color:#1f2937}
+.inbox-snippet{font-size:12px;color:#6b7280;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inbox-time{font-size:11px;color:#9ca3af;white-space:nowrap;margin-left:6px}
+.status-badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;display:inline-block}
+.status-badge.needs-reply{background:#fee2e2;color:#b91c1c}
+.status-badge.awaiting-them{background:#fef3c7;color:#b45309}
+.status-badge.resolved{background:#dcfce7;color:#15803d}
+.thread-back{display:flex;align-items:center;gap:6px;color:#07b4c5;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px;background:none;border:none;padding:0}
+.thread-header{margin-bottom:14px}
+.thread-name{font-size:17px;font-weight:700;color:#111827}
+.thread-meta{font-size:12px;color:#6b7280;margin-top:2px}
+.thread-msg{border-radius:10px;padding:10px 12px;margin-bottom:8px;max-width:92%}
+.thread-msg.inbound{background:#f0fafb;border-left:3px solid #07b4c5;margin-right:auto}
+.thread-msg.outbound{background:#f9fafb;border-left:3px solid #9ca3af;margin-left:auto}
+.thread-msg-hdr{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.thread-msg-who{font-size:11px;font-weight:700;color:#374151}
+.thread-msg-time{font-size:10px;color:#9ca3af;white-space:nowrap}
+.thread-msg-subject{font-size:12px;font-weight:600;color:#1f2937;margin-bottom:3px}
+.thread-msg-body{font-size:12px;color:#4b5563;white-space:pre-wrap;line-height:1.5}
+.quick-add{border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:14px}
+.quick-add-row{display:flex;gap:6px;margin-bottom:8px}
+.quick-add textarea{width:100%;font-family:inherit;font-size:13px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;min-height:60px;resize:vertical;margin-bottom:8px}
+.resolve-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #15803d;color:#15803d;background:#f0fdf8;cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box </div>
+  <div class="login-sub">Client Inbox</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Username</div>
+      <input class="login-input" type="text" id="loginEmail" placeholder="firstname" autocapitalize="off" autocorrect="off" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="app" id="mainApp" style="display:none">
+  <div class="header">
+    <div style="text-align:center;padding:4px 0 2px">
+      <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">CLIENT INBOX</div>
+    </div>
+    <div class="header-sub" id="headerSub">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:4px">
+      <span id="buildVersionTag" style="font-size:10px;color:#9ca3af"></span>
+      <span class="auth-badge" id="authBadge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span> · Sign out</span>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="btb_app.html" class="nav-btn" style="text-decoration:none"><i class="ti ti-calendar"></i>Calendar</a>
+    <a href="enquiries.html" class="nav-btn" style="text-decoration:none"><i class="ti ti-users"></i>Enquiries</a>
+    <span class="nav-btn active" style="cursor:default"><i class="ti ti-inbox"></i>Inbox</span>
+  </nav>
+
+  <!-- QUEUE VIEW -->
+  <div id="queueSection" class="section active">
+    <p class="sec-title">Client conversations</p>
+    <div class="filter-row" id="inboxFilterRow"></div>
+    <div id="inboxList"></div>
+  </div>
+
+  <!-- THREAD VIEW -->
+  <div id="threadSection" class="section">
+    <button class="thread-back" onclick="closeThread()"><i class="ti ti-arrow-left"></i> Back to inbox</button>
+    <div class="thread-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div>
+          <div class="thread-name" id="threadName"></div>
+          <div class="thread-meta" id="threadMeta"></div>
+        </div>
+        <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
+      </div>
+    </div>
+    <div id="threadMessages"></div>
+    <div class="quick-add">
+      <div class="quick-add-row">
+        <select class="form-select" id="qaType" style="flex:1">
+          <option value="phone">📞 Phone call</option>
+          <option value="note">📝 Note</option>
+          <option value="email">✉️ Email (manual log)</option>
+          <option value="text">💬 Text message</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <textarea id="qaContent" placeholder="What happened / what was said…"></textarea>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280">
+          <input type="checkbox" id="qaNeedsFollowup"> Needs follow-up
+        </label>
+        <button class="add-btn" style="margin-left:auto" onclick="submitQuickAdd()"><i class="ti ti-plus"></i> Log it</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+// SECURITY: H() sends the real logged-in staff member's session token for
+// every data request (falls back to the anon key only if nobody is logged
+// in yet). apikey always stays as the project anon key — matches the
+// pattern used across btb_app.html / pos.html / enquiries.html.
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+
+// BUILD VERSION — bump this each time this file is shipped.
+const BUILD_VERSION = '1.0.0';
+console.log(`%cClient Inbox — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function initials(n){const t=(n||'').trim();if(!t)return '??';return t.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+function relTime(iso){
+  const d=new Date(iso+(iso.endsWith('Z')?'':'Z'));
+  const diffMs=Date.now()-d.getTime();
+  const mins=Math.floor(diffMs/60000);
+  if(mins<1)return 'just now';
+  if(mins<60)return `${mins}m ago`;
+  const hrs=Math.floor(mins/60);
+  if(hrs<24)return `${hrs}h ago`;
+  const days=Math.floor(hrs/24);
+  if(days<7)return `${days}d ago`;
+  return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short'});
+}
+function fullDateTime(iso){
+  const d=new Date(iso+(iso.endsWith('Z')?'':'Z'));
+  return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+let currentUser=null;
+let rawInteractions=[]; // flat rows from client_interactions, joined with clients
+let clientGroups=[]; // built from rawInteractions
+let activeFilter='needs_reply'; // needs_reply | awaiting_them | all
+let activeClientId=null;
+
+async function loadInteractions(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/client_interactions?select=*,clients(id,first_name,last_name,email,phone)&order=created_at.desc`,{headers:H()});
+    rawInteractions=await r.json();
+    buildClientGroups();
+  }catch(e){console.error('Interactions load:',e)}
+}
+
+function buildClientGroups(){
+  const map={};
+  rawInteractions.forEach(row=>{
+    const cid=row.client_id;
+    if(!cid)return; // skip interactions with no linked client
+    if(!map[cid]){
+      map[cid]={
+        clientId:cid,
+        client:row.clients||{first_name:'Unknown',last_name:null,email:null,phone:null},
+        interactions:[],
+      };
+    }
+    map[cid].interactions.push(row);
+  });
+  clientGroups=Object.values(map).map(g=>{
+    // rows already come back created_at.desc from the query
+    const last=g.interactions[0];
+    const hasOpenInbound=g.interactions.some(i=>i.direction==='inbound'&&i.to_do&&!i.to_do_done);
+    const hasOpenOutbound=g.interactions.some(i=>i.direction==='outbound'&&i.to_do&&!i.to_do_done);
+    let status='resolved';
+    if(hasOpenInbound)status='needs_reply';
+    else if(hasOpenOutbound)status='awaiting_them';
+    return {...g,last,hasOpenInbound,hasOpenOutbound,status};
+  }).sort((a,b)=>new Date(b.last.created_at)-new Date(a.last.created_at));
+}
+
+function updateHeader(){
+  const needsReply=clientGroups.filter(g=>g.status==='needs_reply').length;
+  document.getElementById('headerSub').textContent=needsReply>0?`${needsReply} awaiting your reply`:'All caught up';
+}
+
+function renderFilters(){
+  const counts={
+    needs_reply:clientGroups.filter(g=>g.status==='needs_reply').length,
+    awaiting_them:clientGroups.filter(g=>g.status==='awaiting_them').length,
+    all:clientGroups.length,
+  };
+  const tabs=[
+    {id:'needs_reply',label:`Needs reply (${counts.needs_reply})`},
+    {id:'awaiting_them',label:`Awaiting them (${counts.awaiting_them})`},
+    {id:'all',label:`All (${counts.all})`},
+  ];
+  document.getElementById('inboxFilterRow').innerHTML=tabs.map(t=>
+    `<div class="filter-chip ${activeFilter===t.id?'active':''}" onclick="setFilter('${t.id}')">${t.label}</div>`
+  ).join('');
+}
+function setFilter(f){activeFilter=f;renderFilters();renderQueue()}
+
+function renderQueue(){
+  let filtered=clientGroups;
+  if(activeFilter==='needs_reply')filtered=clientGroups.filter(g=>g.status==='needs_reply');
+  else if(activeFilter==='awaiting_them')filtered=clientGroups.filter(g=>g.status==='awaiting_them');
+  const list=document.getElementById('inboxList');
+  if(!filtered.length){
+    list.innerHTML=`<div class="empty-state">${activeFilter==='all'?'No client conversations yet.':'Nothing here right now.'}</div>`;
+    return;
+  }
+  list.innerHTML=filtered.map(g=>{
+    const name=[g.client.first_name,g.client.last_name].filter(Boolean).join(' ')||g.client.email||'Unknown';
+    const snippet=g.last.subject||g.last.content||'';
+    const badge=g.status==='needs_reply'?'<span class="status-badge needs-reply">Needs reply</span>'
+      :g.status==='awaiting_them'?'<span class="status-badge awaiting-them">Awaiting them</span>'
+      :'<span class="status-badge resolved">Resolved</span>';
+    return `<div class="inbox-row" onclick="openThread('${g.clientId}')">
+      <div class="person-avatar">${escapeHtml(initials(name))}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <div class="inbox-name">${escapeHtml(name)}</div>
+          <div class="inbox-time">${relTime(g.last.created_at)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          ${badge}
+        </div>
+        <div class="inbox-snippet">${escapeHtml(snippet)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openThread(clientId){
+  activeClientId=clientId;
+  document.getElementById('queueSection').classList.remove('active');
+  document.getElementById('threadSection').classList.add('active');
+  renderThread();
+}
+function closeThread(){
+  activeClientId=null;
+  document.getElementById('threadSection').classList.remove('active');
+  document.getElementById('queueSection').classList.add('active');
+  document.getElementById('qaContent').value='';
+  document.getElementById('qaNeedsFollowup').checked=false;
+}
+
+function renderThread(){
+  const g=clientGroups.find(x=>x.clientId===activeClientId);
+  if(!g){closeThread();return}
+  const name=[g.client.first_name,g.client.last_name].filter(Boolean).join(' ')||g.client.email||'Unknown';
+  document.getElementById('threadName').textContent=name;
+  const metaParts=[g.client.email,g.client.phone].filter(Boolean);
+  document.getElementById('threadMeta').textContent=metaParts.join(' · ')||'No contact details on file';
+  document.getElementById('resolveBtn').style.display=(g.status==='resolved')?'none':'';
+
+  // chronological ascending for the thread read
+  const ordered=[...g.interactions].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  document.getElementById('threadMessages').innerHTML=ordered.map(i=>{
+    const who=i.direction==='inbound'?escapeHtml(name):'Beyond the Box';
+    const typeIcon={email:'✉️',phone:'📞',note:'📝',text:'💬',other:'•'}[i.type]||'•';
+    return `<div class="thread-msg ${i.direction}">
+      <div class="thread-msg-hdr">
+        <div class="thread-msg-who">${typeIcon} ${who}</div>
+        <div class="thread-msg-time">${fullDateTime(i.created_at)}</div>
+      </div>
+      ${i.subject?`<div class="thread-msg-subject">${escapeHtml(i.subject)}</div>`:''}
+      <div class="thread-msg-body">${escapeHtml(i.content||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+async function markResolved(){
+  if(!activeClientId||!currentUser)return;
+  try{
+    await callEdgeFunction('close_open_email_interactions',{clientId:activeClientId},currentUser.token);
+    // Also close any open non-email items directly (phone/note/text/other),
+    // since the edge function action only targets type='email'.
+    await fetch(`${SB_URL}/rest/v1/client_interactions?client_id=eq.${activeClientId}&to_do=eq.true&to_do_done=eq.false&type=neq.email`,{
+      method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:true})
+    });
+    await loadInteractions();
+    renderFilters();renderQueue();updateHeader();renderThread();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+async function submitQuickAdd(){
+  const type=document.getElementById('qaType').value;
+  const content=document.getElementById('qaContent').value.trim();
+  const needsFollowup=document.getElementById('qaNeedsFollowup').checked;
+  if(!content){document.getElementById('qaContent').focus();return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({
+        client_id:activeClientId,
+        staff_id:currentUser?.staffId||null,
+        type,
+        direction:'outbound',
+        content,
+        to_do:needsFollowup,
+        to_do_done:!needsFollowup,
+      })
+    });
+    document.getElementById('qaContent').value='';
+    document.getElementById('qaNeedsFollowup').checked=false;
+    await loadInteractions();
+    renderFilters();renderQueue();updateHeader();renderThread();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ── TOKEN AUTO-REFRESH ── identical pattern to enquiries.html/btb_app.html
+let tokenRefreshTimer = null;
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+async function loadAppData(){
+  await loadInteractions();
+}
+
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token)
+      .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
+      || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
+    let staffId=userId;
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
+    sessionStorage.setItem('btb_inbox_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    await loadAppData();
+    showApp();
+    renderFilters();renderQueue();updateHeader();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_inbox_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
+  document.getElementById('authName').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  const saved=sessionStorage.getItem('btb_inbox_user');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(!currentUser.refreshToken){
+        console.warn('Cached session has no refresh token — signing out for a fresh login.');
+        doLogout();
+        return;
+      }
+      const msLeft=(currentUser.expiresAt||0)-Date.now();
+      if(msLeft<5*60*1000){
+        await refreshAuthToken();
+        if(!currentUser){ return; }
+      }
+      scheduleTokenRefresh();
+      await loadAppData();
+      showApp();
+      renderFilters();renderQueue();updateHeader();
+      callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
+        if(!currentUser)return;
+        currentUser.role=roleData.role;
+        currentUser.name=roleData.name;
+        sessionStorage.setItem('btb_inbox_user',JSON.stringify(currentUser));
+        showApp();
+      }).catch(err=>{
+        console.error('Session validation failed — signing out:',err);
+        doLogout();
+      });
+      return;
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+  }
+});
+</script>
+</body>
+</html>
