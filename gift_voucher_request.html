@@ -189,7 +189,12 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.0.0';
+const BUILD_VERSION = '1.1.0';
+// v1.1.0 — Requesters now become real client records (find-or-create via the
+//          same safe RPCs the booking widget uses), linked via vouchers.client_id.
+//          The request itself is also logged as a contact entry so it shows up
+//          in the client overview/inbox, flagged as needing a reply. Fixes a
+//          pre-existing bug where status:'requested' wasn't an allowed value.
 console.log(`%cGift Voucher Request — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // Defaults — overwritten by Supabase settings on load, same as booking_widget.html
@@ -311,6 +316,27 @@ async function submitRequest() {
   btn.disabled = true;
 
   try {
+    // Find or create the client record — same safe RPC pattern as
+    // booking_widget.html, so a voucher requester becomes a real client
+    // (source='online') instead of just free text on the voucher row.
+    let clientId = null;
+    const nameParts = name.split(' ');
+    const first = nameParts[0] || name;
+    const last = nameParts.slice(1).join(' ') || null;
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_email: email, p_phone: phone })
+    });
+    const foundId = await cr.json();
+    if (foundId) {
+      clientId = foundId;
+    } else {
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone })
+      });
+      clientId = await nr.json();
+    }
+
     const r = await fetch(`${SB_URL}/rest/v1/vouchers`, {
       method: 'POST',
       headers: {...SB_H, 'Prefer':'return=representation'},
@@ -321,9 +347,22 @@ async function submitRequest() {
         notes: contactNote,
         status: 'requested',
         issued_at: new Date().toISOString(),
+        client_id: clientId,
       })
     });
     if (!r.ok) throw new Error(await r.text());
+
+    // Log the request itself as a contact entry so it shows up in the
+    // client overview/inbox timeline, flagged as needing a reply.
+    if (clientId) {
+      const summary = voucherType === 'amount'
+        ? `Requested a $${value} gift voucher (code ${code})`
+        : `Requested a ${players}-player gift voucher for ${gameName} (code ${code})`;
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_voucher_request`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: summary })
+      }).catch(e => console.error('Voucher request logging failed (non-blocking):', e));
+    }
 
     const rows = [
       ['Type', voucherType === 'amount' ? 'Dollar amount' : `${players} players — ${gameName}`],
