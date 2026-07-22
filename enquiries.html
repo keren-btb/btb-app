@@ -124,7 +124,10 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.1'; // NZ timezone fix — see below
+const BUILD_VERSION = '1.3.0'; // v1.3.0: new staff-entered enquiries now also log
+// as a client_interactions entry (inbound, needs reply) so they show up right
+// away in client_inbox.html / client_overview.html, instead of only appearing
+// once someone has already replied. NZ timezone fix — see below
 // v1.2.1: fixed a real bug — the default enquiry date was using
 // new Date().toISOString().slice(0,10), which is UTC, not NZ time. Since NZ
 // is UTC+12/+13, that showed *yesterday's* date as the default for roughly
@@ -294,6 +297,15 @@ async function submitEnquiry(){
       })
     });
     if(r.ok){
+      // Log this as a contact entry so the new enquiry shows up immediately
+      // in the client inbox/overview "Needs reply" queue, not just here.
+      if(clientId){
+        const summary=`New enquiry: ${gameName}${players?` for ${players} players`:''}${eqDate?` on ${eqDate}`:''}${occasion?` (${occasion})`:''}${detail?' — '+detail:''}`;
+        fetch(`${SB_URL}/rest/v1/client_interactions`,{
+          method:'POST',headers:H(),
+          body:JSON.stringify({client_id:clientId,type:'other',direction:'inbound',content:summary,to_do:true,to_do_done:false})
+        }).catch(e=>console.error('Enquiry contact logging failed (non-blocking):',e));
+      }
       enqOpen=false;document.getElementById('enqForm').style.display='none';
       ['eqFirst','eqLast','eqPhone','eqEmail','eqPlayers','eqDetail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
       const gameEl=document.getElementById('eqGame');if(gameEl)gameEl.value='';

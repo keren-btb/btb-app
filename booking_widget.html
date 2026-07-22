@@ -846,7 +846,15 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.3'; // NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
+const BUILD_VERSION = '1.7.0';
+// v1.7.0 — Both enquiry paths (quick VR/cafe/general popup, and the full
+// contact/enquiry form) now log every enquiry as a client_interactions
+// contact entry (needs reply), so it shows up immediately in
+// client_inbox.html / client_overview.html instead of only appearing once
+// staff have already replied. The quick popup previously didn't link a
+// client record at all — fixed to use the same find-or-create RPCs as
+// everywhere else in this file.
+// v1.6.3 — NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
@@ -2119,11 +2127,37 @@ async function submitEnquiry() {
   ].filter(Boolean).join(' · ');
 
   try {
+    // Find or create client — this quick-enquiry path previously saved
+    // straight to game_bookings with no client link at all. Detect whether
+    // the single contact field looks like an email or a phone number.
+    const isEmail = contact.includes('@');
+    const contactEmail = isEmail ? contact.toLowerCase() : '';
+    const contactPhone = isEmail ? '' : contact;
+    const nameParts = name.split(' ');
+    const first = nameParts[0] || name;
+    const last = nameParts.slice(1).join(' ') || null;
+
+    let clientId = null;
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method:'POST', headers:SB_H,
+      body: JSON.stringify({p_email: contactEmail||null, p_phone: contactPhone||null})
+    });
+    const foundId = await cr.json();
+    if (foundId) { clientId = foundId; }
+    else {
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method:'POST', headers:SB_H,
+        body: JSON.stringify({p_first_name:first, p_last_name:last, p_email:contactEmail||null, p_phone:contactPhone||null})
+      });
+      clientId = await nr.json();
+    }
+
     // Save to game_bookings as an enquiry
     await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method:'POST',
       headers:{...SB_H,'Prefer':'return=minimal'},
       body:JSON.stringify({
+        client_id:     clientId,
         game_id:       enqType==='casual-vr' ? 'g4' : 'g5',
         game_name:     typeLabels[enqType]||'Enquiry',
         booking_date:  date || nzToday(),
@@ -2137,6 +2171,15 @@ async function submitEnquiry() {
         assigned_staff_ids: JSON.stringify([]),
       })
     });
+
+    // Log as a contact entry so it shows up in the client inbox/overview
+    // "Needs reply" queue immediately, not just once someone has replied.
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method:'POST', headers:SB_H,
+        body: JSON.stringify({p_client_id: clientId, p_summary: `New enquiry: ${noteText}`})
+      }).catch(e=>console.error('Enquiry contact logging failed (non-blocking):',e));
+    }
   } catch(e) { console.error('Enquiry save error:',e); }
 
   closeEnquiry();
@@ -2203,6 +2246,14 @@ async function submitContactEnquiry() {
       })
     });
     if (!r.ok) throw new Error(await r.text());
+    // Log as a contact entry so it shows up in the client inbox/overview
+    // "Needs reply" queue immediately, not just once someone has replied.
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method:'POST', headers:SB_H,
+        body: JSON.stringify({p_client_id: clientId, p_summary: `New enquiry: ${noteText}`})
+      }).catch(e=>console.error('Enquiry contact logging failed (non-blocking):',e));
+    }
     btn.classList.remove('btn-loading'); btn.disabled = false;
     // Show thank-you overlay
     const thanks = document.createElement('div');
