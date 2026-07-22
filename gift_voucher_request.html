@@ -189,12 +189,18 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.0';
+const BUILD_VERSION = '1.1.1';
 // v1.1.0 — Requesters now become real client records (find-or-create via the
 //          same safe RPCs the booking widget uses), linked via vouchers.client_id.
 //          The request itself is also logged as a contact entry so it shows up
 //          in the client overview/inbox, flagged as needing a reply. Fixes a
 //          pre-existing bug where status:'requested' wasn't an allowed value.
+// v1.1.1 — Fixed a bug introduced by the vouchers RLS lockdown: the insert used
+//          Prefer:return=representation, which needs a SELECT policy to read
+//          the row back — but locking down vouchers removed the public SELECT
+//          policy, so every submission failed with a 401/RLS error. The
+//          response body was never actually used, so simply removed that
+//          header instead of reopening public read access.
 console.log(`%cGift Voucher Request — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // Defaults — overwritten by Supabase settings on load, same as booking_widget.html
@@ -339,7 +345,7 @@ async function submitRequest() {
 
     const r = await fetch(`${SB_URL}/rest/v1/vouchers`, {
       method: 'POST',
-      headers: {...SB_H, 'Prefer':'return=representation'},
+      headers: SB_H,
       body: JSON.stringify({
         code, type: voucherType, value, players, game_id: gameId, game_name: gameName,
         paid_amount: null, purchased_by: name, how_paid: null,
