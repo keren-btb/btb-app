@@ -32,6 +32,7 @@
 .quick-add{border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:14px}
 .quick-add-row{display:flex;gap:6px;margin-bottom:8px}
 .quick-add textarea{width:100%;font-family:inherit;font-size:13px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;min-height:60px;resize:vertical;margin-bottom:8px}
+#replyBody{min-height:220px}
 .resolve-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #15803d;color:#15803d;background:#f0fdf8;cursor:pointer;font-weight:600}
 </style>
 </head>
@@ -153,7 +154,10 @@ async function callEdgeFunction(action,params={},token=null){
 // BUILD VERSION — bump this each time this file is shipped.
 // v1.1.0 — All tab now shows every client (not just ones with history);
 //          added real reply-by-email panel (free-form + template picker).
-const BUILD_VERSION = '1.1.0';
+// v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
+//          the message is readable while composing, without affecting the
+//          shorter call/note log box.
+const BUILD_VERSION = '1.1.1';
 console.log(`%cClient Inbox — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
