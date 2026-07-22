@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Client Profile</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#1d9e75;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-logo{font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.login-sub{font-size:13px;color:#8a9bb5;margin-bottom:32px}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-title{font-size:16px;font-weight:700;color:#111827;margin-bottom:18px}
+.login-field{margin-bottom:12px}
+.login-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.login-input{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.login-input:focus{outline:none;border-color:var(--teal)}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.login-btn:hover{background:var(--teal2)}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
+
+.wrap{display:none;max-width:600px;margin:0 auto;padding:0 0 40px}
+header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.back-btn{background:rgba(255,255,255,.1);border:none;color:#fff;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0}
+.back-btn:hover{background:rgba(255,255,255,.18)}
+.topbar-title{color:#fff;font-size:15px;font-weight:700;flex:1}
+.topbar-sub{color:#8a9bb5;font-size:10px}
+.signout-link{color:#8a9bb5;font-size:11px;cursor:pointer;text-decoration:underline;white-space:nowrap}
+.signout-link:hover{color:var(--teal)}
+
+.content{padding:16px}
+.card{background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.field-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row{margin-bottom:10px}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.form-input,.form-textarea{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.form-input:focus,.form-textarea:focus{outline:none;border-color:var(--teal)}
+.form-textarea{min-height:80px;resize:vertical}
+.save-row{display:flex;align-items:center;gap:10px;margin-top:4px}
+.save-btn{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px}
+.save-btn:hover{background:var(--teal2)}
+.save-msg{font-size:12px}
+
+.company-list{list-style:none}
+.company-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.company-item:last-child{border-bottom:none}
+.company-item:hover{color:var(--teal)}
+.company-name{font-weight:600;font-size:13px}
+.company-contact{font-size:11px;color:var(--muted)}
+.empty-note{font-size:12px;color:var(--muted);padding:6px 0}
+
+.source-badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;display:inline-block;margin-left:8px}
+.source-online{background:#dbeafe;color:#1d4ed8}
+.source-staff{background:#ede9fe;color:#7c3aed}
+.source-walkin{background:#fef3c7;color:#b45309}
+.source-phone{background:#e0f7f9;color:#07b4c5}
+.source-enquiry{background:#fce7f3;color:#be185d}
+
+.links-row{display:flex;gap:8px;flex-wrap:wrap}
+.link-btn{font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);color:var(--text);background:#f9fafb;text-decoration:none;display:flex;align-items:center;gap:6px}
+.link-btn:hover{border-color:var(--teal);color:var(--teal)}
+.loading-note{padding:30px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">Client Profile</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Username</div>
+      <input class="login-input" type="text" id="loginEmail" placeholder="firstname" autocapitalize="off" autocorrect="off" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1">
+      <div class="topbar-title">Client Profile <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5"></span></div>
+      <div class="topbar-sub" id="topbarSub"></div>
+    </div>
+    <span class="signout-link" onclick="doLogout()">Sign out</span>
+  </header>
+
+  <div class="content" id="mainContent">
+    <div class="loading-note">Loading client…</div>
+  </div>
+</div>
+
+<script>
+const BUILD_VERSION = '1.0.0';
+// v1.0.0 — initial build. Editable client detail page (name, email, phone,
+//          company, notes), usable on both mobile and desktop. Shows other
+//          clients sharing the same company text, and quick links across to
+//          the communications inbox/overview.
+console.log(`%cClient Profile — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+const SOURCE_LABELS={online:'Online',staff:'Staff',walkin:'Walk-in',phone:'Phone',enquiry:'Enquiry'};
+
+let currentUser=null;
+let clientId=null;
+let clientData=null;
+
+function goBack(){
+  if(document.referrer && document.referrer.includes(location.hostname)) history.back();
+  else location.href='client_overview.html';
+}
+
+async function loadClient(){
+  const content=document.getElementById('mainContent');
+  if(!clientId){
+    content.innerHTML='<div class="loading-note">No client specified. Go back and pick a client from the overview table.</div>';
+    return;
+  }
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}&select=*`,{headers:H()});
+    const rows=await r.json();
+    if(!rows.length){content.innerHTML='<div class="loading-note">Client not found.</div>';return}
+    clientData=rows[0];
+    renderProfile();
+  }catch(e){content.innerHTML='<div class="loading-note">Error loading client: '+escapeHtml(e.message)+'</div>'}
+}
+
+function renderProfile(){
+  const c=clientData;
+  const name=[c.first_name,c.last_name].filter(Boolean).join(' ')||'Unknown';
+  document.getElementById('topbarSub').textContent=name;
+  const srcBadge=c.source?`<span class="source-badge source-${c.source}">${escapeHtml(SOURCE_LABELS[c.source]||c.source)}</span>`:'';
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="card">
+      <div class="card-title"><i class="ti ti-user"></i> ${escapeHtml(name)} ${srcBadge}</div>
+      <div class="field-2col">
+        <div class="form-row"><div class="form-label">First name *</div><input class="form-input" id="pFirst" value="${escapeHtml(c.first_name||'')}"></div>
+        <div class="form-row"><div class="form-label">Last name</div><input class="form-input" id="pLast" value="${escapeHtml(c.last_name||'')}"></div>
+      </div>
+      <div class="field-2col">
+        <div class="form-row"><div class="form-label">Email</div><input class="form-input" type="email" id="pEmail" value="${escapeHtml(c.email||'')}"></div>
+        <div class="form-row"><div class="form-label">Phone</div><input class="form-input" id="pPhone" value="${escapeHtml(c.phone||'')}"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Company / group</div><input class="form-input" id="pCompany" placeholder="e.g. Beyond the Box Ltd, Smith Family" value="${escapeHtml(c.company||'')}"></div>
+      <div class="form-row"><div class="form-label">Notes</div><textarea class="form-textarea" id="pNotes">${escapeHtml(c.notes||'')}</textarea></div>
+      <div class="save-row">
+        <button class="save-btn" onclick="saveClient()"><i class="ti ti-check"></i> Save changes</button>
+        <span class="save-msg" id="saveMsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-building"></i> Others at this company</div>
+      <div id="companyList"><div class="empty-note">Add a company above to see others in the same group.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-external-link"></i> Communications</div>
+      <div class="links-row">
+        <a class="link-btn" href="client_overview.html"><i class="ti ti-table"></i> Client overview (desktop)</a>
+        <a class="link-btn" href="client_inbox.html"><i class="ti ti-inbox"></i> Client inbox (mobile)</a>
+      </div>
+    </div>
+  `;
+  loadCompanyMatches();
+}
+
+async function loadCompanyMatches(){
+  const company=(clientData.company||'').trim();
+  const listEl=document.getElementById('companyList');
+  if(!company){listEl.innerHTML='<div class="empty-note">Add a company above to see others in the same group.</div>';return}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/clients?company=ilike.${encodeURIComponent(company)}&id=neq.${clientId}&select=id,first_name,last_name,email,phone&order=first_name`,{headers:H()});
+    const rows=await r.json();
+    if(!rows.length){listEl.innerHTML='<div class="empty-note">No one else currently listed under this company.</div>';return}
+    listEl.innerHTML='<ul class="company-list">'+rows.map(p=>{
+      const pname=[p.first_name,p.last_name].filter(Boolean).join(' ')||'Unknown';
+      const contact=p.email||p.phone||'';
+      return `<li class="company-item" onclick="location.href='client_profile.html?id=${p.id}'">
+        <span class="company-name">${escapeHtml(pname)}</span>
+        <span class="company-contact">${escapeHtml(contact)}</span>
+      </li>`;
+    }).join('')+'</ul>';
+  }catch(e){listEl.innerHTML='<div class="empty-note">Error loading matches.</div>'}
+}
+
+async function saveClient(){
+  const msgEl=document.getElementById('saveMsg');
+  const first=document.getElementById('pFirst').value.trim();
+  if(!first){msgEl.textContent='First name is required.';msgEl.style.color='#dc2626';document.getElementById('pFirst').focus();return}
+  const payload={
+    first_name:first,
+    last_name:document.getElementById('pLast').value.trim()||null,
+    email:document.getElementById('pEmail').value.trim().toLowerCase()||null,
+    phone:document.getElementById('pPhone').value.trim()||null,
+    company:document.getElementById('pCompany').value.trim()||null,
+    notes:document.getElementById('pNotes').value.trim()||null,
+  };
+  msgEl.textContent='Saving…';msgEl.style.color='#6b7280';
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`,{
+      method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(payload)
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Save failed')}
+    const rows=await r.json();
+    clientData=rows[0];
+    msgEl.textContent='Saved ✓';msgEl.style.color='#059669';
+    document.getElementById('topbarSub').textContent=[clientData.first_name,clientData.last_name].filter(Boolean).join(' ');
+    loadCompanyMatches();
+  }catch(e){msgEl.textContent='Error: '+e.message;msgEl.style.color='#dc2626'}
+}
+
+// ── TOKEN AUTO-REFRESH ── identical pattern to the other staff apps
+let tokenRefreshTimer = null;
+function scheduleTokenRefresh() {
+  clearTimeout(tokenRefreshTimer);
+  if (!currentUser || !currentUser.expiresAt) return;
+  const msUntilRefresh = Math.max(5000, currentUser.expiresAt - Date.now() - (2 * 60 * 1000));
+  tokenRefreshTimer = setTimeout(refreshAuthToken, msUntilRefresh);
+}
+async function refreshAuthToken() {
+  if (!currentUser || !currentUser.refreshToken) return;
+  try {
+    const r = await fetch(`${SB_AUTH}/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SB_ANON},
+      body: JSON.stringify({ refresh_token: currentUser.refreshToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    currentUser.token = data.access_token;
+    currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
+    currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
+    sessionStorage.setItem('btb_profile_user', JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  } catch(e) {
+    console.error('Token refresh failed — signing out:', e);
+    doLogout();
+  }
+}
+
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token)
+      .catch(()=>({name:email.split('@')[0],role:'gamemaster'}))
+      || {name:email.split('@')[0],role:'gamemaster'};
+    currentUser={id:userId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
+    sessionStorage.setItem('btb_profile_user',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    showApp();
+    await loadClient();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_profile_user');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  const params=new URLSearchParams(location.search);
+  clientId=params.get('id');
+
+  const saved=sessionStorage.getItem('btb_profile_user');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(!currentUser.refreshToken){console.warn('Cached session has no refresh token — signing out.');doLogout();return}
+      const msLeft=(currentUser.expiresAt||0)-Date.now();
+      if(msLeft<5*60*1000){await refreshAuthToken();if(!currentUser)return}
+      scheduleTokenRefresh();
+      showApp();
+      await loadClient();
+      callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
+        if(!currentUser)return;
+        currentUser.role=roleData.role;currentUser.name=roleData.name;
+        sessionStorage.setItem('btb_profile_user',JSON.stringify(currentUser));
+      }).catch(err=>{console.error('Session validation failed — signing out:',err);doLogout()});
+      return;
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+  }
+});
+</script>
+</body>
+</html>

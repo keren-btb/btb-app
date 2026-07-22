@@ -215,6 +215,7 @@ tr:last-child td{border-bottom:none}
       <div class="panel-meta" id="panelMeta"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
+      <button class="resolve-btn" id="panelProfileBtn" onclick="openProfile()" style="border-color:#7c3aed;color:#7c3aed;background:#f5f3ff"><i class="ti ti-user-edit"></i> Edit profile</button>
       <button class="resolve-btn" id="panelResolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
       <button class="panel-close" onclick="closePanel()"><i class="ti ti-x"></i></button>
     </div>
@@ -306,7 +307,9 @@ tr:last-child td{border-bottom:none}
 //          Added an "Open enquiry" badge on any client row with a pending
 //          enquiry in enquiries.html (game_bookings status='enquiry'),
 //          linking through to the Enquiries screen.
-const BUILD_VERSION = '1.1.0';
+// v1.2.0 — Added "Edit profile" button in the panel header, linking to the
+//          new client_profile.html page for editing name/email/phone/company/notes.
+const BUILD_VERSION = '1.2.0';
 console.log(`%cClient Overview — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -515,6 +518,11 @@ function openPanel(clientId){
   document.getElementById('panelBackdrop').classList.add('open');
   renderPanel();
 }
+function openProfile(){
+  if(!activeClientId)return;
+  location.href='client_profile.html?id='+activeClientId;
+}
+
 function closePanel(){
   activeClientId=null;
   document.getElementById('sidePanel').classList.remove('open');

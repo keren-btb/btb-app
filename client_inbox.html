@@ -85,7 +85,10 @@
           <div class="thread-name" id="threadName"></div>
           <div class="thread-meta" id="threadMeta"></div>
         </div>
-        <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="resolve-btn" style="border-color:#7c3aed;color:#7c3aed;background:#f5f3ff" onclick="openProfile()"><i class="ti ti-user-edit"></i> Edit profile</button>
+          <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
+        </div>
       </div>
     </div>
     <div id="threadMessages"></div>
@@ -157,7 +160,9 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.1.1';
+const BUILD_VERSION = '1.2.0';
+// v1.2.0 — Added "Edit profile" button in the thread header, linking to the
+//          new client_profile.html page for editing name/email/phone/company/notes.
 console.log(`%cClient Inbox — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -303,6 +308,11 @@ function openThread(clientId){
   document.getElementById('threadSection').classList.add('active');
   renderThread();
 }
+function openProfile(){
+  if(!activeClientId)return;
+  location.href='client_profile.html?id='+activeClientId;
+}
+
 function closeThread(){
   activeClientId=null;
   document.getElementById('threadSection').classList.remove('active');
