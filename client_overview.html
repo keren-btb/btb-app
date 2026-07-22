@@ -89,6 +89,22 @@ tr:last-child td{border-bottom:none}
 .row-action-btn{font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--green);color:var(--green);background:#f0fdf8;cursor:pointer;font-weight:600;font-family:inherit}
 .row-action-btn:hover{background:var(--green);color:#fff}
 
+.btn-newclient{font-size:12px;padding:6px 14px;border-radius:8px;border:none;background:var(--teal);color:#fff;cursor:pointer;font-weight:600;font-family:inherit;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-newclient:hover{background:var(--teal2)}
+
+.enquiry-badge{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;display:inline-block;background:#ede9fe;color:#7c3aed;cursor:pointer;text-decoration:none;margin-left:5px}
+.enquiry-badge:hover{background:#7c3aed;color:#fff}
+
+/* NEW CLIENT MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:950;align-items:center;justify-content:center}
+.modal-backdrop.open{display:flex}
+.modal-card{background:#fff;border-radius:14px;width:100%;max-width:380px;padding:20px}
+.modal-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px}
+.modal-close-x{float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
+.modal-error{font-size:12px;color:#dc2626;margin-top:4px;min-height:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.btn-cancel{font-size:13px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;font-family:inherit}
+
 /* SLIDE-IN PANEL */
 .panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;z-index:900;transition:background .2s}
 .panel-backdrop.open{pointer-events:auto}
@@ -162,6 +178,7 @@ tr:last-child td{border-bottom:none}
     <div class="topbar">
       <div class="topbar-title">Clients <span class="count" id="clientCount"></span></div>
       <div class="filters-row">
+        <button class="btn-newclient" onclick="openNewClientForm()"><i class="ti ti-user-plus"></i> New client</button>
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
           <option value="">All sources</option>
@@ -246,6 +263,37 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<div class="modal-backdrop" id="newClientBackdrop" onclick="if(event.target===this)closeNewClientForm()">
+  <div class="modal-card">
+    <button class="modal-close-x" onclick="closeNewClientForm()"><i class="ti ti-x"></i></button>
+    <div class="modal-title">New client</div>
+    <div class="form-row"><div class="form-label">First name *</div>
+      <input class="form-input" type="text" id="ncFirst">
+    </div>
+    <div class="form-row"><div class="form-label">Last name</div>
+      <input class="form-input" type="text" id="ncLast">
+    </div>
+    <div class="form-row"><div class="form-label">Email</div>
+      <input class="form-input" type="email" id="ncEmail">
+    </div>
+    <div class="form-row"><div class="form-label">Phone</div>
+      <input class="form-input" type="text" id="ncPhone">
+    </div>
+    <div class="form-row"><div class="form-label">How did they contact you?</div>
+      <select class="form-select" id="ncSource">
+        <option value="staff">Staff (general)</option>
+        <option value="walkin">Walk-in</option>
+        <option value="phone">Phone</option>
+      </select>
+    </div>
+    <div class="modal-error" id="ncError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNewClientForm()">Cancel</button>
+      <button class="add-btn" onclick="submitNewClient()"><i class="ti ti-check"></i> Save client</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // BUILD VERSION — bump this each time this file is shipped.
 // v1.0.0 — initial build. Desktop table view of all clients (reports.html-style
@@ -253,7 +301,12 @@ tr:last-child td{border-bottom:none}
 //          side panel (table stays visible on the left) for reading the full
 //          thread, replying by email (free-form + templates), logging a
 //          call/note, and marking resolved — same data model as client_inbox.html.
-const BUILD_VERSION = '1.0.0';
+// v1.1.0 — Added "+ New client" button/modal so staff can log a brand new
+//          walk-in/phone contact directly (no booking or enquiry required).
+//          Added an "Open enquiry" badge on any client row with a pending
+//          enquiry in enquiries.html (game_bookings status='enquiry'),
+//          linking through to the Enquiries screen.
+const BUILD_VERSION = '1.1.0';
 console.log(`%cClient Overview — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -318,6 +371,15 @@ async function loadEnquiryTemplates(){
   try{
     enquiryTemplates=await callEdgeFunction('list_enquiry_templates',{},currentUser.token);
   }catch(e){console.error('Templates load:',e)}
+}
+let openEnquiriesByClient={}; // clientId -> true, for clients with a pending game_bookings row (status='enquiry')
+async function loadOpenEnquiries(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?status=eq.enquiry&select=client_id&client_id=not.is.null`,{headers:H()});
+    const rows=await r.json();
+    openEnquiriesByClient={};
+    rows.forEach(row=>{if(row.client_id)openEnquiriesByClient[row.client_id]=true});
+  }catch(e){console.error('Open enquiries load:',e)}
 }
 
 function buildClientGroups(){
@@ -390,8 +452,11 @@ function renderTable(){
       :'<span class="status-badge resolved">Resolved</span>';
     const lastLabel=g.last?`${relTime(g.last.created_at)}${g.last.type?' · '+g.last.type:''}`:'—';
     const canResolve=g.status==='needs_reply'||g.status==='awaiting_them';
+    const enquiryBadge=openEnquiriesByClient[g.clientId]
+      ?`<a class="enquiry-badge" href="enquiries.html" onclick="event.stopPropagation()" title="Has a pending enquiry — open Enquiries to view it"><i class="ti ti-clock" style="font-size:9px"></i> Open enquiry</a>`
+      :'';
     return `<tr class="client-row" onclick="openPanel('${g.clientId}')">
-      <td class="name-cell">${escapeHtml(name)}</td>
+      <td class="name-cell">${escapeHtml(name)}${enquiryBadge}</td>
       <td><span class="source-badge source-${src}">${escapeHtml(srcLabel)}</span></td>
       <td>${badge}</td>
       <td class="muted-cell">${escapeHtml(lastLabel)}</td>
@@ -400,6 +465,47 @@ function renderTable(){
       <td>${canResolve?`<button class="row-action-btn" onclick="event.stopPropagation();markResolved('${g.clientId}')"><i class="ti ti-check"></i> Resolve</button>`:''}</td>
     </tr>`;
   }).join('');
+}
+
+function openNewClientForm(){
+  document.getElementById('ncFirst').value='';
+  document.getElementById('ncLast').value='';
+  document.getElementById('ncEmail').value='';
+  document.getElementById('ncPhone').value='';
+  document.getElementById('ncSource').value='staff';
+  document.getElementById('ncError').textContent='';
+  document.getElementById('newClientBackdrop').classList.add('open');
+  setTimeout(()=>document.getElementById('ncFirst').focus(),50);
+}
+function closeNewClientForm(){
+  document.getElementById('newClientBackdrop').classList.remove('open');
+}
+async function submitNewClient(){
+  const first=document.getElementById('ncFirst').value.trim();
+  const last=document.getElementById('ncLast').value.trim();
+  const email=document.getElementById('ncEmail').value.trim().toLowerCase();
+  const phone=document.getElementById('ncPhone').value.trim();
+  const source=document.getElementById('ncSource').value;
+  const errEl=document.getElementById('ncError');
+  errEl.textContent='';
+  if(!first){errEl.textContent='First name is required.';document.getElementById('ncFirst').focus();return}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/clients`,{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({
+        first_name:first,last_name:last||null,
+        email:email||null,phone:phone||null,
+        source,
+      })
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Save failed')}
+    const rows=await r.json();
+    const newClientId=rows[0]?.id;
+    closeNewClientForm();
+    await loadClients();buildClientGroups();
+    renderTable();
+    if(newClientId)openPanel(newClientId);
+  }catch(e){errEl.textContent='Error: '+e.message}
 }
 
 function openPanel(clientId){
@@ -568,7 +674,7 @@ async function refreshAuthToken() {
 }
 
 async function loadAppData(){
-  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates()]);
+  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadOpenEnquiries()]);
   buildClientGroups();
 }
 
