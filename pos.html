@@ -636,7 +636,7 @@ function toDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart
 function fmt12(t){if(!t)return'';const[h,m]=t.split(":").map(Number);return`${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`}
 function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`${r},${g},${b}`}
 function catEmoji(cat){return{Food:'🍔','Food/Drink':'🍔','Escape Room':'🔐','Boardgame':'🎲','Book':'📚','VR':'🥽','Other':'📦'}[cat]||'📦'}
-
+function gameThumb(p){if(!p.game_id)return null;const g=games.find(x=>x.id===p.game_id);return g?.thumbnailUrl||null}
 // ── Settings ───────────────────────────────────────
 async function loadSettings(){
   try{
@@ -1722,11 +1722,11 @@ async function importProductsCSV(input){const file=input.files[0];if(!file)retur
 function buildPOSProductGrid(bookingId,cat){
   const active=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat));
   if(!active.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products.</div>';
-  return active.map(p=>`
+return active.map(p=>{const thumb=gameThumb(p);return`
     <button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')">
-      <div class="addon-btn-name">${p.favourite?'⭐ ':''}${catEmoji(p.category)} ${p.name}</div>
+      <div class="addon-btn-name">${p.favourite?'⭐ ':''}${thumb?`<img src="${thumb}" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px;margin-right:2px">`:catEmoji(p.category)+' '}${p.name}</div>
       <div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
-    </button>`).join('');
+    </button>`}).join('');
 }
 function setPOSCatFilter(bookingId,cat,btn){
   const grid=document.getElementById('pos-prod-grid-'+bookingId);
@@ -1739,8 +1739,7 @@ function filterPOSProds(bookingId,query){
   const q=query.toLowerCase().trim();const cat=grid.dataset.cat||'Favourites';
   const filtered=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat)&&(!q||p.name.toLowerCase().includes(q)));
   if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
-  grid.innerHTML=filtered.map(p=>`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${p.favourite?'⭐ ':''}${catEmoji(p.category)} ${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
-}
+grid.innerHTML=filtered.map(p=>{const thumb=gameThumb(p);return`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${p.favourite?'⭐ ':''}${thumb?`<img src="${thumb}" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px;margin-right:2px">`:catEmoji(p.category)+' '}${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`}).join('');}
 
 // ── PRODUCT SALE (category tile flow) ─────────────
 function showProductCat(catId){
@@ -1763,8 +1762,7 @@ function renderProdSaleGrid(){
   const filtered=products.filter(p=>p.active&&(prodSaleCat==='All'||p.category===prodSaleCat)&&(!q||p.name.toLowerCase().includes(q)));
   if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}
   const btnColor=currentPOSCat?.color||'#07b4c5';const rgb=hexToRgb(btnColor);
-  grid.innerHTML=filtered.map(p=>`<button onclick="addToProdSaleCart('${p.id}')" style="background:${btnColor};color:#fff;border:none;border-radius:14px;padding:18px 10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(${rgb},0.3);min-height:90px;justify-content:center;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"><div style="font-size:14px;font-weight:700;text-align:center;line-height:1.3">${p.favourite?'⭐ ':''}${p.name}</div>${p.notes?`<div style="font-size:11px;opacity:.8;text-align:center">${p.notes}</div>`:''}<div style="font-size:16px;font-weight:700;opacity:.9">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
-}
+grid.innerHTML=filtered.map(p=>{const thumb=gameThumb(p);return`<button onclick="addToProdSaleCart('${p.id}')" style="background:${btnColor};color:#fff;border:none;border-radius:14px;padding:18px 10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(${rgb},0.3);min-height:90px;justify-content:center;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">${thumb?`<img src="${thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.5)">`:''}<div style="font-size:14px;font-weight:700;text-align:center;line-height:1.3">${p.favourite?'⭐ ':''}${p.name}</div>${p.notes?`<div style="font-size:11px;opacity:.8;text-align:center">${p.notes}</div>`:''}<div style="font-size:16px;font-weight:700;opacity:.9">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`}).join('');}
 function addToProdSaleCart(productId){const p=products.find(x=>x.id===productId);if(!p)return;const ex=prodSaleCart.find(x=>x.id===productId);if(ex)ex.qty++;else prodSaleCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderProdSaleCart()}
 function removeFromProdSaleCart(productId){const idx=prodSaleCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(prodSaleCart[idx].qty>1)prodSaleCart[idx].qty--;else prodSaleCart.splice(idx,1);renderProdSaleCart()}
 function clearProdSaleCart(){prodSaleCart=[];renderProdSaleCart()}
