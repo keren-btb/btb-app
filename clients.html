@@ -83,7 +83,8 @@ tr:last-child td{border-bottom:none}
 .source-staff{background:#ede9fe;color:#7c3aed}
 .source-walkin{background:#fef3c7;color:#b45309}
 .source-phone{background:#e0f7f9;color:#07b4c5}
-.source-enquiry{background:#fce7f3;color:#be185d}
+.source-enquiry{background:#fce7f3;color:#be185d} 
+.source-voucher{background:#dcfce7;color:#15803d}
 
 .row-action-btn{font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--green);color:var(--green);background:#f0fdf8;cursor:pointer;font-weight:600;font-family:inherit}
 .row-action-btn:hover{background:var(--green);color:#fff}
@@ -181,7 +182,8 @@ tr:last-child td{border-bottom:none}
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
           <option value="">All sources</option>
-          <option value="online">Booking</option>
+<option value="online">Booking</option>
+          <option value="voucher">Voucher</option>
           <option value="staff">Staff</option>
           <option value="walkin">Walk-in</option>
           <option value="phone">Phone</option>
@@ -375,8 +377,7 @@ function fullDateTime(iso){
   const d=new Date(iso+(iso.endsWith('Z')?'':'Z'));
   return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 }
-const SOURCE_LABELS={online:'Booking',staff:'Staff',walkin:'Walk-in',phone:'Phone',text:'Text',enquiry:'Enquiry'};
-
+const SOURCE_LABELS={online:'Booking',staff:'Staff',walkin:'Walk-in',phone:'Phone',text:'Text',enquiry:'Enquiry',voucher:'Voucher'};
 let currentUser=null;
 let rawInteractions=[]; // flat rows from client_interactions, joined with clients
 let allClients=[]; // every row in clients, so the table isn't limited to those with history
