@@ -160,9 +160,12 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.2.0';
+const BUILD_VERSION = '1.2.1';
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
+// v1.2.1 — Default tab changed from "Needs reply" to "All", so newly added
+//          clients and confirmed bookings (which have no logged interaction
+//          yet) aren't hidden by default.
 console.log(`%cClient Inbox — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -189,7 +192,7 @@ let rawInteractions=[]; // flat rows from client_interactions, joined with clien
 let allClients=[]; // every row in clients, so the All tab isn't limited to those with history
 let enquiryTemplates=[];
 let clientGroups=[]; // built by merging allClients + rawInteractions
-let activeFilter='needs_reply'; // needs_reply | awaiting_them | all
+let activeFilter='all'; // needs_reply | awaiting_them | all
 let activeClientId=null;
 let replyState={}; // {templateId, subject, body} for whichever thread is open
 

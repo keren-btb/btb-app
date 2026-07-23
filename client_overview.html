@@ -188,9 +188,9 @@ tr:last-child td{border-bottom:none}
           <option value="phone">Phone</option>
           <option value="enquiry">Enquiry</option>
         </select>
-        <div class="filter-chip active" id="chip-needs_reply" onclick="setStatusFilter('needs_reply')">Needs reply</div>
+        <div class="filter-chip" id="chip-needs_reply" onclick="setStatusFilter('needs_reply')">Needs reply</div>
         <div class="filter-chip" id="chip-awaiting_them" onclick="setStatusFilter('awaiting_them')">Awaiting them</div>
-        <div class="filter-chip" id="chip-all" onclick="setStatusFilter('all')">All</div>
+        <div class="filter-chip active" id="chip-all" onclick="setStatusFilter('all')">All</div>
       </div>
     </div>
 
@@ -309,7 +309,10 @@ tr:last-child td{border-bottom:none}
 //          linking through to the Enquiries screen.
 // v1.2.0 — Added "Edit profile" button in the panel header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
-const BUILD_VERSION = '1.2.0';
+// v1.2.1 — Default tab changed from "Needs reply" to "All", so newly added
+//          clients and confirmed bookings (which have no logged interaction
+//          yet) aren't hidden by default.
+const BUILD_VERSION = '1.2.1';
 console.log(`%cClient Overview — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -354,7 +357,7 @@ let rawInteractions=[]; // flat rows from client_interactions, joined with clien
 let allClients=[]; // every row in clients, so the table isn't limited to those with history
 let enquiryTemplates=[];
 let clientGroups=[]; // built by merging allClients + rawInteractions
-let statusFilter='needs_reply'; // needs_reply | awaiting_them | all
+let statusFilter='all'; // needs_reply | awaiting_them | all
 let activeClientId=null;
 let replyState={}; // {templateId, subject, body} for whichever panel is open
 
