@@ -327,7 +327,10 @@ tr:last-child td{border-bottom:none}
 //          to conflate the two). Added "Text" as a source option (new
 //          clients.source / game_bookings.source constraint value).
 //          Session key renamed btb_clients_user -> btb_clients_user.
-const BUILD_VERSION = '1.3.0';
+// v1.3.1 — TEMP DEBUG: reply send now surfaces interactionLogError from
+// the edge function in the status message, to diagnose why some sent
+// emails weren't appearing in the thread log. Revert once diagnosed.
+const BUILD_VERSION = '1.3.1';
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -635,13 +638,17 @@ async function sendReply(){
   if(msgEl){msgEl.textContent='Sending…';msgEl.style.color='#6b7280'}
   try{
     const htmlBody=escapeHtml(replyState.body).replace(/\n/g,'<br>');
-    await callEdgeFunction('send_enquiry_template_email',{
+    const sendResult=await callEdgeFunction('send_enquiry_template_email',{
       to:g.client.email,subject:replyState.subject,htmlBody,
       fromEmail:tpl?.from_email,fromName:tpl?.from_name,
       templateName:tpl?.name||replyState.subject,
       clientId:activeClientId,staffId:currentUser.staffId,
     },currentUser.token);
-    if(msgEl){msgEl.textContent='Sent ✓';msgEl.style.color='#059669'}
+    // TEMP DEBUG (remove once diagnosed): shows why the thread-log row
+    // might not have been created, instead of silently saying "Sent".
+    if(sendResult&&sendResult.interactionLogError){
+      if(msgEl){msgEl.textContent='Sent, but not logged to thread — DEBUG: '+sendResult.interactionLogError;msgEl.style.color='#dc2626'}
+    }else if(msgEl){msgEl.textContent='Sent ✓';msgEl.style.color='#059669'}
     replyState={};
     await loadInteractions();buildClientGroups();
     renderTable();renderPanel();
