@@ -2219,7 +2219,7 @@ async function submitEnquiry() {
     else {
       const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
         method:'POST', headers:SB_H,
-        body: JSON.stringify({p_first_name:first, p_last_name:last, p_email:contactEmail||null, p_phone:contactPhone||null})
+body: JSON.stringify({p_first_name:first, p_last_name:last, p_email:contactEmail||null, p_phone:contactPhone||null, p_source:'enquiry'})
       });
       clientId = await nr.json();
     }
@@ -2302,7 +2302,7 @@ async function submitContactEnquiry() {
     else {
       const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
         method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name:first, p_last_name:last||null, p_email:email||null, p_phone:phone||null })
+        body: JSON.stringify({ p_first_name:first, p_last_name:last||null, p_email:email||null, p_phone:phone||null, p_source:'enquiry' })
       });
       clientId = await nr.json();
     }
