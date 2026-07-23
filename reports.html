@@ -1224,15 +1224,13 @@ window.addEventListener('DOMContentLoaded',async()=>{
     try{
       const cached=JSON.parse(saved);
       currentUser=cached;
-      if(currentUser.refreshToken){
-        // Always refresh the token eagerly on page load — don't assume the
-        // stored token is still valid.
-        await refreshAuthToken();
-        // refreshAuthToken() calls doLogout() if the refresh token itself
-        // has expired — in that case currentUser is now null.
+if(currentUser.refreshToken){
+        const msLeft=(currentUser.expiresAt||0)-Date.now();
+        if(msLeft<5*60*1000){
+          await refreshAuthToken();
+        }
       } else {
-        // Old-format cached session with no refresh token — can't safely
-        // trust it's still valid. Sign out for a fresh login.
+  
         console.warn('Cached session has no refresh token — signing out for a fresh login.');
         doLogout();
       }
