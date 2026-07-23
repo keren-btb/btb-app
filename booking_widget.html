@@ -1179,14 +1179,15 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   return pool.fullyAvailable.length > 0 ? 'available' : 'call';
 }
 
-// Splits qualified staff for a slot by whether they're actually rostered on.
-// The roster (assigned_shifts) decides who's working — the weekly
-// availability pattern is not consulted here at all, only a specific-date
-// time-off block (staff_availability) can still exclude someone even if
-// they're on the roster.
+// Splits qualified staff for a slot into two groups: roster-mode staff (the
+// roster/assigned_shifts decides who's working) and calendar-mode staff
+// (Google Calendar — synced busy blocks + weekly recurring blocks — decides
+// instead). A specific-date time-off block (staff_availability, the Book
+// Time Off tab) can still exclude someone in either mode.
 function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   const fullyAvailable = [];
-  const maybeAvailable = []; // kept for compatibility with getSlotStatus's cutoff logic — always empty now the roster decides
+  const maybeAvailable = []; // kept for compatibility with getSlotStatus's cutoff logic — always empty now the roster/calendar checks decide
+
   const rosteredIds = new Set(
     rosterShifts
       .filter(r => r.shift_date === dateStr &&
@@ -1194,25 +1195,59 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
         slotTime <  (r.custom_end_time||'').slice(0,5))
       .map(r => r.staff_id)
   );
-  rosteredIds.forEach(sid => {
+
+  // Calendar-mode staff (e.g. Keren) — Google Calendar decides availability
+  // instead of the roster. staffMode comes from the public_staff_mode view.
+  const calendarIds = Object.keys(staffMode).filter(sid => staffMode[sid] === 'calendar');
+
+  const candidateIds = new Set([...rosteredIds, ...calendarIds]);
+
+  const [y, mo, da] = dateStr.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, mo - 1, da)).getUTCDay(); // 0=Sun...6=Sat, matches day_of_week columns
+  const game = games.find(g => g.id === gameId);
+  const durationMin = (game && game.duration) || 60;
+  const slotStart = new Date(`${dateStr}T${slotTime}:00`);
+  const slotEnd   = new Date(slotStart.getTime() + durationMin * 60000);
+
+  candidateIds.forEach(sid => {
     const training  = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
     const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
     if (!statusObj || !statusObj.qualifies) return;
-    // Time-off block for this exact date+slot still overrides the roster —
-    // covers a last-minute block after already being rostered.
+
+    // Manual time-off override (Book Time Off tab) applies regardless of mode
     const blocked = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable';
     if (blocked) return;
+
+    if (staffMode[sid] === 'calendar') {
+      // Weekly recurring "always away" block e.g. a day job
+      const recurBlocked = staffRecurringBlocks.some(b =>
+        b.staff_id === sid && b.day_of_week === dow &&
+        slotTime >= (b.start_time||'').slice(0,5) && slotTime < (b.end_time||'').slice(0,5)
+      );
+      if (recurBlocked) return;
+
+      // Synced Google Calendar busy blocks — checks for any overlap with the slot
+      const calendarBlocked = staffCalendarBusy.some(b => {
+        if (b.staff_id !== sid) return false;
+        const busyStart = toNzNaive(b.busy_start);
+        const busyEnd   = toNzNaive(b.busy_end);
+        return slotStart < busyEnd && slotEnd > busyStart;
+      });
+      if (calendarBlocked) return;
+    }
+
     const taken = existingBookings.some(b => {
       const ids = JSON.parse(b.assigned_staff_ids || '[]');
       return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time||'').slice(0,5) === slotTime;
     });
     if (taken) return;
+
     fullyAvailable.push(sid);
   });
+
   return { fullyAvailable, maybeAvailable };
 }
-
-function getAvailableGMs(gameId, dateStr, slotTime) {
+  function getAvailableGMs(gameId, dateStr, slotTime) {
   // Kept for compatibility with booking-submission logic, which uses the
   // first entry here as the assigned staff member. Trusted openers are
   // sorted first among fully-available staff, since a near-cutoff booking
