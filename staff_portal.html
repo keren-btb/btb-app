@@ -3740,12 +3740,7 @@ if (currentUser.refreshToken) {
           if (!currentUser) return;
         }
       }
-        await refreshAuthToken();
-        // refreshAuthToken() calls doLogout() if the refresh token itself
-        // has expired — in that case currentUser is now null and we stop.
-        if (!currentUser) return;
-      }
-      scheduleTokenRefresh();
+    scheduleTokenRefresh();
       await initApp();
       setTimeout(() => { if(document.getElementById('tabAvail')?.classList.contains('active')) { loadMyRecurringAvailability().then(renderRecurringPatternGrid); } }, 500);
     } catch(e) { console.error('Session restore failed:', e); }
