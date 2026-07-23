@@ -2122,7 +2122,79 @@ async function saveAdminStaffAvail() {
   msgEl.className = 'msg'; msgEl.textContent = 'Saving…';
   await saveShiftsForStaff(adminViewingStaffId, adminShifts, adminStaffWeekOffset, msgEl);
 }
+function toggleCalendarModeFields() {
+  const mode = document.getElementById('adminStaffAvailMode')?.value || 'roster';
+  const isCalendar = mode === 'calendar';
+  const icalWrap = document.getElementById('adminStaffIcalWrap');
+  const blocksSection = document.getElementById('adminStaffRecurBlocksSection');
+  const blocksDivider = document.getElementById('adminStaffRecurBlocksDivider');
+  if (icalWrap) icalWrap.style.display = isCalendar ? '' : 'none';
+  if (blocksSection) blocksSection.style.display = isCalendar ? '' : 'none';
+  if (blocksDivider) blocksDivider.style.display = isCalendar ? '' : 'none';
+  if (isCalendar && adminViewingStaffId) loadStaffRecurringBlocks(adminViewingStaffId);
+}
 
+async function loadStaffRecurringBlocks(staffId) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks?staff_id=eq.${staffId}&order=day_of_week,start_time`, {headers:H()});
+    adminStaffRecurringBlocks = await r.json();
+    if (!Array.isArray(adminStaffRecurringBlocks)) adminStaffRecurringBlocks = [];
+  } catch(e) { adminStaffRecurringBlocks = []; }
+  renderStaffRecurringBlocks();
+}
+
+const RECUR_DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function renderStaffRecurringBlocks() {
+  const el = document.getElementById('adminStaffRecurBlocksList'); if (!el) return;
+  if (!adminStaffRecurringBlocks.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:8px 0">No recurring blocks yet.</div>';
+    return;
+  }
+  el.innerHTML = adminStaffRecurringBlocks.map(b => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6">
+      <span style="font-size:13px;color:#1f2937">
+        <strong>${RECUR_DAY_NAMES[b.day_of_week]}</strong> ${fmt12(b.start_time.slice(0,5))}–${fmt12(b.end_time.slice(0,5))}${b.label ? ' — '+b.label : ''}
+      </span>
+      <button class="btn-secondary btn-sm" onclick="deleteStaffRecurringBlock('${b.id}')"><i class="ti ti-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+async function addStaffRecurringBlock() {
+  const msgEl = document.getElementById('adminStaffRecurBlocksMsg');
+  const day = parseInt(document.getElementById('newRecurBlockDay')?.value, 10);
+  const start = document.getElementById('newRecurBlockStart')?.value;
+  const end = document.getElementById('newRecurBlockEnd')?.value;
+  const label = document.getElementById('newRecurBlockLabel')?.value.trim() || null;
+  if (!start || !end) { msgEl.className='msg err'; msgEl.textContent='Start and end time are required.'; return; }
+  if (start >= end) { msgEl.className='msg err'; msgEl.textContent='End time must be after start time.'; return; }
+  msgEl.className='msg'; msgEl.textContent='Saving…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks`, {
+      method:'POST', headers:{...H(),'Prefer':'return=minimal'},
+      body: JSON.stringify({ staff_id: adminViewingStaffId, day_of_week: day, start_time: start, end_time: end, label })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById('newRecurBlockLabel').value = '';
+    msgEl.className='msg ok'; msgEl.textContent='✓ Added';
+    setTimeout(() => msgEl.textContent = '', 2000);
+    await loadStaffRecurringBlocks(adminViewingStaffId);
+  } catch(e) {
+    msgEl.className='msg err'; msgEl.textContent='Could not add block: ' + e.message;
+  }
+}
+
+async function deleteStaffRecurringBlock(id) {
+  if (!confirm('Remove this recurring block?')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks?id=eq.${id}`, { method:'DELETE', headers:H() });
+    if (!r.ok) throw new Error(await r.text());
+    await loadStaffRecurringBlocks(adminViewingStaffId);
+  } catch(e) {
+    alert('Could not delete block: ' + e.message);
+  }
+}
 async function saveShiftsForStaff(staffId, shifts, weekOffset, msgEl) {
   try {
     const today = nzToday();
@@ -3019,8 +3091,13 @@ async function openStaffDetail(staffId) {
 const activeEl = document.getElementById('adminStaffActive');
   if (activeEl) activeEl.value = s.active === false ? 'false' : 'true';
 
+  set('adminStaffIcalUrl', s.ical_url);
+  const modeEl = document.getElementById('adminStaffAvailMode');
+  if (modeEl) modeEl.value = s.availability_mode === 'calendar' ? 'calendar' : 'roster';
+  toggleCalendarModeFields();
+
   adminStaffCallConfirmValue = !(s.trusted_opener === true);
-  renderCallConfirmButton();
+    renderCallConfirmButton();
 
   await loadAdminStaffShifts(staffId);
   await loadAdminStaffTimesheets(staffId);
