@@ -338,7 +338,7 @@ async function submitRequest() {
     } else {
       const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
         method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone })
+        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source:'voucher' })
       });
       clientId = await nr.json();
     }
