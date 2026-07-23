@@ -1501,7 +1501,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_portal_user', JSON.stringify(currentUser));
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     // Refresh token itself is invalid/expired — the session has genuinely
@@ -1544,7 +1544,7 @@ async function doLogin() {
       role: userRole.role,
       allowedTabs: parseAllowedTabs(userRole.allowed_tabs)
     };
-    sessionStorage.setItem('btb_portal_user', JSON.stringify(currentUser));
+    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await initApp();
   } catch(e) { errEl.textContent = 'Connection error.'; console.error(e); }
@@ -1553,7 +1553,7 @@ async function doLogin() {
 function doLogout() {
   clearTimeout(tokenRefreshTimer);
   currentUser = null;
-  sessionStorage.removeItem('btb_portal_user');
+  sessionStorage.removeItem('btb_user');
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('loginPass').value = '';
@@ -3725,7 +3725,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const vTag = document.getElementById('buildVersionTag');
   if (vTag) vTag.textContent = 'v' + BUILD_VERSION;
 
-  const saved = sessionStorage.getItem('btb_portal_user');
+  const saved = sessionStorage.getItem('btb_user');
   if (saved) {
     try {
       currentUser = JSON.parse(saved);
@@ -3733,7 +3733,13 @@ window.addEventListener('DOMContentLoaded', async () => {
       // stored token is still valid. This ensures all data requests in
       // initApp() use a fresh, authenticated token rather than a
       // potentially expired one from the previous session.
-      if (currentUser.refreshToken) {
+if (currentUser.refreshToken) {
+        const msLeft = (currentUser.expiresAt || 0) - Date.now();
+        if (msLeft < 5 * 60 * 1000) {
+          await refreshAuthToken();
+          if (!currentUser) return;
+        }
+      }
         await refreshAuthToken();
         // refreshAuthToken() calls doLogout() if the refresh token itself
         // has expired — in that case currentUser is now null and we stop.
