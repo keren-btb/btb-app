@@ -45,7 +45,7 @@
     <a href="pos.html" class="nav-btn" data-tab="pos" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#059669 0%,#047857 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(5,150,105,.3)"><span style="font-size:15px;font-weight:850;color:#fff;padding:4px 16px;display:inline-block;letter-spacing:0.5px">POS</span></a>
     <a href="waiver.html" target="_blank" class="nav-btn" data-tab="waiver" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(124,58,237,.3)"><span style="font-size:14px;font-weight:700;color:#fff">Waiver</span></a>
     <button class="nav-btn active" data-tab="calendar" onclick="showTab('calendar',this)"><i class="ti ti-calendar"></i>Calendar</button>
-<a href="enquiries.html" class="nav-btn" data-tab="leads" style="text-decoration:none"><i class="ti ti-users"></i>Enquiries</a>
+<a href="clients.html" class="nav-btn" data-tab="leads" style="text-decoration:none"><i class="ti ti-users"></i>Clients</a>
     <button class="nav-btn" data-tab="settings" onclick="showTab('settings',this)"><i class="ti ti-settings"></i>Settings</button>
   </nav>
   <div id="calendar" class="section active">
@@ -1876,7 +1876,9 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.1.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.2.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.2.0: Main nav "Enquiries" link now points to the new clients.html hub
+// (renamed from client_overview.html) instead of enquiries.html directly.
 // v16: NZ timezone fix — 'today' (calendar defaults, walk-in time default) is now
 // always calculated in Pacific/Auckland time, not the device's local timezone/clock.
 // v14: fixed loadShiftTimes() timing — it now reloads with the authenticated staff
