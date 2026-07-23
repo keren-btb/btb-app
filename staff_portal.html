@@ -3430,6 +3430,8 @@ async function saveAdminStaff() {
     notes:             document.getElementById('adminStaffNotes')?.value.trim() || null,
 active:            document.getElementById('adminStaffActive')?.value !== 'false',
     trusted_opener:    !adminStaffCallConfirmValue,
+      availability_mode: document.getElementById('adminStaffAvailMode')?.value || 'roster',
+    ical_url:          document.getElementById('adminStaffIcalUrl')?.value.trim() || null,
   };
 
   try {
