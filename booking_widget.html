@@ -925,7 +925,9 @@ let staffTraining = []; // [{staff_id, game_id, status}]
 let staffAvailStatus = {}; // { staff_id: { 'YYYY-MM-DD_HH:MM': 'available'|'maybe' } } — time-off overrides only
 let rosterShifts  = []; // [{staff_id, shift_date, custom_start_time, custom_end_time}] — the actual confirmed roster (assigned_shifts), source of truth for who's working
 let staffFlags = {}; // { staff_id: true/false } — trusted_opener
-let trainingStatuses = [{id:'trained',qualifies:true},{id:'can_supervise',qualifies:true}];
+let staffMode = {}; // { staff_id: 'roster'|'calendar' }
+let staffCalendarBusy = []; // [{staff_id, busy_start, busy_end}] — synced Google Calendar blocks, calendar-mode staff only
+let staffRecurringBlocks = []; // [{staff_id, day_of_week, start_time, end_time}] — weekly "always away" blocks, calendar-mode staff onlylet trainingStatuses = [{id:'trained',qualifies:true},{id:'can_supervise',qualifies:true}];
 let existingBookings = [];
 
 // ============================================================
@@ -1032,12 +1034,47 @@ async function loadStaffData() {
     try {
       const fr = await fetch(`${SB_URL}/rest/v1/public_staff_flags?select=staff_id,trusted_opener`, {headers:SB_H});
       const flagRows = await fr.json();
-      staffFlags = {};
+staffFlags = {};
       if (Array.isArray(flagRows)) flagRows.forEach(f => { staffFlags[f.staff_id] = f.trusted_opener === true; });
     } catch(e) { staffFlags = {}; }
+
+    // Calendar-mode staff — availability_mode per staff (from the new view)
+    try {
+      const mr = await fetch(`${SB_URL}/rest/v1/public_staff_mode?select=staff_id,availability_mode`, {headers:SB_H});
+      const modeRows = await mr.json();
+      staffMode = {};
+      if (Array.isArray(modeRows)) modeRows.forEach(m => { staffMode[m.staff_id] = m.availability_mode; });
+    } catch(e) { staffMode = {}; }
+
+    // Synced Google Calendar busy blocks (staff_calendar_busy is already open to anon)
+    try {
+      const cb = await fetch(`${SB_URL}/rest/v1/staff_calendar_busy?select=staff_id,busy_start,busy_end`, {headers:SB_H});
+      staffCalendarBusy = await cb.json();
+      if (!Array.isArray(staffCalendarBusy)) staffCalendarBusy = [];
+    } catch(e) { staffCalendarBusy = []; }
+
+    // Weekly recurring "always away" blocks e.g. a day job (staff_recurring_blocks is already open to anon)
+    try {
+      const rb = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks?select=staff_id,day_of_week,start_time,end_time`, {headers:SB_H});
+      staffRecurringBlocks = await rb.json();
+      if (!Array.isArray(staffRecurringBlocks)) staffRecurringBlocks = [];
+    } catch(e) { staffRecurringBlocks = []; }
   } catch(e) { console.error('Staff data error:', e); }
 }
-// Return sorted slot times for a given day index (0=Sun…6=Sat)
+
+// Converts a real timestamp (e.g. from Supabase, has proper timezone info)
+// into the same "naive local" Date format nzNow()/slot dates use, so they
+// can be compared directly regardless of the visitor's own timezone.
+function toNzNaive(isoString) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date(isoString));
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+      // Return sorted slot times for a given day index (0=Sun…6=Sat)
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
   const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
