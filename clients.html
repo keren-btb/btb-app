@@ -375,7 +375,7 @@ function fullDateTime(iso){
   const d=new Date(iso+(iso.endsWith('Z')?'':'Z'));
   return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 }
-const SOURCE_LABELS={online:'Online',staff:'Staff',walkin:'Walk-in',phone:'Phone',text:'Text',enquiry:'Enquiry'};
+const SOURCE_LABELS={online:'Booking',staff:'Staff',walkin:'Walk-in',phone:'Phone',text:'Text',enquiry:'Enquiry'};
 
 let currentUser=null;
 let rawInteractions=[]; // flat rows from client_interactions, joined with clients
