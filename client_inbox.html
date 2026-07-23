@@ -160,7 +160,7 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.2.2';
+const BUILD_VERSION = '1.2.3';
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
 // v1.2.1 — Default tab changed from "Needs reply" to "All", so newly added
@@ -169,6 +169,9 @@ const BUILD_VERSION = '1.2.2';
 // v1.2.2 — Fixed "From:" default display text: was showing the unverified
 //          root domain (enquiries@btbescaperooms.co.nz); now shows the
 //          correct verified sender (enquiries@mail.btbescaperooms.co.nz).
+// v1.2.3 — Fixed staffId lookup at login using the anon key (RLS silently
+//          blocked it), which broke logging of every sent-email interaction
+//          with a foreign key error. Now uses the real access token.
 console.log(`%cClient Inbox — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -495,7 +498,13 @@ async function doLogin(){
       .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
       || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
     let staffId=userId;
-    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    // BUGFIX (v1.2.3): H() falls back to the anon key here because
+    // currentUser isn't set yet at this point in login — and the staff
+    // table's RLS only allows 'authenticated', so this lookup was
+    // silently returning zero rows every time, leaving staffId wrong
+    // (the raw auth id) and breaking the staff_id FK whenever an
+    // interaction was logged for this session.
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
     sessionStorage.setItem('btb_inbox_user',JSON.stringify(currentUser));
     scheduleTokenRefresh();

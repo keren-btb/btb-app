@@ -124,13 +124,16 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.3.1'; // v1.3.0: new staff-entered enquiries now also log
+const BUILD_VERSION = '1.3.2'; // v1.3.0: new staff-entered enquiries now also log
 // as a client_interactions entry (inbound, needs reply) so they show up right
 // away in client_inbox.html / client_overview.html, instead of only appearing
 // once someone has already replied. NZ timezone fix — see below
 // v1.3.1: "New template" form default From email fixed from the unverified
 // root domain (enquiries@btbescaperooms.co.nz) to the verified subdomain
 // (enquiries@mail.btbescaperooms.co.nz).
+// v1.3.2: Fixed staffId lookup at login using the anon key (RLS silently
+// blocked it), which broke logging of every sent-email interaction with a
+// foreign key error. Now uses the real access token.
 // v1.2.1: fixed a real bug — the default enquiry date was using
 // new Date().toISOString().slice(0,10), which is UTC, not NZ time. Since NZ
 // is UTC+12/+13, that showed *yesterday's* date as the default for roughly
@@ -600,7 +603,13 @@ async function doLogin(){
       .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
       || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
     let staffId=userId;
-    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    // BUGFIX (v1.3.2): H() falls back to the anon key here because
+    // currentUser isn't set yet at this point in login — and the staff
+    // table's RLS only allows 'authenticated', so this lookup was
+    // silently returning zero rows every time, leaving staffId wrong
+    // (the raw auth id) and breaking the staff_id FK whenever an
+    // interaction was logged for this session.
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
     sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
     scheduleTokenRefresh();
