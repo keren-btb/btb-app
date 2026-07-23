@@ -878,16 +878,27 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="field"><div class="field-label">Hourly rate $</div><input class="field-input" type="number" id="adminStaffRate" min="0" step="0.50" placeholder="0.00"></div>
     </div>
     <div class="field"><div class="field-label">Notes</div><input class="field-input" type="text" id="adminStaffNotes" placeholder="Internal notes…"></div>
-    <div class="field">
+<div class="field">
       <div class="field-label">Active</div>
       <select class="field-select" id="adminStaffActive">
         <option value="true">Active</option>
         <option value="false">Inactive</option>
       </select>
     </div>
+    <div class="field">
+      <div class="field-label">Availability mode</div>
+      <select class="field-select" id="adminStaffAvailMode" onchange="toggleCalendarModeFields()">
+        <option value="roster">Roster (works assigned shifts)</option>
+        <option value="calendar">Calendar (Google Calendar decides)</option>
+      </select>
+    </div>
+    <div class="field" id="adminStaffIcalWrap" style="display:none">
+      <div class="field-label">Google Calendar link <span style="color:#9ca3af;font-weight:400;text-transform:none">(the private "Secret address in iCal format" link from Google Calendar settings)</span></div>
+      <input class="field-input" type="text" id="adminStaffIcalUrl" placeholder="https://calendar.google.com/calendar/ical/...">
+    </div>
 <div class="btn-row">
       <button class="btn-primary" onclick="saveAdminStaff()"><i class="ti ti-device-floppy"></i> Save profile</button>
-    </div>
+    </div>      
     <div class="msg" id="adminStaffMsg"></div>
 
     <div class="divider"></div>
@@ -922,11 +933,40 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="msg" id="granAvailMsg"></div>
     </div>
 
+<div class="divider" id="adminStaffRecurBlocksDivider" style="display:none"></div>
+    <div id="adminStaffRecurBlocksSection" style="display:none">
+      <div class="sec-title">Recurring away blocks <span style="color:#9ca3af;font-weight:400;text-transform:none">(e.g. a day job — repeats every week, only used in Calendar mode)</span></div>
+      <div id="adminStaffRecurBlocksList"></div>
+      <div class="field-2col" style="margin-top:8px">
+        <div class="field">
+          <div class="field-label">Day</div>
+          <select class="field-select" id="newRecurBlockDay">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+        </div>
+        <div class="field"><div class="field-label">Label</div><input class="field-input" type="text" id="newRecurBlockLabel" placeholder="e.g. Day job"></div>
+      </div>
+      <div class="field-2col">
+        <div class="field"><div class="field-label">Start time</div><input class="field-input" type="time" id="newRecurBlockStart"></div>
+        <div class="field"><div class="field-label">End time</div><input class="field-input" type="time" id="newRecurBlockEnd"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary btn-sm" onclick="addStaffRecurringBlock()"><i class="ti ti-plus"></i> Add block</button>
+      </div>
+      <div class="msg" id="adminStaffRecurBlocksMsg"></div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- Timesheet for this staff member -->
     <div class="sec-title">Recent timesheets</div>
-    <div id="adminStaffTs"></div>
+      <div id="adminStaffTs"></div>
   </div>
  </div>
 </div>
@@ -1225,7 +1265,7 @@ let availWeekOffset      = 0;
 let adminStaffWeekOffset = 0;
 let adminViewingStaffId  = null;
 let adminStaffCallConfirmValue = false; // true = requires call to confirm, false = trusted/skips call
-let tsFilter             = 'all';
+let adminStaffRecurringBlocks = []; // [{id, day_of_week, start_time, end_time, label}] for the staff member currently open in the detail panellet tsFilter             = 'all';
 
 // Weekly timesheet state tracking
 let timesheetWeekOffset  = 0; 
