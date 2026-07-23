@@ -339,7 +339,7 @@ tr:last-child td{border-bottom:none}
 // blocked it), which broke logging of every sent-email interaction with a
 // foreign key error. Now uses the real access token. (Debug message from
 // v1.3.1 still active for one more test round.)
-const BUILD_VERSION = '1.3.4';
+const BUILD_VERSION = '1.3.5';
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -756,13 +756,27 @@ async function doLogin(){
     // silently returning zero rows every time, leaving staffId wrong
     // (the raw auth id) and breaking the staff_id FK on every interaction
     // logged as this user. Now passes the real access token directly.
-    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
+    // TEMP DEBUG (v1.3.5, remove once diagnosed): capture the raw
+    // status/response of this lookup so we can see exactly what's
+    // happening, since the fix in v1.3.3 didn't resolve it.
+    let staffLookupDebug='';
+    try{
+      const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});
+      const srawText=await sr.text();
+      staffLookupDebug=`status=${sr.status} body=${srawText}`;
+      const srows=JSON.parse(srawText);
+      if(srows[0])staffId=srows[0].id
+    }catch(e){staffLookupDebug='threw: '+(e&&e.message)}
+    window.__staffLookupDebug=staffLookupDebug;
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
     sessionStorage.setItem('btb_clients_user',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await loadAppData();
     showApp();
     renderTable();
+    // TEMP DEBUG (v1.3.5, remove once diagnosed): show the staff lookup
+    // result on-screen so we can see it without needing dev tools.
+    setTimeout(()=>{alert('DEBUG staffId lookup:\n'+window.__staffLookupDebug+'\n\nresolved staffId: '+currentUser.staffId)},300);
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
 function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_clients_user');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
