@@ -330,7 +330,10 @@ tr:last-child td{border-bottom:none}
 // v1.3.1 — TEMP DEBUG: reply send now surfaces interactionLogError from
 // the edge function in the status message, to diagnose why some sent
 // emails weren't appearing in the thread log. Revert once diagnosed.
-const BUILD_VERSION = '1.3.1';
+// v1.3.2 — Fixed wrong default "From" address for free-form replies: was
+// falling back to enquiries@btbescaperooms.co.nz (unverified root domain),
+// now correctly falls back to enquiries@mail.btbescaperooms.co.nz.
+const BUILD_VERSION = '1.3.2';
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -610,7 +613,7 @@ function updateReplyFromLine(){
   const tpl=enquiryTemplates.find(t=>t.id===replyState.templateId);
   document.getElementById('panelReplyFromLine').textContent=tpl
     ?`From: ${tpl.from_name} <${tpl.from_email}>`
-    :'From: Beyond the Box <enquiries@btbescaperooms.co.nz> (default — choose a template to use a different sender)';
+    :'From: Beyond the Box <enquiries@mail.btbescaperooms.co.nz> (default — choose a template to use a different sender)';
 }
 function applyReplyTemplate(templateId){
   const g=clientGroups.find(x=>x.clientId===activeClientId);

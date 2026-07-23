@@ -124,10 +124,13 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.3.0'; // v1.3.0: new staff-entered enquiries now also log
+const BUILD_VERSION = '1.3.1'; // v1.3.0: new staff-entered enquiries now also log
 // as a client_interactions entry (inbound, needs reply) so they show up right
 // away in client_inbox.html / client_overview.html, instead of only appearing
 // once someone has already replied. NZ timezone fix — see below
+// v1.3.1: "New template" form default From email fixed from the unverified
+// root domain (enquiries@btbescaperooms.co.nz) to the verified subdomain
+// (enquiries@mail.btbescaperooms.co.nz).
 // v1.2.1: fixed a real bug — the default enquiry date was using
 // new Date().toISOString().slice(0,10), which is UTC, not NZ time. Since NZ
 // is UTC+12/+13, that showed *yesterday's* date as the default for roughly
@@ -418,7 +421,7 @@ function renderTemplateAdmin(){
       </div>
       <div class="form-2col">
         <div><div class="form-label">From name</div><input class="form-input" id="tplNewFromName" value="Beyond the Box"></div>
-        <div><div class="form-label">From email</div><input class="form-input" id="tplNewFromEmail" value="enquiries@btbescaperooms.co.nz"></div>
+        <div><div class="form-label">From email</div><input class="form-input" id="tplNewFromEmail" value="enquiries@mail.btbescaperooms.co.nz"></div>
       </div>
       <div class="form-row"><div class="form-label">Body (use {{first_name}} for the client's first name)</div>
         <textarea class="form-input" id="tplNewBody" rows="8" placeholder="Hi {{first_name}}, ..."></textarea>
@@ -460,7 +463,7 @@ async function createTemplate(){
     await callEdgeFunction('save_enquiry_template',{
       name,subject,
       from_name:document.getElementById('tplNewFromName').value.trim()||'Beyond the Box',
-      from_email:document.getElementById('tplNewFromEmail').value.trim()||'enquiries@btbescaperooms.co.nz',
+      from_email:document.getElementById('tplNewFromEmail').value.trim()||'enquiries@mail.btbescaperooms.co.nz',
       body:document.getElementById('tplNewBody').value,
       active:true,sort_order:enquiryTemplates.length,
     },currentUser.token);
