@@ -158,18 +158,18 @@ body{
 
 /* GAME CARDS */
 .game-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
-.game-card{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px 14px 30px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
+hhh
+  .game-card{background:#fffdf8;border:1.5px solid var(--border);border-radius:13px;padding:14px 0 14px 30px;cursor:pointer;display:flex;align-items:stretch;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
 .game-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:repeating-linear-gradient(to bottom,#07b4c5 0,#07b4c5 8px,#77d6df 8px,#77d6df 16px)}
-.game-card:hover{border-color:rgba(7,180,197,0.35);transform:rotate(-1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
-  .game-card.selected{border-color:var(--teal);background:var(--card2)}
-.game-icon{width:46px;height:46px;border-radius:10px;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--border);overflow:hidden}
-.game-icon img{width:100%;height:100%;object-fit:cover}
-.game-info{flex:1;min-width:0}
-.game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#fff;letter-spacing:0.3px}
-.game-meta{font-size:12px;color:var(--muted);margin-top:2px}
-.game-price{font-size:12px;color:var(--teal);font-weight:500;margin-top:2px}
-.game-chevron{color:var(--muted);transition:color .2s}
-.game-card:hover .game-chevron,.game-card.selected .game-chevron{color:var(--teal)}
+.game-card:hover{border-color:#07b4c5;transform:rotate(-1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
+  .game-card.selected{border-color:#07b4c5;background:#e1f5ee}
+.game-icon{order:3;flex:0 0 33%;width:33%;align-self:stretch;border-radius:0;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden}
+.game-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.game-info{order:1;flex:1;min-width:0;padding:0 4px 0 2px;align-self:center}
+.game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#2c2c2a;letter-spacing:0.3px}
+.game-meta{font-size:12px;color:#5f5e5a;margin-top:2px}
+.game-price{font-size:12px;color:#085041;font-weight:500;margin-top:2px}
+.game-chevron{display:none}
 
 /* DATE STRIP */
 .date-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:18px;scrollbar-width:none}
