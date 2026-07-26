@@ -1503,7 +1503,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -1524,7 +1524,7 @@ async function doLogin(){
     let staffId=userId;
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
-    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     // Reload with the real staff token now that we're authenticated — the initial
     // DOMContentLoaded load ran on the anon key, and RLS on settings only allows anon
@@ -1551,7 +1551,7 @@ await loadShiftTimes();
   try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
   catch(e){ return ['calendar']; }
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
   document.getElementById('authName').textContent=currentUser.name;
@@ -1887,7 +1887,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.3.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.4.0: Single sign-on — session now stored in localStorage under a shared
+// key ('btb_staff_session') instead of a per-app sessionStorage key, so
+// logging in on one staff app logs you into all of them (same browser).
 // v16.3.0: Birthday upsell reminder — booking cards for a Birthday-occasion
 // booking now show a banner ("🎂 Mention: Birthday cafe ($60)") pulling live
 // from Settings → Personalised Experiences, so it can't drift out of sync
@@ -1922,7 +1925,7 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
   await Promise.all([loadStaff(), loadBookings(viewMonth,viewYear), loadProducts()]);
 
   // Now restore session or show login
-  const saved=sessionStorage.getItem('btb_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -1970,7 +1973,7 @@ await loadShiftTimes();
           currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
           currentUser.role=roleData.role;
           currentUser.name=roleData.name;
-          sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+          localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
           showApp();
         }).catch(err=>{
           // Token looked fine locally but Supabase rejected it — don't
