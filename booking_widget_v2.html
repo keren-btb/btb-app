@@ -158,9 +158,10 @@ body{
 
 /* GAME CARDS */
 .game-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
-.game-card{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .2s}
-.game-card:hover{border-color:rgba(7,180,197,0.35)}
-.game-card.selected{border-color:var(--teal);background:var(--card2)}
+.game-card{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px 14px 30px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
+.game-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:repeating-linear-gradient(to bottom,#07b4c5 0,#07b4c5 8px,#77d6df 8px,#77d6df 16px)}
+.game-card:hover{border-color:rgba(7,180,197,0.35);transform:rotate(-1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
+  .game-card.selected{border-color:var(--teal);background:var(--card2)}
 .game-icon{width:46px;height:46px;border-radius:10px;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--border);overflow:hidden}
 .game-icon img{width:100%;height:100%;object-fit:cover}
 .game-info{flex:1;min-width:0}
