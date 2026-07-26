@@ -434,6 +434,14 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -1045,10 +1053,10 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.8';
-// v1.9.8: Single sign-on — session now stored in localStorage under a shared
-// key ('btb_staff_session') instead of a per-app sessionStorage key, so
-// logging in on one staff app logs you into all of them (same browser).
+const BUILD_VERSION = '1.9.9';
+// v1.9.9: Fixed login screen briefly flashing on load when already logged
+// in — now hidden synchronously as soon as a cached session is found,
+// before the page paints.
 // v1.9.7: NZ timezone fix — 'today' and clock-in/out day calculations now always
 // use Pacific/Auckland time, not the device's local timezone/clock.
 // v1.9.5: Roster Overview now flags specific time-off requests distinctly

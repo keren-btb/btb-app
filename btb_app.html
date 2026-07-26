@@ -30,6 +30,14 @@
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 <div class="app" id="mainApp" style="display:none">
   <div class="header">
     <div style="text-align:center;padding:4px 0 2px">
@@ -1887,7 +1895,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.1'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.4.1: Fixed login screen briefly flashing on load when already logged
+// in — now hidden synchronously as soon as a cached session is found,
+// before the page paints.
 // v16.4.0: Single sign-on — session now stored in localStorage under a shared
 // key ('btb_staff_session') instead of a per-app sessionStorage key, so
 // logging in on one staff app logs you into all of them (same browser).
