@@ -158,14 +158,16 @@ body{
 
 /* GAME CARDS */
 .game-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
-.game-card{background:#fffdf8;border:1.5px solid var(--border);border-radius:13px;padding:14px 0 14px 30px;cursor:pointer;display:flex;align-items:stretch;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
+.game-card{background:#fffdf8;border:1.5px solid var(--border);border-radius:13px;height:104px;padding:14px 0 14px 30px;cursor:pointer;display:flex;align-items:stretch;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
   .game-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:repeating-linear-gradient(to bottom,#07b4c5 0,#07b4c5 8px,#77d6df 8px,#77d6df 16px)}
-.game-card:hover{border-color:#07b4c5;transform:rotate(-1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
+.game-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,180,197,0.18),transparent 60%);opacity:0;transition:opacity .2s;pointer-events:none}
+.game-card:hover{border-color:#07b4c5;transform:translateY(-3px) rotate(1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
+.game-card:hover::after{opacity:1}
   .game-card.selected{border-color:#07b4c5;background:#e1f5ee}
-.game-icon{order:3;flex:0 0 33%;width:33%;align-self:stretch;border-radius:0;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden}
+.game-icon{order:3;flex:0 0 33%;width:33%;height:100%;align-self:stretch;border-radius:0;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden;position:relative;z-index:1}
 .game-icon img{width:100%;height:100%;object-fit:cover;display:block}
-.game-info{order:1;flex:1;min-width:0;padding:0 4px 0 2px;align-self:center}
-.game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#2c2c2a;letter-spacing:0.3px}
+.game-info{order:1;flex:1;min-width:0;padding:0 4px 0 2px;align-self:center;position:relative;z-index:1}
+  .game-name{font-family:var(--head);font-weight:700;font-size:18px;color:#2c2c2a;letter-spacing:0.3px}
 .game-meta{font-size:12px;color:#5f5e5a;margin-top:2px}
 .game-price{font-size:12px;color:#085041;font-weight:500;margin-top:2px}
 .game-chevron{display:none}
