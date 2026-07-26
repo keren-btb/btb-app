@@ -158,9 +158,8 @@ body{
 
 /* GAME CARDS */
 .game-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
-hhh
-  .game-card{background:#fffdf8;border:1.5px solid var(--border);border-radius:13px;padding:14px 0 14px 30px;cursor:pointer;display:flex;align-items:stretch;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
-.game-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:repeating-linear-gradient(to bottom,#07b4c5 0,#07b4c5 8px,#77d6df 8px,#77d6df 16px)}
+.game-card{background:#fffdf8;border:1.5px solid var(--border);border-radius:13px;padding:14px 0 14px 30px;cursor:pointer;display:flex;align-items:stretch;gap:14px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden}
+  .game-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:repeating-linear-gradient(to bottom,#07b4c5 0,#07b4c5 8px,#77d6df 8px,#77d6df 16px)}
 .game-card:hover{border-color:#07b4c5;transform:rotate(-1deg) scale(1.015);box-shadow:0 10px 22px rgba(7,180,197,0.35)}
   .game-card.selected{border-color:#07b4c5;background:#e1f5ee}
 .game-icon{order:3;flex:0 0 33%;width:33%;align-self:stretch;border-radius:0;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:34px;overflow:hidden}
