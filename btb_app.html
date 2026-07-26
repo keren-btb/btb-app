@@ -578,6 +578,7 @@ async function loadBookings(month,year){
           clues_given:row.clues_given||null,time_taken:row.time_taken||null,
           gm_notes:row.gm_notes||'',ask_for_review:row.ask_for_review||false,
           total_amount:row.total_amount||null,
+          addons:row.addons||null,
           timerSec:row.timer_sec||0,timerRunning:row.timer_running||false,
           timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
           timerInterval:null,isEnquiry:row.status==='enquiry',source:row.source||'',
@@ -746,6 +747,15 @@ function buildCard(b){
   const gmName=b.gms?.length>0?b.gms.map(id=>{const p=staff.find(x=>x.id===id);return p?p.name:'?'}).join(', '):'Unassigned';
   const tagHtml=(b.tags||[]).map(tid=>{const t=tags.find(x=>x.id===tid);return t?`<span class="tag-pill" style="${tagStyle(t.colorIdx)}">${t.label}</span>`:''}).join('');
   const chipHtml=tags.map(t=>`<button class="chip-btn ${(b.tags||[]).includes(t.id)?'selected':''}" onclick="toggleTag('${b.id}','${t.id}')" style="${(b.tags||[]).includes(t.id)?tagStyle(t.colorIdx):''}">${t.label}</button>`).join('');
+  // Birthday upsell reminder — pulls live from Settings → Personalised
+  // Experiences (occasion='Birthday') so the price/name here can't drift out
+  // of sync with what customers see in the booking widget. Only fires if
+  // there's already an addon logged (booked online and it wasn't taken up)
+  // or if it's simply not on the ticket yet — either way, staff get nudged.
+  const birthdayExps=(bookingConfig.personalisedExperiences||[]).filter(e=>e.active!==false&&(!e.occasions?.length||e.occasions.includes('Birthday')));
+  const hasBirthdayAddon=(()=>{try{return JSON.parse(b.addons||'[]').some(a=>birthdayExps.some(e=>e.label===a.label))}catch(_){return false}})();
+  const isBirthday=b.occasion==='Birthday'||(b.tags||[]).includes('birthday');
+  const birthdayBannerHtml=(isBirthday&&!hasBirthdayAddon&&birthdayExps.length>0)?`<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:6px 9px;margin-top:6px;display:flex;align-items:center;gap:5px">🎂 Mention: ${birthdayExps.map(e=>`${e.label} ($${parseFloat(e.price||0).toFixed(0)})`).join(', ')}</div>`:'';
   const notesHtml=(b.notes||[]).map((n,i)=>`<div class="saved-note"><span>${n}</span><button class="del-btn" onclick="deleteNote('${b.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
   const gmChipHtml=staff.map(p=>`<button class="gm-chip ${(b.gms||[]).includes(p.id)?'assigned':''}" onclick="toggleGM('${b.id}','${p.id}')">${(b.gms||[]).includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
   const card=document.createElement('div');
@@ -760,6 +770,7 @@ function buildCard(b){
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
+        ${birthdayBannerHtml}
         ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${n}</div>`).join('')}</div>`:''}
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
@@ -1876,7 +1887,14 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.2.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.3.0'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.3.0: Birthday upsell reminder — booking cards for a Birthday-occasion
+// booking now show a banner ("🎂 Mention: Birthday cafe ($60)") pulling live
+// from Settings → Personalised Experiences, so it can't drift out of sync
+// with what customers see in the booking widget. Banner hides itself once
+// that experience is already on the booking's addons (i.e. already sold via
+// POS). Also fixed: booking objects weren't loading the `addons` DB field at
+// all before now — needed for the check above, and may be useful elsewhere.
 // v16.2.0: Main nav "Enquiries" link now points to the new clients.html hub
 // (renamed from client_overview.html) instead of enquiries.html directly.
 // v16: NZ timezone fix — 'today' (calendar defaults, walk-in time default) is now
