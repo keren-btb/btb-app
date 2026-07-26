@@ -573,7 +573,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.3.1'; // Removed a duplicate, dead copy of buildPOSProductGrid/setPOSCatFilter/filterPOSProds (an older version with no Favourites/Experiences/thumbnail support that was fully shadowed by the real one further down the file) — no behaviour change, just cleanup
+const BUILD_VERSION = '1.3.2'; // v1.3.2: Single sign-on — session now stored in localStorage under a shared key ('btb_staff_session') instead of a per-app sessionStorage key, so logging in on one staff app logs you into all of them (same browser).
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
 // NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
 // show app immediately from cached role and validate in background instead of blocking on it
@@ -738,7 +738,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -769,7 +769,7 @@ async function doLogin(){
     let staffId=userId;
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
-    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await loadAppData();
     showApp();
@@ -779,7 +779,7 @@ function parseAllowedTabs(raw){
   if(!raw)return['calendar'];if(Array.isArray(raw))return raw;
   try{const p=JSON.parse(raw);return Array.isArray(p)?p:['calendar']}catch(e){return['calendar']}
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('mainApp').style.display='flex';
@@ -1843,7 +1843,7 @@ async function reinstateVoucher(id){await fetch(`${SB_URL}/rest/v1/vouchers?id=e
 
 // ── INIT ───────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',async()=>{
-  const saved=sessionStorage.getItem('btb_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -1879,7 +1879,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
         currentUser.role=roleData.role;
         currentUser.name=roleData.name;
-        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         showApp();
       }).catch(err=>{
         // The token looked fine locally but Supabase rejected it — don't
