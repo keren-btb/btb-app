@@ -136,6 +136,12 @@ tr:last-child td{border-bottom:none}
 #panelReplyBody{min-height:220px}
 .add-btn{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px}
 .add-btn:hover{background:var(--teal2)}
+
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form-section-label{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border)}
+.form-section-label:first-of-type{margin-top:0;padding-top:0;border-top:none}
+.tpl-card{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbfc}
+.tpl-msg{font-size:12px;margin-left:8px}
 </style>
 </head>
 <body>
@@ -179,6 +185,7 @@ tr:last-child td{border-bottom:none}
       <div class="topbar-title">Clients <span class="count" id="clientCount"></span></div>
       <div class="filters-row">
         <button class="btn-newclient" onclick="openNewClientForm()"><i class="ti ti-user-plus"></i> New client</button>
+        <button class="btn-newclient" id="tplAdminBtn" style="display:none;background:#7c3aed" onclick="openTemplateAdmin()"><i class="ti ti-mail"></i> Manage templates</button>
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
           <option value="">All sources</option>
@@ -266,9 +273,11 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <div class="modal-backdrop" id="newClientBackdrop" onclick="if(event.target===this)closeNewClientForm()">
-  <div class="modal-card">
+  <div class="modal-card" style="max-width:420px;max-height:88vh;overflow-y:auto">
     <button class="modal-close-x" onclick="closeNewClientForm()"><i class="ti ti-x"></i></button>
     <div class="modal-title">New client</div>
+
+    <div class="form-section-label">Contact details</div>
     <div class="form-row"><div class="form-label">First name *</div>
       <input class="form-input" type="text" id="ncFirst">
     </div>
@@ -289,11 +298,59 @@ tr:last-child td{border-bottom:none}
         <option value="text">Text message</option>
       </select>
     </div>
+    <div class="form-row"><div class="form-label">Status</div>
+      <select class="form-select" id="ncStatus"></select>
+    </div>
+
+    <div class="form-section-label">Enquiry details (optional — fill in if they're asking about a booking)</div>
+    <div class="form-row"><div class="form-label">Game of interest</div>
+      <select class="form-select" id="ncGame">
+        <option value="">Any / not sure</option>
+      </select>
+    </div>
+    <div class="form-2col">
+      <div class="form-row"><div class="form-label">Preferred date</div><input class="form-input" type="date" id="ncDate"></div>
+      <div class="form-row"><div class="form-label">Players</div><input class="form-input" type="number" id="ncPlayers" min="1" max="30" placeholder="e.g. 4"></div>
+    </div>
+    <div class="form-row"><div class="form-label">Occasion</div>
+      <select class="form-select" id="ncOccasion">
+        <option value="">None / not specified</option>
+        <option value="Birthday">Birthday 🎂</option>
+        <option value="Team building">Team building 💼</option>
+        <option value="Date night">Date night 💑</option>
+        <option value="Family outing">Family outing 👨‍👩‍👧</option>
+        <option value="School group">School group 🎒</option>
+        <option value="Hen/Stag do">Hen/Stag do 🥂</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-row"><div class="form-label">Experience level</div>
+      <select class="form-select" id="ncExperience">
+        <option value="">Unknown</option>
+        <option value="First time">First time</option>
+        <option value="Beginner">Beginner (1–2 rooms)</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Experienced">Experienced</option>
+        <option value="Expert">Expert</option>
+      </select>
+    </div>
+    <div class="form-row"><div class="form-label">Notes</div>
+      <input class="form-input" type="text" id="ncDetail" placeholder="Anything else to note…">
+    </div>
+
     <div class="modal-error" id="ncError"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeNewClientForm()">Cancel</button>
       <button class="add-btn" onclick="submitNewClient()"><i class="ti ti-check"></i> Save client</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="templateAdminBackdrop" onclick="if(event.target===this)closeTemplateAdmin()">
+  <div class="modal-card" style="max-width:640px;max-height:88vh;overflow-y:auto">
+    <button class="modal-close-x" onclick="closeTemplateAdmin()"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Email templates</div>
+    <div id="tplAdminBody"></div>
   </div>
 </div>
 
@@ -337,7 +394,22 @@ tr:last-child td{border-bottom:none}
 // debug output used during diagnosis has now been removed.
 // v1.3.6 — Cleaned up: removed temporary debug alert/messages from v1.3.1–1.3.5
 // now that the underlying bugs are confirmed fixed.
-const BUILD_VERSION = '1.3.6';
+// v1.4.0 — First step of retiring enquiries.html: this file now covers
+// everything it did. "New client" modal gained optional enquiry-detail
+// fields (game/date/players/occasion/experience/notes) and a Status picker;
+// submitting with any of those fields logs a type='enquiry' interaction to
+// the client's thread, and now checks for an existing client by email/phone
+// before creating a duplicate. Added automatic reconciliation of abandoned
+// booking-widget drafts (game_bookings status='abandoned' with no client) on
+// every load: matches/creates the client, tags them "Incomplete booking",
+// and logs a type='abandoned_booking' interaction — client_id gets backfilled
+// onto the draft so it's never reprocessed. Added admin-only "Manage
+// templates" button/modal (create/edit/delete email templates), ported from
+// enquiries.html. Thread view now shows dedicated icons for enquiry (🔍) and
+// abandoned booking (🚪) entries. Requires the client_interactions.type
+// check constraint to include 'enquiry' and 'abandoned_booking' (SQL run
+// 26 Jul 2026).
+const BUILD_VERSION = '1.4.0';
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -385,6 +457,8 @@ let statusList=[]; // from settings.btb_statuses — [{id,label,emoji}]
 let statusFilter='all'; // a status id, or 'all'
 let activeClientId=null;
 let replyState={}; // {templateId, subject, body} for whichever panel is open
+let games=[]; // from settings.btb_games — used to populate the enquiry "game of interest" dropdown
+let tplAdminOpen=false;
 
 async function loadStatusList(){
   try{
@@ -395,6 +469,13 @@ async function loadStatusList(){
 }
 function statusMeta(id){
   return statusList.find(s=>s.id===id)||{id,label:id||'No contact yet',emoji:'⚪'};
+}
+async function loadGames(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games&select=value`,{headers:H()});
+    const rows=await r.json();
+    games=rows[0]?JSON.parse(rows[0].value):[];
+  }catch(e){console.error('Games load:',e);games=[]}
 }
 
 async function loadInteractions(){
@@ -422,6 +503,64 @@ async function loadOpenEnquiries(){
     openEnquiriesByClient={};
     rows.forEach(row=>{if(row.client_id)openEnquiriesByClient[row.client_id]=true});
   }catch(e){console.error('Open enquiries load:',e)}
+}
+
+// ABANDONED BOOKING-WIDGET DRAFTS ───────────────────────────────
+// Someone started the public booking widget, entered contact details, then
+// left without finishing. booking_widget.html saves these as a game_bookings
+// row (status='abandoned', client_id=null, contact info packed into
+// notes_when_booked) via a best-effort request on page unload — there's no
+// time to do a proper client lookup/create round trip at that moment.
+// On every load here, we pick up any that haven't been linked yet, match or
+// create the client, tag them "Incomplete booking", and log it to their
+// thread — same treatment enquiries.html used to give them, but permanent
+// (client_id gets backfilled onto the draft so it's never reprocessed).
+function parseAbandonedDraft(row){
+  const notes=row.notes_when_booked||'';
+  const emailMatch=notes.match(/\S+@\S+\.\S+/);
+  const phoneMatch=notes.match(/(\+?\d[\d \-]{6,}\d)/);
+  const name=notes.split('·')[0]?.trim()||'Unknown';
+  const [first,...rest]=name.split(' ');
+  return{
+    first:first||'Unknown',last:rest.join(' ')||null,
+    email:emailMatch?emailMatch[0]:null,phone:phoneMatch?phoneMatch[0]:null,
+  };
+}
+async function reconcileAbandonedDrafts(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?status=eq.abandoned&client_id=is.null&select=*`,{headers:H()});
+    const drafts=await r.json();
+    for(const row of drafts){
+      const info=parseAbandonedDraft(row);
+      if(!info.email&&!info.phone)continue; // not enough to match or create on
+      let clientId=null;
+      const qParam=info.email?`email=eq.${encodeURIComponent(info.email)}`:`phone=eq.${encodeURIComponent(info.phone)}`;
+      const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id,status`,{headers:H()});
+      const existing=await cr.json();
+      if(existing.length>0){
+        clientId=existing[0].id;
+        // Don't downgrade a client who's already progressed further (e.g. booked/complete) —
+        // only tag as "Incomplete booking" if they hadn't been contacted about anything yet.
+        if(existing[0].status==='no_contact'||!existing[0].status){
+          await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'incomplete_booking'})});
+        }
+      }else{
+        const nr=await fetch(`${SB_URL}/rest/v1/clients`,{
+          method:'POST',headers:{...H(),'Prefer':'return=representation'},
+          body:JSON.stringify({first_name:info.first,last_name:info.last,email:info.email,phone:info.phone,source:'online',status:'incomplete_booking'})
+        });
+        const nc=await nr.json();clientId=nc[0]?.id;
+      }
+      if(!clientId)continue;
+      // Backfill so this draft is never picked up again
+      await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${row.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({client_id:clientId})});
+      const summary=`Abandoned booking: ${row.game_name||'a game'}${row.players_booked?` for ${row.players_booked} players`:''}${row.booking_date?` on ${row.booking_date}`:''}${row.occasion?` (${row.occasion})`:''} — started but didn't finish.`;
+      await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+        method:'POST',headers:H(),
+        body:JSON.stringify({client_id:clientId,type:'abandoned_booking',direction:'inbound',content:summary,to_do:true,to_do_done:false})
+      });
+    }
+  }catch(e){console.error('Abandoned draft reconciliation:',e)}
 }
 
 function buildClientGroups(){
@@ -520,6 +659,13 @@ function openNewClientForm(){
   document.getElementById('ncEmail').value='';
   document.getElementById('ncPhone').value='';
   document.getElementById('ncSource').value='staff';
+  document.getElementById('ncStatus').innerHTML=statusList.map(s=>`<option value="${s.id}" ${s.id==='no_contact'?'selected':''}>${s.emoji||''} ${escapeHtml(s.label)}</option>`).join('');
+  document.getElementById('ncGame').innerHTML='<option value="">Any / not sure</option>'+games.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
+  document.getElementById('ncDate').value='';
+  document.getElementById('ncPlayers').value='';
+  document.getElementById('ncOccasion').value='';
+  document.getElementById('ncExperience').value='';
+  document.getElementById('ncDetail').value='';
   document.getElementById('ncError').textContent='';
   document.getElementById('newClientBackdrop').classList.add('open');
   setTimeout(()=>document.getElementById('ncFirst').focus(),50);
@@ -533,23 +679,49 @@ async function submitNewClient(){
   const email=document.getElementById('ncEmail').value.trim().toLowerCase();
   const phone=document.getElementById('ncPhone').value.trim();
   const source=document.getElementById('ncSource').value;
+  const status=document.getElementById('ncStatus').value;
+  const gameId=document.getElementById('ncGame').value;
+  const gameName=gameId?(games.find(g=>g.id===gameId)?.name||''):'';
+  const date=document.getElementById('ncDate').value;
+  const players=parseInt(document.getElementById('ncPlayers').value)||null;
+  const occasion=document.getElementById('ncOccasion').value;
+  const experience=document.getElementById('ncExperience').value;
+  const detail=document.getElementById('ncDetail').value.trim();
   const errEl=document.getElementById('ncError');
   errEl.textContent='';
   if(!first){errEl.textContent='First name is required.';document.getElementById('ncFirst').focus();return}
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/clients`,{
-      method:'POST',headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify({
-        first_name:first,last_name:last||null,
-        email:email||null,phone:phone||null,
-        source,
-      })
-    });
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Save failed')}
-    const rows=await r.json();
-    const newClientId=rows[0]?.id;
+    // Match an existing client by email/phone first, so logging an enquiry
+    // for someone already in the system doesn't create a duplicate record.
+    let newClientId=null;
+    if(email||phone){
+      const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
+      const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
+      const existing=await cr.json();
+      if(existing.length>0)newClientId=existing[0].id;
+    }
+    if(newClientId){
+      await fetch(`${SB_URL}/rest/v1/clients?id=eq.${newClientId}`,{method:'PATCH',headers:H(),body:JSON.stringify({status})});
+    }else{
+      const r=await fetch(`${SB_URL}/rest/v1/clients`,{
+        method:'POST',headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify({first_name:first,last_name:last||null,email:email||null,phone:phone||null,source,status})
+      });
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Save failed')}
+      const rows=await r.json();
+      newClientId=rows[0]?.id;
+    }
+    // If any enquiry details were filled in, log it to the thread so it's
+    // visible in their history — same summary format enquiries.html used.
+    if(newClientId&&(gameId||date||players||occasion||experience||detail)){
+      const summary=`New enquiry: ${gameName||'Any game'}${players?` for ${players} players`:''}${date?` on ${date}`:''}${occasion?` (${occasion})`:''}${experience?` — experience: ${experience}`:''}${detail?' — '+detail:''}`;
+      await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+        method:'POST',headers:H(),
+        body:JSON.stringify({client_id:newClientId,staff_id:currentUser?.staffId||null,type:'enquiry',direction:'inbound',content:summary,to_do:true,to_do_done:false})
+      });
+    }
     closeNewClientForm();
-    await loadClients();buildClientGroups();
+    await loadClients();await loadInteractions();buildClientGroups();
     renderTable();
     if(newClientId)openPanel(newClientId);
   }catch(e){errEl.textContent='Error: '+e.message}
@@ -600,7 +772,7 @@ function renderPanel(){
   const ordered=[...g.interactions].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
   document.getElementById('panelMessages').innerHTML=ordered.map(i=>{
     const who=i.direction==='inbound'?escapeHtml(name):'Beyond the Box';
-    const typeIcon={email:'✉️',phone:'📞',note:'📝',text:'💬',other:'•'}[i.type]||'•';
+    const typeIcon={email:'✉️',phone:'📞',note:'📝',text:'💬',other:'•',enquiry:'🔍',abandoned_booking:'🚪'}[i.type]||'•';
     return `<div class="thread-msg ${i.direction}">
       <div class="thread-msg-hdr">
         <div class="thread-msg-who">${typeIcon} ${who}</div>
@@ -661,6 +833,97 @@ async function sendReply(){
   }catch(err){
     if(msgEl){msgEl.textContent='Error: '+err.message;msgEl.style.color='#dc2626'}
   }
+}
+
+// EMAIL TEMPLATE MANAGEMENT (ported from enquiries.html) — admin only
+function openTemplateAdmin(){
+  tplAdminOpen=true;
+  renderTemplateAdmin();
+  document.getElementById('templateAdminBackdrop').classList.add('open');
+}
+function closeTemplateAdmin(){
+  tplAdminOpen=false;
+  document.getElementById('templateAdminBackdrop').classList.remove('open');
+}
+function renderTemplateAdmin(){
+  const body=document.getElementById('tplAdminBody');
+  const existing=enquiryTemplates.map(t=>`
+    <div class="tpl-card">
+      <div class="form-2col">
+        <div class="form-row"><div class="form-label">Name</div><input class="form-input" id="tplName_${t.id}" value="${escapeHtml(t.name)}"></div>
+        <div class="form-row"><div class="form-label">Subject</div><input class="form-input" id="tplSubject_${t.id}" value="${escapeHtml(t.subject)}"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><div class="form-label">From name</div><input class="form-input" id="tplFromName_${t.id}" value="${escapeHtml(t.from_name)}"></div>
+        <div class="form-row"><div class="form-label">From email</div><input class="form-input" id="tplFromEmail_${t.id}" value="${escapeHtml(t.from_email)}"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Body (use {{first_name}} for the client's first name)</div>
+        <textarea class="form-input" id="tplBody_${t.id}" rows="6">${escapeHtml(t.body)}</textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="add-btn" onclick="saveTemplate('${t.id}')">Save</button>
+        <button class="add-btn" style="background:#dc2626" onclick="deleteTemplate('${t.id}')">Delete</button>
+        <span class="tpl-msg" id="tplMsg_${t.id}"></span>
+      </div>
+    </div>`).join('');
+  body.innerHTML=`
+    ${existing||'<div style="font-size:13px;color:#6b7280;margin-bottom:10px">No templates yet.</div>'}
+    <div class="tpl-card" style="border-style:dashed">
+      <div class="form-title" style="font-size:13px;margin-bottom:8px">Add new template</div>
+      <div class="form-2col">
+        <div class="form-row"><div class="form-label">Name</div><input class="form-input" id="tplNewName" placeholder="e.g. Board Games Info"></div>
+        <div class="form-row"><div class="form-label">Subject</div><input class="form-input" id="tplNewSubject" placeholder="Subject line"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><div class="form-label">From name</div><input class="form-input" id="tplNewFromName" value="Beyond the Box"></div>
+        <div class="form-row"><div class="form-label">From email</div><input class="form-input" id="tplNewFromEmail" value="enquiries@mail.btbescaperooms.co.nz"></div>
+      </div>
+      <div class="form-row"><div class="form-label">Body (use {{first_name}} for the client's first name)</div>
+        <textarea class="form-input" id="tplNewBody" rows="6" placeholder="Hi {{first_name}}, ..."></textarea>
+      </div>
+      <button class="add-btn" onclick="createTemplate()">Create template</button>
+      <span class="tpl-msg" id="tplNewMsg"></span>
+    </div>`;
+}
+async function saveTemplate(id){
+  const msgEl=document.getElementById(`tplMsg_${id}`);
+  const t=enquiryTemplates.find(x=>x.id===id);
+  try{
+    await callEdgeFunction('save_enquiry_template',{
+      id,
+      name:document.getElementById(`tplName_${id}`).value.trim(),
+      subject:document.getElementById(`tplSubject_${id}`).value.trim(),
+      from_name:document.getElementById(`tplFromName_${id}`).value.trim(),
+      from_email:document.getElementById(`tplFromEmail_${id}`).value.trim(),
+      body:document.getElementById(`tplBody_${id}`).value,
+      active:true,sort_order:t?.sort_order??0,
+    },currentUser.token);
+    if(msgEl){msgEl.textContent='Saved ✓';msgEl.style.color='#059669'}
+    await loadEnquiryTemplates();
+  }catch(e){if(msgEl){msgEl.textContent='Error: '+e.message;msgEl.style.color='#dc2626'}}
+}
+async function deleteTemplate(id){
+  if(!confirm('Delete this template? This can\'t be undone.'))return;
+  try{
+    await callEdgeFunction('delete_enquiry_template',{id},currentUser.token);
+    await loadEnquiryTemplates();renderTemplateAdmin();
+  }catch(e){alert('Error: '+e.message)}
+}
+async function createTemplate(){
+  const msgEl=document.getElementById('tplNewMsg');
+  const name=document.getElementById('tplNewName').value.trim();
+  const subject=document.getElementById('tplNewSubject').value.trim();
+  if(!name||!subject){if(msgEl){msgEl.textContent='Name and subject required.';msgEl.style.color='#dc2626'}return}
+  try{
+    await callEdgeFunction('save_enquiry_template',{
+      name,subject,
+      from_name:document.getElementById('tplNewFromName').value.trim()||'Beyond the Box',
+      from_email:document.getElementById('tplNewFromEmail').value.trim()||'enquiries@mail.btbescaperooms.co.nz',
+      body:document.getElementById('tplNewBody').value,
+      active:true,sort_order:enquiryTemplates.length,
+    },currentUser.token);
+    await loadEnquiryTemplates();renderTemplateAdmin();
+  }catch(e){if(msgEl){msgEl.textContent='Error: '+e.message;msgEl.style.color='#dc2626'}}
 }
 
 async function markResolved(clientId){
@@ -732,7 +995,11 @@ async function refreshAuthToken() {
 }
 
 async function loadAppData(){
-  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadOpenEnquiries(),loadStatusList()]);
+  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadOpenEnquiries(),loadStatusList(),loadGames()]);
+  await reconcileAbandonedDrafts();
+  // Reconciliation may have created/updated clients and logged interactions,
+  // so refresh those two before building the table.
+  await Promise.all([loadClients(),loadInteractions()]);
   buildClientGroups();
   renderStatusChips();
 }
@@ -768,6 +1035,7 @@ function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='';
   document.getElementById('sidebarUser').textContent=currentUser.name;
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  const tplBtn=document.getElementById('tplAdminBtn');if(tplBtn)tplBtn.style.display=(currentUser.role==='admin')?'':'none';
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
