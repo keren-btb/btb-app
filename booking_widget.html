@@ -846,7 +846,12 @@ body{
 // CONFIG
 // ============================================================
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.0';
+const BUILD_VERSION = '1.7.1';
+// v1.7.1 — Restored auto-tagging that used to live in enquiries.html, moved
+// to where bookings actually get created: when occasion='Birthday', the
+// 'birthday' tag is now auto-stamped onto the booking's tags array on the
+// confirmed booking, the contact/enquiry form, and abandoned drafts — shows
+// as a pill on the calendar/booking card in btb_app.html with no manual step.
 // v1.7.0 — Both enquiry paths (quick VR/cafe/general popup, and the full
 // contact/enquiry form) now log every enquiry as a client_interactions
 // contact entry (needs reply), so it shows up immediately in
@@ -856,6 +861,18 @@ const BUILD_VERSION = '1.7.0';
 // everywhere else in this file.
 // v1.6.3 — NZ timezone fix: 'today' now always calculated in Pacific/Auckland time, not the visitor's device timezone
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// AUTO-TAGGING — occasion → settings.btb_tags id, stamped onto the booking's
+// `tags` array at creation so it shows as a pill on the calendar/booking card
+// in btb_app.html without staff having to add it manually. Currently only
+// Birthday maps to a tag ('birthday' — matches the fixed id in settings);
+// extend this map if more occasions get their own tag later.
+const OCCASION_TAG_MAP = { 'Birthday': 'birthday' };
+function autoTagsForOccasion(occasion) {
+  const tagId = OCCASION_TAG_MAP[occasion];
+  return tagId ? [tagId] : [];
+}
 
 // ============================================================
 // NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
@@ -2058,7 +2075,7 @@ async function submitBooking() {
       status:             'confirmed',
       source:             'online',
       assigned_staff_ids: JSON.stringify(avail.slice(0,1)),
-      tags:               JSON.stringify([]),
+      tags:               JSON.stringify(autoTagsForOccasion(occasion)),
       staff_notes:        JSON.stringify([]),
       notes_when_booked:  `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' ('+schoolAgeGroup+')' : ''}` : ''),
     };
@@ -2314,7 +2331,7 @@ async function submitContactEnquiry() {
         players_booked: players, occasion: occasion||null,
         status: 'enquiry', source: 'online',
         notes_when_booked: noteText,
-        tags: JSON.stringify([]), staff_notes: JSON.stringify([]), assigned_staff_ids: JSON.stringify([]),
+        tags: JSON.stringify(autoTagsForOccasion(occasion)), staff_notes: JSON.stringify([]), assigned_staff_ids: JSON.stringify([]),
       })
     });
     if (!r.ok) throw new Error(await r.text());
@@ -2387,7 +2404,7 @@ function saveAbandonedDraft() {
     status:        'abandoned',
     source:        'online',
     notes_when_booked: noteText,
-    tags:          JSON.stringify([]),
+    tags:          JSON.stringify(autoTagsForOccasion(occasion)),
     staff_notes:   JSON.stringify([]),
     assigned_staff_ids: JSON.stringify([]),
   };
