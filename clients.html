@@ -178,14 +178,16 @@ tr:last-child td{border-bottom:none}
     <span class="nav-item active"><i class="ti ti-table"></i> Clients</span>
     <a class="nav-item" href="enquiries.html"><i class="ti ti-users"></i> Enquiries (being retired)</a>
     <a class="nav-item" href="client_inbox.html"><i class="ti ti-inbox"></i> Clients (mobile)</a>
+
+    <div class="sidebar-section">Actions</div>
+    <span class="nav-item" onclick="openNewClientForm()"><i class="ti ti-user-plus"></i> New client</span>
+    <span class="nav-item" id="tplAdminBtn" style="display:none" onclick="openTemplateAdmin()"><i class="ti ti-mail"></i> Manage templates</span>
   </aside>
 
   <div class="main">
     <div class="topbar">
       <div class="topbar-title">Clients <span class="count" id="clientCount"></span></div>
       <div class="filters-row">
-        <button class="btn-newclient" onclick="openNewClientForm()"><i class="ti ti-user-plus"></i> New client</button>
-        <button class="btn-newclient" id="tplAdminBtn" style="display:none;background:#7c3aed" onclick="openTemplateAdmin()"><i class="ti ti-mail"></i> Manage templates</button>
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
           <option value="">All sources</option>
@@ -409,7 +411,9 @@ tr:last-child td{border-bottom:none}
 // abandoned booking (🚪) entries. Requires the client_interactions.type
 // check constraint to include 'enquiry' and 'abandoned_booking' (SQL run
 // 26 Jul 2026).
-const BUILD_VERSION = '1.4.0';
+// v1.4.1 — Moved "New client" and "Manage templates" out of the topbar and
+// into the sidebar under a new "Actions" section, per feedback.
+const BUILD_VERSION = '1.4.1';
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
