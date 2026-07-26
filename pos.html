@@ -318,6 +318,14 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 
 <!-- ════════════════════════════════════════════════
      MAIN APP
@@ -573,7 +581,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.3.2'; // v1.3.2: Single sign-on — session now stored in localStorage under a shared key ('btb_staff_session') instead of a per-app sessionStorage key, so logging in on one staff app logs you into all of them (same browser).
+const BUILD_VERSION = '1.3.3'; // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
 // NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
 // show app immediately from cached role and validate in background instead of blocking on it
