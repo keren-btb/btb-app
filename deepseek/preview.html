@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Preview — Beyond the Box</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* extra styles for the preview page */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 24px;
+    }
+    .preview-section {
+      background: var(--bg-card);
+      border: var(--ticket-border);
+      border-radius: var(--ticket-radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .preview-section h3 {
+      font-family: var(--head-font);
+      font-size: 18px;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      border-bottom: 2px dashed var(--border-color);
+      padding-bottom: 8px;
+    }
+    .preview-section .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .preview-section .row:last-child {
+      margin-bottom: 0;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      padding: 2px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    @media (max-width: 700px) {
+      .preview-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="vintage">
+
+<div class="theme-switcher" style="position:fixed;top:16px;right:16px;z-index:1000;">
+  <button class="theme-btn" data-theme="classic">🎫 Classic</button>
+  <button class="theme-btn" data-theme="light">☀️ Light</button>
+  <button class="theme-btn active" data-theme="vintage">🕰️ Vintage</button>
+</div>
+
+<div style="max-width:1000px;margin:80px auto 40px;padding:0 24px;">
+
+  <div style="text-align:center;margin-bottom:40px;">
+    <div class="barcode" style="max-width:400px;margin:0 auto 12px;"></div>
+    <h1 style="font-family:var(--head-font);font-size:42px;color:var(--text-primary);">🎟️ UI Component Library</h1>
+    <p style="color:var(--text-secondary);font-size:16px;">Live preview — tweak <code>styles.css</code> and refresh to see changes instantly.</p>
+    <div class="ticket-meta" style="max-width:400px;margin:12px auto 0;">
+      <span><strong>BEYOND THE BOX</strong> · Hastings</span>
+      <span>No. <strong>104729</strong></span>
+    </div>
+  </div>
+
+  <div class="preview-grid">
+
+    <!-- Typography -->
+    <div class="preview-section">
+      <h3>🔤 Typography</h3>
+      <div style="margin-bottom:12px;">
+        <div style="font-family:var(--head-font);font-size:28px;color:var(--text-primary);">Heading (Playfair / Garamond)</div>
+        <div style="font-family:var(--body-font);font-size:16px;color:var(--text-secondary);">Body (Inter / Lato) — the quick brown fox jumps over the lazy dog.</div>
+        <div style="font-family:var(--body-font);font-size:12px;color:var(--text-muted);">Muted text · 12px</div>
+        <div style="font-family:var(--head-font);font-size:14px;color:var(--accent);">Accent color · EB Garamond</div>
+        <span class="badge">Badge</span>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="preview-section">
+      <h3>🔘 Buttons</h3>
+      <div class="row">
+        <button class="btn btn-primary" style="width:auto;padding:12px 28px;">Primary</button>
+        <button class="btn btn-primary" style="width:auto;padding:12px 28px;" disabled>Disabled</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-ghost" style="width:auto;padding:12px 28px;">Ghost</button>
+        <button class="btn btn-enquiry" style="width:auto;padding:12px 28px;">Enquiry</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary btn-loading" style="width:auto;padding:12px 28px;">Loading</button>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="preview-section">
+      <h3>📦 Category Cards</h3>
+      <div class="cat-grid" style="gap:10px;">
+        <div class="cat-card" style="cursor:default;">
+          <div class="cat-emoji">🚪</div>
+          <div class="cat-body">
+            <div class="cat-title">Escape Rooms</div>
+            <div class="cat-sub">60 min sessions · puzzles & missions</div>
+          </div>
+          <div class="cat-arrow">›</div>
+        </div>
+        <div class="cat-card selected" style="cursor:default;">
+          <div class="cat-emoji">🥽</div>
+          <div class="cat-body">
+            <div class="cat-title">VR Experiences</div>
+            <div class="cat-sub">Immersive virtual reality</div>
+          </div>
+          <div class="cat-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Cards -->
+    <div class="preview-section">
+      <h3>🎮 Game Cards</h3>
+      <div class="game-list" style="gap:8px;">
+        <div class="game-card" style="cursor:default;">
+          <div class="game-icon">🔍</div>
+          <div class="game-info">
+            <div class="game-name">Sherlock</div>
+            <div class="game-meta">60 min</div>
+            <div class="game-price">$35–$50 per person</div>
+          </div>
+          <div class="game-chevron">›</div>
+        </div>
+        <div class="game-card selected" style="cursor:default;">
+          <div class="game-icon">🎄</div>
+          <div class="game-info">
+            <div class="game-name">Saving Christmas</div>
+            <div class="game-meta">60 min</div>
+            <div class="game-price">$35–$50 per person</div>
+          </div>
+          <div class="game-chevron">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date Chips -->
+    <div class="preview-section">
+      <h3>📅 Date Chips</h3>
+      <div class="date-strip" style="gap:8px;">
+        <div class="date-chip selected">
+          <div class="dc-day">Mon</div>
+          <div class="dc-num">12</div>
+          <div class="dc-mon">Jun</div>
+        </div>
+        <div class="date-chip">
+          <div class="dc-day">Tue</div>
+          <div class="dc-num">13</div>
+          <div class="dc-mon">Jun</div>
+        </div>
+        <div class="date-chip no-avail">
+          <div class="dc-day">Wed</div>
+          <div class="dc-num">14</div>
+          <div class="dc-mon">Jun</div>
+        </div>
+        <div class="date-chip">
+          <div class="dc-day">Thu</div>
+          <div class="dc-num">15</div>
+          <div class="dc-mon">Jun</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slots -->
+    <div class="preview-section">
+      <h3>🕐 Slots</h3>
+      <div class="slot-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+      </div>
+      <div class="slot-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="slot-btn available"><div class="slot-time">10:30 AM</div><div class="slot-status">Available</div></div>
+        <div class="slot-btn selected"><div class="slot-time">12:00 PM</div><div class="slot-status">Selected</div></div>
+        <div class="slot-btn call"><div class="slot-time">1:30 PM</div><div class="slot-status">📞 Call us</div></div>
+        <div class="slot-btn booked"><div class="slot-time">3:00 PM</div><div class="slot-status">Full</div></div>
+        <div class="slot-btn past"><div class="slot-time">4:30 PM</div><div class="slot-status">Past</div></div>
+      </div>
+    </div>
+
+    <!-- Form Elements -->
+    <div class="preview-section">
+      <h3>📝 Form Elements</h3>
+      <div class="field">
+        <div class="field-label">Text input <span class="req">*</span></div>
+        <input class="field-input" type="text" placeholder="Sarah" value="Sarah">
+      </div>
+      <div class="field-row" style="margin-bottom:12px;">
+        <div class="field">
+          <div class="field-label">First name</div>
+          <input class="field-input" type="text" placeholder="Sarah">
+        </div>
+        <div class="field">
+          <div class="field-label">Last name</div>
+          <input class="field-input" type="text" placeholder="Robinson">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Select dropdown</div>
+        <select class="field-select">
+          <option>Option one</option>
+          <option selected>Option two</option>
+          <option>Option three</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Radios & Checkboxes -->
+    <div class="preview-section">
+      <h3>🔘 Radios & Checkboxes</h3>
+      <div class="radio-group" style="margin-bottom:12px;">
+        <div class="radio-opt selected">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Yes!</span>
+        </div>
+        <div class="radio-opt">
+          <div class="radio-dot"></div>
+          <span class="radio-label">First time</span>
+        </div>
+      </div>
+      <div class="exp-opt selected">
+        <div class="exp-check"></div>
+        <div class="exp-body">
+          <div class="exp-label-row">
+            <span class="exp-label">Birthday package</span>
+            <span class="exp-price">+$25</span>
+          </div>
+          <div class="exp-desc">Balloons, cake and a personalised greeting</div>
+        </div>
+      </div>
+      <div class="exp-opt" style="margin-top:8px;">
+        <div class="exp-check"></div>
+        <div class="exp-body">
+          <div class="exp-label-row">
+            <span class="exp-label">Photo package</span>
+            <span class="exp-price">+$15</span>
+          </div>
+          <div class="exp-desc">Digital photos of your session</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Box -->
+    <div class="preview-section">
+      <h3>💰 Price Box</h3>
+      <div class="price-box">
+        <div class="price-row"><span class="price-lbl">Sherlock</span><span class="price-val">$35 per person × 2</span></div>
+        <div class="price-row"><span class="price-lbl">Birthday package</span><span class="price-val">+$25</span></div>
+        <div class="price-divider"></div>
+        <div class="price-row"><span class="price-total-lbl">Total</span><span class="price-total-val">$95 NZD</span></div>
+        <div class="deposit-note"><strong>💳 Deposit to secure your booking: $35</strong>We'll be in touch shortly after you confirm with payment details.</div>
+      </div>
+    </div>
+
+    <!-- Summary Bar -->
+    <div class="preview-section">
+      <h3>📋 Summary Bar</h3>
+      <div class="summary-bar">
+        <div class="summary-icon">🚪</div>
+        <div style="flex:1;min-width:0;">
+          <div class="summary-game">Sherlock</div>
+          <div class="summary-detail">Mon 12 Jun · 10:30 AM</div>
+        </div>
+        <div class="summary-change">Change</div>
+      </div>
+    </div>
+
+    <!-- Confirmation Card -->
+    <div class="preview-section">
+      <h3>✅ Confirmation Card</h3>
+      <div class="confirm-card">
+        <div class="confirm-row"><span class="confirm-lbl">Game</span><span class="confirm-val">🔍 Sherlock</span></div>
+        <div class="confirm-row"><span class="confirm-lbl">Date</span><span class="confirm-val">Mon 12 Jun 2026</span></div>
+        <div class="confirm-row"><span class="confirm-lbl">Time</span><span class="confirm-val">10:30 AM</span></div>
+        <div class="confirm-row"><span class="confirm-lbl">Players</span><span class="confirm-val">2</span></div>
+        <div class="confirm-row"><span class="confirm-lbl">Name</span><span class="confirm-val">Sarah Robinson</span></div>
+        <div class="confirm-row"><span class="confirm-lbl">Total</span><span class="confirm-val">$95 NZD</span></div>
+      </div>
+    </div>
+
+  </div><!-- /preview-grid -->
+
+  <!-- Footer barcode -->
+  <div class="barcode" style="margin-top:48px;"></div>
+  <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:12px;font-weight:700;">
+    <span class="admit-one">ADMIT ONE</span> · UI Preview — edit <code>styles.css</code> to see changes
+  </div>
+
+</div>
+
+<script>
+  // Theme switcher for the preview page
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const theme = this.dataset.theme;
+      document.body.dataset.theme = theme;
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
