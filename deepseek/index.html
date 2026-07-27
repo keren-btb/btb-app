@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book Now — Beyond the Box (Concert Ticket)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-theme="vintage">
@@ -19,9 +19,8 @@
 
 <div class="split">
 
-  <!-- LEFT PANEL (Ticket Stub) -->
+  <!-- LEFT PANEL (hidden on mobile, acts as stub on desktop) -->
   <aside class="lcol">
-    <!-- This panel is hidden on mobile, but acts as the stub on desktop -->
     <div class="lc-brand">
       <div class="lc-eye">Hastings, New Zealand</div>
       <div class="lc-title">BOOK YOUR <span>ADVENTURE</span></div>
@@ -106,7 +105,7 @@
         </div>
 
         <!-- ========================================================== -->
-        <!-- ====== CONCERT TICKET WRAPPER ====== -->
+        <!-- ====== CONCERT TICKET WRAPPER ============================= -->
         <!-- ========================================================== -->
         <div class="ticket-wrapper">
 
@@ -115,90 +114,90 @@
             <div class="stub-teal-stripe"></div>
             <div class="stub-content">
               <div class="stub-event-code">EVENT CODE</div>
-              <div class="stub-title" id="stubTitle">ESCAPE</div>
+              <div class="stub-title">BtB</div>
               <div class="stub-details">
-                <div class="stub-row"><label>SECTION/AISLE</label><span id="stubSection">101</span></div>
-                <div class="stub-row"><label>ROW</label><span id="stubRow">6</span></div>
-                <div class="stub-row"><label>SEAT</label><span id="stubSeat">20</span></div>
+                <div class="stub-row"><label>SECTION/AISLE</label><span>101</span></div>
+                <div class="stub-row"><label>ROW</label><span>6</span></div>
+                <div class="stub-row"><label>SEAT</label><span>20</span></div>
               </div>
-              <div class="stub-date" id="stubDate">06/10/23</div>
+              <div class="stub-date" id="stubDate">27-Jul-26</div>
             </div>
           </div>
 
           <!-- MAIN TICKET (right side) -->
           <div class="ticket-main">
-            <!-- Top header -->
             <div class="main-header">
               <span>EVENT CODE</span>
-              <span id="mainEventCode">BDAY</span>
+              <span>BtB</span>
             </div>
 
-            <!-- Large event name -->
-            <div class="main-title" id="mainTitle">TAYLOR SWIFT</div>
-            <div class="main-asterisks">* * * * * *</div>
-            <div class="main-sub" id="mainSub">ALL AGES</div>
+            <!-- ===== SVG PLACEHOLDER: Replace this div with your inline SVG for "BEYOND THE BOX" ===== -->
+            <div class="main-title" id="mainTitle">BEYOND THE BOX</div>
+
             <div class="main-asterisks">* * * * * *</div>
 
-            <!-- Event details -->
-            <div class="main-details" id="mainDetails">
+            <!-- ===== SVG PLACEHOLDER: Replace this div with your inline SVG for "ESCAPE ROOMS" ===== -->
+            <div class="main-sub" id="mainSub">ESCAPE ROOMS</div>
+
+            <div class="main-asterisks">* * * * * *</div>
+
+            <div class="main-details">
               <p>LIVE AT BEYOND THE BOX</p>
-              <p>HASTINGS, NEW ZEALAND</p>
-              <p id="mainDateTime">SAT JUNE 10 2023 8:00PM</p>
+              <p>105 Market St NORTH</p>
+              <p>Hastings, NZ</p>
             </div>
 
-            <!-- Seat / Booking highlights -->
-            <div class="main-seats">
-              <div class="seat-box"><span id="seatDate">DATE</span> <span class="seat-chevron">›</span></div>
-              <div class="seat-box"><span id="seatTime">TIME</span> <span class="seat-chevron">›</span></div>
-              <div class="seat-box"><span id="seatPlayers">2 PLAYERS</span> <span class="seat-chevron">›</span></div>
-            </div>
-
-            <!-- Vertical barcode -->
+            <!-- Vertical barcode with horizontal stripes -->
             <div class="barcode-vertical"></div>
-          </div>
 
-          <!-- ====== SCREENS ====== -->
-          <!-- (Hidden by default, shown by JS) -->
+            <div class="main-seats">
+              <div class="seat-box"><span>DATE <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
+              <div class="seat-box"><span>TIME <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
+              <div class="seat-box"><span>PLAYERS <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
+            </div>
+
+          </div>
+          <!-- /ticket-main -->
+
+          <!-- ====== SCREENS (hidden by default, shown by JS) ====== -->
           <div style="display:contents;">
 
             <!-- SCREEN 1: CATEGORY -->
             <div class="screen active" id="s1">
               <div class="sec-label">Step 1</div>
-              <div class="sec-title">What would you like to do?</div>
-              <div class="sec-sub">Choose your experience below.</div>
-              <div class="cat-grid">
-                <div class="cat-card" onclick="selectCategory('escape')">
-                  <div class="cat-emoji">🚪</div>
-                  <div class="cat-body">
-                    <div class="cat-title">Escape Rooms</div>
-                    <div class="cat-sub">Work together to solve puzzles and complete your mission before time runs out. 60 min sessions.</div>
-                  </div>
-                  <div class="cat-arrow">›</div>
+              <!-- Removed "What would you like to do?" and "Choose your experience..." -->
+              <div class="step-divider"></div>
+
+              <div class="cat-circles">
+
+                <!-- Escape Rooms -->
+                <div class="cat-circle" onclick="toggleTooltip(this)">
+                  <div class="circle">🚪</div>
+                  <div class="cat-title">Escape Rooms</div>
+                  <div class="tooltip">Solve puzzles &amp; complete your mission before time runs out. 60 min sessions.</div>
                 </div>
-                <div class="cat-card" onclick="selectCategory('vr')">
-                  <div class="cat-emoji">🥽</div>
-                  <div class="cat-body">
-                    <div class="cat-title">VR Experiences</div>
-                    <div class="cat-sub">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
-                  </div>
-                  <div class="cat-arrow">›</div>
+
+                <!-- VR -->
+                <div class="cat-circle" onclick="toggleTooltip(this)">
+                  <div class="circle">🥽</div>
+                  <div class="cat-title">VR Experiences</div>
+                  <div class="tooltip">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
                 </div>
-                <div class="cat-card" onclick="selectCategory('cafe')">
-                  <div class="cat-emoji">☕</div>
-                  <div class="cat-body">
-                    <div class="cat-title">Board Game Cafe</div>
-                    <div class="cat-sub">Hire a table, choose from our game library, and enjoy food and drinks with your group.</div>
-                  </div>
-                  <div class="cat-arrow">›</div>
+
+                <!-- Cafe -->
+                <div class="cat-circle" onclick="toggleTooltip(this)">
+                  <div class="circle">☕</div>
+                  <div class="cat-title">Board Game Cafe</div>
+                  <div class="tooltip">Hire a table, choose from our game library, and enjoy food &amp; drinks with your group.</div>
                 </div>
-                <div class="cat-card" onclick="selectCategory('enquiry')" style="border-color:rgba(139,92,246,0.3)">
-                  <div class="cat-emoji">💬</div>
-                  <div class="cat-body">
-                    <div class="cat-title">Contact Us</div>
-                    <div class="cat-sub">Got a question, need a custom booking, or want to discuss group rates? Send us a message.</div>
-                  </div>
-                  <div class="cat-arrow">›</div>
+
+                <!-- Contact -->
+                <div class="cat-circle" onclick="toggleTooltip(this)">
+                  <div class="circle">💬</div>
+                  <div class="cat-title">Contact Us</div>
+                  <div class="tooltip">Got a question, custom booking, or group rates? Send us a message.</div>
                 </div>
+
               </div>
             </div>
 
@@ -519,13 +518,20 @@
               <button class="btn btn-ghost" onclick="goTo('s1',1)">← Back</button>
             </div>
 
-          </div><!-- /screens wrapper -->
-        </div><!-- /ticket-wrapper -->
+          </div>
+          <!-- /screens wrapper -->
 
-      </div><!-- /page -->
-    </div><!-- /rinner -->
-  </div><!-- /rcol -->
-</div><!-- /split -->
+        </div>
+        <!-- /ticket-wrapper -->
+
+      </div>
+      <!-- /page -->
+    </div>
+    <!-- /rinner -->
+  </div>
+  <!-- /rcol -->
+</div>
+<!-- /split -->
 
 <!-- ENQUIRY OVERLAY -->
 <div class="enq-overlay" id="enqOverlay">
