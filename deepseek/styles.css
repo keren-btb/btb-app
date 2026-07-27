@@ -47,7 +47,7 @@ body {
 .split {
   display: flex;
   min-height: 100vh;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   padding: 20px;
 }
@@ -213,7 +213,8 @@ body {
   margin-bottom: 2px;
 }
 
-.main-title svg {
+.main-title svg,
+.main-title img {
   max-width: 100%;
   height: auto;
   display: block;
@@ -1776,11 +1777,13 @@ body {
 }
 /* SVG sizing */
 .main-title {
-  height: 150px;
+  max-height: 150px;
   overflow: hidden;
   margin: 20px 0;
 }
 
-.main-title object {
-  height: 150px !important;
+.main-title img {
+  width: 100%;
+  height: auto;
+  max-height: 150px;
 }

@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.4'; // v1.6.4: screens moved outside ticket-wrapper so ticket floats above flat step content
+const BUILD_VERSION = '1.6.5'; // v1.6.5: swapped SVG <object> for <img> (fixed resize flicker), sidebar now stretches full height, top-aligned
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
