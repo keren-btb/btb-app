@@ -86,10 +86,11 @@ body {
   transition: transform 0.3s ease;
   overflow: hidden;
   position: relative;
-  min-height: 320px;
+  min-height: 200px;
   flex-wrap: wrap;
   margin-bottom: 32px;
 }
+
 
 .ticket-wrapper:hover {
   transform: perspective(1500px) rotateY(-1deg) rotateX(0.5deg);
@@ -1777,13 +1778,13 @@ body {
 }
 /* SVG sizing */
 .main-title {
-  max-height: 150px;
+  max-height: 70px;
   overflow: hidden;
-  margin: 20px 0;
+  margin: 8px 0;
 }
 
 .main-title img {
-  width: 100%;
+  width: 55%;
   height: auto;
-  max-height: 150px;
+  max-height: 70px;
 }
