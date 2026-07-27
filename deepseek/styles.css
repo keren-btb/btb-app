@@ -1,6 +1,12 @@
 /* ============================================================
    styles.css — Concert Ticket Theme with Teal Accents
    ============================================================ */
+@font-face {
+  font-family: "A Space Heavy Demo";
+  src: url("A-Space Heavy Demo.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
 
 *,
 *::before,
@@ -229,6 +235,7 @@ body {
 }
 
 .main-sub {
+  font-family: 'A Space Heavy Demo', sans-serif;
   font-size: 16px;
   font-weight: 800;
   color: var(--text-secondary);
@@ -1809,7 +1816,7 @@ body {
 .main-title {
   max-height: 70px;
   overflow: hidden;
-  margin: 0;
+  margin: 0 0 6px 0;
 }
 
 .main-title img {

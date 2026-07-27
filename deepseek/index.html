@@ -6,7 +6,7 @@
   <title>Book Now — Beyond the Box</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1.6.8">
+<link rel="stylesheet" href="styles.css?v=1.7.0">
 </head>
 <body>
 
@@ -73,7 +73,7 @@
 
             <!-- ===== SVG for "BEYOND THE BOX" ===== -->
             <div class="main-title" id="mainTitle" role="img" aria-label="BEYOND THE BOX">
-<img src="beyond-the-box.svg?v=1.6.5" alt="BEYOND THE BOX" style="height: auto; display: block;">
+<img src="beyond-the-box.svg?v=1.7.2" alt="BEYOND THE BOX" style="height: auto; display: block;">
             </div>
 
             <div class="main-asterisks">* * * * * *</div>
@@ -93,9 +93,9 @@
             <div class="barcode-vertical"></div>
 
             <div class="main-seats">
-              <div class="seat-box"><span>DATE <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
-              <div class="seat-box"><span>TIME <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
-              <div class="seat-box"><span>PLAYERS <span class="tbc-small">– TBC</span></span> <span class="seat-chevron">›</span></div>
+              <div class="seat-box"><span>DATE <span class="tbc-small">– TBC</span></span></div>
+              <div class="seat-box"><span>TIME <span class="tbc-small">– TBC</span></span></div>
+              <div class="seat-box"><span>PLAYERS <span class="tbc-small">– TBC</span></span></div>
             </div>
 
           </div>
@@ -515,14 +515,12 @@
 <script src="script.js?v=1.6.6"></script>
 
 <script>
-  var mt = document.getElementById('mainTitle');
-  var styleSheetHref = document.querySelector('link[rel="stylesheet"]').href;
-  console.log('DEBUG stylesheet loaded from:', styleSheetHref);
-  console.log('DEBUG main-title justify-content:', getComputedStyle(mt).justifyContent);
+  console.log('DEBUG stylesheet URL:', document.querySelector('link[href*="styles.css"]').href);
+  console.log('DEBUG script.js URL:', document.querySelector('script[src*="script.js"]').src);
+  document.querySelectorAll('img').forEach(function(img) {
+    console.log('DEBUG image URL:', img.src);
+  });
 </script>
-
-</body>
-</html>
 
 </body>
 </html>
