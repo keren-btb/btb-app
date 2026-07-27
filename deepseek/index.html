@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book Now — Beyond the Box (Vintage Ticket)</title>
+  <title>Book Now — Beyond the Box (Concert Ticket)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-theme="vintage">
@@ -14,13 +14,14 @@
 <div class="theme-switcher">
   <button class="theme-btn" data-theme="classic">🎫 Classic</button>
   <button class="theme-btn" data-theme="light">☀️ Light</button>
-  <button class="theme-btn active" data-theme="vintage">🕰️ Vintage</button>
+  <button class="theme-btn active" data-theme="vintage">🎟️ Concert</button>
 </div>
 
 <div class="split">
 
   <!-- LEFT PANEL (Ticket Stub) -->
   <aside class="lcol">
+    <!-- This panel is hidden on mobile, but acts as the stub on desktop -->
     <div class="lc-brand">
       <div class="lc-eye">Hastings, New Zealand</div>
       <div class="lc-title">BOOK YOUR <span>ADVENTURE</span></div>
@@ -74,13 +75,6 @@
     <div class="rinner">
       <div class="page">
 
-        <!-- Barcode & Ticket Meta -->
-        <div class="barcode"></div>
-        <div class="ticket-meta">
-          <span><strong>🎟️ BEYOND THE BOX</strong> · Hastings</span>
-          <span>No. <strong>104729</strong></span>
-        </div>
-
         <!-- mobile header -->
         <div class="hdr">
           <div class="hdr-eyebrow">Hastings, New Zealand</div>
@@ -111,367 +105,422 @@
           </div>
         </div>
 
-        <!-- ====== SCREENS ====== -->
-        <!-- SCREEN 1: CATEGORY -->
-        <div class="screen active" id="s1">
-          <div class="sec-label">Step 1</div>
-          <div class="sec-title">What would you like to do?</div>
-          <div class="sec-sub">Choose your experience below.</div>
-          <div class="cat-grid">
-            <div class="cat-card" onclick="selectCategory('escape')">
-              <div class="cat-emoji">🚪</div>
-              <div class="cat-body">
-                <div class="cat-title">Escape Rooms</div>
-                <div class="cat-sub">Work together to solve puzzles and complete your mission before time runs out. 60 min sessions.</div>
-              </div>
-              <div class="cat-arrow">›</div>
-            </div>
-            <div class="cat-card" onclick="selectCategory('vr')">
-              <div class="cat-emoji">🥽</div>
-              <div class="cat-body">
-                <div class="cat-title">VR Experiences</div>
-                <div class="cat-sub">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
-              </div>
-              <div class="cat-arrow">›</div>
-            </div>
-            <div class="cat-card" onclick="selectCategory('cafe')">
-              <div class="cat-emoji">☕</div>
-              <div class="cat-body">
-                <div class="cat-title">Board Game Cafe</div>
-                <div class="cat-sub">Hire a table, choose from our game library, and enjoy food and drinks with your group.</div>
-              </div>
-              <div class="cat-arrow">›</div>
-            </div>
-            <div class="cat-card" onclick="selectCategory('enquiry')" style="border-color:rgba(139,92,246,0.3)">
-              <div class="cat-emoji">💬</div>
-              <div class="cat-body">
-                <div class="cat-title">Contact Us</div>
-                <div class="cat-sub">Got a question, need a custom booking, or want to discuss group rates? Send us a message.</div>
-              </div>
-              <div class="cat-arrow">›</div>
-            </div>
-          </div>
-        </div>
+        <!-- ========================================================== -->
+        <!-- ====== CONCERT TICKET WRAPPER ====== -->
+        <!-- ========================================================== -->
+        <div class="ticket-wrapper">
 
-        <!-- SCREEN 2: ESCAPE -->
-        <div class="screen" id="s2-escape">
-          <div class="back-link" onclick="goTo('s1',1)">← Back</div>
-          <div class="sec-label">Escape Rooms</div>
-          <div class="sec-title">Browse by game or by date</div>
-          <div class="view-toggle">
-            <div class="view-opt active" id="vog" onclick="setEscapeView('game')">
-              <div class="view-opt-icon">🚪</div>
-              <div class="view-opt-label">By Game</div>
-              <div class="view-opt-sub">Choose room first</div>
-            </div>
-            <div class="view-opt" id="vod" onclick="setEscapeView('date')">
-              <div class="view-opt-icon">📅</div>
-              <div class="view-opt-label">By Date</div>
-              <div class="view-opt-sub">See all slots</div>
+          <!-- STUB (left side) -->
+          <div class="ticket-stub">
+            <div class="stub-teal-stripe"></div>
+            <div class="stub-content">
+              <div class="stub-event-code">EVENT CODE</div>
+              <div class="stub-title" id="stubTitle">ESCAPE</div>
+              <div class="stub-details">
+                <div class="stub-row"><label>SECTION/AISLE</label><span id="stubSection">101</span></div>
+                <div class="stub-row"><label>ROW</label><span id="stubRow">6</span></div>
+                <div class="stub-row"><label>SEAT</label><span id="stubSeat">20</span></div>
+              </div>
+              <div class="stub-date" id="stubDate">06/10/23</div>
             </div>
           </div>
 
-          <div id="byGame">
-            <div class="sec-label">Choose a room</div>
-            <div class="game-list" id="escapeGameList"></div>
-            <div id="gameDateWrap" style="display:none">
-              <div class="sec-label">Choose a date</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                <button onclick="gameWeekOffset--;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">‹ Prev</button>
-                <span id="gameWeekLabel" style="font-size:13px;color:var(--text-muted)"></span>
-                <button onclick="gameWeekOffset++;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">Next ›</button>
-              </div>
-              <div id="gameDateStrip"></div>
-              <div id="gameSlotsWrap" style="display:none">
-                <div class="slot-legend">
-                  <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
-                  <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
-                  <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+          <!-- MAIN TICKET (right side) -->
+          <div class="ticket-main">
+            <!-- Top header -->
+            <div class="main-header">
+              <span>EVENT CODE</span>
+              <span id="mainEventCode">BDAY</span>
+            </div>
+
+            <!-- Large event name -->
+            <div class="main-title" id="mainTitle">TAYLOR SWIFT</div>
+            <div class="main-asterisks">* * * * * *</div>
+            <div class="main-sub" id="mainSub">ALL AGES</div>
+            <div class="main-asterisks">* * * * * *</div>
+
+            <!-- Event details -->
+            <div class="main-details" id="mainDetails">
+              <p>LIVE AT BEYOND THE BOX</p>
+              <p>HASTINGS, NEW ZEALAND</p>
+              <p id="mainDateTime">SAT JUNE 10 2023 8:00PM</p>
+            </div>
+
+            <!-- Seat / Booking highlights -->
+            <div class="main-seats">
+              <div class="seat-box"><span id="seatDate">DATE</span> <span class="seat-chevron">›</span></div>
+              <div class="seat-box"><span id="seatTime">TIME</span> <span class="seat-chevron">›</span></div>
+              <div class="seat-box"><span id="seatPlayers">2 PLAYERS</span> <span class="seat-chevron">›</span></div>
+            </div>
+
+            <!-- Vertical barcode -->
+            <div class="barcode-vertical"></div>
+          </div>
+
+          <!-- ====== SCREENS ====== -->
+          <!-- (Hidden by default, shown by JS) -->
+          <div style="display:contents;">
+
+            <!-- SCREEN 1: CATEGORY -->
+            <div class="screen active" id="s1">
+              <div class="sec-label">Step 1</div>
+              <div class="sec-title">What would you like to do?</div>
+              <div class="sec-sub">Choose your experience below.</div>
+              <div class="cat-grid">
+                <div class="cat-card" onclick="selectCategory('escape')">
+                  <div class="cat-emoji">🚪</div>
+                  <div class="cat-body">
+                    <div class="cat-title">Escape Rooms</div>
+                    <div class="cat-sub">Work together to solve puzzles and complete your mission before time runs out. 60 min sessions.</div>
+                  </div>
+                  <div class="cat-arrow">›</div>
                 </div>
-                <div class="slot-heading" id="gameSlotsHeading"></div>
-                <div class="slot-grid" id="gameSlotsGrid"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="byDate" style="display:none">
-            <div class="sec-label">Choose a date</div>
-            <div class="date-strip" id="dateDateStrip"></div>
-            <div id="dateGamesWrap" style="display:none">
-              <div class="slot-legend">
-                <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
-                <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
-              </div>
-              <div id="dateGamesList"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SCREEN 2: VR -->
-        <div class="screen" id="s2-vr">
-          <div class="back-link" onclick="goTo('s1',1)">← Back</div>
-          <div class="sec-label">VR Experiences</div>
-          <div class="sec-title">Choose your<br>VR session</div>
-          <div class="game-list" id="vrGameList"></div>
-          <div id="vrDateWrap" style="display:none">
-            <div class="sec-label">Choose a date</div>
-            <div class="date-strip" id="vrDateStrip"></div>
-            <div id="vrSlotsWrap" style="display:none">
-              <div class="slot-legend">
-                <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
-                <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
-              </div>
-              <div class="slot-heading" id="vrSlotsHeading"></div>
-              <div class="slot-grid" id="vrSlotsGrid"></div>
-            </div>
-          </div>
-          <div class="casual-card" onclick="openEnquiry('casual-vr')">
-            <div class="casual-title">🎮 Casual VR — check availability</div>
-            <div class="casual-sub">Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.</div>
-          </div>
-        </div>
-
-        <!-- SCREEN 2: CAFE -->
-        <div class="screen" id="s2-cafe">
-          <div class="back-link" onclick="goTo('s1',1)">← Back</div>
-          <div class="sec-label">Board Game Cafe</div>
-          <div class="sec-title">Table hire &<br>board games</div>
-          <div class="info-panel">
-            <div class="info-panel-title">How it works</div>
-            <div class="info-panel-body">
-              <strong>Table hire</strong> includes access to our full library of 200+ board games. Stay as long as you like during opening hours.<br><br>
-              <strong>Pricing:</strong> $2 per person per hour · Minimum 2 players<br><br>
-              <strong>Food & drinks</strong> available to order at the counter.<br><br>
-              <strong>Large groups or private hire?</strong> Get in touch and we'll sort something out for you.
-            </div>
-          </div>
-          <div class="game-list" id="cafeGameList"></div>
-          <div id="cafeDateWrap" style="display:none">
-            <div class="sec-label">Choose a date</div>
-            <div class="date-strip" id="cafeDateStrip"></div>
-            <div id="cafeSlotsWrap" style="display:none">
-              <div class="slot-legend">
-                <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
-                <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
-                <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
-              </div>
-              <div class="slot-heading" id="cafeSlotsHeading"></div>
-              <div class="slot-grid" id="cafeSlotsGrid"></div>
-            </div>
-          </div>
-          <button class="btn-enquiry" onclick="openEnquiry('cafe')">Enquire about table hire →</button>
-        </div>
-
-        <!-- SCREEN 3: INTAKE -->
-        <div class="screen" id="s3">
-          <div class="back-link" onclick="goBack()">← Change slot</div>
-          <div class="summary-bar" id="summaryBar"></div>
-          <div class="err-msg" id="formErr"></div>
-          <div class="sec-label">Your details</div>
-
-          <div class="field" id="playersField">
-            <div class="field-label" id="playersFieldLabel">How many players? <span class="req">*</span></div>
-            <div class="players-row">
-              <button class="cnt-btn" onclick="adjPlayers(-1)">−</button>
-              <div>
-                <div class="cnt-val" id="playerVal">2</div>
-                <div class="cnt-lbl" id="playerLbl">players</div>
-              </div>
-              <button class="cnt-btn" onclick="adjPlayers(1)">+</button>
-              <div class="price-live">
-                <div class="price-big" id="priceBig">—</div>
-                <div class="price-small" id="priceSmall"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="field-row" style="margin-bottom:16px">
-            <div class="field">
-              <div class="field-label">First name <span class="req">*</span></div>
-              <input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name">
-            </div>
-            <div class="field">
-              <div class="field-label">Last name <span class="req">*</span></div>
-              <input class="field-input" type="text" id="fLast" placeholder="Robinson" autocomplete="family-name">
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="field-label">Email <span class="req">*</span></div>
-            <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com" autocomplete="email">
-          </div>
-          <div class="field">
-            <div class="field-label">Phone <span class="req">*</span></div>
-            <input class="field-input" type="tel" id="fPhone" placeholder="021 123 4567" autocomplete="tel">
-          </div>
-
-          <div id="moreDetailsWrap">
-            <div class="field">
-              <div class="field-label">What's the occasion?</div>
-              <select class="field-select" id="fOccasion">
-                <option value="">Just for fun</option>
-                <option value="Birthday">🎂 Birthday celebration</option>
-                <option value="Date night">💑 Date night</option>
-                <option value="Family outing">👨‍👩‍👧 Family outing</option>
-                <option value="School group">🎒 School group</option>
-                <option value="Hen/Stag do">🥂 Hen / Stag do</option>
-                <option value="Company team building">🏢 Company team building</option>
-                <option value="Company fun event">🎉 Company fun event</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div class="field field-nested" id="companyNameWrap" style="display:none">
-              <div class="field-label">Company name</div>
-              <input class="field-input" type="text" id="fCompanyName" placeholder="e.g. Acme Ltd">
-            </div>
-
-            <div class="field field-nested" id="schoolGroupWrap" style="display:none">
-              <div class="field-label">School name</div>
-              <input class="field-input" type="text" id="fSchoolName" placeholder="e.g. Hastings Primary School">
-              <div style="margin-top:10px">
-                <div class="field-label">Age group</div>
-                <input class="field-input" type="text" id="fSchoolAgeGroup" placeholder="e.g. Year 7-8, or ages 11-13">
-              </div>
-            </div>
-
-            <div class="field field-nested" id="specialPersonWrap" style="display:none">
-              <div class="field-label" id="specialPersonLabel">Name of the birthday / guest of honour</div>
-              <input class="field-input" type="text" id="fSpecialName" placeholder="e.g. Emma">
-              <div id="specialAgeWrap" style="display:none;margin-top:10px">
-                <div class="field-label">Their age <span style="color:var(--text-muted);font-weight:400;text-transform:none">(optional)</span></div>
-                <input class="field-input" type="number" id="fSpecialAge" placeholder="e.g. 10" min="0" max="120">
-                <div class="field-hint" id="childHint" style="display:none;color:#e8920a">🎈 Noted — we'll make sure the room and welcome are right for a younger celebrant.</div>
-              </div>
-            </div>
-
-            <div class="field" id="personalExpWrap" style="display:none">
-              <div class="field-label">Make it extra special? <span style="color:var(--text-muted);font-weight:400;text-transform:none">(optional)</span></div>
-              <div id="personalExpList" style="display:flex;flex-direction:column;gap:8px"></div>
-            </div>
-
-            <div class="field" id="fExperienceField">
-              <div class="field-label">Escape room experience? <span style="color:var(--text-muted);font-weight:400;text-transform:none">(tick all that apply)</span></div>
-              <div id="fExperienceList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-            </div>
-
-            <div class="field" id="playedBeforeWrap">
-              <div class="field-label">Have you played with us before?</div>
-              <div class="radio-group">
-                <div class="radio-opt" id="rb-yes" onclick="setPlayedBefore(true)">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">Yes!</span>
+                <div class="cat-card" onclick="selectCategory('vr')">
+                  <div class="cat-emoji">🥽</div>
+                  <div class="cat-body">
+                    <div class="cat-title">VR Experiences</div>
+                    <div class="cat-sub">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
+                  </div>
+                  <div class="cat-arrow">›</div>
                 </div>
-                <div class="radio-opt" id="rb-no" onclick="setPlayedBefore(false)">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">First time</span>
+                <div class="cat-card" onclick="selectCategory('cafe')">
+                  <div class="cat-emoji">☕</div>
+                  <div class="cat-body">
+                    <div class="cat-title">Board Game Cafe</div>
+                    <div class="cat-sub">Hire a table, choose from our game library, and enjoy food and drinks with your group.</div>
+                  </div>
+                  <div class="cat-arrow">›</div>
+                </div>
+                <div class="cat-card" onclick="selectCategory('enquiry')" style="border-color:rgba(139,92,246,0.3)">
+                  <div class="cat-emoji">💬</div>
+                  <div class="cat-body">
+                    <div class="cat-title">Contact Us</div>
+                    <div class="cat-sub">Got a question, need a custom booking, or want to discuss group rates? Send us a message.</div>
+                  </div>
+                  <div class="cat-arrow">›</div>
                 </div>
               </div>
             </div>
-            <div class="field" id="prevGameWrap" style="display:none">
-              <div class="field-label">Which game did you play?</div>
-              <select class="field-select" id="fPrevGame">
-                <option value="">Can't remember</option>
-              </select>
-            </div>
 
-            <div class="field">
-              <div class="field-label">How would you like to pay your deposit?</div>
-              <div class="radio-group" id="depositPrefGroup">
-                <div class="radio-opt" data-val="stripe" onclick="setDepositPref('stripe')">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">💳 Card</span>
+            <!-- SCREEN 2: ESCAPE -->
+            <div class="screen" id="s2-escape">
+              <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+              <div class="sec-label">Escape Rooms</div>
+              <div class="sec-title">Browse by game or by date</div>
+              <div class="view-toggle">
+                <div class="view-opt active" id="vog" onclick="setEscapeView('game')">
+                  <div class="view-opt-icon">🚪</div>
+                  <div class="view-opt-label">By Game</div>
+                  <div class="view-opt-sub">Choose room first</div>
                 </div>
-                <div class="radio-opt" data-val="bank_transfer" onclick="setDepositPref('bank_transfer')">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">🏦 Bank transfer</span>
-                </div>
-                <div class="radio-opt" id="depositOptInvoice" data-val="invoice" onclick="setDepositPref('invoice')" style="display:none">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">📧 Invoice me</span>
-                </div>
-                <div class="radio-opt" data-val="cash" onclick="setDepositPref('cash')">
-                  <div class="radio-dot"></div>
-                  <span class="radio-label">💵 Cash in person</span>
+                <div class="view-opt" id="vod" onclick="setEscapeView('date')">
+                  <div class="view-opt-icon">📅</div>
+                  <div class="view-opt-label">By Date</div>
+                  <div class="view-opt-sub">See all slots</div>
                 </div>
               </div>
-              <div class="field-hint">Just a preference for now — no payment is taken here.</div>
+
+              <div id="byGame">
+                <div class="sec-label">Choose a room</div>
+                <div class="game-list" id="escapeGameList"></div>
+                <div id="gameDateWrap" style="display:none">
+                  <div class="sec-label">Choose a date</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <button onclick="gameWeekOffset--;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">‹ Prev</button>
+                    <span id="gameWeekLabel" style="font-size:13px;color:var(--text-muted)"></span>
+                    <button onclick="gameWeekOffset++;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">Next ›</button>
+                  </div>
+                  <div id="gameDateStrip"></div>
+                  <div id="gameSlotsWrap" style="display:none">
+                    <div class="slot-legend">
+                      <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
+                      <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
+                      <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+                    </div>
+                    <div class="slot-heading" id="gameSlotsHeading"></div>
+                    <div class="slot-grid" id="gameSlotsGrid"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="byDate" style="display:none">
+                <div class="sec-label">Choose a date</div>
+                <div class="date-strip" id="dateDateStrip"></div>
+                <div id="dateGamesWrap" style="display:none">
+                  <div class="slot-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+                  </div>
+                  <div id="dateGamesList"></div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div class="price-box" id="priceBox"></div>
+            <!-- SCREEN 2: VR -->
+            <div class="screen" id="s2-vr">
+              <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+              <div class="sec-label">VR Experiences</div>
+              <div class="sec-title">Choose your<br>VR session</div>
+              <div class="game-list" id="vrGameList"></div>
+              <div id="vrDateWrap" style="display:none">
+                <div class="sec-label">Choose a date</div>
+                <div class="date-strip" id="vrDateStrip"></div>
+                <div id="vrSlotsWrap" style="display:none">
+                  <div class="slot-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+                  </div>
+                  <div class="slot-heading" id="vrSlotsHeading"></div>
+                  <div class="slot-grid" id="vrSlotsGrid"></div>
+                </div>
+              </div>
+              <div class="casual-card" onclick="openEnquiry('casual-vr')">
+                <div class="casual-title">🎮 Casual VR — check availability</div>
+                <div class="casual-sub">Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.</div>
+              </div>
+            </div>
 
-          <button class="btn btn-primary" id="btnConfirm" onclick="showReviewScreen()">Review Booking →</button>
-          <button class="btn btn-ghost" onclick="goBack()">← Change slot</button>
-        </div>
+            <!-- SCREEN 2: CAFE -->
+            <div class="screen" id="s2-cafe">
+              <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+              <div class="sec-label">Board Game Cafe</div>
+              <div class="sec-title">Table hire &<br>board games</div>
+              <div class="info-panel">
+                <div class="info-panel-title">How it works</div>
+                <div class="info-panel-body">
+                  <strong>Table hire</strong> includes access to our full library of 200+ board games. Stay as long as you like during opening hours.<br><br>
+                  <strong>Pricing:</strong> $2 per person per hour · Minimum 2 players<br><br>
+                  <strong>Food & drinks</strong> available to order at the counter.<br><br>
+                  <strong>Large groups or private hire?</strong> Get in touch and we'll sort something out for you.
+                </div>
+              </div>
+              <div class="game-list" id="cafeGameList"></div>
+              <div id="cafeDateWrap" style="display:none">
+                <div class="sec-label">Choose a date</div>
+                <div class="date-strip" id="cafeDateStrip"></div>
+                <div id="cafeSlotsWrap" style="display:none">
+                  <div class="slot-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#168a5a"></div>Available</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#e8920a"></div>Call us</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted)"></div>Full</div>
+                  </div>
+                  <div class="slot-heading" id="cafeSlotsHeading"></div>
+                  <div class="slot-grid" id="cafeSlotsGrid"></div>
+                </div>
+              </div>
+              <button class="btn-enquiry" onclick="openEnquiry('cafe')">Enquire about table hire →</button>
+            </div>
 
-        <!-- SCREEN 3b: REVIEW -->
-        <div class="screen" id="s3review">
-          <div class="back-link" onclick="goTo('s3',3)">← Edit details</div>
-          <div class="sec-label">Step 4</div>
-          <div class="sec-title">Review your<br>booking</div>
-          <div class="sec-sub">Please check everything below, then confirm.</div>
-          <div class="err-msg" id="reviewErr"></div>
-          <div class="confirm-card" id="reviewCard"></div>
-          <div class="price-box" id="reviewPriceBox"></div>
-          <button class="btn btn-primary" id="btnFinalConfirm" onclick="submitBooking()">Confirm Booking →</button>
-          <button class="btn btn-ghost" onclick="goTo('s3',3)">← Edit details</button>
-        </div>
+            <!-- SCREEN 3: INTAKE -->
+            <div class="screen" id="s3">
+              <div class="back-link" onclick="goBack()">← Change slot</div>
+              <div class="summary-bar" id="summaryBar"></div>
+              <div class="err-msg" id="formErr"></div>
+              <div class="sec-label">Your details</div>
 
-        <!-- SCREEN 4: CONFIRMATION -->
-        <div class="screen" id="s4">
-          <div class="confirm-icon">🎉</div>
-          <div class="confirm-title">You're booked in!</div>
-          <div class="confirm-sub">We can't wait to see you. Check your email for confirmation — we'll be in touch shortly about your deposit.</div>
-          <div class="confirm-card" id="confirmCard"></div>
-          <div class="confirm-ref">Reference: <strong id="confirmRef"></strong></div>
-          <button class="btn btn-primary" style="margin-top:24px" onclick="startOver()">Book another session →</button>
-        </div>
+              <div class="field" id="playersField">
+                <div class="field-label" id="playersFieldLabel">How many players? <span class="req">*</span></div>
+                <div class="players-row">
+                  <button class="cnt-btn" onclick="adjPlayers(-1)">−</button>
+                  <div>
+                    <div class="cnt-val" id="playerVal">2</div>
+                    <div class="cnt-lbl" id="playerLbl">players</div>
+                  </div>
+                  <button class="cnt-btn" onclick="adjPlayers(1)">+</button>
+                  <div class="price-live">
+                    <div class="price-big" id="priceBig">—</div>
+                    <div class="price-small" id="priceSmall"></div>
+                  </div>
+                </div>
+              </div>
 
-        <!-- SCREEN 2: ENQUIRY -->
-        <div class="screen" id="s2-enquiry">
-          <div class="back-link" onclick="goTo('s1',1)">← Back</div>
-          <div class="sec-label">Contact us</div>
-          <div class="sec-title">Send us a<br><span style="color:var(--accent)">message</span></div>
-          <div class="section-sub">Fill in as much or as little as you like — we'll get back to you as soon as we can.</div>
-          <div class="err-msg" id="enqFormErr"></div>
-          <div class="field-row" style="margin-bottom:16px">
-            <div class="field"><div class="field-label">First name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="cFirst" placeholder="Sarah" autocomplete="given-name"></div>
-            <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" id="cLast" placeholder="Robinson" autocomplete="family-name"></div>
-          </div>
-          <div class="field"><div class="field-label">Phone <span style="color:var(--red)">*</span></div><input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567" autocomplete="tel"></div>
-          <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com" autocomplete="email"></div>
-          <div class="field"><div class="field-label">What are you interested in?</div>
-            <select class="field-select" id="cGame">
-              <option value="">Not sure yet</option>
-            </select>
-          </div>
-          <div class="field-row" style="margin-bottom:16px">
-            <div class="field"><div class="field-label">Preferred date</div><input class="field-input" type="date" id="cDate"></div>
-            <div class="field"><div class="field-label">Group size</div><input class="field-input" type="number" id="cPlayers" placeholder="e.g. 4" min="1" max="50"></div>
-          </div>
-          <div class="field"><div class="field-label">Occasion</div>
-            <select class="field-select" id="cOccasion">
-              <option value="">Just for fun</option>
-              <option value="Birthday">Birthday 🎂</option>
-              <option value="Date night">Date night 💑</option>
-              <option value="Family outing">Family outing 👨‍👩‍👧</option>
-              <option value="School group">School group 🎒</option>
-              <option value="Hen/Stag do">Hen/Stag do 🥂</option>
-              <option value="Company team building">Company team building 🏢</option>
-              <option value="Company fun event">Company fun event 🎉</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="field"><div class="field-label">Your message</div><textarea class="field-input" id="cMessage" rows="3" placeholder="Tell us what you're after…" style="resize:none"></textarea></div>
-          <button class="btn btn-primary" id="btnEnqSubmit" onclick="submitContactEnquiry()">Send message →</button>
-          <button class="btn btn-ghost" onclick="goTo('s1',1)">← Back</button>
-        </div>
+              <div class="field-row" style="margin-bottom:16px">
+                <div class="field">
+                  <div class="field-label">First name <span class="req">*</span></div>
+                  <input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name">
+                </div>
+                <div class="field">
+                  <div class="field-label">Last name <span class="req">*</span></div>
+                  <input class="field-input" type="text" id="fLast" placeholder="Robinson" autocomplete="family-name">
+                </div>
+              </div>
 
-        <!-- Footer Barcode -->
-        <div class="barcode" style="margin-top: 24px;"></div>
+              <div class="field">
+                <div class="field-label">Email <span class="req">*</span></div>
+                <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com" autocomplete="email">
+              </div>
+              <div class="field">
+                <div class="field-label">Phone <span class="req">*</span></div>
+                <input class="field-input" type="tel" id="fPhone" placeholder="021 123 4567" autocomplete="tel">
+              </div>
+
+              <div id="moreDetailsWrap">
+                <div class="field">
+                  <div class="field-label">What's the occasion?</div>
+                  <select class="field-select" id="fOccasion">
+                    <option value="">Just for fun</option>
+                    <option value="Birthday">🎂 Birthday celebration</option>
+                    <option value="Date night">💑 Date night</option>
+                    <option value="Family outing">👨‍👩‍👧 Family outing</option>
+                    <option value="School group">🎒 School group</option>
+                    <option value="Hen/Stag do">🥂 Hen / Stag do</option>
+                    <option value="Company team building">🏢 Company team building</option>
+                    <option value="Company fun event">🎉 Company fun event</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="field field-nested" id="companyNameWrap" style="display:none">
+                  <div class="field-label">Company name</div>
+                  <input class="field-input" type="text" id="fCompanyName" placeholder="e.g. Acme Ltd">
+                </div>
+
+                <div class="field field-nested" id="schoolGroupWrap" style="display:none">
+                  <div class="field-label">School name</div>
+                  <input class="field-input" type="text" id="fSchoolName" placeholder="e.g. Hastings Primary School">
+                  <div style="margin-top:10px">
+                    <div class="field-label">Age group</div>
+                    <input class="field-input" type="text" id="fSchoolAgeGroup" placeholder="e.g. Year 7-8, or ages 11-13">
+                  </div>
+                </div>
+
+                <div class="field field-nested" id="specialPersonWrap" style="display:none">
+                  <div class="field-label" id="specialPersonLabel">Name of the birthday / guest of honour</div>
+                  <input class="field-input" type="text" id="fSpecialName" placeholder="e.g. Emma">
+                  <div id="specialAgeWrap" style="display:none;margin-top:10px">
+                    <div class="field-label">Their age <span style="color:var(--text-muted);font-weight:400;text-transform:none">(optional)</span></div>
+                    <input class="field-input" type="number" id="fSpecialAge" placeholder="e.g. 10" min="0" max="120">
+                    <div class="field-hint" id="childHint" style="display:none;color:#e8920a">🎈 Noted — we'll make sure the room and welcome are right for a younger celebrant.</div>
+                  </div>
+                </div>
+
+                <div class="field" id="personalExpWrap" style="display:none">
+                  <div class="field-label">Make it extra special? <span style="color:var(--text-muted);font-weight:400;text-transform:none">(optional)</span></div>
+                  <div id="personalExpList" style="display:flex;flex-direction:column;gap:8px"></div>
+                </div>
+
+                <div class="field" id="fExperienceField">
+                  <div class="field-label">Escape room experience? <span style="color:var(--text-muted);font-weight:400;text-transform:none">(tick all that apply)</span></div>
+                  <div id="fExperienceList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+                </div>
+
+                <div class="field" id="playedBeforeWrap">
+                  <div class="field-label">Have you played with us before?</div>
+                  <div class="radio-group">
+                    <div class="radio-opt" id="rb-yes" onclick="setPlayedBefore(true)">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">Yes!</span>
+                    </div>
+                    <div class="radio-opt" id="rb-no" onclick="setPlayedBefore(false)">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">First time</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field" id="prevGameWrap" style="display:none">
+                  <div class="field-label">Which game did you play?</div>
+                  <select class="field-select" id="fPrevGame">
+                    <option value="">Can't remember</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <div class="field-label">How would you like to pay your deposit?</div>
+                  <div class="radio-group" id="depositPrefGroup">
+                    <div class="radio-opt" data-val="stripe" onclick="setDepositPref('stripe')">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">💳 Card</span>
+                    </div>
+                    <div class="radio-opt" data-val="bank_transfer" onclick="setDepositPref('bank_transfer')">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">🏦 Bank transfer</span>
+                    </div>
+                    <div class="radio-opt" id="depositOptInvoice" data-val="invoice" onclick="setDepositPref('invoice')" style="display:none">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">📧 Invoice me</span>
+                    </div>
+                    <div class="radio-opt" data-val="cash" onclick="setDepositPref('cash')">
+                      <div class="radio-dot"></div>
+                      <span class="radio-label">💵 Cash in person</span>
+                    </div>
+                  </div>
+                  <div class="field-hint">Just a preference for now — no payment is taken here.</div>
+                </div>
+              </div>
+
+              <div class="price-box" id="priceBox"></div>
+
+              <button class="btn btn-primary" id="btnConfirm" onclick="showReviewScreen()">Review Booking →</button>
+              <button class="btn btn-ghost" onclick="goBack()">← Change slot</button>
+            </div>
+
+            <!-- SCREEN 3b: REVIEW -->
+            <div class="screen" id="s3review">
+              <div class="back-link" onclick="goTo('s3',3)">← Edit details</div>
+              <div class="sec-label">Step 4</div>
+              <div class="sec-title">Review your<br>booking</div>
+              <div class="sec-sub">Please check everything below, then confirm.</div>
+              <div class="err-msg" id="reviewErr"></div>
+              <div class="confirm-card" id="reviewCard"></div>
+              <div class="price-box" id="reviewPriceBox"></div>
+              <button class="btn btn-primary" id="btnFinalConfirm" onclick="submitBooking()">Confirm Booking →</button>
+              <button class="btn btn-ghost" onclick="goTo('s3',3)">← Edit details</button>
+            </div>
+
+            <!-- SCREEN 4: CONFIRMATION -->
+            <div class="screen" id="s4">
+              <div class="confirm-icon">🎉</div>
+              <div class="confirm-title">You're booked in!</div>
+              <div class="confirm-sub">We can't wait to see you. Check your email for confirmation — we'll be in touch shortly about your deposit.</div>
+              <div class="confirm-card" id="confirmCard"></div>
+              <div class="confirm-ref">Reference: <strong id="confirmRef"></strong></div>
+              <button class="btn btn-primary" style="margin-top:24px" onclick="startOver()">Book another session →</button>
+            </div>
+
+            <!-- SCREEN 2: ENQUIRY -->
+            <div class="screen" id="s2-enquiry">
+              <div class="back-link" onclick="goTo('s1',1)">← Back</div>
+              <div class="sec-label">Contact us</div>
+              <div class="sec-title">Send us a<br><span style="color:var(--accent)">message</span></div>
+              <div class="section-sub">Fill in as much or as little as you like — we'll get back to you as soon as we can.</div>
+              <div class="err-msg" id="enqFormErr"></div>
+              <div class="field-row" style="margin-bottom:16px">
+                <div class="field"><div class="field-label">First name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="cFirst" placeholder="Sarah" autocomplete="given-name"></div>
+                <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" id="cLast" placeholder="Robinson" autocomplete="family-name"></div>
+              </div>
+              <div class="field"><div class="field-label">Phone <span style="color:var(--red)">*</span></div><input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567" autocomplete="tel"></div>
+              <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com" autocomplete="email"></div>
+              <div class="field"><div class="field-label">What are you interested in?</div>
+                <select class="field-select" id="cGame">
+                  <option value="">Not sure yet</option>
+                </select>
+              </div>
+              <div class="field-row" style="margin-bottom:16px">
+                <div class="field"><div class="field-label">Preferred date</div><input class="field-input" type="date" id="cDate"></div>
+                <div class="field"><div class="field-label">Group size</div><input class="field-input" type="number" id="cPlayers" placeholder="e.g. 4" min="1" max="50"></div>
+              </div>
+              <div class="field"><div class="field-label">Occasion</div>
+                <select class="field-select" id="cOccasion">
+                  <option value="">Just for fun</option>
+                  <option value="Birthday">Birthday 🎂</option>
+                  <option value="Date night">Date night 💑</option>
+                  <option value="Family outing">Family outing 👨‍👩‍👧</option>
+                  <option value="School group">School group 🎒</option>
+                  <option value="Hen/Stag do">Hen/Stag do 🥂</option>
+                  <option value="Company team building">Company team building 🏢</option>
+                  <option value="Company fun event">Company fun event 🎉</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="field"><div class="field-label">Your message</div><textarea class="field-input" id="cMessage" rows="3" placeholder="Tell us what you're after…" style="resize:none"></textarea></div>
+              <button class="btn btn-primary" id="btnEnqSubmit" onclick="submitContactEnquiry()">Send message →</button>
+              <button class="btn btn-ghost" onclick="goTo('s1',1)">← Back</button>
+            </div>
+
+          </div><!-- /screens wrapper -->
+        </div><!-- /ticket-wrapper -->
 
       </div><!-- /page -->
     </div><!-- /rinner -->
