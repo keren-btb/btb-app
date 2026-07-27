@@ -452,6 +452,7 @@ body {
 }
 
 .cat-circle .circle {
+  position: relative;
   width: 130px;
   height: 130px;
   border-radius: 50%;
@@ -480,6 +481,29 @@ body {
   margin-top: 10px;
   line-height: 1.2;
   text-align: center;
+}
+
+/* ============ MOBILE INFO ICON (tap to see tooltip without selecting) ============ */
+.tooltip-icon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 /* ============ MESSENGER-STYLE TOOLTIP (fixed) ============ */
@@ -603,6 +627,11 @@ body {
   }
   .cat-circle .tooltip::after {
     border-width: 6px;
+  }
+  .tooltip-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
   }
 }
 

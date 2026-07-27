@@ -113,29 +113,29 @@
 
             <div class="cat-circles">
               <!-- Escape Rooms -->
-              <div class="cat-circle" onclick="toggleTooltip(this)">
-                <div class="circle">🚪</div>
+              <div class="cat-circle" onclick="selectCategory('escape')">
+                <div class="circle">🚪<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
                 <div class="cat-title">Escape Rooms</div>
                 <div class="tooltip">Solve puzzles &amp; complete your mission before time runs out. 60 min sessions.</div>
               </div>
 
               <!-- VR -->
-              <div class="cat-circle" onclick="toggleTooltip(this)">
-                <div class="circle">🥽</div>
+              <div class="cat-circle" onclick="selectCategory('vr')">
+                <div class="circle">🥽<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
                 <div class="cat-title">VR Experiences</div>
                 <div class="tooltip">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
               </div>
 
               <!-- Cafe -->
-              <div class="cat-circle" onclick="toggleTooltip(this)">
-                <div class="circle">☕</div>
+              <div class="cat-circle" onclick="selectCategory('cafe')">
+                <div class="circle">☕<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
                 <div class="cat-title">Board Game Cafe</div>
                 <div class="tooltip">Hire a table, choose from our game library, and enjoy food &amp; drinks with your group.</div>
               </div>
 
               <!-- Contact -->
-              <div class="cat-circle" onclick="toggleTooltip(this)">
-                <div class="circle">💬</div>
+              <div class="cat-circle" onclick="selectCategory('enquiry')">
+                <div class="circle">💬<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
                 <div class="cat-title">Contact Us</div>
                 <div class="tooltip">Got a question, custom booking, or group rates? Send us a message.</div>
               </div>

@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.5'; // v1.6.5: swapped SVG <object> for <img> (fixed resize flicker), sidebar now stretches full height, top-aligned
+const BUILD_VERSION = '1.6.6'; // v1.6.6: fixed category circles not advancing to step 2 (toggleTooltip was undefined/never called selectCategory); added mobile (i) info icon so tap-to-see-tooltip still works without blocking selection
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -386,6 +386,20 @@ function updateLeftSummary() {
         <div><div class="lc-sum-val">${item.val}</div>${item.sub ? `<div class="lc-sum-sub">${item.sub}</div>` : ''}</div>
       </div>`).join('');
 }
+
+function showTooltip(el) {
+  const circle = el.closest('.cat-circle');
+  if (!circle) return;
+  const isActive = circle.classList.contains('active');
+  document.querySelectorAll('.cat-circle').forEach(c => c.classList.remove('active'));
+  if (!isActive) circle.classList.add('active');
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.cat-circle')) {
+    document.querySelectorAll('.cat-circle.active').forEach(c => c.classList.remove('active'));
+  }
+});
 
 function selectCategory(cat) {
   selCategory = cat;
