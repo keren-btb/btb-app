@@ -318,6 +318,14 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 
 <!-- ════════════════════════════════════════════════
      MAIN APP
@@ -573,7 +581,9 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.2.3'; // NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
+const BUILD_VERSION = '1.3.3'; // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
+// Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
+// NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
 // show app immediately from cached role and validate in background instead of blocking on it
 console.log(`%cPOS — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
@@ -736,7 +746,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -767,7 +777,7 @@ async function doLogin(){
     let staffId=userId;
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role,allowedTabs:parseAllowedTabs(userRole.allowed_tabs)};
-    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await loadAppData();
     showApp();
@@ -777,7 +787,7 @@ function parseAllowedTabs(raw){
   if(!raw)return['calendar'];if(Array.isArray(raw))return raw;
   try{const p=JSON.parse(raw);return Array.isArray(p)?p:['calendar']}catch(e){return['calendar']}
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('mainApp').style.display='flex';
@@ -1084,7 +1094,7 @@ function buildSectionHTML(b,sect){
     return backBar('Add a product')+`
     <div class="action-panel-scroll">
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="pos-cat-tabs-${b.id}">
-        ${['Favourites','All','Food/Drink','VR','Boardgame','Other'].map((c,i)=>`<button class="avail-slot${i===0?' on':''}" style="font-size:10px;padding:2px 7px" onclick="setPOSCatFilter('${b.id}','${c}',this)">${c}</button>`).join('')}
+        ${['Favourites','All','Experiences','Food/Drink','VR','Boardgame','Other'].map((c,i)=>`<button class="avail-slot${i===0?' on':''}" style="font-size:10px;padding:2px 7px" onclick="setPOSCatFilter('${b.id}','${c}',this)">${c}</button>`).join('')}
       </div>
       <div style="position:relative;margin-bottom:6px">
         <input type="text" placeholder="Search add-ons…" oninput="filterPOSProds('${b.id}',this.value)" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #e5e7eb;border-radius:7px;padding:5px 10px 5px 26px;background:#f9fafb">
@@ -1224,30 +1234,6 @@ function openDrawer(b){
 function closeDrawer(){
   document.getElementById('drawerOverlay').classList.remove('open');
   document.getElementById('bookingDrawer').classList.remove('open');
-}
-
-// ── PRODUCT GRIDS ──────────────────────────────────
-function buildPOSProductGrid(bookingId,cat){
-  const active=products.filter(p=>p.active&&(cat==='All'||cat===p.category));
-  if(!active.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products.</div>';
-  return active.map(p=>`
-    <button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')">
-      <div class="addon-btn-name">${catEmoji(p.category)} ${p.name}</div>
-      <div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
-    </button>`).join('');
-}
-function setPOSCatFilter(bookingId,cat,btn){
-  const grid=document.getElementById('pos-prod-grid-'+bookingId);
-  const tabs=document.getElementById('pos-cat-tabs-'+bookingId);
-  if(grid){grid.innerHTML=buildPOSProductGrid(bookingId,cat);grid.dataset.cat=cat;}
-  if(tabs)tabs.querySelectorAll('button').forEach(b=>{b.classList.remove('on');if(b.textContent===cat)b.classList.add('on')});
-}
-function filterPOSProds(bookingId,query){
-  const grid=document.getElementById('pos-prod-grid-'+bookingId);if(!grid)return;
-  const q=query.toLowerCase().trim();const cat=grid.dataset.cat||'All';
-  const filtered=products.filter(p=>p.active&&(cat==='All'||p.category===cat)&&(!q||p.name.toLowerCase().includes(q)));
-  if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
-  grid.innerHTML=filtered.map(p=>`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${catEmoji(p.category)} ${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('');
 }
 
 // ── Booking data mutations ──────────────────────────
@@ -1719,7 +1705,27 @@ function exportProductsCSV(){const headers=['name','category','sell_price','purc
 async function importProductsCSV(input){const file=input.files[0];if(!file)return;const msgEl=document.getElementById('csvMsg');msgEl.style.color='#6b7280';msgEl.textContent='Reading file…';const text=await file.text();const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);if(lines.length<2){msgEl.style.color='#dc2626';msgEl.textContent='CSV appears empty.';return}const headerRow=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/['"]/g,''));const idx=h=>headerRow.indexOf(h);const parseRow=line=>{const cols=[];let cur='',inQ=false;for(const ch of line){if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){cols.push(cur.trim());cur=''}else cur+=ch}cols.push(cur.trim());return cols};const normCat=raw=>{const s=(raw||'').trim().toLowerCase();if(s==='boardgame'||s==='board game'||s==='boardgames')return'Boardgame';if(s==='food/drink'||s==='food & drink'||s==='food'||s==='drink')return'Food/Drink';if(s==='escape room'||s==='escaperoom')return'Escape Room';if(s==='book'||s==='books')return'Book';if(s==='vr')return'VR';return'Other'};const toImport=[];for(let i=1;i<lines.length;i++){const cols=parseRow(lines[i]);const get=h=>{const j=idx(h);return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''};const name=get('name');if(!name)continue;const activeVal=get('active').toUpperCase();const favVal=get('favourite').toUpperCase();toImport.push({name,category:normCat(get('category')),sell_price:parseFloat(get('sell_price'))||0,purchase_price:parseFloat(get('purchase_price'))||null,rrp:parseFloat(get('rrp'))||null,stock_qty:get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,notes:get('notes')||null,active:activeVal==='FALSE'||activeVal==='0'?false:true,favourite:favVal==='TRUE'||favVal==='1'?true:false})}if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return}msgEl.textContent=`Importing ${toImport.length} products…`;try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(toImport)});if(!r.ok)throw new Error(await r.text());const saved=await r.json();saved.forEach(p=>{if(!products.find(x=>x.id===p.id))products.push(p)});msgEl.style.color='#15803d';msgEl.textContent=`✓ Imported ${saved.length} products!`;renderProdList()}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Import failed: '+e.message}input.value=''}
 
 // ── PRODUCT GRIDS ──────────────────────────────────
+function experiencesForBooking(bookingId){
+  // Personalised Experiences (Settings) — the same list customers see in the
+  // booking widget when they pick an occasion. Ones matching this booking's
+  // occasion are shown first, then any general (occasion-unrestricted) ones.
+  const b=bookings.find(x=>x.id===bookingId);
+  const occasion=b?.occasion||'';
+  const all=(bookingConfig.personalisedExperiences||[]).filter(e=>e.active!==false);
+  const matching=all.filter(e=>occasion&&e.occasions?.includes(occasion));
+  const general=all.filter(e=>!matching.includes(e));
+  return[...matching,...general];
+}
 function buildPOSProductGrid(bookingId,cat){
+  if(cat==='Experiences'){
+    const exps=experiencesForBooking(bookingId);
+    if(!exps.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No personalised experiences set up — add some in Settings.</div>';
+    return exps.map(e=>`
+      <button class="addon-btn" onclick="addExperienceToBooking('${bookingId}','${e.id}')">
+        <div class="addon-btn-name">🎂 ${e.label}</div>
+        <div class="addon-btn-price">$${parseFloat(e.price||0).toFixed(2)}</div>
+      </button>`).join('');
+  }
   const active=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat));
   if(!active.length)return'<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products.</div>';
 return active.map(p=>{const thumb=gameThumb(p);return`
@@ -1727,6 +1733,17 @@ return active.map(p=>{const thumb=gameThumb(p);return`
       <div class="addon-btn-name">${p.favourite?'⭐ ':''}${thumb?`<img src="${thumb}" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px;margin-right:2px">`:catEmoji(p.category)+' '}${p.name}</div>
       <div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
     </button>`}).join('');
+}
+async function addExperienceToBooking(bookingId,expId){
+  const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+  const exp=(bookingConfig.personalisedExperiences||[]).find(e=>e.id===expId);if(!exp)return;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  addons.push({label:exp.label,amount:parseFloat(exp.price||0),experienceId:exp.id,at:new Date().toISOString()});
+  b.addons=JSON.stringify(addons);
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  b.total_amount=(b.total_amount??calcPrice(b.game_id,players))+parseFloat(exp.price||0);
+  await savePOSData(bookingId);
+  refreshPanel();
 }
 function setPOSCatFilter(bookingId,cat,btn){
   const grid=document.getElementById('pos-prod-grid-'+bookingId);
@@ -1737,6 +1754,12 @@ function setPOSCatFilter(bookingId,cat,btn){
 function filterPOSProds(bookingId,query){
   const grid=document.getElementById('pos-prod-grid-'+bookingId);if(!grid)return;
   const q=query.toLowerCase().trim();const cat=grid.dataset.cat||'Favourites';
+  if(cat==='Experiences'){
+    const filtered=experiencesForBooking(bookingId).filter(e=>!q||e.label.toLowerCase().includes(q));
+    if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No experiences found.</div>';return;}
+    grid.innerHTML=filtered.map(e=>`<button class="addon-btn" onclick="addExperienceToBooking('${bookingId}','${e.id}')"><div class="addon-btn-name">🎂 ${e.label}</div><div class="addon-btn-price">$${parseFloat(e.price||0).toFixed(2)}</div></button>`).join('');
+    return;
+  }
   const filtered=products.filter(p=>p.active&&(cat==='Favourites'?p.favourite:cat==='All'||p.category===cat)&&(!q||p.name.toLowerCase().includes(q)));
   if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
 grid.innerHTML=filtered.map(p=>{const thumb=gameThumb(p);return`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${p.favourite?'⭐ ':''}${thumb?`<img src="${thumb}" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px;margin-right:2px">`:catEmoji(p.category)+' '}${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`}).join('');}
@@ -1828,7 +1851,7 @@ async function reinstateVoucher(id){await fetch(`${SB_URL}/rest/v1/vouchers?id=e
 
 // ── INIT ───────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',async()=>{
-  const saved=sessionStorage.getItem('btb_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -1864,7 +1887,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         currentUser.allowedTabs=parseAllowedTabs(roleData.allowed_tabs);
         currentUser.role=roleData.role;
         currentUser.name=roleData.name;
-        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         showApp();
       }).catch(err=>{
         // The token looked fine locally but Supabase rejected it — don't
