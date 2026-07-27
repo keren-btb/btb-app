@@ -509,8 +509,19 @@
 </div>
 
 <!-- ============================================================ -->
+<!-- ============================================================ -->
 <!-- ====== SCRIPT ====== -->
 <script src="script.js?v=1.6.5"></script>
+
+<script>
+  var mt = document.getElementById('mainTitle');
+  var styleSheetHref = document.querySelector('link[rel="stylesheet"]').href;
+  console.log('DEBUG stylesheet loaded from:', styleSheetHref);
+  console.log('DEBUG main-title justify-content:', getComputedStyle(mt).justifyContent);
+</script>
+
+</body>
+</html>
 
 </body>
 </html>
