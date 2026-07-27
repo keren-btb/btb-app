@@ -161,6 +161,14 @@ tr:last-child td{border-bottom:none}
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 
 <div class="app-wrap" id="appWrap" style="display:none">
   <aside class="sidebar">
@@ -413,7 +421,7 @@ tr:last-child td{border-bottom:none}
 // 26 Jul 2026).
 // v1.4.1 — Moved "New client" and "Manage templates" out of the topbar and
 // into the sidebar under a new "Actions" section, per feedback.
-const BUILD_VERSION = '1.4.1';
+const BUILD_VERSION = '1.4.2'; // v1.4.2: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -990,7 +998,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_clients_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -1027,14 +1035,14 @@ async function doLogin(){
     // logged as this user. Passes the real access token directly instead.
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
-    sessionStorage.setItem('btb_clients_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await loadAppData();
     showApp();
     renderTable();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_clients_user');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='';
   document.getElementById('sidebarUser').textContent=currentUser.name;
@@ -1043,7 +1051,7 @@ function showApp(){
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
-  const saved=sessionStorage.getItem('btb_clients_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -1066,7 +1074,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         if(!currentUser)return;
         currentUser.role=roleData.role;
         currentUser.name=roleData.name;
-        sessionStorage.setItem('btb_clients_user',JSON.stringify(currentUser));
+        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         showApp();
       }).catch(err=>{
         console.error('Session validation failed — signing out:',err);
