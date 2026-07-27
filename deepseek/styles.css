@@ -297,7 +297,7 @@ body {
 .main-seats {
   display: flex;
   gap: 12px;
-  margin-top: auto;
+  margin-top: 14px;
   flex-wrap: wrap;
 }
 
