@@ -52,6 +52,14 @@
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 <div class="app" id="mainApp" style="display:none">
   <div class="header">
     <div style="text-align:center;padding:4px 0 2px">
@@ -160,7 +168,7 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.2.3';
+const BUILD_VERSION = '1.2.4'; // v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
 // v1.2.1 — Default tab changed from "Needs reply" to "All", so newly added
@@ -474,7 +482,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -506,14 +514,14 @@ async function doLogin(){
     // interaction was logged for this session.
     try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0])staffId=srows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
-    sessionStorage.setItem('btb_inbox_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     await loadAppData();
     showApp();
     renderFilters();renderQueue();updateHeader();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;sessionStorage.removeItem('btb_inbox_user');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
   document.getElementById('authName').textContent=currentUser.name;
@@ -521,7 +529,7 @@ function showApp(){
 }
 
 window.addEventListener('DOMContentLoaded',async()=>{
-  const saved=sessionStorage.getItem('btb_inbox_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -544,7 +552,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
         if(!currentUser)return;
         currentUser.role=roleData.role;
         currentUser.name=roleData.name;
-        sessionStorage.setItem('btb_inbox_user',JSON.stringify(currentUser));
+        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         showApp();
       }).catch(err=>{
         console.error('Session validation failed — signing out:',err);
