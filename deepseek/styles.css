@@ -1798,3 +1798,34 @@ body {
     display: flex;
   }
 }
+/* ===== TICKET CARD (Floating Effect) ===== */
+.ticket-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+/* ===== SCREEN SECTIONS (Flat, No Shadow) ===== */
+.screen {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* Category circles section - keep flat */
+.cat-circles {
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 30px 20px;
+}
+
+.cat-circle {
+  flex: 0 1 150px;
+  text-align: center;
+}
+   
