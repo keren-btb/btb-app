@@ -16,7 +16,6 @@ body {
   min-height: 100vh;
   background: var(--bg-body);
   color: var(--text-primary);
-  transition: background 0.3s, color 0.3s;
 }
 
 /* ============ THEME VARIABLES ============ */
@@ -39,61 +38,6 @@ body {
   --ticket-radius: 20px;
 }
 
-/* Concert theme (default) */
-[data-theme="vintage"] {
-  --bg-body: #e8e8e8;
-  --bg-panel: #fcfcfc;
-  --bg-card: #ffffff;
-  --text-primary: #1a1a1a;
-  --text-secondary: #333333;
-  --text-muted: #6b6b6b;
-  --accent: #07b4c5;
-  --accent-dim: rgba(7, 180, 197, 0.12);
-  --accent-glow: rgba(7, 180, 197, 0.3);
-  --accent-light: #52d4e0;
-  --border-color: #d0d0d0;
-  --stripe: repeating-linear-gradient(90deg, #07b4c5 0px, #07b4c5 36px, #52d4e0 36px, #52d4e0 72px);
-  --head-font: 'Space Grotesk', sans-serif;
-  --body-font: 'Inter', sans-serif;
-}
-
-/* Classic fallback */
-[data-theme="classic"] {
-  --bg-body: #f0f0f0;
-  --bg-panel: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1a1a1a;
-  --text-secondary: #333333;
-  --text-muted: #6b6b6b;
-  --accent: #c9a84c;
-  --accent-dim: rgba(201, 168, 76, 0.15);
-  --accent-glow: rgba(201, 168, 76, 0.3);
-  --accent-light: #d4b85a;
-  --border-color: #d4c9b8;
-  --stripe: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(201, 168, 76, 0.06) 30px, rgba(201, 168, 76, 0.06) 31px);
-  --head-font: 'Space Grotesk', sans-serif;
-  --body-font: 'Inter', sans-serif;
-}
-
-/* Light theme */
-[data-theme="light"] {
-  --bg-body: #f5f7fa;
-  --bg-panel: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1a2a3a;
-  --text-secondary: #4a5a6a;
-  --text-muted: #7a8a9a;
-  --accent: #07b4c5;
-  --accent-dim: rgba(7, 180, 197, 0.12);
-  --accent-glow: rgba(7, 180, 197, 0.25);
-  --accent-light: #52d4e0;
-  --border-color: #d0d9e0;
-  --stripe: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(7, 180, 197, 0.04) 30px, rgba(7, 180, 197, 0.04) 31px);
-  --head-font: 'Space Grotesk', sans-serif;
-  --body-font: 'Inter', sans-serif;
-}
-
-/* ============ BODY STRIPES ============ */
 body {
   background-image: var(--stripe);
   background-color: var(--bg-body);
@@ -261,14 +205,17 @@ body {
 }
 
 .main-title {
-  font-size: 38px;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.05;
-  letter-spacing: -1px;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   margin-bottom: 2px;
-  font-family: var(--head-font);
+}
+
+.main-title svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .main-asterisks {
@@ -444,10 +391,6 @@ body {
     padding: 16px;
   }
 
-  .main-title {
-    font-size: 28px;
-  }
-
   .barcode-vertical {
     display: none;
   }
@@ -536,13 +479,15 @@ body {
   text-align: center;
 }
 
-/* ============ MESSENGER-STYLE TOOLTIP ============ */
+/* ============ MESSENGER-STYLE TOOLTIP (fixed) ============ */
 .cat-circle .tooltip {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   position: absolute;
   bottom: 115%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(8px);
   background: #f0f9fa;
   color: var(--text-secondary);
   padding: 12px 16px;
@@ -555,6 +500,7 @@ body {
   z-index: 10;
   text-align: left;
   border: 1px solid rgba(7, 180, 197, 0.15);
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
 }
 
 .cat-circle .tooltip::after {
@@ -571,8 +517,10 @@ body {
 
 .cat-circle:hover .tooltip,
 .cat-circle.active .tooltip {
-  display: block;
-  animation: fadeUp 0.25s ease;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
 }
 
 @keyframes fadeUp {
@@ -614,7 +562,7 @@ body {
     padding: 10px 14px;
     bottom: 115%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(8px);
   }
 
   .cat-circle .tooltip::after {
@@ -623,7 +571,7 @@ body {
 
   .cat-circle:hover .tooltip,
   .cat-circle.active .tooltip {
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
@@ -655,10 +603,7 @@ body {
   }
 }
 
-/* ============ EXISTING COMPONENT OVERRIDES ============ */
-/* Keep the rest of your existing styles for screens, forms, etc. */
-/* I've included the critical ones below, but your original script.js covers the rest */
-
+/* ============ SCREENS (overlay on ticket) ============ */
 .screen {
   display: none;
   width: 100%;
@@ -667,10 +612,10 @@ body {
 
 .screen.active {
   display: block;
-  animation: fadeUp 0.3s ease;
+  animation: fadeUpScreen 0.3s ease;
 }
 
-@keyframes fadeUp {
+@keyframes fadeUpScreen {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -681,7 +626,6 @@ body {
   }
 }
 
-/* Ensure ticket wrapper contains screens */
 .ticket-wrapper .screen {
   flex: 0 0 100%;
   order: 10;
@@ -711,61 +655,47 @@ body {
   }
 }
 
-/* Theme switcher */
-.theme-switcher {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 1000;
-  display: flex;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  padding: 6px 10px;
-  border-radius: 30px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--border-color);
+/* ============ HEADER / MOBILE ============ */
+.hdr {
+  text-align: center;
+  padding: 8px 0 32px;
+  display: none;
 }
 
-.theme-btn {
-  padding: 4px 12px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: var(--body-font);
+.hdr-eyebrow {
   font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
-.theme-btn:hover {
-  background: var(--accent-dim);
+.hdr-title {
+  font-family: var(--head-font);
+  font-size: 38px;
+  line-height: 1.05;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
-.theme-btn.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
+.hdr-title span {
+  color: var(--accent);
+  display: block;
+}
+
+.hdr-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
 @media (max-width: 859px) {
-  .theme-switcher {
-    top: 8px;
-    right: 8px;
-    padding: 4px 8px;
-    gap: 4px;
-  }
-  .theme-btn {
-    font-size: 9px;
-    padding: 3px 8px;
+  .hdr {
+    display: block;
   }
 }
 
-/* misc overrides for existing components */
+/* ============ EXISTING COMPONENT OVERRIDES ============ */
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -801,7 +731,7 @@ body {
   margin-bottom: 16px;
 }
 
-/* Forms, buttons, etc. (reuse your existing styles from earlier) */
+/* Forms, buttons, etc. */
 .cat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1063,7 +993,6 @@ body {
   margin-top: 10px;
 }
 
-/* Keep existing styles for radio, exp-opt, slots, etc. from your original */
 .radio-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1218,7 +1147,6 @@ body {
   border-left: 2px dashed var(--border-color);
 }
 
-/* players */
 .players-row {
   display: flex;
   align-items: center;
@@ -1742,114 +1670,131 @@ body {
   line-height: 1.6;
 }
 
-/* Toggle tooltip JS helper */
-.cat-circle .tooltip {
-  display: none;
+/* ============ LEFT PANEL (desktop summary) ============ */
+.lcol {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 24px;
+  background: var(--bg-panel);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  margin-right: 24px;
+  border: 1px solid var(--border-color);
 }
 
-.cat-circle:hover .tooltip,
-.cat-circle.active .tooltip {
+.lc-brand {
+  margin-bottom: 24px;
+}
+
+.lc-eye {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.lc-title {
+  font-family: var(--head-font);
+  font-size: 32px;
+  line-height: 1.05;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.lc-title span {
+  color: var(--accent);
   display: block;
 }
 
-/* Left panel (desktop side) hidden, but keep it for the stepper logic */
-.lcol {
-  display: none;
+.lc-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
-.hdr,
-.steps {
-  display: none;
+.lc-divider {
+  height: 2px;
+  background: var(--border-color);
+  margin: 16px 0;
+  opacity: 0.5;
 }
 
-/* Responsive overrides for the left panel if needed */
+.lc-summary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: none;
+  box-shadow: var(--shadow);
+  margin-top: 16px;
+}
+
+.lc-summary.show {
+  display: block;
+}
+
+.lc-sum-head {
+  font-family: var(--head-font);
+  font-size: 16px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.lc-sum-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+  font-size: 13px;
+}
+
+.lc-sum-row:last-child {
+  margin-bottom: 0;
+}
+
+.lc-sum-icon {
+  font-size: 15px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.lc-sum-val {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.lc-sum-sub {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.admit-one {
+  font-family: var(--head-font);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.5;
+}
+
 @media (max-width: 859px) {
   .lcol {
     display: none;
   }
-  .hdr,
-  .steps {
-    display: block !important;
-  }
 }
 
 @media (min-width: 860px) {
-  .hdr,
-  .steps {
-    display: none !important;
+  .lcol {
+    display: flex;
   }
-}
-
-/* Keep the existing mobile step bar styling */
-.steps {
-  display: flex;
-  align-items: center;
-  margin-bottom: 32px;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-}
-
-.step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.step-num {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 2px solid var(--border-color);
-  background: var(--bg-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-  font-family: var(--body-font);
-}
-
-.step-num.active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-  box-shadow: 0 2px 12px var(--accent-glow);
-  transform: scale(1.05);
-}
-
-.step-num.done {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
-.step-lbl {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-}
-
-.step-lbl.active {
-  color: var(--text-primary);
-}
-
-.step-line {
-  flex: 1;
-  height: 2px;
-  background: var(--border-color);
-  margin-bottom: 16px;
-  border-radius: 1px;
-  transition: background 0.3s;
-}
-
-.step-line.done {
-  background: var(--accent);
 }
