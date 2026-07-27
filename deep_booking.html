@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book Now — Beyond the Box (Ticket Themes)</title>
+  <title>Book Now — Beyond the Box (Vintage Ticket)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <!-- We'll load fonts dynamically per theme -->
+  <!-- Vintage fonts: EB Garamond for headings, Lato for body -->
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ============ BASE (shared across all themes) ============ */
+    /* ============ BASE ============ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -19,8 +20,9 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    /* ---- theme variables (will be toggled via data-theme) ---- */
+    /* ============ THEME VARIABLES ============ */
     :root {
+      /* Fallback / Classic */
       --bg-body: #f5f0eb;
       --bg-panel: #fcf9f5;
       --bg-card: #ffffff;
@@ -35,50 +37,13 @@
       --accent-glow: rgba(201, 168, 76, 0.3);
       --shadow: 0 4px 20px rgba(0,0,0,0.08);
       --stripe: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(201,168,76,0.06) 30px, rgba(201,168,76,0.06) 31px);
-      --head-font: 'Playfair Display', serif;
-      --body-font: 'Inter', sans-serif;
+      --head-font: 'EB Garamond', serif;
+      --body-font: 'Lato', sans-serif;
       --ticket-border: 2px dashed var(--border-color);
       --ticket-radius: 16px;
-      --ticket-pad: 20px;
     }
 
-    /* Theme 1: Classic Ticket (default) */
-    [data-theme="classic"] {
-      --bg-body: #e8e0d5;
-      --bg-panel: #fcf9f5;
-      --bg-card: #ffffff;
-      --bg-card-hover: #f8f4ef;
-      --border-color: #d4c9b8;
-      --border-active: #c9a84c;
-      --text-primary: #2c241a;
-      --text-secondary: #6b5e4e;
-      --text-muted: #8f8170;
-      --accent: #c9a84c;
-      --accent-dim: rgba(201, 168, 76, 0.15);
-      --accent-glow: rgba(201, 168, 76, 0.3);
-      --head-font: 'Playfair Display', serif;
-      --body-font: 'Inter', sans-serif;
-    }
-
-    /* Theme 2: Cinema Light */
-    [data-theme="light"] {
-      --bg-body: #f0f2f5;
-      --bg-panel: #ffffff;
-      --bg-card: #ffffff;
-      --bg-card-hover: #f5f7fa;
-      --border-color: #d0d9e0;
-      --border-active: #07b4c5;
-      --text-primary: #1a2a3a;
-      --text-secondary: #4a5a6a;
-      --text-muted: #7a8a9a;
-      --accent: #07b4c5;
-      --accent-dim: rgba(7, 180, 197, 0.12);
-      --accent-glow: rgba(7, 180, 197, 0.25);
-      --head-font: 'Poppins', sans-serif;
-      --body-font: 'Inter', sans-serif;
-    }
-
-    /* Theme 3: Vintage Warm */
+    /* --- VINTAGE (default) --- */
     [data-theme="vintage"] {
       --bg-body: #e6dcc8;
       --bg-panel: #f7f0e0;
@@ -94,24 +59,137 @@
       --accent-glow: rgba(139, 58, 58, 0.25);
       --head-font: 'EB Garamond', serif;
       --body-font: 'Lato', sans-serif;
+      /* EXACT stripe pattern from the alt file: teal + light teal */
+      --stripe: repeating-linear-gradient(90deg, #07b4c5 0px, #07b4c5 36px, #52d4e0 36px, #52d4e0 72px);
+      --ticket-border: 2px dashed var(--border-color);
+      --ticket-radius: 12px;
     }
 
-    /* ---- ticket perforations ---- */
-    .ticket-edge {
-      position: relative;
+    /* --- CLASSIC --- */
+    [data-theme="classic"] {
+      --bg-body: #e8e0d5;
+      --bg-panel: #fcf9f5;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8f4ef;
+      --border-color: #d4c9b8;
+      --border-active: #c9a84c;
+      --text-primary: #2c241a;
+      --text-secondary: #6b5e4e;
+      --text-muted: #8f8170;
+      --accent: #c9a84c;
+      --accent-dim: rgba(201, 168, 76, 0.15);
+      --accent-glow: rgba(201, 168, 76, 0.3);
+      --stripe: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(201,168,76,0.06) 30px, rgba(201,168,76,0.06) 31px);
+      --head-font: 'EB Garamond', serif;
+      --body-font: 'Lato', sans-serif;
+      --ticket-border: 2px dashed var(--border-color);
+      --ticket-radius: 16px;
     }
-    .ticket-edge::before {
+
+    /* --- LIGHT --- */
+    [data-theme="light"] {
+      --bg-body: #f0f2f5;
+      --bg-panel: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f5f7fa;
+      --border-color: #d0d9e0;
+      --border-active: #07b4c5;
+      --text-primary: #1a2a3a;
+      --text-secondary: #4a5a6a;
+      --text-muted: #7a8a9a;
+      --accent: #07b4c5;
+      --accent-dim: rgba(7, 180, 197, 0.12);
+      --accent-glow: rgba(7, 180, 197, 0.25);
+      --stripe: repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(7,180,197,0.04) 30px, rgba(7,180,197,0.04) 31px);
+      --head-font: 'EB Garamond', serif;
+      --body-font: 'Lato', sans-serif;
+      --ticket-border: 2px dashed var(--border-color);
+      --ticket-radius: 16px;
+    }
+
+    /* ============ STRIPE & TICKET STYLES ============ */
+
+    /* Apply stripe to body and left panel for Vintage theme */
+    [data-theme="vintage"] body {
+      background-image: var(--stripe);
+      background-color: var(--bg-body);
+    }
+    [data-theme="vintage"] .lcol {
+      background-image: var(--stripe);
+      background-color: var(--bg-panel);
+    }
+
+    /* Perforated edge on left panel (ticket stub) */
+    .lcol {
+      position: relative;
+      overflow: visible;
+    }
+    .lcol::after {
       content: '';
       position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 12px;
-      background: repeating-linear-gradient(to bottom, transparent, transparent 8px, var(--border-color) 8px, var(--border-color) 10px);
-      opacity: 0.5;
+      right: -12px;
+      top: 40px;
+      bottom: 40px;
+      width: 24px;
+      background: repeating-linear-gradient(to bottom, 
+        transparent 0px, 
+        transparent 6px, 
+        var(--bg-body) 6px, 
+        var(--bg-body) 10px
+      );
+      opacity: 0.6;
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 2;
     }
 
-    /* ---- layout ---- */
-    .split { display: flex; min-height: 100vh; }
+    /* Barcode & ticket meta */
+    .ticket-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+      font-family: var(--body-font);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .ticket-meta strong {
+      color: var(--text-primary);
+      font-weight: 900;
+    }
+    .barcode {
+      height: 32px;
+      width: 100%;
+      background: repeating-linear-gradient(90deg, 
+        var(--text-primary) 0px, 
+        var(--text-primary) 2px, 
+        transparent 2px, 
+        transparent 6px
+      );
+      opacity: 0.12;
+      margin: 6px 0 12px 0;
+      border-radius: 2px;
+    }
+    .admit-one {
+      font-family: var(--head-font);
+      font-size: 14px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-transform: uppercase;
+      font-weight: 700;
+      opacity: 0.6;
+    }
+
+    /* ============ LAYOUT ============ */
+    .split {
+      display: flex;
+      min-height: 100vh;
+    }
 
     .lcol {
       width: 360px;
@@ -129,18 +207,6 @@
       transition: background 0.3s, border-color 0.3s;
       font-family: var(--body-font);
     }
-    /* torn edge effect on left panel */
-    .lcol::after {
-      content: '';
-      position: absolute;
-      right: -8px;
-      top: 0;
-      bottom: 0;
-      width: 16px;
-      background: repeating-linear-gradient(to bottom, transparent, transparent 8px, var(--border-color) 8px, var(--border-color) 10px);
-      opacity: 0.3;
-      pointer-events: none;
-    }
 
     .lc-brand { margin-bottom: 32px; }
     .lc-eye {
@@ -149,7 +215,7 @@
       text-transform: uppercase;
       color: var(--text-secondary);
       margin-bottom: 12px;
-      font-weight: 600;
+      font-weight: 900;
     }
     .lc-title {
       font-family: var(--head-font);
@@ -162,7 +228,7 @@
     .lc-sub {
       font-size: 14px;
       color: var(--text-secondary);
-      font-weight: 500;
+      font-weight: 700;
     }
     .lc-divider {
       height: 2px;
@@ -180,7 +246,7 @@
       border: 2px solid var(--border-color);
       background: var(--bg-card);
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
+      font-size: 13px; font-weight: 900;
       color: var(--text-secondary);
       flex-shrink: 0;
       transition: all 0.2s;
@@ -209,7 +275,7 @@
     .vstep-text { padding-top: 5px; }
     .vstep-lbl {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 900;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.6px;
@@ -238,7 +304,7 @@
     .lc-sum-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 13px; }
     .lc-sum-row:last-child { margin-bottom: 0; }
     .lc-sum-icon { font-size: 15px; width: 22px; text-align: center; flex-shrink: 0; }
-    .lc-sum-val { color: var(--text-primary); font-weight: 600; }
+    .lc-sum-val { color: var(--text-primary); font-weight: 700; }
     .lc-sum-sub { color: var(--text-muted); font-size: 11px; margin-top: 1px; }
 
     /* right column */
@@ -274,7 +340,7 @@
       letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--text-secondary);
-      font-weight: 600;
+      font-weight: 900;
     }
     .hdr-title {
       font-family: var(--head-font);
@@ -284,7 +350,7 @@
       margin-bottom: 8px;
     }
     .hdr-title span { color: var(--accent); display: block; }
-    .hdr-sub { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+    .hdr-sub { font-size: 14px; color: var(--text-secondary); font-weight: 700; }
 
     /* step bar (mobile) */
     .steps {
@@ -303,7 +369,7 @@
       border: 2px solid var(--border-color);
       background: var(--bg-card);
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
+      font-size: 13px; font-weight: 900;
       color: var(--text-secondary);
       transition: all 0.2s;
       font-family: var(--body-font);
@@ -324,7 +390,7 @@
       font-size: 10px;
       color: var(--text-muted);
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 900;
       letter-spacing: 0.4px;
     }
     .step-lbl.active { color: var(--text-primary); }
@@ -343,10 +409,10 @@
     .screen.active { display: block; animation: fadeUp 0.35s ease; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ---- shared component styles ---- */
+    /* ============ SHARED COMPONENT STYLES ============ */
     .sec-label {
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 900;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       color: var(--text-secondary);
@@ -466,14 +532,14 @@
     .date-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
     .date-chip.selected { border-color: var(--accent); background: var(--accent-dim); }
     .date-chip.no-avail { opacity: 0.35; cursor: default; pointer-events: none; }
-    .dc-day { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .dc-day { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
     .dc-num { font-family: var(--head-font); font-size: 22px; color: var(--text-primary); line-height: 1.1; }
-    .dc-mon { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+    .dc-mon { font-size: 10px; color: var(--text-muted); font-weight: 700; }
     .date-chip.selected .dc-day, .date-chip.selected .dc-num, .date-chip.selected .dc-mon { color: var(--accent); }
 
     /* slot grid */
     .slot-legend { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
-    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-weight: 700; }
     .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
     .slot-heading { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
     .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
@@ -496,7 +562,7 @@
     .slot-btn.available .slot-time { color: #168a5a; }
     .slot-btn.selected .slot-time { color: var(--accent); }
     .slot-btn.call .slot-time { color: #e8920a; }
-    .slot-status { font-size: 10px; margin-top: 3px; font-weight: 600; color: var(--text-muted); }
+    .slot-status { font-size: 10px; margin-top: 3px; font-weight: 700; color: var(--text-muted); }
     .slot-btn.available .slot-status { color: #168a5a; }
     .slot-btn.call .slot-status { color: #e8920a; }
     .slot-btn.selected .slot-status { color: var(--accent); }
@@ -516,7 +582,7 @@
     .view-opt.active { border-color: var(--accent); background: var(--accent-dim); }
     .view-opt-icon { font-size: 24px; margin-bottom: 4px; }
     .view-opt-label { font-family: var(--head-font); font-size: 18px; color: var(--text-primary); }
-    .view-opt-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+    .view-opt-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 700; }
 
     /* info panel */
     .info-panel {
@@ -545,7 +611,7 @@
     }
     .summary-icon { font-size: 26px; flex-shrink: 0; }
     .summary-game { font-family: var(--head-font); font-size: 18px; color: var(--text-primary); }
-    .summary-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+    .summary-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-weight: 700; }
     .summary-change { font-size: 12px; color: var(--accent); cursor: pointer; margin-left: auto; white-space: nowrap; font-weight: 700; }
     .summary-change:hover { text-decoration: underline; }
 
@@ -618,7 +684,7 @@
       transition: opacity 0.2s;
     }
     .radio-opt.selected .radio-dot::after { opacity: 1; }
-    .radio-label { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+    .radio-label { font-size: 14px; color: var(--text-primary); font-weight: 700; }
 
     .exp-opt {
       background: var(--bg-card);
@@ -652,7 +718,7 @@
     .exp-opt.selected .exp-check::after { opacity: 1; }
     .exp-body { flex: 1; min-width: 0; }
     .exp-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .exp-label { font-size: 14px; color: var(--text-primary); font-weight: 600; }
+    .exp-label { font-size: 14px; color: var(--text-primary); font-weight: 700; }
     .exp-price { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
     .exp-desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
     .field-nested { margin-left: 18px; padding-left: 14px; border-left: 2px dashed var(--border-color); }
@@ -670,7 +736,7 @@
     }
     .cnt-btn:hover { transform: scale(1.08); opacity: 0.9; }
     .cnt-val { font-family: var(--head-font); font-size: 32px; color: var(--text-primary); min-width: 34px; text-align: center; }
-    .cnt-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .cnt-lbl { font-size: 12px; color: var(--text-muted); font-weight: 700; }
     .price-live { text-align: right; margin-left: auto; }
     .price-big { font-family: var(--head-font); font-size: 28px; color: var(--accent); }
     .price-small { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
@@ -684,10 +750,10 @@
       margin-bottom: 20px;
       box-shadow: var(--shadow);
     }
-    .price-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 8px; font-weight: 500; }
+    .price-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 8px; font-weight: 700; }
     .price-row:last-child { margin-bottom: 0; }
     .price-lbl { color: var(--text-secondary); }
-    .price-val { color: var(--text-primary); font-weight: 600; }
+    .price-val { color: var(--text-primary); font-weight: 700; }
     .price-divider { height: 1px; background: var(--border-color); margin: 10px 0; opacity: 0.5; }
     .price-total-lbl { font-family: var(--head-font); font-size: 18px; color: var(--text-primary); }
     .price-total-val { font-family: var(--head-font); font-size: 22px; color: var(--accent); }
@@ -700,7 +766,7 @@
       color: var(--text-secondary);
       margin-top: 12px;
       line-height: 1.6;
-      font-weight: 500;
+      font-weight: 700;
     }
     .deposit-note strong { display: block; margin-bottom: 2px; font-size: 13px; color: var(--accent); }
 
@@ -731,7 +797,7 @@
       font-size: 14px;
       padding: 12px;
       font-family: var(--body-font);
-      font-weight: 600;
+      font-weight: 700;
       border-radius: 10px;
     }
     .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -773,7 +839,7 @@
       color: #c53030;
       margin-bottom: 16px;
       display: none;
-      font-weight: 600;
+      font-weight: 700;
     }
     .err-msg.show { display: block; }
 
@@ -797,11 +863,11 @@
       margin-bottom: 16px;
       box-shadow: var(--shadow);
     }
-    .confirm-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border-color); font-size: 14px; font-weight: 500; }
+    .confirm-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--border-color); font-size: 14px; font-weight: 700; }
     .confirm-row:last-child { border-bottom: none; }
     .confirm-lbl { color: var(--text-secondary); }
-    .confirm-val { color: var(--text-primary); font-weight: 600; text-align: right; max-width: 60%; }
-    .confirm-ref { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 16px; font-weight: 600; }
+    .confirm-val { color: var(--text-primary); font-weight: 700; text-align: right; max-width: 60%; }
+    .confirm-ref { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 16px; font-weight: 700; }
     .confirm-ref strong { color: var(--accent); font-family: monospace; letter-spacing: 1px; font-size: 14px; }
 
     /* enquiry overlay */
@@ -863,13 +929,13 @@
       color: var(--accent);
       cursor: pointer;
       margin-bottom: 20px;
-      font-weight: 600;
+      font-weight: 700;
       transition: color 0.2s;
     }
     .back-link:hover { color: var(--border-active); transform: translateX(-3px); }
 
     /* empty */
-    .empty { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+    .empty { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 14px; font-weight: 700; }
     .empty-icon { font-size: 40px; margin-bottom: 10px; }
 
     /* ===== THEME SWITCHER ===== */
@@ -895,7 +961,7 @@
       color: var(--text-secondary);
       font-family: var(--body-font);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
       text-transform: uppercase;
@@ -907,32 +973,9 @@
       background: var(--accent);
       color: #fff;
     }
-
-    /* override for mobile */
     @media (max-width: 859px) {
       .theme-switcher { top: 8px; right: 8px; padding: 6px 10px; gap: 4px; }
       .theme-btn { font-size: 10px; padding: 4px 10px; }
-    }
-
-    /* ticket stub decorative elements */
-    .ticket-stub {
-      position: relative;
-    }
-    .ticket-stub::after {
-      content: '✦ ADMIT ONE ✦';
-      position: absolute;
-      bottom: 20px;
-      right: -18px;
-      transform: rotate(90deg);
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--text-muted);
-      opacity: 0.2;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    @media (max-width: 859px) {
-      .ticket-stub::after { display: none; }
     }
 
     /* override for JS-injected overlays */
@@ -941,18 +984,18 @@
     body > div[style*="z-index:9999"] [style*="color:#fff"] { color: var(--text-primary) !important; font-family: var(--head-font) !important; font-weight: 400 !important; }
   </style>
 </head>
-<body data-theme="classic">
+<body data-theme="vintage">
 
 <!-- THEME SWITCHER -->
 <div class="theme-switcher">
-  <button class="theme-btn active" data-theme="classic">🎫 Classic</button>
+  <button class="theme-btn" data-theme="classic">🎫 Classic</button>
   <button class="theme-btn" data-theme="light">☀️ Light</button>
-  <button class="theme-btn" data-theme="vintage">🕰️ Vintage</button>
+  <button class="theme-btn active" data-theme="vintage">🕰️ Vintage</button>
 </div>
 
-<div class="split ticket-stub">
+<div class="split">
 
-  <!-- LEFT PANEL -->
+  <!-- LEFT PANEL (Ticket Stub) -->
   <aside class="lcol">
     <div class="lc-brand">
       <div class="lc-eye">Hastings, New Zealand</div>
@@ -992,16 +1035,29 @@
       </div>
     </div>
 
+    <!-- Ticket Stub Summary -->
     <div class="lc-summary" id="lcSummary">
-      <div class="lc-sum-head">YOUR BOOKING</div>
+      <div class="lc-sum-head">🎟️ YOUR BOOKING</div>
       <div id="lcSummaryRows"></div>
+    </div>
+
+    <!-- Stub meta -->
+    <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted); letter-spacing: 1px; text-align: center; border-top: 1px dashed var(--border-color); padding-top: 12px; opacity: 0.6;">
+      <span class="admit-one">ADMIT ONE</span> · <span style="font-family: monospace;">No. 104729</span>
     </div>
   </aside>
 
-  <!-- RIGHT PANEL -->
+  <!-- RIGHT PANEL (Main Ticket) -->
   <div class="rcol">
     <div class="rinner">
       <div class="page">
+
+        <!-- Barcode & Ticket Meta -->
+        <div class="barcode"></div>
+        <div class="ticket-meta">
+          <span><strong>🎟️ BEYOND THE BOX</strong> · Hastings</span>
+          <span>No. <strong>104729</strong></span>
+        </div>
 
         <!-- mobile header -->
         <div class="hdr">
@@ -1033,7 +1089,7 @@
           </div>
         </div>
 
-        <!-- ====== SCREENS (identical content, just styled) ====== -->
+        <!-- ====== SCREENS ====== -->
         <!-- SCREEN 1: CATEGORY -->
         <div class="screen active" id="s1">
           <div class="sec-label">Step 1</div>
@@ -1392,6 +1448,9 @@
           <button class="btn btn-ghost" onclick="goTo('s1',1)">← Back</button>
         </div>
 
+        <!-- Footer Barcode -->
+        <div class="barcode" style="margin-top: 24px;"></div>
+
       </div><!-- /page -->
     </div><!-- /rinner -->
   </div><!-- /rcol -->
@@ -1449,7 +1508,6 @@
 
   // ============================================================
   // THE REST — identical to original booking logic
-  // (Only the CSS has changed; we keep all JavaScript exactly as before)
   // ============================================================
 
   // === CONFIG ===
