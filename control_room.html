@@ -29,6 +29,14 @@
             <p id="loginError" class="text-red-400 text-xs mt-3"></p>
         </div>
     </div>
+    <script>
+        // Anti-flash: if we already have a cached SSO session, hide the login
+        // screen immediately (before the page finishes parsing/painting) instead
+        // of waiting for the DOMContentLoaded handler + data load to hide it.
+        if(localStorage.getItem('btb_staff_session')){
+            document.getElementById('loginScreen').classList.add('hidden');
+        }
+    </script>
 
     <div id="mainApp" class="hidden flex-col flex-grow">
 
@@ -332,7 +340,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 9; // increment this each shipped update — check browser console to confirm you're on the latest build
+        const BUILD_VERSION = 10; // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
         // v9: NZ timezone fix — todayStr()/date picker default now always uses Pacific/Auckland time.
         // v8: added a return-to-btb_app.html link in the header.
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -369,7 +377,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 currentUser.token = data.access_token;
                 currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
                 currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-                sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+                localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
                 scheduleTokenRefresh();
             } catch(e) {
                 console.error('Token refresh failed — signing out:', e);
@@ -389,7 +397,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 const userId=data.user.id;const token=data.access_token;
                 const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>({name:email.split('@')[0]}))||{name:email.split('@')[0]};
                 currentUser={id:userId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name};
-                sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+                localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
                 scheduleTokenRefresh();
                 showApp();
                 await loadControlRoomData();
@@ -398,7 +406,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
         function doLogout(){
             clearTimeout(tokenRefreshTimer);
             currentUser=null;
-            sessionStorage.removeItem('btb_user');
+            localStorage.removeItem('btb_staff_session');
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('flex');
             document.getElementById('loginScreen').classList.remove('hidden');
@@ -414,7 +422,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
 
         // Initialize App on DOM Load — now gated behind a valid staff login.
         document.addEventListener("DOMContentLoaded", async () => {
-            const saved=sessionStorage.getItem('btb_user');
+            const saved=localStorage.getItem('btb_staff_session');
             if(saved){
                 try{
                     const cached=JSON.parse(saved);
@@ -439,7 +447,7 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                     callEdgeFunction('get_my_role',{},currentUser.token).then(roleData=>{
                         if(!currentUser)return;
                         currentUser.name=roleData.name||currentUser.name;
-                        sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+                        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
                         showApp();
                     }).catch(err=>{
                         console.error('Session validation failed — signing out:',err);
