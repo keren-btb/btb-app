@@ -143,6 +143,14 @@ tr:hover td{background:#fafafa}
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
+<script>
+  // Anti-flash: if we already have a cached SSO session, hide the login
+  // screen immediately (before the page finishes parsing/painting) instead
+  // of waiting for the DOMContentLoaded handler + data load to hide it.
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
 
 <div class="app-wrap" id="appWrap" style="display:none">
   <aside class="sidebar">
@@ -401,7 +409,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.2'; // NZ timezone fix: date range presets (week/month/etc.) now always use Pacific/Auckland time
+const BUILD_VERSION = '1.0.3'; // v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cReports — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
@@ -456,7 +464,7 @@ async function refreshAuthToken() {
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
-    sessionStorage.setItem('btb_user', JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
     console.error('Token refresh failed — signing out:', e);
@@ -495,7 +503,7 @@ async function doLogin(){
       errEl.textContent='Access denied — reports require admin or manager role.';return;
     }
     currentUser={id:data.user.id,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:roleData.name,role:roleData.role};
-    sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
     scheduleTokenRefresh();
     showApp();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
@@ -503,7 +511,7 @@ async function doLogin(){
 
 function doLogout(){
   clearTimeout(tokenRefreshTimer);
-  currentUser=null;sessionStorage.removeItem('btb_user');
+  currentUser=null;localStorage.removeItem('btb_staff_session');
   document.getElementById('appWrap').style.display='none';
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('loginPass').value='';
@@ -1219,7 +1227,7 @@ function exportCurrentCSV(){
 
 // ── INIT ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',async()=>{
-  const saved=sessionStorage.getItem('btb_user');
+  const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
       const cached=JSON.parse(saved);
@@ -1253,7 +1261,7 @@ if(currentUser.refreshToken){
         } else if(currentUser){
           currentUser.name=roleData.name;
           currentUser.role=roleData.role;
-          sessionStorage.setItem('btb_user',JSON.stringify(currentUser));
+          localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
           showApp();
         }
       }
