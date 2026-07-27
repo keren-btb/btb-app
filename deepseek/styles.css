@@ -1802,7 +1802,7 @@ body {
 .ticket-wrapper {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
   margin-bottom: 40px;
   overflow: hidden;
 }
@@ -1810,14 +1810,14 @@ body {
 /* ===== SCREEN SECTIONS (Flat, No Shadow) ===== */
 .screen {
   background: transparent;
-  box-shadow: none;
+  box-shadow: none !important;
   padding: 0;
 }
 
-/* Category circles section - keep flat */
+/* REMOVE ALL SHADOWS FROM CATEGORY CIRCLES */
 .cat-circles {
-  background: transparent;
-  box-shadow: none;
+  background: transparent !important;
+  box-shadow: none !important;
   display: flex;
   gap: 20px;
   justify-content: center;
@@ -1827,5 +1827,24 @@ body {
 .cat-circle {
   flex: 0 1 150px;
   text-align: center;
+  box-shadow: none !important;
+  background: transparent !important;
 }
-   
+
+.circle {
+  box-shadow: none !important;
+  border-radius: 50%;
+  background: #f5f5f5 !important;
+  border: 2px solid #ddd !important;
+}
+
+/* SVG sizing */
+.main-title {
+  height: 150px;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.main-title object {
+  height: 150px !important;
+}
