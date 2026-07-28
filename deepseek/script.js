@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.4'; // v1.7.4: playTicketHighlight() now scrolls the ticket-wrapper itself into view first (it sits above .screens, so it was off-screen during the animation), and the whole sequence is slower - shimmer 1.6s, name pulse 1s x2, seat-box pulses 1.4s x2 each staggered 900ms apart
+const BUILD_VERSION = '1.7.5'; // v1.7.5: pulses now play once each (was twice) at ~3x the duration - name 3s, seat-boxes 4s, staggered 1.5s apart; DATE/TIME/PLAYERS text now toggles between small (TBC placeholder) and big (.filled class) once a real value is chosen
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -429,16 +429,34 @@ function updateTicketPreview() {
     if (selDate) {
       const d = new Date(selDate + 'T12:00');
       dateEl.textContent = '– ' + DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+      dateEl.classList.add('filled');
     } else {
       dateEl.textContent = '– TBC';
+      dateEl.classList.remove('filled');
     }
   }
 
   const timeEl = document.getElementById('ticketTime');
-  if (timeEl) timeEl.textContent = selSlot ? '– ' + fmt12(selSlot) : '– TBC';
+  if (timeEl) {
+    if (selSlot) {
+      timeEl.textContent = '– ' + fmt12(selSlot);
+      timeEl.classList.add('filled');
+    } else {
+      timeEl.textContent = '– TBC';
+      timeEl.classList.remove('filled');
+    }
+  }
 
   const playersEl = document.getElementById('ticketPlayers');
-  if (playersEl) playersEl.textContent = (selGame && playerCount) ? '– ' + playerCount : '– TBC';
+  if (playersEl) {
+    if (selGame && playerCount) {
+      playersEl.textContent = '– ' + playerCount;
+      playersEl.classList.add('filled');
+    } else {
+      playersEl.textContent = '– TBC';
+      playersEl.classList.remove('filled');
+    }
+  }
 }
 
 function selectCategory(cat) {
@@ -1039,8 +1057,8 @@ function playTicketHighlight() {
     wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
   }, 250);
 
-  setTimeout(() => pulse(nameEl, 'pulse-name'), 950);
-  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 1950 + i * 900));
+  setTimeout(() => pulse(nameEl, 'pulse-name'), 900);
+  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 2400 + i * 1500));
 }
 
 async function submitBooking() {
