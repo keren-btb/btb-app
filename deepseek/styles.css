@@ -354,15 +354,36 @@ body {
     transform: none;
   }
 
-  .ticket-stub {
+.ticket-stub {
     width: 100%;
     border-right: none;
     border-bottom: 2px dashed var(--border-color);
     padding: 16px;
     flex-direction: row;
     align-items: center;
+    position: relative;
   }
 
+  .ticket-stub::before,
+  .ticket-stub::after {
+    content: "";
+    position: absolute;
+    bottom: -11px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-body);
+    z-index: 2;
+  }
+
+  .ticket-stub::before {
+    left: -11px;
+  }
+
+  .ticket-stub::after {
+    right: -11px;
+  }
+   
   .stub-teal-stripe {
     width: 4px;
   }
@@ -397,10 +418,21 @@ body {
     border-top: none;
   }
 
-  .ticket-main {
+.ticket-main {
     padding: 16px;
+    position: relative;
   }
 
+  .ticket-main::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 20px);
+    opacity: 0.3;
+  }
   .barcode-vertical {
     display: none;
   }
