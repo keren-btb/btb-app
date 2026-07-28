@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.7'; // v1.6.7: fixed category circles not advancing to step 2 (toggleTooltip was undefined/never called selectCategory); added mobile (i) info icon so tap-to-see-tooltip still works without blocking selection
+const BUILD_VERSION = '1.7.0'; // v1.7.0: redesigned game cards (full-height photo LHS, name+price, players/duration stats column RHS) via shared gameCardHtml() helper; fixed category-circle click not scrolling to reveal game list (was scrolling screen container to its own top, which is already in view — now scrolls to the actual list element)
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -445,27 +445,48 @@ function selectCategory(cat) {
   if (cat === 'escape') {
     renderEscapeGames();
     goTo('s2-escape', 2);
+    scrollToList('escapeGameList');
   } else if (cat === 'vr') {
     renderVRGames();
     goTo('s2-vr', 2);
+    scrollToList('vrGameList');
   } else {
     renderCafeGames();
     goTo('s2-cafe', 2);
+    scrollToList('cafeGameList');
   }
+}
+
+function gameCardHtml(g, idPrefix, clickFn) {
+  const min = g.minPlayers ?? 1;
+  const max = g.maxPlayers ?? '–';
+  const photo = g.photoUrl
+    ? `<img src="${g.photoUrl}" alt="${g.name}">`
+    : `<div class="game-photo-placeholder">${g.icon || '🚪'}</div>`;
+  return `
+      <div class="game-card" id="${idPrefix}-${g.id}" onclick="${clickFn}('${g.id}')">
+        <div class="game-photo">${photo}</div>
+        <div class="game-info">
+          <div class="game-name">${g.name}</div>
+          <div class="game-price">${gamePriceLabel(g)}</div>
+        </div>
+        <div class="game-stats">
+          <div class="game-stat" title="Players"><span class="game-stat-icon">👥</span><span>${min}–${max}</span></div>
+          <div class="game-stat" title="Duration"><span class="game-stat-icon">⏱️</span><span>${g.duration} min</span></div>
+        </div>
+      </div>`;
+}
+
+function scrollToList(listId) {
+  setTimeout(() => {
+    const el = document.getElementById(listId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 120);
 }
 
 function renderEscapeGames() {
   const cats = games.filter(g => g.category === 'escape' && g.bookable !== false);
-  document.getElementById('escapeGameList').innerHTML = cats.map(g => `
-      <div class="game-card" id="gc-${g.id}" onclick="selectEscapeGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '🚪')}</div>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
-          <div class="game-price">${gamePriceLabel(g)}</div>
-        </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('');
+  document.getElementById('escapeGameList').innerHTML = cats.map(g => gameCardHtml(g, 'gc', 'selectEscapeGame')).join('');
 }
 
 function setEscapeView(v) {
@@ -574,16 +595,7 @@ function selectDateFirst(ds, el) {
 
 function renderVRGames() {
   const vrGames = games.filter(g => g.category === 'vr' && g.bookable !== false);
-  document.getElementById('vrGameList').innerHTML = vrGames.map(g => `
-      <div class="game-card" id="vgc-${g.id}" onclick="selectVRGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '🥽')}</div>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
-          <div class="game-price">${gamePriceLabel(g)}</div>
-        </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('') || '<div class="empty"><div class="empty-icon">🥽</div>No VR sessions available to book online right now.<br>Use the enquiry below.</div>';
+  document.getElementById('vrGameList').innerHTML = vrGames.map(g => gameCardHtml(g, 'vgc', 'selectVRGame')).join('') || '<div class="empty"><div class="empty-icon">🥽</div>No VR sessions available to book online right now.<br>Use the enquiry below.</div>';
 }
 
 function selectVRGame(gameId) {
@@ -630,16 +642,7 @@ function selectVRDate(ds, el) {
 
 function renderCafeGames() {
   const cafeGames = games.filter(g => g.category === 'cafe' && g.bookable !== false);
-  document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => `
-      <div class="game-card" id="cgc-${g.id}" onclick="selectCafeGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '☕')}</div>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
-          <div class="game-price">${gamePriceLabel(g)}</div>
-        </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('');
+  document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => gameCardHtml(g, 'cgc', 'selectCafeGame')).join('');
 }
 
 function selectCafeGame(gameId) {
