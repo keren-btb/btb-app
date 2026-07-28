@@ -369,7 +369,7 @@ body {
     position: relative;
   }
 
-.ticket-stub::before,
+  .ticket-stub::before,
   .ticket-stub::after {
     content: "";
     position: absolute;
@@ -380,6 +380,7 @@ body {
     background: var(--bg-body);
     z-index: 2;
   }
+   
 
   .ticket-stub::before {
     left: -16px;
