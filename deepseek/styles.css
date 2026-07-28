@@ -102,6 +102,52 @@ body {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18), 0 26px 72px rgba(0, 0, 0, 0.3);
 }
 
+/* ============ REVIEW SCREEN: TICKET SHIMMER + HIGHLIGHT PULSE ============ */
+.ticket-wrapper.shimmer-play::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  transform: skewX(-15deg);
+  animation: shimmerSweep 1s ease-in-out;
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes shimmerSweep {
+  0% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.pulse-box {
+  animation: pulseBox 0.6s ease-in-out 2;
+}
+
+@keyframes pulseBox {
+  0%, 100% {
+    box-shadow: none;
+    background: #f0f0f0;
+    border-color: var(--border-color);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+}
+
+.pulse-name {
+  animation: pulseName 0.6s ease-in-out 2;
+}
+
+@keyframes pulseName {
+  0%, 100% { color: var(--text-primary); text-shadow: none; }
+  50% { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+}
+
 /* ============ TICKET STUB (LEFT) ============ */
 .ticket-stub {
   width: 160px;
@@ -877,15 +923,15 @@ body {
 
 .game-card:hover {
   border-color: var(--accent);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px var(--accent-glow);
+  transform: translateY(-6px);
+  box-shadow: 0 4px 10px rgba(7, 180, 197, 0.28), 0 16px 36px rgba(82, 212, 224, 0.4);
   background: var(--accent-dim);
 }
 
 .game-card.selected {
   border-color: var(--accent);
   background: var(--accent-dim);
-  box-shadow: 0 4px 14px var(--accent-glow);
+  box-shadow: 0 4px 10px rgba(7, 180, 197, 0.2), 0 10px 24px rgba(82, 212, 224, 0.3);
 }
 
 .game-photo {

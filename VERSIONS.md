@@ -37,11 +37,13 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## deepseek/script.js
+- v1.7.3 — 2026-07-28 — Added playTicketHighlight(): shimmer sweep across the ticket + sequential highlight-pulse on the game name and DATE/TIME/PLAYERS boxes, triggered when showReviewScreen() runs.
 - v1.7.2 — 2026-07-28 — Fixed setStep() crash ("Cannot set properties of null") that was silently aborting goTo() before it ever reached the scroll code — this was the real root cause of the category-circle scroll bug all along (predates this session's other changes); added the same null-guard the second step-indicator loop already had.
 - v1.7.1 — 2026-07-28 — (superseded by v1.7.2's real fix) Replaced setTimeout+scrollIntoView with double-rAF + manually computed window.scrollTo in goTo()/scrollScreenIntoView().
 - v1.7.0 — 2026-07-28 — Redesigned game cards for Escape/VR/Cafe lists via new shared gameCardHtml() helper: full-height photo (or icon placeholder) on the left, name+price in the middle, players/duration stats column on the right.
 
 ## deepseek/index.html + deepseek/styles.css
+- v1.7.9 — 2026-07-28 — Review screen: ticket now plays a shimmer sweep + sequential highlight-pulse (game name, then DATE/TIME/PLAYERS) when the review step loads, twice each. Game-card hover glow changed to a graduated two-tone blue (accent + accent-light layered shadows) and lift increased to -6px.
 - v1.7.8 — 2026-07-28 — Game cards (Choose a room / VR / Cafe lists) now lift + glow on hover, modeled on the .cat-circle hover effect but toned down (smaller lift, softer glow) — replaces the old horizontal-slide hover.
 - v1.7.7 — 2026-07-28 — Layered box-shadow on .ticket-wrapper for a stronger "floating" look; removed the hover tilt-shift (rotateY/rotateX change) since it read as an unintended skew — hover now only deepens the shadow.
 - v1.7.6 — 2026-07-28 — .seat-box (DATE/TIME/PLAYERS) gets right margin on mobile so it finishes before the card edge instead of extending under the vertical barcode decoration.

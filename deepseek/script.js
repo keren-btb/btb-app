@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.2'; // v1.7.2: REAL fix for the scroll bug — setStep() was crashing with "Cannot set properties of null" every single time goTo() ran, because it referenced dot1-4/lbl1-4/line1-3 elements that don't exist in this markup at all. That crash silently aborted goTo() before it ever reached the scroll code (this predates the v1.7.0/v1.7.1 changes). Added the same null-guard the second (vdot/vlbl) loop already had.
+const BUILD_VERSION = '1.7.3'; // v1.7.3: added playTicketHighlight() - shimmer sweep across the ticket + sequential highlight-pulse on game name and DATE/TIME/PLAYERS boxes, played when showReviewScreen() runs
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -998,6 +998,34 @@ function showReviewScreen() {
   document.getElementById('reviewPriceBox').innerHTML = document.getElementById('priceBox').innerHTML;
 
   goTo('s3review', 4);
+  playTicketHighlight();
+}
+
+function playTicketHighlight() {
+  const wrapper = document.querySelector('.ticket-wrapper');
+  if (wrapper) {
+    wrapper.classList.remove('shimmer-play');
+    void wrapper.offsetWidth; // restart animation if it's already played once this session
+    wrapper.classList.add('shimmer-play');
+    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
+  }
+
+  const nameEl = document.getElementById('stubGame');
+  const boxEls = ['ticketDate', 'ticketTime', 'ticketPlayers']
+    .map(id => document.getElementById(id)?.closest('.seat-box'))
+    .filter(Boolean);
+
+  const pulse = (el, cls) => {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  };
+
+  // Shimmer plays first (~1s), then game name and each seat-box pulse in sequence
+  setTimeout(() => pulse(nameEl, 'pulse-name'), 500);
+  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 900 + i * 350));
 }
 
 async function submitBooking() {
