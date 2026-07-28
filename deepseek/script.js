@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.1'; // v1.7.1: fixed goTo() scroll not working at all on some devices - replaced setTimeout+scrollIntoView with double-rAF + manually computed window.scrollTo so the new screen's heading reliably lands at the top of the viewport; desktop game-stats icon/text sizing bumped up (mobile was already fine)
+const BUILD_VERSION = '1.7.2'; // v1.7.2: REAL fix for the scroll bug — setStep() was crashing with "Cannot set properties of null" every single time goTo() ran, because it referenced dot1-4/lbl1-4/line1-3 elements that don't exist in this markup at all. That crash silently aborted goTo() before it ever reached the scroll code (this predates the v1.7.0/v1.7.1 changes). Added the same null-guard the second (vdot/vlbl) loop already had.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -319,6 +319,7 @@ function setStep(n) {
   [1, 2, 3, 4].forEach(i => {
     const dot = document.getElementById('dot' + i);
     const lbl = document.getElementById('lbl' + i);
+    if (!dot || !lbl) return; // step-dot UI not present in this markup - don't crash goTo()
     if (i < n) { dot.className = 'step-num done';
       dot.textContent = '✓';
       lbl.className = 'step-lbl'; } else if (i === n) { dot.className = 'step-num active';
@@ -326,7 +327,8 @@ function setStep(n) {
       lbl.className = 'step-lbl active'; } else { dot.className = 'step-num';
       dot.textContent = i;
       lbl.className = 'step-lbl'; }
-    if (i < 4) document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
+    const lineEl = i < 4 ? document.getElementById('line' + i) : null;
+    if (lineEl) lineEl.className = 'step-line' + (i < n ? ' done' : '');
   });
   [1, 2, 3, 4].forEach(i => {
     const vdot = document.getElementById('vdot' + i);
