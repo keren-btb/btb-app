@@ -353,9 +353,10 @@ function setStep(n) {
 
 function goTo(screenId, step) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
+  const screenEl = document.getElementById(screenId);
+  screenEl.classList.add('active');
   setStep(step);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => screenEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   updateLeftSummary();
 }
 
