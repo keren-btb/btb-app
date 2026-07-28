@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.6'; // v1.7.6: pulse sequence is now fully sequential (each pulse finishes before the next starts) with a 500ms gap in between, instead of overlapping; overall pacing slowed slightly again (shimmer 1.9s, name 3.5s, boxes 4.5s each)
+const BUILD_VERSION = '1.7.7'; // v1.7.7: removed the pause before the game name pulse (starts right as shimmer ends); reduced the gap between DATE/TIME/PLAYERS pulses from 500ms to 350ms
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -1054,7 +1054,9 @@ function playTicketHighlight() {
   const SHIMMER_MS = 1900;   // matches @keyframes shimmerSweep duration in CSS
   const NAME_PULSE_MS = 3500; // matches @keyframes pulseName duration in CSS
   const BOX_PULSE_MS = 4500;  // matches @keyframes pulseBox/pulseZoom duration in CSS
-  const GAP_MS = 500;
+  const GAP_AFTER_SHIMMER = 0;   // no pause before the game name pulse - starts right as shimmer ends
+  const GAP_AFTER_NAME = 500;    // pause before DATE starts
+  const GAP_BETWEEN_BOXES = 350; // pause between DATE/TIME/PLAYERS (reduced from 500)
 
   setTimeout(() => {
     wrapper.classList.remove('shimmer-play');
@@ -1063,12 +1065,12 @@ function playTicketHighlight() {
     wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
   }, SHIMMER_DELAY);
 
-  let t = SHIMMER_DELAY + SHIMMER_MS + GAP_MS;
+  let t = SHIMMER_DELAY + SHIMMER_MS + GAP_AFTER_SHIMMER;
   setTimeout(() => pulse(nameEl, 'pulse-name'), t);
-  t += NAME_PULSE_MS + GAP_MS;
+  t += NAME_PULSE_MS + GAP_AFTER_NAME;
   boxEls.forEach(el => {
     setTimeout(() => pulse(el, 'pulse-box'), t);
-    t += BOX_PULSE_MS + GAP_MS;
+    t += BOX_PULSE_MS + GAP_BETWEEN_BOXES;
   });
 }
 
