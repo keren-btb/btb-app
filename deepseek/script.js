@@ -408,6 +408,22 @@ function updateTicketPreview() {
   const firstInput = document.getElementById('fFirst');
   const first = firstInput ? firstInput.value.trim() : '';
   if (nameEl) nameEl.textContent = first || 'TBC';
+
+  const dateEl = document.getElementById('ticketDate');
+  if (dateEl) {
+    if (selDate) {
+      const d = new Date(selDate + 'T12:00');
+      dateEl.textContent = '– ' + DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    } else {
+      dateEl.textContent = '– TBC';
+    }
+  }
+
+  const timeEl = document.getElementById('ticketTime');
+  if (timeEl) timeEl.textContent = selSlot ? '– ' + fmt12(selSlot) : '– TBC';
+
+  const playersEl = document.getElementById('ticketPlayers');
+  if (playersEl) playersEl.textContent = (selGame && playerCount) ? '– ' + playerCount : '– TBC';
 }
 
 function selectCategory(cat) {
@@ -699,6 +715,7 @@ function selectSlot(gameId, dateStr, slotTime) {
   } else {
     playerCount = 1;
   }
+  updateTicketPreview();
   showIntakeForm();
 }
 
@@ -745,9 +762,10 @@ function adjPlayers(d) {
   } else {
     playerCount = Math.max(1, Math.min(50, playerCount + d));
   }
-  document.getElementById('playerVal').textContent = playerCount;
+document.getElementById('playerVal').textContent = playerCount;
   updatePriceDisplay();
   updateLeftSummary();
+  updateTicketPreview();
 }
 
 function renderPersonalExp() {
