@@ -87,9 +87,9 @@ body {
   width: 100%;
   background: var(--bg-card);
   border-radius: var(--ticket-radius);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 20px 60px rgba(0, 0, 0, 0.25);
   transform: perspective(1500px) rotateY(-2deg) rotateX(1deg);
-  transition: transform 0.3s ease;
+  transition: box-shadow 0.3s ease;
   overflow: hidden;
   position: relative;
   min-height: 200px;
@@ -99,7 +99,53 @@ body {
 
 
 .ticket-wrapper:hover {
-  transform: perspective(1500px) rotateY(-1deg) rotateX(0.5deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18), 0 26px 72px rgba(0, 0, 0, 0.3);
+}
+
+/* ============ REVIEW SCREEN: TICKET SHIMMER + HIGHLIGHT PULSE ============ */
+.ticket-wrapper.shimmer-play::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  transform: skewX(-15deg);
+  animation: shimmerSweep 1s ease-in-out;
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes shimmerSweep {
+  0% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.pulse-box {
+  animation: pulseBox 0.6s ease-in-out 2;
+}
+
+@keyframes pulseBox {
+  0%, 100% {
+    box-shadow: none;
+    background: #f0f0f0;
+    border-color: var(--border-color);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--accent-glow);
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+}
+
+.pulse-name {
+  animation: pulseName 0.6s ease-in-out 2;
+}
+
+@keyframes pulseName {
+  0%, 100% { color: var(--text-primary); text-shadow: none; }
+  50% { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
 }
 
 /* ============ TICKET STUB (LEFT) ============ */
@@ -131,9 +177,14 @@ body {
   padding-left: 12px;
 }
 
+.stub-code-group {
+  display: flex;
+  flex-direction: column;
+}
+
 .stub-event-code {
   font-size: 10px;
-  font-weight: 700;
+   font-weight: 700;
   color: var(--accent);
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -343,26 +394,50 @@ body {
     padding: 16px;
   }
 
-  .ticket-wrapper {
+.ticket-wrapper {
     flex-direction: column;
     transform: none;
     border-radius: 16px;
     min-height: auto;
+    max-width: 340px;
+    margin: 0 auto;
   }
-
+   
   .ticket-wrapper:hover {
     transform: none;
   }
 
-  .ticket-stub {
+.ticket-stub {
     width: 100%;
     border-right: none;
     border-bottom: 2px dashed var(--border-color);
-    padding: 16px;
+    padding: 22px 16px;
     flex-direction: row;
     align-items: center;
+    position: relative;
+  }
+   
+  .ticket-stub::before,
+  .ticket-stub::after {
+    content: "";
+    position: absolute;
+    bottom: -16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-body);
+    z-index: 2;
+  }
+   
+
+  .ticket-stub::before {
+    left: -16px;
   }
 
+  .ticket-stub::after {
+    right: -16px;
+  }
+   
   .stub-teal-stripe {
     width: 4px;
   }
@@ -391,20 +466,35 @@ body {
     flex: 0 1 auto;
   }
 
-  .stub-date {
+.stub-date {
     margin-top: 0;
     padding-top: 0;
     border-top: none;
+    margin-left: auto;
   }
 
-  .ticket-main {
+.ticket-main {
     padding: 16px;
+    position: relative;
   }
 
-  .barcode-vertical {
-    display: none;
+  .ticket-main::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 20px);
+    opacity: 0.3;
   }
-
+.barcode-vertical {
+    display: block;
+    right: 8px;
+    top: 46px;
+    bottom: 90px;
+    width: 26px;
+  }
   .main-seats {
     flex-direction: column;
     margin-top: 16px;
@@ -412,6 +502,7 @@ body {
 
   .seat-box {
     flex: 0 1 auto;
+    margin-right: 40px;
   }
 }
 
@@ -822,40 +913,60 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  padding: 12px 14px;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.2s;
+  align-items: stretch;
+  min-height: 92px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .game-card:hover {
   border-color: var(--accent);
-  transform: translateX(4px);
+  transform: translateY(-6px);
+  box-shadow: 0 4px 10px rgba(7, 180, 197, 0.28), 0 16px 36px rgba(82, 212, 224, 0.4);
+  background: var(--accent-dim);
 }
 
 .game-card.selected {
   border-color: var(--accent);
   background: var(--accent-dim);
+  box-shadow: 0 4px 10px rgba(7, 180, 197, 0.2), 0 10px 24px rgba(82, 212, 224, 0.3);
 }
 
-.game-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--bg-body);
+.game-photo {
+  width: 92px;
+  flex-shrink: 0;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.game-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.game-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 92px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-  border: 1px solid var(--border-color);
+  font-size: 30px;
+  background: var(--accent-dim);
 }
 
 .game-info {
   flex: 1;
   min-width: 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 
 .game-name {
@@ -865,20 +976,47 @@ body {
   color: var(--text-primary);
 }
 
-.game-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
 .game-price {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--accent);
   font-weight: 600;
 }
 
-.game-chevron {
-  color: var(--accent);
-  font-size: 16px;
+.game-stats {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-left: 1px solid var(--border-color);
+}
+
+.game-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.game-stat-icon {
+  font-size: 13px;
+}
+
+@media (min-width: 601px) {
+  .game-stat {
+    font-size: 14px;
+    gap: 7px;
+  }
+  .game-stat-icon {
+    font-size: 17px;
+  }
+  .game-stats {
+    padding: 10px 18px;
+    gap: 10px;
+  }
 }
 
 .btn {
@@ -1814,13 +1952,12 @@ body {
 }
 /* SVG sizing */
 .main-title {
-  max-height: 70px;
-  overflow: hidden;
   margin: 0 0 6px 0;
 }
 
 .main-title img {
-  width: 55%;
+  width: auto;
+  max-width: 100%;
   height: auto;
   max-height: 70px;
 }

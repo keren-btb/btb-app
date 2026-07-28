@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.6'; // v1.6.6: fixed category circles not advancing to step 2 (toggleTooltip was undefined/never called selectCategory); added mobile (i) info icon so tap-to-see-tooltip still works without blocking selection
+const BUILD_VERSION = '1.7.3'; // v1.7.3: added playTicketHighlight() - shimmer sweep across the ticket + sequential highlight-pulse on game name and DATE/TIME/PLAYERS boxes, played when showReviewScreen() runs
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -319,6 +319,7 @@ function setStep(n) {
   [1, 2, 3, 4].forEach(i => {
     const dot = document.getElementById('dot' + i);
     const lbl = document.getElementById('lbl' + i);
+    if (!dot || !lbl) return; // step-dot UI not present in this markup - don't crash goTo()
     if (i < n) { dot.className = 'step-num done';
       dot.textContent = '✓';
       lbl.className = 'step-lbl'; } else if (i === n) { dot.className = 'step-num active';
@@ -326,7 +327,8 @@ function setStep(n) {
       lbl.className = 'step-lbl active'; } else { dot.className = 'step-num';
       dot.textContent = i;
       lbl.className = 'step-lbl'; }
-    if (i < 4) document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
+    const lineEl = i < 4 ? document.getElementById('line' + i) : null;
+    if (lineEl) lineEl.className = 'step-line' + (i < n ? ' done' : '');
   });
   [1, 2, 3, 4].forEach(i => {
     const vdot = document.getElementById('vdot' + i);
@@ -353,10 +355,23 @@ function setStep(n) {
 
 function goTo(screenId, step) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
+  const screenEl = document.getElementById(screenId);
+  screenEl.classList.add('active');
   setStep(step);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollScreenIntoView(screenEl);
   updateLeftSummary();
+}
+
+function scrollScreenIntoView(el) {
+  // Wait two animation frames so the newly-shown screen has been laid out
+  // (fixes goTo() previously not scrolling at all on some browsers/devices)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - 12;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    });
+  });
 }
 
 function updateLeftSummary() {
@@ -401,11 +416,37 @@ document.addEventListener('click', function(e) {
   }
 });
 
+function updateTicketPreview() {
+  const gameEl = document.getElementById('stubGame');
+  const nameEl = document.getElementById('stubName');
+  if (gameEl) gameEl.textContent = selGame ? selGame.name : 'TBC';
+  const firstInput = document.getElementById('fFirst');
+  const first = firstInput ? firstInput.value.trim() : '';
+  if (nameEl) nameEl.textContent = first || 'TBC';
+
+  const dateEl = document.getElementById('ticketDate');
+  if (dateEl) {
+    if (selDate) {
+      const d = new Date(selDate + 'T12:00');
+      dateEl.textContent = '– ' + DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    } else {
+      dateEl.textContent = '– TBC';
+    }
+  }
+
+  const timeEl = document.getElementById('ticketTime');
+  if (timeEl) timeEl.textContent = selSlot ? '– ' + fmt12(selSlot) : '– TBC';
+
+  const playersEl = document.getElementById('ticketPlayers');
+  if (playersEl) playersEl.textContent = (selGame && playerCount) ? '– ' + playerCount : '– TBC';
+}
+
 function selectCategory(cat) {
   selCategory = cat;
   selGame = null;
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   if (cat === 'enquiry') {
     const sel = document.getElementById('cGame');
     if (sel) sel.innerHTML = '<option value="">Not sure yet</option>' + games.filter(g => g.bookable !== false).map(g => `<option value="${g.id}">${g.name}</option>`).join('');
@@ -427,18 +468,29 @@ function selectCategory(cat) {
   }
 }
 
-function renderEscapeGames() {
-  const cats = games.filter(g => g.category === 'escape' && g.bookable !== false);
-  document.getElementById('escapeGameList').innerHTML = cats.map(g => `
-      <div class="game-card" id="gc-${g.id}" onclick="selectEscapeGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '🚪')}</div>
+function gameCardHtml(g, idPrefix, clickFn) {
+  const min = g.minPlayers ?? 1;
+  const max = g.maxPlayers ?? '–';
+  const photo = g.photoUrl
+    ? `<img src="${g.photoUrl}" alt="${g.name}">`
+    : `<div class="game-photo-placeholder">${g.icon || '🚪'}</div>`;
+  return `
+      <div class="game-card" id="${idPrefix}-${g.id}" onclick="${clickFn}('${g.id}')">
+        <div class="game-photo">${photo}</div>
         <div class="game-info">
           <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
           <div class="game-price">${gamePriceLabel(g)}</div>
         </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('');
+        <div class="game-stats">
+          <div class="game-stat" title="Players"><span class="game-stat-icon">👥</span><span>${min}–${max}</span></div>
+          <div class="game-stat" title="Duration"><span class="game-stat-icon">⏱️</span><span>${g.duration} min</span></div>
+        </div>
+      </div>`;
+}
+
+function renderEscapeGames() {
+  const cats = games.filter(g => g.category === 'escape' && g.bookable !== false);
+  document.getElementById('escapeGameList').innerHTML = cats.map(g => gameCardHtml(g, 'gc', 'selectEscapeGame')).join('');
 }
 
 function setEscapeView(v) {
@@ -458,6 +510,7 @@ function selectEscapeGame(gameId) {
   selDate = null;
   selSlot = null;
   gameWeekOffset = 0;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('gc-' + gameId);
   if (el) el.classList.add('selected');
@@ -546,22 +599,14 @@ function selectDateFirst(ds, el) {
 
 function renderVRGames() {
   const vrGames = games.filter(g => g.category === 'vr' && g.bookable !== false);
-  document.getElementById('vrGameList').innerHTML = vrGames.map(g => `
-      <div class="game-card" id="vgc-${g.id}" onclick="selectVRGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '🥽')}</div>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
-          <div class="game-price">${gamePriceLabel(g)}</div>
-        </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('') || '<div class="empty"><div class="empty-icon">🥽</div>No VR sessions available to book online right now.<br>Use the enquiry below.</div>';
+  document.getElementById('vrGameList').innerHTML = vrGames.map(g => gameCardHtml(g, 'vgc', 'selectVRGame')).join('') || '<div class="empty"><div class="empty-icon">🥽</div>No VR sessions available to book online right now.<br>Use the enquiry below.</div>';
 }
 
 function selectVRGame(gameId) {
   selGame = games.find(g => g.id === gameId);
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('vgc-' + gameId);
   if (el) el.classList.add('selected');
@@ -601,22 +646,14 @@ function selectVRDate(ds, el) {
 
 function renderCafeGames() {
   const cafeGames = games.filter(g => g.category === 'cafe' && g.bookable !== false);
-  document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => `
-      <div class="game-card" id="cgc-${g.id}" onclick="selectCafeGame('${g.id}')">
-        <div class="game-icon">${g.photoUrl ? `<img src="${g.photoUrl}" alt="${g.name}">` : (g.icon || '☕')}</div>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-meta">${g.duration} min</div>
-          <div class="game-price">${gamePriceLabel(g)}</div>
-        </div>
-        <div class="game-chevron">›</div>
-      </div>`).join('');
+  document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => gameCardHtml(g, 'cgc', 'selectCafeGame')).join('');
 }
 
 function selectCafeGame(gameId) {
   selGame = games.find(g => g.id === gameId);
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('cgc-' + gameId);
   if (el) el.classList.add('selected');
@@ -686,6 +723,7 @@ function selectSlot(gameId, dateStr, slotTime) {
   } else {
     playerCount = 1;
   }
+  updateTicketPreview();
   showIntakeForm();
 }
 
@@ -732,9 +770,10 @@ function adjPlayers(d) {
   } else {
     playerCount = Math.max(1, Math.min(50, playerCount + d));
   }
-  document.getElementById('playerVal').textContent = playerCount;
+document.getElementById('playerVal').textContent = playerCount;
   updatePriceDisplay();
   updateLeftSummary();
+  updateTicketPreview();
 }
 
 function renderPersonalExp() {
@@ -959,6 +998,34 @@ function showReviewScreen() {
   document.getElementById('reviewPriceBox').innerHTML = document.getElementById('priceBox').innerHTML;
 
   goTo('s3review', 4);
+  playTicketHighlight();
+}
+
+function playTicketHighlight() {
+  const wrapper = document.querySelector('.ticket-wrapper');
+  if (wrapper) {
+    wrapper.classList.remove('shimmer-play');
+    void wrapper.offsetWidth; // restart animation if it's already played once this session
+    wrapper.classList.add('shimmer-play');
+    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
+  }
+
+  const nameEl = document.getElementById('stubGame');
+  const boxEls = ['ticketDate', 'ticketTime', 'ticketPlayers']
+    .map(id => document.getElementById(id)?.closest('.seat-box'))
+    .filter(Boolean);
+
+  const pulse = (el, cls) => {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  };
+
+  // Shimmer plays first (~1s), then game name and each seat-box pulse in sequence
+  setTimeout(() => pulse(nameEl, 'pulse-name'), 500);
+  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 900 + i * 350));
 }
 
 async function submitBooking() {

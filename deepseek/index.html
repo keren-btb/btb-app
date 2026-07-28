@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book Now — Beyond the Box</title>
+  <!-- BUILD v1.7.9 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1.7.0">
+<link rel="stylesheet" href="styles.css?v=1.7.9">
 </head>
 <body>
-
+  
 <div class="split">
 
   <!-- LEFT PANEL (Summary / Stub) -->
@@ -53,12 +54,13 @@
           <div class="ticket-stub">
             <div class="stub-teal-stripe"></div>
             <div class="stub-content">
-              <div class="stub-event-code">EVENT CODE</div>
-              <div class="stub-title">BtB</div>
+<div class="stub-code-group">
+                <div class="stub-event-code">EVENT CODE</div>
+                <div class="stub-title">BtB</div>
+              </div>
               <div class="stub-details">
-                <div class="stub-row"><label>SECTION/AISLE</label><span>101</span></div>
-                <div class="stub-row"><label>ROW</label><span>6</span></div>
-                <div class="stub-row"><label>SEAT</label><span>20</span></div>
+                <div class="stub-row"><label>GAME</label><span id="stubGame">TBC</span></div>
+                <div class="stub-row"><label>NAME</label><span id="stubName">TBC</span></div>
               </div>
               <div class="stub-date" id="stubDate">27-Jul-26</div>
             </div>
@@ -73,7 +75,7 @@
 
             <!-- ===== SVG for "BEYOND THE BOX" ===== -->
             <div class="main-title" id="mainTitle" role="img" aria-label="BEYOND THE BOX">
-<img src="beyond-the-box.svg?v=1.7.2" alt="BEYOND THE BOX" style="height: auto; display: block;">
+<img src="beyond-the-box.svg?v=1.7.3" alt="BEYOND THE BOX" style="height: auto; display: block;">
             </div>
 
             <div class="main-asterisks">* * * * * *</div>
@@ -92,12 +94,12 @@
             <!-- Vertical barcode with horizontal stripes -->
             <div class="barcode-vertical"></div>
 
-            <div class="main-seats">
-              <div class="seat-box"><span>DATE <span class="tbc-small">– TBC</span></span></div>
-              <div class="seat-box"><span>TIME <span class="tbc-small">– TBC</span></span></div>
-              <div class="seat-box"><span>PLAYERS <span class="tbc-small">– TBC</span></span></div>
+<div class="main-seats">
+              <div class="seat-box"><span>DATE <span class="tbc-small" id="ticketDate">– TBC</span></span></div>
+              <div class="seat-box"><span>TIME <span class="tbc-small" id="ticketTime">– TBC</span></span></div>
+              <div class="seat-box"><span>PLAYERS <span class="tbc-small" id="ticketPlayers">– TBC</span></span></div>
             </div>
-
+            
           </div>
           <!-- /ticket-main -->
         </div>
@@ -279,7 +281,7 @@
             <div class="field-row" style="margin-bottom:16px">
               <div class="field">
                 <div class="field-label">First name <span class="req">*</span></div>
-                <input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name">
+<input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name" oninput="updateTicketPreview()">
               </div>
               <div class="field">
                 <div class="field-label">Last name <span class="req">*</span></div>
@@ -512,8 +514,8 @@
 <!-- ============================================================ -->
 <!-- ============================================================ -->
 <!-- ====== SCRIPT ====== -->
-<script src="script.js?v=1.6.6"></script>
-
+<script src="script.js?v=1.7.3"></script>
+  
 <script>
   console.log('DEBUG stylesheet URL:', document.querySelector('link[href*="styles.css"]').href);
   console.log('DEBUG script.js URL:', document.querySelector('script[src*="script.js"]').src);
