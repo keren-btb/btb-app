@@ -55,10 +55,9 @@
             <div class="stub-content">
               <div class="stub-event-code">EVENT CODE</div>
               <div class="stub-title">BtB</div>
-              <div class="stub-details">
-                <div class="stub-row"><label>SECTION/AISLE</label><span>101</span></div>
-                <div class="stub-row"><label>ROW</label><span>6</span></div>
-                <div class="stub-row"><label>SEAT</label><span>20</span></div>
+<div class="stub-details">
+                <div class="stub-row"><label>GAME</label><span id="stubGame">TBC</span></div>
+                <div class="stub-row"><label>NAME</label><span id="stubName">TBC</span></div>
               </div>
               <div class="stub-date" id="stubDate">27-Jul-26</div>
             </div>
@@ -279,7 +278,7 @@
             <div class="field-row" style="margin-bottom:16px">
               <div class="field">
                 <div class="field-label">First name <span class="req">*</span></div>
-                <input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name">
+<input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name" oninput="updateTicketPreview()">
               </div>
               <div class="field">
                 <div class="field-label">Last name <span class="req">*</span></div>
