@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.3'; // v1.7.3: added playTicketHighlight() - shimmer sweep across the ticket + sequential highlight-pulse on game name and DATE/TIME/PLAYERS boxes, played when showReviewScreen() runs
+const BUILD_VERSION = '1.7.4'; // v1.7.4: playTicketHighlight() now scrolls the ticket-wrapper itself into view first (it sits above .screens, so it was off-screen during the animation), and the whole sequence is slower - shimmer 1.6s, name pulse 1s x2, seat-box pulses 1.4s x2 each staggered 900ms apart
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -1003,12 +1003,18 @@ function showReviewScreen() {
 
 function playTicketHighlight() {
   const wrapper = document.querySelector('.ticket-wrapper');
-  if (wrapper) {
-    wrapper.classList.remove('shimmer-play');
-    void wrapper.offsetWidth; // restart animation if it's already played once this session
-    wrapper.classList.add('shimmer-play');
-    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
-  }
+  if (!wrapper) return;
+
+  // Scroll the ticket itself into view first - it sits above the .screens
+  // section, so goTo()'s own scroll (which targets the review screen further
+  // down) leaves the ticket off-screen while the animation plays.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const rect = wrapper.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - 12;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    });
+  });
 
   const nameEl = document.getElementById('stubGame');
   const boxEls = ['ticketDate', 'ticketTime', 'ticketPlayers']
@@ -1023,9 +1029,18 @@ function playTicketHighlight() {
     el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
   };
 
-  // Shimmer plays first (~1s), then game name and each seat-box pulse in sequence
-  setTimeout(() => pulse(nameEl, 'pulse-name'), 500);
-  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 900 + i * 350));
+  // Give the scroll a moment to get going before the shimmer starts, then
+  // shimmer (~1.6s) -> game name pulse -> DATE/TIME/PLAYERS pulses in sequence,
+  // each one noticeably slower than the last so it doesn't feel rushed.
+  setTimeout(() => {
+    wrapper.classList.remove('shimmer-play');
+    void wrapper.offsetWidth;
+    wrapper.classList.add('shimmer-play');
+    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
+  }, 250);
+
+  setTimeout(() => pulse(nameEl, 'pulse-name'), 950);
+  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 1950 + i * 900));
 }
 
 async function submitBooking() {

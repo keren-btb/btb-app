@@ -112,7 +112,7 @@ body {
   height: 100%;
   background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
   transform: skewX(-15deg);
-  animation: shimmerSweep 1s ease-in-out;
+  animation: shimmerSweep 1.6s ease-in-out;
   pointer-events: none;
   z-index: 20;
 }
@@ -123,7 +123,7 @@ body {
 }
 
 .pulse-box {
-  animation: pulseBox 0.6s ease-in-out 2;
+  animation: pulseBox 1.4s ease-in-out 2;
 }
 
 @keyframes pulseBox {
@@ -140,7 +140,7 @@ body {
 }
 
 .pulse-name {
-  animation: pulseName 0.6s ease-in-out 2;
+  animation: pulseName 1s ease-in-out 2;
 }
 
 @keyframes pulseName {
