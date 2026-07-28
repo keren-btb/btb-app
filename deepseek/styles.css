@@ -87,9 +87,9 @@ body {
   width: 100%;
   background: var(--bg-card);
   border-radius: var(--ticket-radius);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 20px 60px rgba(0, 0, 0, 0.25);
   transform: perspective(1500px) rotateY(-2deg) rotateX(1deg);
-  transition: transform 0.3s ease;
+  transition: box-shadow 0.3s ease;
   overflow: hidden;
   position: relative;
   min-height: 200px;
@@ -99,7 +99,7 @@ body {
 
 
 .ticket-wrapper:hover {
-  transform: perspective(1500px) rotateY(-1deg) rotateX(0.5deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18), 0 26px 72px rgba(0, 0, 0, 0.3);
 }
 
 /* ============ TICKET STUB (LEFT) ============ */
