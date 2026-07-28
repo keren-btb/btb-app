@@ -955,6 +955,20 @@ body {
   font-size: 13px;
 }
 
+@media (min-width: 601px) {
+  .game-stat {
+    font-size: 14px;
+    gap: 7px;
+  }
+  .game-stat-icon {
+    font-size: 17px;
+  }
+  .game-stats {
+    padding: 10px 18px;
+    gap: 10px;
+  }
+}
+
 .btn {
   width: 100%;
   padding: 14px;

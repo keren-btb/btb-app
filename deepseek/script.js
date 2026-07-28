@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.0'; // v1.7.0: redesigned game cards (full-height photo LHS, name+price, players/duration stats column RHS) via shared gameCardHtml() helper; fixed category-circle click not scrolling to reveal game list (was scrolling screen container to its own top, which is already in view — now scrolls to the actual list element)
+const BUILD_VERSION = '1.7.1'; // v1.7.1: fixed goTo() scroll not working at all on some devices - replaced setTimeout+scrollIntoView with double-rAF + manually computed window.scrollTo so the new screen's heading reliably lands at the top of the viewport; desktop game-stats icon/text sizing bumped up (mobile was already fine)
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -356,8 +356,20 @@ function goTo(screenId, step) {
   const screenEl = document.getElementById(screenId);
   screenEl.classList.add('active');
   setStep(step);
-  setTimeout(() => screenEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  scrollScreenIntoView(screenEl);
   updateLeftSummary();
+}
+
+function scrollScreenIntoView(el) {
+  // Wait two animation frames so the newly-shown screen has been laid out
+  // (fixes goTo() previously not scrolling at all on some browsers/devices)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - 12;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    });
+  });
 }
 
 function updateLeftSummary() {
@@ -445,15 +457,12 @@ function selectCategory(cat) {
   if (cat === 'escape') {
     renderEscapeGames();
     goTo('s2-escape', 2);
-    scrollToList('escapeGameList');
   } else if (cat === 'vr') {
     renderVRGames();
     goTo('s2-vr', 2);
-    scrollToList('vrGameList');
   } else {
     renderCafeGames();
     goTo('s2-cafe', 2);
-    scrollToList('cafeGameList');
   }
 }
 
@@ -475,13 +484,6 @@ function gameCardHtml(g, idPrefix, clickFn) {
           <div class="game-stat" title="Duration"><span class="game-stat-icon">⏱️</span><span>${g.duration} min</span></div>
         </div>
       </div>`;
-}
-
-function scrollToList(listId) {
-  setTimeout(() => {
-    const el = document.getElementById(listId);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 120);
 }
 
 function renderEscapeGames() {
