@@ -401,11 +401,21 @@ document.addEventListener('click', function(e) {
   }
 });
 
+function updateTicketPreview() {
+  const gameEl = document.getElementById('stubGame');
+  const nameEl = document.getElementById('stubName');
+  if (gameEl) gameEl.textContent = selGame ? selGame.name : 'TBC';
+  const firstInput = document.getElementById('fFirst');
+  const first = firstInput ? firstInput.value.trim() : '';
+  if (nameEl) nameEl.textContent = first || 'TBC';
+}
+
 function selectCategory(cat) {
   selCategory = cat;
   selGame = null;
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   if (cat === 'enquiry') {
     const sel = document.getElementById('cGame');
     if (sel) sel.innerHTML = '<option value="">Not sure yet</option>' + games.filter(g => g.bookable !== false).map(g => `<option value="${g.id}">${g.name}</option>`).join('');
@@ -458,6 +468,7 @@ function selectEscapeGame(gameId) {
   selDate = null;
   selSlot = null;
   gameWeekOffset = 0;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('gc-' + gameId);
   if (el) el.classList.add('selected');
@@ -562,6 +573,7 @@ function selectVRGame(gameId) {
   selGame = games.find(g => g.id === gameId);
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('vgc-' + gameId);
   if (el) el.classList.add('selected');
@@ -617,6 +629,7 @@ function selectCafeGame(gameId) {
   selGame = games.find(g => g.id === gameId);
   selDate = null;
   selSlot = null;
+  updateTicketPreview();
   document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   const el = document.getElementById('cgc-' + gameId);
   if (el) el.classList.add('selected');
