@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.5'; // v1.7.5: pulses now play once each (was twice) at ~3x the duration - name 3s, seat-boxes 4s, staggered 1.5s apart; DATE/TIME/PLAYERS text now toggles between small (TBC placeholder) and big (.filled class) once a real value is chosen
+const BUILD_VERSION = '1.7.6'; // v1.7.6: pulse sequence is now fully sequential (each pulse finishes before the next starts) with a 500ms gap in between, instead of overlapping; overall pacing slowed slightly again (shimmer 1.9s, name 3.5s, boxes 4.5s each)
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
@@ -1047,18 +1047,29 @@ function playTicketHighlight() {
     el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
   };
 
-  // Give the scroll a moment to get going before the shimmer starts, then
-  // shimmer (~1.6s) -> game name pulse -> DATE/TIME/PLAYERS pulses in sequence,
-  // each one noticeably slower than the last so it doesn't feel rushed.
+  // Timing constants (kept together so future tweaks are easy):
+  // shimmer -> gap -> name pulse -> gap -> DATE pulse -> gap -> TIME pulse -> gap -> PLAYERS pulse
+  // Each step now fully finishes before the next one starts, with a pause in between.
+  const SHIMMER_DELAY = 250;
+  const SHIMMER_MS = 1900;   // matches @keyframes shimmerSweep duration in CSS
+  const NAME_PULSE_MS = 3500; // matches @keyframes pulseName duration in CSS
+  const BOX_PULSE_MS = 4500;  // matches @keyframes pulseBox/pulseZoom duration in CSS
+  const GAP_MS = 500;
+
   setTimeout(() => {
     wrapper.classList.remove('shimmer-play');
     void wrapper.offsetWidth;
     wrapper.classList.add('shimmer-play');
     wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
-  }, 250);
+  }, SHIMMER_DELAY);
 
-  setTimeout(() => pulse(nameEl, 'pulse-name'), 900);
-  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 2400 + i * 1500));
+  let t = SHIMMER_DELAY + SHIMMER_MS + GAP_MS;
+  setTimeout(() => pulse(nameEl, 'pulse-name'), t);
+  t += NAME_PULSE_MS + GAP_MS;
+  boxEls.forEach(el => {
+    setTimeout(() => pulse(el, 'pulse-box'), t);
+    t += BOX_PULSE_MS + GAP_MS;
+  });
 }
 
 async function submitBooking() {

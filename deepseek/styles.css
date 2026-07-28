@@ -112,7 +112,7 @@ body {
   height: 100%;
   background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
   transform: skewX(-15deg);
-  animation: shimmerSweep 1.6s ease-in-out;
+  animation: shimmerSweep 1.9s ease-in-out;
   pointer-events: none;
   z-index: 20;
 }
@@ -123,7 +123,7 @@ body {
 }
 
 .pulse-box {
-  animation: pulseBox 4s ease-in-out 1;
+  animation: pulseBox 4.5s ease-in-out 1;
 }
 
 @keyframes pulseBox {
@@ -141,7 +141,7 @@ body {
 
 .pulse-box .tbc-small {
   display: inline-block;
-  animation: pulseZoom 4s ease-in-out 1;
+  animation: pulseZoom 4.5s ease-in-out 1;
 }
 
 @keyframes pulseZoom {
@@ -151,7 +151,7 @@ body {
 
 .pulse-name {
   display: inline-block;
-  animation: pulseName 3s ease-in-out 1;
+  animation: pulseName 3.5s ease-in-out 1;
 }
 
 @keyframes pulseName {

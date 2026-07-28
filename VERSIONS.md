@@ -37,6 +37,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## deepseek/script.js
+- v1.7.6 — 2026-07-28 — Pulse sequence rewritten to be fully sequential (each pulse finishes before the next starts) with a 500ms gap in between, instead of overlapping; timing pulled into named constants (SHIMMER_MS, NAME_PULSE_MS, BOX_PULSE_MS, GAP_MS) for easier future tuning.
 - v1.7.5 — 2026-07-28 — Pulses now play once each (was twice) at ~3x the previous duration - name pulse 3s, seat-box pulses 4s each, staggered 1.5s apart. DATE/TIME/PLAYERS text now toggles a .filled class (small TBC placeholder vs big text once a real value is chosen).
 - v1.7.4 — 2026-07-28 — playTicketHighlight() now scrolls the ticket-wrapper itself into view first (it sits above .screens, so it was off-screen while the animation played); slowed the whole sequence down - shimmer 1.6s, name pulse 1s x2, seat-box pulses 1.4s x2 each staggered 900ms apart (the "end pulses" are now noticeably slower than the name pulse).
 - v1.7.3 — 2026-07-28 — Added playTicketHighlight(): shimmer sweep across the ticket + sequential highlight-pulse on the game name and DATE/TIME/PLAYERS boxes, triggered when showReviewScreen() runs.
@@ -45,6 +46,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.0 — 2026-07-28 — Redesigned game cards for Escape/VR/Cafe lists via new shared gameCardHtml() helper: full-height photo (or icon placeholder) on the left, name+price in the middle, players/duration stats column on the right.
 
 ## deepseek/index.html + deepseek/styles.css
+- v1.7.12 — 2026-07-28 — Animation durations bumped slightly to match the new sequential timing: shimmerSweep 1.6s→1.9s, pulseName 3s→3.5s, pulseBox/pulseZoom 4s→4.5s.
 - v1.7.11 — 2026-07-28 — Pulse animations now single-play at ~3x duration and include a text zoom (scale up) on the game name and DATE/TIME/PLAYERS values, not just a color/glow change. Added .tbc-small.filled state so ticket values display small while TBC, big once chosen.
 - v1.7.10 — 2026-07-28 — Slowed shimmer/pulse animation durations to match the JS timing changes: shimmerSweep 1s→1.6s, pulseName 0.6s→1s, pulseBox 0.6s→1.4s.
 - v1.7.9 — 2026-07-28 — Review screen: ticket now plays a shimmer sweep + sequential highlight-pulse (game name, then DATE/TIME/PLAYERS) when the review step loads, twice each. Game-card hover glow changed to a graduated two-tone blue (accent + accent-light layered shadows) and lift increased to -6px.
