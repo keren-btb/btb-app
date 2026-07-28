@@ -4,7 +4,7 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.6.6'; // v1.6.6: fixed category circles not advancing to step 2 (toggleTooltip was undefined/never called selectCategory); added mobile (i) info icon so tap-to-see-tooltip still works without blocking selection
+const BUILD_VERSION = '1.6.7'; // v1.6.7: fixed category circles not advancing to step 2 (toggleTooltip was undefined/never called selectCategory); added mobile (i) info icon so tap-to-see-tooltip still works without blocking selection
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 function nzToday() {
