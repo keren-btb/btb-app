@@ -872,17 +872,20 @@ body {
   align-items: stretch;
   min-height: 92px;
   overflow: hidden;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .game-card:hover {
   border-color: var(--accent);
-  transform: translateX(4px);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px var(--accent-glow);
+  background: var(--accent-dim);
 }
 
 .game-card.selected {
   border-color: var(--accent);
   background: var(--accent-dim);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 .game-photo {

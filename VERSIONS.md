@@ -42,6 +42,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.0 — 2026-07-28 — Redesigned game cards for Escape/VR/Cafe lists via new shared gameCardHtml() helper: full-height photo (or icon placeholder) on the left, name+price in the middle, players/duration stats column on the right.
 
 ## deepseek/index.html + deepseek/styles.css
+- v1.7.8 — 2026-07-28 — Game cards (Choose a room / VR / Cafe lists) now lift + glow on hover, modeled on the .cat-circle hover effect but toned down (smaller lift, softer glow) — replaces the old horizontal-slide hover.
 - v1.7.7 — 2026-07-28 — Layered box-shadow on .ticket-wrapper for a stronger "floating" look; removed the hover tilt-shift (rotateY/rotateX change) since it read as an unintended skew — hover now only deepens the shadow.
 - v1.7.6 — 2026-07-28 — .seat-box (DATE/TIME/PLAYERS) gets right margin on mobile so it finishes before the card edge instead of extending under the vertical barcode decoration.
 - v1.7.5/v1.7.4/v1.7.3 — 2026-07-28 — Cache-busting version bumps alongside script.js/styles.css changes (previously the version query string wasn't being bumped when file contents changed, so Cloudflare/browsers kept serving stale copies).
