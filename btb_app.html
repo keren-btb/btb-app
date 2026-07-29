@@ -396,6 +396,7 @@ function fmt12(t){const[h,m]=t.split(':').map(Number);return`${h%12||12}:${Strin
 function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
 function tagStyle(ci){const c=COLORS[ci];return`background:${c.bg};color:${c.text};border-color:${c.border}`}
 function dayLbl(d){return DAYS[new Date(viewYear,viewMonth-1,d).getDay()]}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getElapsed(b){if(b.timerRunning&&b.timerStartedAt)return b.timerSec+Math.floor((Date.now()-b.timerStartedAt)/1000);return b.timerSec}
 
 // SETTINGS
@@ -764,7 +765,7 @@ function buildCard(b){
   const hasBirthdayAddon=(()=>{try{return JSON.parse(b.addons||'[]').some(a=>birthdayExps.some(e=>e.label===a.label))}catch(_){return false}})();
   const isBirthday=b.occasion==='Birthday'||(b.tags||[]).includes('birthday');
   const birthdayBannerHtml=(isBirthday&&!hasBirthdayAddon&&birthdayExps.length>0)?`<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:6px 9px;margin-top:6px;display:flex;align-items:center;gap:5px">🎂 Mention: ${birthdayExps.map(e=>`${e.label} ($${parseFloat(e.price||0).toFixed(0)})`).join(', ')}</div>`:'';
-  const notesHtml=(b.notes||[]).map((n,i)=>`<div class="saved-note"><span>${n}</span><button class="del-btn" onclick="deleteNote('${b.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
+  const notesHtml=(b.notes||[]).map((n,i)=>`<div class="saved-note"><span>${escapeHtml(n)}</span><button class="del-btn" onclick="deleteNote('${b.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
   const gmChipHtml=staff.map(p=>`<button class="gm-chip ${(b.gms||[]).includes(p.id)?'assigned':''}" onclick="toggleGM('${b.id}','${p.id}')">${(b.gms||[]).includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
   const card=document.createElement('div');
   const isDone = b.status==='completed';
@@ -773,18 +774,18 @@ function buildCard(b){
   card.innerHTML=`
     <div class="booking-top" onclick="togglePanel('${b.id}')">
       <div class="booking-col-left">
-        <div class="booking-time"><span class="booking-time-val">${fmt12(b.time||'00:00')}</span> <span class="booking-game">${b.name}</span></div>
-        <div class="booking-name">${b.customer||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
+        <div class="booking-time"><span class="booking-time-val">${fmt12(b.time||'00:00')}</span> <span class="booking-game">${escapeHtml(b.name)}</span></div>
+        <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
         ${birthdayBannerHtml}
-        ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${n}</div>`).join('')}</div>`:''}
+        ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${escapeHtml(n)}</div>`).join('')}</div>`:''}
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
-        ${b.occasion?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">🎉 ${b.occasion}${b.name_of_special_person?' — '+b.name_of_special_person+(b.age_of_special_person?' ('+b.age_of_special_person+')':''):''}${b.occasion==='Hen/Stag do'&&b.name_of_special_person?' 🥂':''}</div>`:''}
-        ${b.experience?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">⭐ ${b.experience}</div>`:''}
-        ${b.played_before?`<div style="font-size:11px;color:#07b4c5;display:flex;align-items:center;gap:3px">👋 ${b.previous_game?'Played: '+b.previous_game:'Returning'}</div>`:''}
+        ${b.occasion?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">🎉 ${escapeHtml(b.occasion)}${b.name_of_special_person?' — '+escapeHtml(b.name_of_special_person)+(b.age_of_special_person?' ('+escapeHtml(b.age_of_special_person)+')':''):''}${b.occasion==='Hen/Stag do'&&b.name_of_special_person?' 🥂':''}</div>`:''}
+        ${b.experience?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">⭐ ${escapeHtml(b.experience)}</div>`:''}
+        ${b.played_before?`<div style="font-size:11px;color:#07b4c5;display:flex;align-items:center;gap:3px">👋 ${b.previous_game?'Played: '+escapeHtml(b.previous_game):'Returning'}</div>`:''}
         <div class="gm-badge"><i class="ti ti-user"></i> ${gmName}</div>
         ${isDone?`<span style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid #4ade80;color:#15803d;background:#f0fdf8;display:flex;align-items:center;gap:3px;width:fit-content"><i class="ti ti-check"></i> Done</span>`:''}
       </div>
@@ -798,9 +799,9 @@ function buildCard(b){
       ${(b.customerPhone||b.customerEmail||b.occasion)?`
       <div class="panel-label">Customer details</div>
       <div style="background:#f9fafb;border-radius:8px;padding:9px 11px;margin-bottom:4px;font-size:12px;display:flex;flex-direction:column;gap:4px;border:1px solid #e5e7eb">
-        ${b.customerPhone?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-phone" style="color:#9ca3af;font-size:12px"></i> ${b.customerPhone}</div>`:''}
-        ${b.customerEmail?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-mail" style="color:#9ca3af;font-size:12px"></i> ${b.customerEmail}</div>`:''}
-        ${b.occasion?`<div style="display:flex;align-items:center;gap:6px;color:#374151">🎉 ${b.occasion}</div>`:''}
+        ${b.customerPhone?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-phone" style="color:#9ca3af;font-size:12px"></i> ${escapeHtml(b.customerPhone)}</div>`:''}
+        ${b.customerEmail?`<div style="display:flex;align-items:center;gap:6px;color:#374151"><i class="ti ti-mail" style="color:#9ca3af;font-size:12px"></i> ${escapeHtml(b.customerEmail)}</div>`:''}
+        ${b.occasion?`<div style="display:flex;align-items:center;gap:6px;color:#374151">🎉 ${escapeHtml(b.occasion)}</div>`:''}
       </div>`:''}
       <div class="panel-label">Staff assigned</div>
       <div class="gm-chip-row">${gmChipHtml}</div>
@@ -911,7 +912,7 @@ function renderTimerBanner(){
   banner.className='timer-banner has-timers';
   banner.innerHTML=running.map(b=>{
     const rem=b.duration*60-getElapsed(b);const cls=rem<0?'over':rem<300?'warning':'';
-    return`<div class="timer-item"><div class="timer-countdown ${cls}" id="banner-timer-${b.id}">${fmtTimer(rem)}</div><div style="flex:1"><div class="timer-game">${b.name}</div><div class="timer-meta">${b.meta||''}</div></div><div class="timer-banner-btns"><button class="timer-help-btn" onclick="triggerHelp('${b.name}')">🚨 Help</button></div></div>`;
+    return`<div class="timer-item"><div class="timer-countdown ${cls}" id="banner-timer-${b.id}">${fmtTimer(rem)}</div><div style="flex:1"><div class="timer-game">${escapeHtml(b.name)}</div><div class="timer-meta">${b.meta||''}</div></div><div class="timer-banner-btns"><button class="timer-help-btn" onclick="triggerHelp('${b.name}')">🚨 Help</button></div></div>`;
   }).join('');
 }
 
@@ -1895,7 +1896,11 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.1'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.2'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.4.2: Security fix — escaped customer/staff free-text fields (name, phone,
+// email, occasion, special-person name/age, previous game, notes) before
+// inserting into innerHTML, closing a stored-XSS risk in booking cards and
+// the timer banner.
 // v16.4.1: Fixed login screen briefly flashing on load when already logged
 // in — now hidden synchronously as soon as a cached session is found,
 // before the page paints.

@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## btb_app.html
+- v16.4.2 — 2026-07-29 — Security fix: escaped customer/staff free-text fields (name, phone, email, occasion, special-person name/age, previous game, notes) before inserting into innerHTML, closing a stored-XSS risk in booking cards and the timer banner
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
