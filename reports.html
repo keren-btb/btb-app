@@ -409,7 +409,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.3'; // v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+const BUILD_VERSION = '1.0.4'; // v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
+// v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cReports — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
@@ -588,6 +589,7 @@ function customerName(b){
   if(b.clients){return[b.clients.first_name,b.clients.last_name].filter(Boolean).join(' ')}
   return b.notes_when_booked?.split('·')[0]?.trim()||'—';
 }
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function destroyChart(id){if(currentCharts[id]){currentCharts[id].destroy();delete currentCharts[id]}}
 
@@ -707,8 +709,8 @@ function renderOutstanding(){
       const t=parseFloat(b.total_amount)||0;const c=calcCollected(b);const ow=Math.max(0,t-c);
       return`<tr>
         <td>${fmtDate(b.booking_date)}</td>
-        <td>${b.game_name}</td>
-        <td>${customerName(b)}</td>
+        <td>${escapeHtml(b.game_name)}</td>
+        <td>${escapeHtml(customerName(b))}</td>
         <td>${b.players_booked}</td>
         <td>${fmtMoney(t)}</td>
         <td>${fmtMoney(c)}</td>
@@ -803,10 +805,10 @@ function renderBookingsTable(){
   tbody.innerHTML=rows.map(b=>`<tr>
     <td>${fmtDate(b.booking_date)}</td>
     <td>${fmt12((b.slot_time||'').slice(0,5))}</td>
-    <td>${b.game_name}</td>
-    <td>${customerName(b)}</td>
+    <td>${escapeHtml(b.game_name)}</td>
+    <td>${escapeHtml(customerName(b))}</td>
     <td>${b.players_booked}</td>
-    <td>${b.occasion||'—'}</td>
+    <td>${escapeHtml(b.occasion)||'—'}</td>
     <td>${b.source||'—'}</td>
     <td><span class="badge ${statusBadge[b.status]||'badge-gray'}">${b.status}</span></td>
     <td>${fmtMoney(b.total_amount)}</td>
@@ -939,8 +941,8 @@ function renderNoShows(){
 
   document.getElementById('ns-tbody').innerHTML=ns.length?ns.map(b=>`<tr>
     <td>${fmtDate(b.booking_date)}</td>
-    <td>${b.game_name}</td>
-    <td>${customerName(b)}</td>
+    <td>${escapeHtml(b.game_name)}</td>
+    <td>${escapeHtml(customerName(b))}</td>
     <td>${b.players_booked}</td>
     <td><span class="badge ${b.status==='cancelled'?'badge-gray':'badge-red'}">${b.no_show||b.status==='no_show'?'No-show':'Cancelled'}</span></td>
     <td>${fmtMoney(b.total_amount)}</td>
@@ -983,9 +985,9 @@ function renderCustomersTable(){
   const tbody=document.getElementById('cust-tbody');
   if(!rows.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No customers found.</td></tr>';return}
   tbody.innerHTML=rows.map(c=>`<tr>
-    <td><strong>${[c.first_name,c.last_name].filter(Boolean).join(' ')}</strong></td>
-    <td>${c.email||'—'}</td>
-    <td>${c.phone||'—'}</td>
+    <td><strong>${escapeHtml([c.first_name,c.last_name].filter(Boolean).join(' '))}</strong></td>
+    <td>${escapeHtml(c.email)||'—'}</td>
+    <td>${escapeHtml(c.phone)||'—'}</td>
     <td>${c.count}</td>
     <td>${c.lastDate?fmtDate(c.lastDate):'—'}</td>
     <td>${fmtMoney(c.total)}</td>
@@ -1103,12 +1105,12 @@ function renderVouchersTable(){
   document.getElementById('v-tbody').innerHTML=rows.length?rows.map(v=>`<tr>
     <td><code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:12px">${v.code}</code></td>
     <td>${v.type}</td>
-    <td>${fmtMoney(v.value)}${v.type==='players'?` (${v.players}p${v.game_name?' '+v.game_name:''})`:''}${v.personalised?'<span class="badge badge-purple" style="margin-left:4px">✨ Personal</span>':''}</td>
+    <td>${fmtMoney(v.value)}${v.type==='players'?` (${v.players}p${v.game_name?' '+escapeHtml(v.game_name):''})`:''}${v.personalised?'<span class="badge badge-purple" style="margin-left:4px">✨ Personal</span>':''}</td>
     <td>${fmtMoney(v.paid_amount)}</td>
     <td><span class="badge ${statusBadge[v.status]||'badge-gray'}">${v.status}</span></td>
     <td>${v.issued_at?fmtDate(v.issued_at.slice(0,10)):'—'}</td>
     <td>${v.used_at?fmtDate(v.used_at.slice(0,10)):'—'}</td>
-    <td>${v.purchased_by||'—'}</td>
+    <td>${escapeHtml(v.purchased_by)||'—'}</td>
   </tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">No vouchers found.</td></tr>';
 
   lastCSVData=rows.map(v=>({Code:v.code,Type:v.type,Value:(parseFloat(v.value)||0).toFixed(2),PaidAmount:(parseFloat(v.paid_amount)||0).toFixed(2),Status:v.status,Issued:v.issued_at?.slice(0,10)||'',Used:v.used_at?.slice(0,10)||'',PurchasedBy:v.purchased_by||'',Game:v.game_name||''}));
