@@ -4,7 +4,8 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.9'; // v1.7.9: restored missing --body-font variable in styles.cssconsole.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+const BUILD_VERSION = '1.7.9'; // v1.7.9: restored missing --body-font variable in styles.css
+console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 // ============================================================
 // AUTO-TAGGING — occasion → settings.btb_tags id, stamped onto the booking's
