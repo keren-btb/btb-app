@@ -1267,8 +1267,8 @@ async function submitBooking() {
       addons: expRows.length ? JSON.stringify(expRows.map(e => ({ label: e.label, amount: parseFloat(e.price) || 0, at: new Date().toISOString() }))) : null,
       status: 'confirmed',
       source: 'online',
-      assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
-      tags: JSON.stringify([]),
+assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
+      tags: JSON.stringify(autoTagsForOccasion(occasion)),
       staff_notes: JSON.stringify([]),
       notes_when_booked: `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : ''),
     };
