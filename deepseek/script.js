@@ -75,8 +75,11 @@ let staffTraining = [];
 let staffAvailStatus = {};
 let rosterShifts = [];
 let staffFlags = {};
+let staffMode = {}; // { staff_id: 'roster'|'calendar' }
+let staffCalendarBusy = []; // [{staff_id, busy_start, busy_end}] — synced Google Calendar blocks, calendar-mode staff only
+let staffRecurringBlocks = []; // [{staff_id, day_of_week, start_time, end_time}] — weekly "always away" blocks, calendar-mode staff only
 let trainingStatuses = [{ id: 'trained', qualifies: true }, { id: 'can_supervise', qualifies: true }];
-let existingBookings = [];
+  let existingBookings = [];
 
 // === STATE ===
 let gameWeekOffset = 0;
