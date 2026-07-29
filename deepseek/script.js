@@ -24,11 +24,24 @@ function nzNow() {
   }).formatToParts(new Date());
   const o = {};
   parts.forEach(p => o[p.type] = p.value);
+if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+
+// Converts a real timestamp (e.g. from Supabase, has proper timezone info)
+// into the same "naive local" Date format nzNow()/slot dates use, so they
+// can be compared directly regardless of the visitor's own timezone.
+function toNzNaive(isoString) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date(isoString));
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
   if (o.hour === '24') o.hour = '00';
   return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
 }
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
-const SB_H = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY };
+  const SB_H = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
