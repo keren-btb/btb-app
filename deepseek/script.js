@@ -4,8 +4,20 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.3'; // v1.7.3: added playTicketHighlight() - shimmer sweep across the ticket + sequential highlight-pulse on game name and DATE/TIME/PLAYERS boxes, played when showReviewScreen() runs
+const BUILD_VERSION = '1.7.7'; // v1.7.7: removed the pause before the game name pulse (starts right as shimmer ends); reduced the gap between DATE/TIME/PLAYERS pulses from 500ms to 350ms
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+// ============================================================
+// AUTO-TAGGING — occasion → settings.btb_tags id, stamped onto the booking's
+// `tags` array at creation so it shows as a pill on the calendar/booking card
+// in btb_app.html without staff having to add it manually. Currently only
+// Birthday maps to a tag ('birthday' — matches the fixed id in settings);
+// extend this map if more occasions get their own tag later.
+const OCCASION_TAG_MAP = { 'Birthday': 'birthday' };
+function autoTagsForOccasion(occasion) {
+  const tagId = OCCASION_TAG_MAP[occasion];
+  return tagId ? [tagId] : [];
+}
 
 function nzToday() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -24,11 +36,24 @@ function nzNow() {
   }).formatToParts(new Date());
   const o = {};
   parts.forEach(p => o[p.type] = p.value);
+if (o.hour === '24') o.hour = '00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+
+// Converts a real timestamp (e.g. from Supabase, has proper timezone info)
+// into the same "naive local" Date format nzNow()/slot dates use, so they
+// can be compared directly regardless of the visitor's own timezone.
+function toNzNaive(isoString) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date(isoString));
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
   if (o.hour === '24') o.hour = '00';
   return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
 }
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
-const SB_H = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY };
+  const SB_H = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -75,8 +100,11 @@ let staffTraining = [];
 let staffAvailStatus = {};
 let rosterShifts = [];
 let staffFlags = {};
+let staffMode = {}; // { staff_id: 'roster'|'calendar' }
+let staffCalendarBusy = []; // [{staff_id, busy_start, busy_end}] — synced Google Calendar blocks, calendar-mode staff only
+let staffRecurringBlocks = []; // [{staff_id, day_of_week, start_time, end_time}] — weekly "always away" blocks, calendar-mode staff only
 let trainingStatuses = [{ id: 'trained', qualifies: true }, { id: 'can_supervise', qualifies: true }];
-let existingBookings = [];
+  let existingBookings = [];
 
 // === STATE ===
 let gameWeekOffset = 0;
@@ -159,15 +187,38 @@ async function loadStaffData() {
     rosterShifts = await rs.json();
     if (!Array.isArray(rosterShifts)) rosterShifts = [];
 
-    try {
+try {
       const fr = await fetch(`${SB_URL}/rest/v1/public_staff_flags?select=staff_id,trusted_opener`, { headers: SB_H });
       const flagRows = await fr.json();
       staffFlags = {};
       if (Array.isArray(flagRows)) flagRows.forEach(f => { staffFlags[f.staff_id] = f.trusted_opener === true; });
     } catch (e) { staffFlags = {}; }
+
+    // Calendar-mode staff — availability_mode per staff (from the new view)
+    try {
+      const mr = await fetch(`${SB_URL}/rest/v1/public_staff_mode?select=staff_id,availability_mode`, { headers: SB_H });
+      const modeRows = await mr.json();
+      staffMode = {};
+      if (Array.isArray(modeRows)) modeRows.forEach(m => { staffMode[m.staff_id] = m.availability_mode; });
+    } catch (e) { staffMode = {}; }
+
+    // Synced Google Calendar busy blocks (staff_calendar_busy is already open to anon)
+    try {
+      const cb = await fetch(`${SB_URL}/rest/v1/staff_calendar_busy?select=staff_id,busy_start,busy_end`, { headers: SB_H });
+      staffCalendarBusy = await cb.json();
+      if (!Array.isArray(staffCalendarBusy)) staffCalendarBusy = [];
+    } catch (e) { staffCalendarBusy = []; }
+
+    // Weekly recurring "always away" blocks e.g. a day job (staff_recurring_blocks is already open to anon)
+    try {
+      const rb = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks?select=staff_id,day_of_week,start_time,end_time`, { headers: SB_H });
+      staffRecurringBlocks = await rb.json();
+      if (!Array.isArray(staffRecurringBlocks)) staffRecurringBlocks = [];
+    } catch (e) { staffRecurringBlocks = []; }
   } catch (e) { console.error('Staff data error:', e); }
 }
 
+    
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
   const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
@@ -254,9 +305,15 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   return pool.fullyAvailable.length > 0 ? 'available' : 'call';
 }
 
+// Splits qualified staff for a slot into two groups: roster-mode staff (the
+// roster/assigned_shifts decides who's working) and calendar-mode staff
+// (Google Calendar — synced busy blocks + weekly recurring blocks — decides
+// instead). A specific-date time-off block (staff_availability, the Book
+// Time Off tab) can still exclude someone in either mode.
 function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   const fullyAvailable = [];
-  const maybeAvailable = [];
+  const maybeAvailable = []; // kept for compatibility with getSlotStatus's cutoff logic — always empty now the roster/calendar checks decide
+
   const rosteredIds = new Set(
     rosterShifts
     .filter(r => r.shift_date === dateStr &&
@@ -264,19 +321,56 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
       slotTime < (r.custom_end_time || '').slice(0, 5))
     .map(r => r.staff_id)
   );
-  rosteredIds.forEach(sid => {
+
+  // Calendar-mode staff (e.g. Keren) — Google Calendar decides availability
+  // instead of the roster. staffMode comes from the public_staff_mode view.
+  const calendarIds = Object.keys(staffMode).filter(sid => staffMode[sid] === 'calendar');
+
+  const candidateIds = new Set([...rosteredIds, ...calendarIds]);
+
+  const [y, mo, da] = dateStr.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, mo - 1, da)).getUTCDay(); // 0=Sun...6=Sat, matches day_of_week columns
+  const game = games.find(g => g.id === gameId);
+  const durationMin = (game && game.duration) || 60;
+  const slotStart = new Date(`${dateStr}T${slotTime}:00`);
+  const slotEnd = new Date(slotStart.getTime() + durationMin * 60000);
+
+  candidateIds.forEach(sid => {
     const training = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
     const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
     if (!statusObj || !statusObj.qualifies) return;
+
+    // Manual time-off override (Book Time Off tab) applies regardless of mode
     const blocked = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable';
     if (blocked) return;
+
+    if (staffMode[sid] === 'calendar') {
+      // Weekly recurring "always away" block e.g. a day job
+      const recurBlocked = staffRecurringBlocks.some(b =>
+        b.staff_id === sid && b.day_of_week === dow &&
+        slotTime >= (b.start_time || '').slice(0, 5) && slotTime < (b.end_time || '').slice(0, 5)
+      );
+      if (recurBlocked) return;
+
+      // Synced Google Calendar busy blocks — checks for any overlap with the slot
+      const calendarBlocked = staffCalendarBusy.some(b => {
+        if (b.staff_id !== sid) return false;
+        const busyStart = toNzNaive(b.busy_start);
+        const busyEnd = toNzNaive(b.busy_end);
+        return slotStart < busyEnd && slotEnd > busyStart;
+      });
+      if (calendarBlocked) return;
+    }
+
     const taken = existingBookings.some(b => {
       const ids = JSON.parse(b.assigned_staff_ids || '[]');
       return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time || '').slice(0, 5) === slotTime;
     });
     if (taken) return;
+
     fullyAvailable.push(sid);
   });
+
   return { fullyAvailable, maybeAvailable };
 }
 
@@ -429,16 +523,34 @@ function updateTicketPreview() {
     if (selDate) {
       const d = new Date(selDate + 'T12:00');
       dateEl.textContent = '– ' + DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+      dateEl.classList.add('filled');
     } else {
       dateEl.textContent = '– TBC';
+      dateEl.classList.remove('filled');
     }
   }
 
   const timeEl = document.getElementById('ticketTime');
-  if (timeEl) timeEl.textContent = selSlot ? '– ' + fmt12(selSlot) : '– TBC';
+  if (timeEl) {
+    if (selSlot) {
+      timeEl.textContent = '– ' + fmt12(selSlot);
+      timeEl.classList.add('filled');
+    } else {
+      timeEl.textContent = '– TBC';
+      timeEl.classList.remove('filled');
+    }
+  }
 
   const playersEl = document.getElementById('ticketPlayers');
-  if (playersEl) playersEl.textContent = (selGame && playerCount) ? '– ' + playerCount : '– TBC';
+  if (playersEl) {
+    if (selGame && playerCount) {
+      playersEl.textContent = '– ' + playerCount;
+      playersEl.classList.add('filled');
+    } else {
+      playersEl.textContent = '– TBC';
+      playersEl.classList.remove('filled');
+    }
+  }
 }
 
 function selectCategory(cat) {
@@ -1003,12 +1115,18 @@ function showReviewScreen() {
 
 function playTicketHighlight() {
   const wrapper = document.querySelector('.ticket-wrapper');
-  if (wrapper) {
-    wrapper.classList.remove('shimmer-play');
-    void wrapper.offsetWidth; // restart animation if it's already played once this session
-    wrapper.classList.add('shimmer-play');
-    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
-  }
+  if (!wrapper) return;
+
+  // Scroll the ticket itself into view first - it sits above the .screens
+  // section, so goTo()'s own scroll (which targets the review screen further
+  // down) leaves the ticket off-screen while the animation plays.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const rect = wrapper.getBoundingClientRect();
+      const targetY = window.scrollY + rect.top - 12;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    });
+  });
 
   const nameEl = document.getElementById('stubGame');
   const boxEls = ['ticketDate', 'ticketTime', 'ticketPlayers']
@@ -1023,9 +1141,31 @@ function playTicketHighlight() {
     el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
   };
 
-  // Shimmer plays first (~1s), then game name and each seat-box pulse in sequence
-  setTimeout(() => pulse(nameEl, 'pulse-name'), 500);
-  boxEls.forEach((el, i) => setTimeout(() => pulse(el, 'pulse-box'), 900 + i * 350));
+  // Timing constants (kept together so future tweaks are easy):
+  // shimmer -> gap -> name pulse -> gap -> DATE pulse -> gap -> TIME pulse -> gap -> PLAYERS pulse
+  // Each step now fully finishes before the next one starts, with a pause in between.
+  const SHIMMER_DELAY = 250;
+  const SHIMMER_MS = 1900;   // matches @keyframes shimmerSweep duration in CSS
+  const NAME_PULSE_MS = 3500; // matches @keyframes pulseName duration in CSS
+  const BOX_PULSE_MS = 4500;  // matches @keyframes pulseBox/pulseZoom duration in CSS
+  const GAP_AFTER_SHIMMER = 0;   // no pause before the game name pulse - starts right as shimmer ends
+  const GAP_AFTER_NAME = 500;    // pause before DATE starts
+  const GAP_BETWEEN_BOXES = 350; // pause between DATE/TIME/PLAYERS (reduced from 500)
+
+  setTimeout(() => {
+    wrapper.classList.remove('shimmer-play');
+    void wrapper.offsetWidth;
+    wrapper.classList.add('shimmer-play');
+    wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
+  }, SHIMMER_DELAY);
+
+  let t = SHIMMER_DELAY + SHIMMER_MS + GAP_AFTER_SHIMMER;
+  setTimeout(() => pulse(nameEl, 'pulse-name'), t);
+  t += NAME_PULSE_MS + GAP_AFTER_NAME;
+  boxEls.forEach(el => {
+    setTimeout(() => pulse(el, 'pulse-box'), t);
+    t += BOX_PULSE_MS + GAP_BETWEEN_BOXES;
+  });
 }
 
 async function submitBooking() {
@@ -1127,8 +1267,8 @@ async function submitBooking() {
       addons: expRows.length ? JSON.stringify(expRows.map(e => ({ label: e.label, amount: parseFloat(e.price) || 0, at: new Date().toISOString() }))) : null,
       status: 'confirmed',
       source: 'online',
-      assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
-      tags: JSON.stringify([]),
+assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
+      tags: JSON.stringify(autoTagsForOccasion(occasion)),
       staff_notes: JSON.stringify([]),
       notes_when_booked: `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : ''),
     };
@@ -1268,11 +1408,38 @@ async function submitEnquiry() {
     `Contact: ${contact}`,
   ].filter(Boolean).join(' · ');
 
-  try {
+try {
+    // Find or create client so the enquiry links to a client record instead
+    // of saving unattributed. Detect whether the single contact field looks
+    // like an email or a phone number.
+    const isEmail = contact.includes('@');
+    const contactEmail = isEmail ? contact.toLowerCase() : '';
+    const contactPhone = isEmail ? '' : contact;
+    const nameParts = name.split(' ');
+    const first = nameParts[0] || name;
+    const last = nameParts.slice(1).join(' ') || null;
+
+    let clientId = null;
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method: 'POST', headers: SB_H,
+      body: JSON.stringify({ p_email: contactEmail || null, p_phone: contactPhone || null })
+    });
+    const foundId = await cr.json();
+    if (foundId) { clientId = foundId; }
+    else {
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'enquiry' })
+      });
+      clientId = await nr.json();
+    }
+
+    // Save to game_bookings as an enquiry
     await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
       headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
+        client_id: clientId,
         game_id: enqType === 'casual-vr' ? 'g4' : 'g5',
         game_name: typeLabels[enqType] || 'Enquiry',
         booking_date: date || nzToday(),
@@ -1286,8 +1453,17 @@ async function submitEnquiry() {
         assigned_staff_ids: JSON.stringify([]),
       })
     });
-  } catch (e) { console.error('Enquiry save error:', e); }
 
+    // Log as a contact entry so it shows up in the client inbox/overview
+    // "Needs reply" queue immediately, not just once someone has replied.
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `New enquiry: ${noteText}` })
+      }).catch(e => console.error('Enquiry contact logging failed (non-blocking):', e));
+    }
+  } catch (e) { console.error('Enquiry save error:', e); }
+  
   closeEnquiry();
 
   const thanks = document.createElement('div');
@@ -1324,8 +1500,10 @@ async function submitContactEnquiry() {
   const gameName = game ? game.name : 'General enquiry';
   const ref = 'ENQ-' + Date.now().toString(36).toUpperCase();
   const noteText = [`${first} ${last}`.trim(), phone, email, occasion || null, message || null, ref].filter(Boolean).join(' · ');
-  try {
+try {
     let clientId = null;
+    // Uses the public_find_client_id RPC rather than a direct SELECT on
+    // clients — same reasoning as the main booking submission above.
     const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
       method: 'POST',
       headers: SB_H,
@@ -1336,7 +1514,7 @@ async function submitContactEnquiry() {
       const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
         method: 'POST',
         headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null })
+        body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null, p_source: 'enquiry' })
       });
       clientId = await nr.json();
     }
@@ -1354,13 +1532,22 @@ async function submitContactEnquiry() {
         status: 'enquiry',
         source: 'online',
         notes_when_booked: noteText,
-        tags: JSON.stringify([]),
+        tags: JSON.stringify(autoTagsForOccasion(occasion)),
         staff_notes: JSON.stringify([]),
         assigned_staff_ids: JSON.stringify([]),
       })
     });
     if (!r.ok) throw new Error(await r.text());
-    btn.classList.remove('btn-loading');
+
+    // Log as a contact entry so it shows up in the client inbox/overview
+    // "Needs reply" queue immediately, not just once someone has replied.
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `New enquiry: ${noteText}` })
+      }).catch(e => console.error('Enquiry contact logging failed (non-blocking):', e));
+    }
+  btn.classList.remove('btn-loading');
     btn.disabled = false;
     const thanks = document.createElement('div');
     thanks.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
