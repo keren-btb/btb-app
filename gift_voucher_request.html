@@ -189,7 +189,13 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.1';
+const BUILD_VERSION = '1.1.2';
+// v1.1.2 — Security/bug fixes: escaped submitter name/phone/email/recipient/
+//          from-name on the confirmation screen before inserting into innerHTML
+//          (self-XSS close); fixed calcPrice() to check each game's actual
+//          pricingType (per_hour_flat / per_person_per_hour) instead of always
+//          using the tiered-per-person calculation — this was mispricing
+//          VR Hour, Mini Escape Room and Board Game Cafe vouchers.
 // v1.1.0 — Requesters now become real client records (find-or-create via the
 //          same safe RPCs the booking widget uses), linked via vouchers.client_id.
 //          The request itself is also logged as a contact entry so it shows up
@@ -217,6 +223,7 @@ let bookingConfig = {
   },
 };
 let voucherType = 'amount';
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 async function init() {
   try {
@@ -244,6 +251,10 @@ function renderGameSelect() {
 }
 
 function calcPrice(gameId, players) {
+  const game = games.find(g => g.id === gameId);
+  const type = game ? (game.pricingType || 'per_person_tiered') : 'per_person_tiered';
+  if (type === 'per_hour_flat') return (bookingConfig.gameFlatPrice || {})[gameId] ?? 0;
+  if (type === 'per_person_per_hour') return ((bookingConfig.gamePerPersonPerHour || {})[gameId] ?? 0) * players;
   const tiers = (bookingConfig.gamePriceTiers||{})[gameId] || [{min:1,max:99,pp:35}];
   const tier = tiers.find(t => players >= t.min && players <= t.max) || tiers[tiers.length-1];
   return (tier ? tier.pp : 35) * players;
@@ -380,7 +391,7 @@ async function submitRequest() {
     if (recipient) rows.push(['For', recipient]);
     if (fromName) rows.push(['From', fromName]);
     document.getElementById('confirmCard').innerHTML = rows.map(([l,v]) =>
-      `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`
+      `<div class="confirm-row"><span class="confirm-lbl">${escapeHtml(l)}</span><span class="confirm-val">${escapeHtml(v)}</span></div>`
     ).join('');
     document.getElementById('confirmRef').textContent = code;
 

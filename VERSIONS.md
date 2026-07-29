@@ -30,6 +30,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html
+- v1.1.2 — 2026-07-29 — Security/bug fixes: escaped confirmation-screen fields (self-XSS); fixed calcPrice() to respect each game's pricingType instead of always using tiered pricing — was mispricing VR Hour, Mini Escape Room, Board Game Cafe vouchers
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
