@@ -38,8 +38,8 @@ body {
   --accent-light: #52d4e0;
   --border-color: #d0d0d0;
   --shadow: 0 16px 64px rgba(0, 0, 0, 0.30);
-  --stripe: repeating-linear-gradient(90deg, #07b4c5 0px, #07b4c5 36px, #52d4e0 36px, #52d4e0 72px);
-  --head-font: 'Space Grotesk', sans-serif;
+<!-- WITH THIS NEW CODE -->
+--stripe: repeating-linear-gradient(90deg, #07b4c5 0px, #07b4c5 90px, #52d4e0 90px, #52d4e0 180px);   --head-font: 'Space Grotesk', sans-serif;
   --body-font: 'Inter', sans-serif;
   --ticket-radius: 20px;
 }
