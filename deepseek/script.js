@@ -4,8 +4,9 @@
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.9'; // v1.7.9: restored missing --body-font variable in styles.css
+const BUILD_VERSION = '1.7.10'; // v1.7.10: Security fix — escaped customer name/email/phone/occasion/special-person name/age/company/school/previous-game before inserting into innerHTML on the review and confirmation screens (self-XSS, defense-in-depth for data that later lands on the booking record). Also fixed silent failure on settings load: shows a clear error screen with a refresh button instead of continuing on the stale hardcoded game/pricing fallback if the live settings fetch fails.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 // ============================================================
 // AUTO-TAGGING — occasion → settings.btb_tags id, stamped onto the booking's
@@ -130,7 +131,11 @@ let draftSaved = false;
 
 // === INIT ===
 async function init() {
-  await loadSettings();
+  try {
+    await loadSettings();
+  } catch (e) {
+    return; // error screen already shown by loadSettings()
+  }
   await loadStaffData();
   await loadExistingBookings();
   populatePrevGameSelect();
@@ -139,18 +144,26 @@ async function init() {
 async function loadSettings() {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/settings`, { headers: SB_H });
+    if (!r.ok) throw new Error('Settings fetch failed: ' + r.status);
     const rows = await r.json();
+    let foundGames = false;
     rows.forEach(row => {
       try {
         const d = JSON.parse(row.value);
-        if (row.key === 'btb_games' && Array.isArray(d)) games = d;
+        if (row.key === 'btb_games' && Array.isArray(d)) { games = d; foundGames = true; }
         if (row.key === 'btb_training_statuses' && Array.isArray(d)) trainingStatuses = d;
         if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d)) {
           bookingConfig = { ...bookingConfig, ...d };
         }
       } catch (e) {}
     });
-  } catch (e) { console.error('Settings load error:', e); }
+    if (!foundGames) throw new Error('No btb_games settings row found');
+  } catch (e) {
+    console.error('Settings load error:', e);
+    document.getElementById('s1')?.classList.remove('active');
+    document.getElementById('s0')?.classList.add('active');
+    throw e;
+  }
 }
 
 async function loadStaffData() {
@@ -1093,13 +1106,13 @@ function showReviewScreen() {
     ['Date', dateLabel],
     ['Time', fmt12(selSlot)],
     ['Players', playerCount],
-    ['Name', `${first} ${last}`],
-    ['Email', email],
-    ['Phone', phone],
+    ['Name', `${escapeHtml(first)} ${escapeHtml(last)}`],
+    ['Email', escapeHtml(email)],
+    ['Phone', escapeHtml(phone)],
   ];
-  if (occasion) rows.push(['Occasion', occasion + (specialName ? ' — ' + specialName + (specialAge ? ' (' + specialAge + ')' : '') : '') + (companyName ? ' — ' + companyName : '') + (schoolName ? ' — ' + schoolName + (schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : '') : '')]);
+  if (occasion) rows.push(['Occasion', escapeHtml(occasion) + (specialName ? ' — ' + escapeHtml(specialName) + (specialAge ? ' (' + escapeHtml(specialAge) + ')' : '') : '') + (companyName ? ' — ' + escapeHtml(companyName) : '') + (schoolName ? ' — ' + escapeHtml(schoolName) + (schoolAgeGroup ? ' (' + escapeHtml(schoolAgeGroup) + ')' : '') : '')]);
   if (selGame.category === 'escape' && experience) rows.push(['Experience', experience]);
-  if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — ' + prevGame : '')]);
+  if (playedBefore) rows.push(['Played before', 'Yes' + (prevGame ? ' — ' + escapeHtml(prevGame) : '')]);
   if (expRows.length) rows.push(['Add-ons', expRows.map(e => e.label).join(', ')]);
   if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
 
@@ -1314,8 +1327,8 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
     ['Date', dateLabel],
     ['Time', fmt12(selSlot)],
     ['Players', playerCount],
-    ['Name', `${first} ${last}`],
-    ['Email', email],
+    ['Name', `${escapeHtml(first)} ${escapeHtml(last)}`],
+    ['Email', escapeHtml(email)],
   ];
   if (expRows && expRows.length) rows.push(['Add-ons', expRows.map(e => e.label).join(', ')]);
   rows.push(['Total', `$${grandTotal} NZD`]);

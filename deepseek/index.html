@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book Now — Beyond the Box</title>
-  <!-- BUILD v1.7.12 -->
+  <!-- BUILD v1.7.13: added Screen 0 (load-error state) for Finding 15 fix -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=1.7.9">
@@ -108,6 +108,14 @@
         <!-- ====== FLAT SCREENS (outside ticket card) ====== -->
         <div class="screens">
           <!-- ====== SCREENS ====== -->
+          <!-- SCREEN 0: LOAD ERROR (shown if live settings/pricing can't be fetched — never fall back to stale hardcoded prices silently) -->
+          <div class="screen" id="s0">
+            <div class="confirm-icon" style="background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.3)">⚠️</div>
+            <div class="confirm-title">We're having trouble loading</div>
+            <div class="err-msg show" style="text-align:center">Something went wrong loading our current games and prices, so we can't take your booking right now — sorry about that. Please try refreshing the page in a moment, or call us on <a href="tel:0220537365" style="color:inherit;text-decoration:underline">0220 537 365</a>.</div>
+            <button class="btn btn-primary" onclick="location.reload()">Refresh page</button>
+          </div>
+
           <!-- SCREEN 1: CATEGORY -->
           <div class="screen active" id="s1">
             <div class="sec-label">Step 1</div>
@@ -514,7 +522,7 @@
 <!-- ============================================================ -->
 <!-- ============================================================ -->
 <!-- ====== SCRIPT ====== -->
-<script src="script.js?v=1.7.9"></script>
+<script src="script.js?v=1.7.10"></script>
   
 <script>
   console.log('DEBUG stylesheet URL:', document.querySelector('link[href*="styles.css"]').href);
