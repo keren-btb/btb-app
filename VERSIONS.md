@@ -69,3 +69,5 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.5/v1.7.4/v1.7.3 — 2026-07-28 — Cache-busting version bumps alongside script.js/styles.css changes (previously the version query string wasn't being bumped when file contents changed, so Cloudflare/browsers kept serving stale copies).
 - v1.7.3 — 2026-07-28 — Removed invalid width="100%" height="auto" attributes from beyond-the-box.svg root tag (SVG doesn't support height:auto as a raw attribute) so it falls back to viewBox sizing; various mobile ticket-stub layout fixes (stub-date right-aligned, taller stub padding, vertical barcode shown on mobile, narrower ticket-wrapper with visible background stripe).
 
+## deepseek
+- v1.7.9 — 2026-07-30 — Widened background stripe pattern (36px→90px bands) for a calmer look; restored missing --body-font CSS variable; synced cache-busting version numbers across index.html and script.js
