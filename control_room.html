@@ -328,6 +328,7 @@ let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the p
 escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Christmas',icon:'🎄'},{id:'g3',name:'Gregg in the Box',icon:'📦'}];
             }
         }
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
         function renderRoomButtons(){
             const el = document.getElementById('room-buttons-container');
@@ -340,7 +341,8 @@ escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Chris
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 10; // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+        const BUILD_VERSION = 11; // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
+        // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
         // v9: NZ timezone fix — todayStr()/date picker default now always uses Pacific/Auckland time.
         // v8: added a return-to-btb_app.html link in the header.
         console.log(`%cControl Room — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -524,8 +526,8 @@ let allRunningTimers = [];
                 const name = bookingCustomerName(b);
                 return `<div class="p-4 rounded-xl bg-[#231647] border border-purple-800/40 flex justify-between items-center gap-3" data-booking-id="${b.id}">
                     <div>
-                        <div class="font-bold">${b.game_name}</div>
-                        <div class="text-xs text-gray-400">${name} · ${b.booking_date} ${b.slot_time ? b.slot_time.substring(0,5) : ''}</div>
+                        <div class="font-bold">${escapeHtml(b.game_name)}</div>
+                        <div class="text-xs text-gray-400">${escapeHtml(name)} · ${b.booking_date} ${b.slot_time ? b.slot_time.substring(0,5) : ''}</div>
                     </div>
                     <div class="text-xs text-purple-300 text-center flex-shrink-0">🧑‍💼 ${gmNamesFor(b)}</div>
                     <div class="flex items-center gap-3">
@@ -681,8 +683,8 @@ async function checkActiveBooking() {
                     : '<span class="text-xs px-2 py-0.5 rounded bg-emerald-700/40 text-emerald-300">Active</span>';
                 return `<button onclick="selectBookingFromList(${i})" class="w-full text-left p-4 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 transition flex justify-between items-center gap-3">
                     <div>
-                        <div class="font-bold">${time} — ${b.game_name}</div>
-                        <div class="text-xs text-gray-400">${name} · ${b.players_booked||0} players</div>
+                        <div class="font-bold">${time} — ${escapeHtml(b.game_name)}</div>
+                        <div class="text-xs text-gray-400">${escapeHtml(name)} · ${b.players_booked||0} players</div>
                     </div>
                     <div class="text-xs text-purple-300 text-center flex-shrink-0">🧑‍💼 ${gmNamesFor(b)}</div>
                     ${statusBadge}
