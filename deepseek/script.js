@@ -1500,8 +1500,10 @@ async function submitContactEnquiry() {
   const gameName = game ? game.name : 'General enquiry';
   const ref = 'ENQ-' + Date.now().toString(36).toUpperCase();
   const noteText = [`${first} ${last}`.trim(), phone, email, occasion || null, message || null, ref].filter(Boolean).join(' · ');
-  try {
+try {
     let clientId = null;
+    // Uses the public_find_client_id RPC rather than a direct SELECT on
+    // clients — same reasoning as the main booking submission above.
     const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
       method: 'POST',
       headers: SB_H,
@@ -1512,7 +1514,7 @@ async function submitContactEnquiry() {
       const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
         method: 'POST',
         headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null })
+        body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null, p_source: 'enquiry' })
       });
       clientId = await nr.json();
     }
@@ -1530,13 +1532,22 @@ async function submitContactEnquiry() {
         status: 'enquiry',
         source: 'online',
         notes_when_booked: noteText,
-        tags: JSON.stringify([]),
+        tags: JSON.stringify(autoTagsForOccasion(occasion)),
         staff_notes: JSON.stringify([]),
         assigned_staff_ids: JSON.stringify([]),
       })
     });
     if (!r.ok) throw new Error(await r.text());
-    btn.classList.remove('btn-loading');
+
+    // Log as a contact entry so it shows up in the client inbox/overview
+    // "Needs reply" queue immediately, not just once someone has replied.
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `New enquiry: ${noteText}` })
+      }).catch(e => console.error('Enquiry contact logging failed (non-blocking):', e));
+    }
+  btn.classList.remove('btn-loading');
     btn.disabled = false;
     const thanks = document.createElement('div');
     thanks.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
