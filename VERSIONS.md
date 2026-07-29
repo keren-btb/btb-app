@@ -31,6 +31,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html
+- v1.1.4 — 2026-07-29 — Added phone number (0220 537 365) to the "having trouble loading" error screen
 - v1.1.3 — 2026-07-29 — Fixed silent failure if live settings can't load: now shows a clear error screen with a refresh button instead of quietly continuing on stale hardcoded prices
 - v1.1.2 — 2026-07-29 — Security/bug fixes: escaped confirmation-screen fields (self-XSS); fixed calcPrice() to respect each game's pricingType instead of always using tiered pricing — was mispricing VR Hour, Mini Escape Room, Board Game Cafe vouchers
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)

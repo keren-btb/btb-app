@@ -99,7 +99,7 @@ body{
   <div class="screen" id="s0">
     <div class="confirm-icon" style="background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.3)">⚠️</div>
     <div class="confirm-title">We're having trouble loading</div>
-    <div class="err-msg show" style="text-align:center">Something went wrong loading our current games and prices, so we can't take your request right now — sorry about that. Please try refreshing the page in a moment.</div>
+    <div class="err-msg show" style="text-align:center">Something went wrong loading our current games and prices, so we can't take your request right now — sorry about that. Please try refreshing the page in a moment, or call us on <a href="tel:0220537365" style="color:inherit;text-decoration:underline">0220 537 365</a>.</div>
     <button class="btn btn-primary" onclick="location.reload()">Refresh page</button>
   </div>
 
@@ -197,7 +197,10 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.3';
+const BUILD_VERSION = '1.1.4';
+// v1.1.4 — Added phone number to the "having trouble loading" error screen
+//          so a customer has a fallback way to reach us if the page can't
+//          load current games/pricing.
 // v1.1.3 — Fixed silent failure if live game/pricing settings can't be loaded
 //          from Supabase: previously the page kept running on the stale
 //          3-game hardcoded fallback list with no indication anything was
