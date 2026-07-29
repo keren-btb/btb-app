@@ -1053,7 +1053,12 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.9';
+const BUILD_VERSION = '1.9.10';
+// v1.9.10: Security fix — escaped timesheet notes (admin/staff), hours-request
+// messages, and staff name before inserting into innerHTML in the timesheet
+// card, staff's own hours-request list, and admin's hours-request approval
+// queue, closing a stored-XSS risk (a malicious message could otherwise run
+// in the admin's own session when they opened the approval queue).
 // v1.9.9: Fixed login screen briefly flashing on load when already logged
 // in — now hidden synchronously as soon as a cached session is found,
 // before the page paints.
@@ -2831,6 +2836,8 @@ async function saveTsEdits(id, isAdminUser) {
   }
 }
 
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
 function buildTsCard(ts, isAdmin) {
   const statusLabel = {
     clocked_in:     'Clocked in',
@@ -2855,8 +2862,8 @@ function buildTsCard(ts, isAdmin) {
       In: ${fmtDatetime(ts.clock_in)} &nbsp;|&nbsp; Out: ${fmtDatetime(ts.clock_out)}
     </div>
     <div class="timesheet-hours">${hours}</div>
-    ${ts.admin_notes ? `<div class="timesheet-notes">Admin: ${ts.admin_notes}</div>` : ''}
-    ${ts.staff_notes ? `<div class="timesheet-notes">You: ${ts.staff_notes}</div>` : ''}
+    ${ts.admin_notes ? `<div class="timesheet-notes">Admin: ${escapeHtml(ts.admin_notes)}</div>` : ''}
+    ${ts.staff_notes ? `<div class="timesheet-notes">You: ${escapeHtml(ts.staff_notes)}</div>` : ''}
   </div>`;
 }
 
@@ -3921,8 +3928,8 @@ function renderMyHoursRequests() {
   const statusColors = {pending:'#d97706', approved:'#15803d', declined:'#dc2626'};
   el.innerHTML = mine.map(r => `<div class="shift-card">
     <span class="shift-status-badge" style="background:${statusColors[r.status]}1a;color:${statusColors[r.status]}">${statusLabels[r.status]||r.status}</span>
-    <div class="shift-notes" style="margin-top:6px">${r.message}</div>
-    ${r.admin_note ? `<div class="shift-notes" style="margin-top:4px"><strong>Admin:</strong> ${r.admin_note}</div>` : ''}
+    <div class="shift-notes" style="margin-top:6px">${escapeHtml(r.message)}</div>
+    ${r.admin_note ? `<div class="shift-notes" style="margin-top:4px"><strong>Admin:</strong> ${escapeHtml(r.admin_note)}</div>` : ''}
     <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
   </div>`).join('');
 }
@@ -3932,8 +3939,8 @@ function renderAdminHoursRequests() {
   const pending = allHoursRequests.filter(r => r.status === 'pending');
   if (!pending.length) { el.innerHTML = '<div class="empty-state"><i class="ti ti-check"></i>No hours requests pending.</div>'; return; }
   el.innerHTML = pending.map(r => `<div class="shift-card">
-    <div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${r.staff_name||'Unknown'}</div>
-    <div class="shift-notes" style="margin-top:4px">${r.message}</div>
+    <div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${escapeHtml(r.staff_name)||'Unknown'}</div>
+    <div class="shift-notes" style="margin-top:4px">${escapeHtml(r.message)}</div>
     <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
     <div class="shift-actions">
       <button class="btn-primary btn-sm" onclick="resolveHoursRequest('${r.id}','approved')"><i class="ti ti-check"></i> Approve</button>
