@@ -162,15 +162,38 @@ async function loadStaffData() {
     rosterShifts = await rs.json();
     if (!Array.isArray(rosterShifts)) rosterShifts = [];
 
-    try {
+try {
       const fr = await fetch(`${SB_URL}/rest/v1/public_staff_flags?select=staff_id,trusted_opener`, { headers: SB_H });
       const flagRows = await fr.json();
       staffFlags = {};
       if (Array.isArray(flagRows)) flagRows.forEach(f => { staffFlags[f.staff_id] = f.trusted_opener === true; });
     } catch (e) { staffFlags = {}; }
+
+    // Calendar-mode staff — availability_mode per staff (from the new view)
+    try {
+      const mr = await fetch(`${SB_URL}/rest/v1/public_staff_mode?select=staff_id,availability_mode`, { headers: SB_H });
+      const modeRows = await mr.json();
+      staffMode = {};
+      if (Array.isArray(modeRows)) modeRows.forEach(m => { staffMode[m.staff_id] = m.availability_mode; });
+    } catch (e) { staffMode = {}; }
+
+    // Synced Google Calendar busy blocks (staff_calendar_busy is already open to anon)
+    try {
+      const cb = await fetch(`${SB_URL}/rest/v1/staff_calendar_busy?select=staff_id,busy_start,busy_end`, { headers: SB_H });
+      staffCalendarBusy = await cb.json();
+      if (!Array.isArray(staffCalendarBusy)) staffCalendarBusy = [];
+    } catch (e) { staffCalendarBusy = []; }
+
+    // Weekly recurring "always away" blocks e.g. a day job (staff_recurring_blocks is already open to anon)
+    try {
+      const rb = await fetch(`${SB_URL}/rest/v1/staff_recurring_blocks?select=staff_id,day_of_week,start_time,end_time`, { headers: SB_H });
+      staffRecurringBlocks = await rb.json();
+      if (!Array.isArray(staffRecurringBlocks)) staffRecurringBlocks = [];
+    } catch (e) { staffRecurringBlocks = []; }
   } catch (e) { console.error('Staff data error:', e); }
 }
 
+    
 function getSlotsForDay(dayIdx) {
   const dc = (bookingConfig.slotTimes || {})[dayIdx] || {};
   const slots = Array.isArray(dc) ? dc : (dc['default'] || []);
