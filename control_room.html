@@ -306,6 +306,7 @@ let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the p
         }
 
         function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')}
+        const TIMER_WARNING_THRESHOLD_SEC = 300; // seconds remaining at which the timer turns to "warning" colour — keep in sync with btb_app.html's copy of this constant
         function getElapsed(b){
             if(b.timer_running && b.timer_started_at) return (b.timer_sec||0) + Math.floor((Date.now()-new Date(b.timer_started_at).getTime())/1000);
             return b.timer_sec||0;
@@ -341,7 +342,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 11; // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
+        const BUILD_VERSION = 12; // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
+        // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
         // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
         // v9: NZ timezone fix — todayStr()/date picker default now always uses Pacific/Auckland time.
         // v8: added a return-to-btb_app.html link in the header.
@@ -584,7 +586,7 @@ let allRunningTimers = [];
                 const dur = gameDurationFor(b);
                 const rem = dur*60 - getElapsed(b);
                 el.textContent = fmtTimer(rem);
-                el.className = "text-2xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < 300 ? "text-amber-400" : "text-emerald-400");
+                el.className = "text-2xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < TIMER_WARNING_THRESHOLD_SEC ? "text-amber-400" : "text-emerald-400");
             });
         }
 
@@ -781,7 +783,7 @@ async function checkActiveBooking() {
             const rem = dur*60 - getElapsed(currentBooking);
             const el = document.getElementById('timer-countdown');
             el.textContent = fmtTimer(rem);
-            el.className = "text-4xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < 300 ? "text-amber-400" : "text-emerald-400");
+            el.className = "text-4xl font-mono font-extrabold " + (rem < 0 ? "text-red-400" : rem < TIMER_WARNING_THRESHOLD_SEC ? "text-amber-400" : "text-emerald-400");
         }
         function updateTimerButtonUI(){
             const btn = document.getElementById('timer-toggle-btn');

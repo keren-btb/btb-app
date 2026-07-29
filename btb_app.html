@@ -397,6 +397,7 @@ function fmtTimer(s){const a=Math.abs(s);return(s<0?'-':'')+Math.floor(a/60)+':'
 function tagStyle(ci){const c=COLORS[ci];return`background:${c.bg};color:${c.text};border-color:${c.border}`}
 function dayLbl(d){return DAYS[new Date(viewYear,viewMonth-1,d).getDay()]}
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const TIMER_WARNING_THRESHOLD_SEC = 300; // seconds remaining at which the timer turns to "warning" colour — keep in sync with control_room.html's copy of this constant
 function getElapsed(b){if(b.timerRunning&&b.timerStartedAt)return b.timerSec+Math.floor((Date.now()-b.timerStartedAt)/1000);return b.timerSec}
 
 // SETTINGS
@@ -911,7 +912,7 @@ function renderTimerBanner(){
   if(!running.length){banner.className='timer-banner';banner.innerHTML='';return}
   banner.className='timer-banner has-timers';
   banner.innerHTML=running.map(b=>{
-    const rem=b.duration*60-getElapsed(b);const cls=rem<0?'over':rem<300?'warning':'';
+    const rem=b.duration*60-getElapsed(b);const cls=rem<0?'over':rem<TIMER_WARNING_THRESHOLD_SEC?'warning':'';
     return`<div class="timer-item"><div class="timer-countdown ${cls}" id="banner-timer-${b.id}">${fmtTimer(rem)}</div><div style="flex:1"><div class="timer-game">${escapeHtml(b.name)}</div><div class="timer-meta">${b.meta||''}</div></div><div class="timer-banner-btns"><button class="timer-help-btn" onclick="triggerHelp('${b.name}')">🚨 Help</button></div></div>`;
   }).join('');
 }
@@ -1608,7 +1609,7 @@ function setupRealtime(){
         if(b){
           if(rec.tags)b.tags=JSON.parse(rec.tags||'[]');if(rec.staff_notes)b.notes=JSON.parse(rec.staff_notes||'[]');if(rec.assigned_staff_ids)b.gms=JSON.parse(rec.assigned_staff_ids||'[]');
           if(rec.timer_sec!==undefined)b.timerSec=rec.timer_sec;b.timerStartedAt=rec.timer_started_at?new Date(rec.timer_started_at).getTime():null;
-          if(rec.timer_running!==undefined){const was=b.timerRunning;b.timerRunning=rec.timer_running;if(!was&&b.timerRunning&&b.timerStartedAt){clearInterval(b.timerInterval);b.timerInterval=setInterval(()=>{const rem=b.duration*60-getElapsed(b);const bel=document.getElementById('banner-timer-'+b.id);if(bel){bel.textContent=fmtTimer(rem);bel.className='timer-countdown '+(rem<0?'over':rem<300?'warning':'')}},1000)}else if(was&&!b.timerRunning)clearInterval(b.timerInterval)}
+          if(rec.timer_running!==undefined){const was=b.timerRunning;b.timerRunning=rec.timer_running;if(!was&&b.timerRunning&&b.timerStartedAt){clearInterval(b.timerInterval);b.timerInterval=setInterval(()=>{const rem=b.duration*60-getElapsed(b);const bel=document.getElementById('banner-timer-'+b.id);if(bel){bel.textContent=fmtTimer(rem);bel.className='timer-countdown '+(rem<0?'over':rem<TIMER_WARNING_THRESHOLD_SEC?'warning':'')}},1000)}else if(was&&!b.timerRunning)clearInterval(b.timerInterval)}
           renderTimerBanner();const ae=document.activeElement;if(!ae||(ae.tagName!=='INPUT'&&ae.tagName!=='TEXTAREA'))renderActiveView();
         }
       }
@@ -1896,7 +1897,11 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.2'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.3'; // increment this each shipped update — check browser console to confirm you're on the latest build
+// v16.4.3: Code quality — replaced the two hardcoded "300 seconds" timer
+// warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC),
+// so changing the warning window only needs one edit in this file instead of
+// two easy-to-miss ones. No behaviour change.
 // v16.4.2: Security fix — escaped customer/staff free-text fields (name, phone,
 // email, occasion, special-person name/age, previous game, notes) before
 // inserting into innerHTML, closing a stored-XSS risk in booking cards and

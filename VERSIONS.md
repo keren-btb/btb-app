@@ -7,10 +7,12 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## btb_app.html
+- v16.4.3 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC); no behaviour change
 - v16.4.2 — 2026-07-29 — Security fix: escaped customer/staff free-text fields (name, phone, email, occasion, special-person name/age, previous game, notes) before inserting into innerHTML, closing a stored-XSS risk in booking cards and the timer banner
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.11 — 2026-07-29 — Security fix (defense-in-depth): escaped recurring availability block label, game name in today's-bookings widget, and staff name/phone/email in the admin's own staff table value attributes
 - v1.9.10 — 2026-07-29 — Security fix: escaped timesheet notes (admin/staff), hours-request messages, and staff name before inserting into innerHTML in the timesheet card, staff's own hours-request list, and admin's hours-request approval queue
 - v1.9.9 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
@@ -26,6 +28,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v12 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy); no behaviour change
 - v11 — 2026-07-29 — Security fix: escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
