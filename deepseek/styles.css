@@ -39,9 +39,10 @@ body {
   --border-color: #d0d0d0;
   --shadow: 0 16px 64px rgba(0, 0, 0, 0.30);
   --stripe: repeating-linear-gradient(90deg, #07b4c5 0px, #07b4c5 90px, #52d4e0 90px, #52d4e0 180px);
-  --head-font: 'Space Grotesk', sans-serif;  --ticket-radius: 20px;
+--head-font: 'Space Grotesk', sans-serif;
+  --body-font: 'Inter', sans-serif;
+  --ticket-radius: 20px;
 }
-
 body {
   background-image: var(--stripe);
   background-color: var(--bg-body);
