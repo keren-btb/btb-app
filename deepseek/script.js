@@ -7,6 +7,18 @@ const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const BUILD_VERSION = '1.7.7'; // v1.7.7: removed the pause before the game name pulse (starts right as shimmer ends); reduced the gap between DATE/TIME/PLAYERS pulses from 500ms to 350ms
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
+// ============================================================
+// AUTO-TAGGING — occasion → settings.btb_tags id, stamped onto the booking's
+// `tags` array at creation so it shows as a pill on the calendar/booking card
+// in btb_app.html without staff having to add it manually. Currently only
+// Birthday maps to a tag ('birthday' — matches the fixed id in settings);
+// extend this map if more occasions get their own tag later.
+const OCCASION_TAG_MAP = { 'Birthday': 'birthday' };
+function autoTagsForOccasion(occasion) {
+  const tagId = OCCASION_TAG_MAP[occasion];
+  return tagId ? [tagId] : [];
+}
+
 function nzToday() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
