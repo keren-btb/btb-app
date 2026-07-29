@@ -95,6 +95,14 @@ body{
     <div class="hdr-sub">Tell us what you'd like and we'll be in touch to confirm the details and take payment.</div>
   </div>
 
+  <!-- SCREEN 0: LOAD ERROR (shown if live settings/pricing can't be fetched — never fall back to stale hardcoded prices silently) -->
+  <div class="screen" id="s0">
+    <div class="confirm-icon" style="background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.3)">⚠️</div>
+    <div class="confirm-title">We're having trouble loading</div>
+    <div class="err-msg show" style="text-align:center">Something went wrong loading our current games and prices, so we can't take your request right now — sorry about that. Please try refreshing the page in a moment.</div>
+    <button class="btn btn-primary" onclick="location.reload()">Refresh page</button>
+  </div>
+
   <!-- SCREEN 1: REQUEST FORM -->
   <div class="screen active" id="s1">
     <div class="err-msg" id="formErr"></div>
@@ -189,7 +197,13 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.2';
+const BUILD_VERSION = '1.1.3';
+// v1.1.3 — Fixed silent failure if live game/pricing settings can't be loaded
+//          from Supabase: previously the page kept running on the stale
+//          3-game hardcoded fallback list with no indication anything was
+//          wrong. Now shows a clear "having trouble loading" screen with a
+//          refresh button instead, so a customer can't submit a voucher
+//          request against out-of-date games/prices without knowing it.
 // v1.1.2 — Security/bug fixes: escaped submitter name/phone/email/recipient/
 //          from-name on the confirmation screen before inserting into innerHTML
 //          (self-XSS close); fixed calcPrice() to check each game's actual
@@ -228,17 +242,25 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 async function init() {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/settings`, {headers:SB_H});
+    if (!r.ok) throw new Error('Settings fetch failed: ' + r.status);
     const rows = await r.json();
+    let foundGames = false;
     rows.forEach(row => {
       try {
         const d = JSON.parse(row.value);
-        if (row.key === 'btb_games' && Array.isArray(d)) games = d;
+        if (row.key === 'btb_games' && Array.isArray(d)) { games = d; foundGames = true; }
         if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d)) {
           bookingConfig = {...bookingConfig, ...d};
         }
       } catch(e){}
     });
-  } catch(e) { console.error('Settings load error:', e); }
+    if (!foundGames) throw new Error('No btb_games settings row found');
+  } catch(e) {
+    console.error('Settings load error:', e);
+    document.getElementById('s1').classList.remove('active');
+    document.getElementById('s0').classList.add('active');
+    return;
+  }
   renderGameSelect();
 }
 
