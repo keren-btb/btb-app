@@ -39,6 +39,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
+- v1.0.1 — 2026-07-29 — Security fix: escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_inbox.html

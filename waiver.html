@@ -361,7 +361,7 @@ const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`
 // BUILD VERSION — bump this each time this file is shipped, so you can confirm
 // in the browser console which copy you're looking at. (No header UI tag for
 // this one yet — this file didn't have build version tracking before.)
-const BUILD_VERSION = '1.0.0';
+const BUILD_VERSION = '1.0.1'; // v1.0.1: Security fix — escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 /* Stateful Global Variables tracking entries */
@@ -580,6 +580,8 @@ function closePlayerLoop() {
 }
 
 /* Renders live overview validation review screen block elements dynamically */
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
 function renderRosterSummary() {
   const target = document.getElementById('rosterReviewList');
   target.innerHTML = '';
@@ -587,14 +589,14 @@ function renderRosterSummary() {
   globalTeamArray.forEach(item => {
     const adultRow = document.createElement('div');
     adultRow.className = 'roster-item';
-    adultRow.innerHTML = `<strong>${item.first_name} ${item.last_name}</strong> <span class="roster-tag tag-adult">${item.role}</span>`;
+    adultRow.innerHTML = `<strong>${escapeHtml(item.first_name)} ${escapeHtml(item.last_name)}</strong> <span class="roster-tag tag-adult">${escapeHtml(item.role)}</span>`;
     target.appendChild(adultRow);
     
     item.minors_list.forEach(child => {
       const childRow = document.createElement('div');
       childRow.className = 'roster-item';
       childRow.style.paddingLeft = '20px';
-      childRow.innerHTML = `↳ ${child.first} ${child.last} <span class="roster-tag tag-child">Under 16</span>`;
+      childRow.innerHTML = `↳ ${escapeHtml(child.first)} ${escapeHtml(child.last)} <span class="roster-tag tag-child">Under 16</span>`;
       target.appendChild(childRow);
     });
   });
