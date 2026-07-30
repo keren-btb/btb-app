@@ -6,6 +6,9 @@ Newest entry per file goes at the top of that file's list.
 
 ---
 
+## Push notification foundation (manifest.json, sw.js, icon-*.png, apple-touch-icon.png)
+- v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
+
 ## btb_app.html
 - v16.4.4 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails
 - v16.4.3 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC); no behaviour change
