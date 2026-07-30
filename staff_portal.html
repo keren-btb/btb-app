@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Beyond the Box — Staff Portal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#07b4c5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -641,6 +644,18 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="msg" id="profileMsg"></div>
     </div>
+
+    <div class="card" id="pushCard">
+      <div class="card-title"><i class="ti ti-bell"></i> Help alert notifications</div>
+      <p style="font-size:12px;color:#9ca3af;margin-bottom:12px">Get a phone notification when someone presses the 🚨 Help button, even if this app isn't open.</p>
+      <div id="pushIosBanner" style="display:none;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:12px">
+        <strong>One extra step on iPhone:</strong> tap the Share button in Safari, then "Add to Home Screen". Open the app from your home screen icon, then come back to this page to turn alerts on.
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="pushToggleBtn" onclick="togglePushNotifications()"><i class="ti ti-bell"></i> Turn on alerts</button>
+      </div>
+      <div class="msg" id="pushMsg"></div>
+    </div>
   </div>
 
   <!-- ══ MY TRAINING TAB ══ -->
@@ -1053,7 +1068,13 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.11';
+const BUILD_VERSION = '1.9.12';
+// v1.9.12: New — push notification support for help alerts. Staff can now turn on
+// phone alerts from the My Profile tab (registers a service worker + push
+// subscription, tied to their staff_id). iPhone users are shown an "Add to Home
+// Screen" banner first since Apple requires the app be installed for background
+// push. Does not yet send anything — that's wired up in the next step
+// (control_room.html's help alert trigger).
 // v1.9.11: Security fix (defense-in-depth) — escaped recurring availability
 // block label, game name in the today's-bookings widget, and staff
 // name/phone/email in the admin's own staff table value attributes before
@@ -1649,6 +1670,7 @@ async function initApp() {
   renderMyTimesheets();
   loadTodayBookings();
   loadProfile();
+  initPushNotifications();
 
 await loadShifts();
   document.getElementById('shiftsAdminView').style.display = isAdmin ? '' : 'none';
@@ -1802,6 +1824,111 @@ function loadProfile() {
   set('profileAddress', s.address);
   set('profileEmergencyName', s.emergency_contact);
   set('profileEmergencyPhone', s.emergency_phone);
+}
+
+// ============================================================
+// PUSH NOTIFICATIONS — help alert alerts to staff phones
+// ============================================================
+// This is the public VAPID key (safe to expose client-side) generated for this project.
+const VAPID_PUBLIC_KEY = 'BCTp4j-gbM6dS06f4w9GdTEWlmgj7bPAlqufSKG8x6OTeeJrYaTvhO4Z_zfo51eDeTR-ITm78sOXDnmjKzqOqn0';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+async function initPushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    document.getElementById('pushCard').style.display = 'none'; // unsupported browser — hide the feature entirely
+    return;
+  }
+  try { await navigator.serviceWorker.register('sw.js'); } catch(e) { console.error('SW registration failed:', e); }
+
+  if (isIOS() && !isStandalone()) {
+    document.getElementById('pushIosBanner').style.display = '';
+    document.getElementById('pushToggleBtn').style.display = 'none';
+    return;
+  }
+  document.getElementById('pushIosBanner').style.display = 'none';
+  document.getElementById('pushToggleBtn').style.display = '';
+  await refreshPushToggleUI();
+}
+
+async function refreshPushToggleUI() {
+  const btn = document.getElementById('pushToggleBtn');
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      btn.innerHTML = '<i class="ti ti-bell-off"></i> Turn off alerts';
+      btn.dataset.state = 'on';
+    } else {
+      btn.innerHTML = '<i class="ti ti-bell"></i> Turn on alerts';
+      btn.dataset.state = 'off';
+    }
+  } catch(e) { console.error('Could not check push subscription state:', e); }
+}
+
+async function togglePushNotifications() {
+  const btn = document.getElementById('pushToggleBtn');
+  const msgEl = document.getElementById('pushMsg');
+  msgEl.style.color = '#6b7280'; msgEl.textContent = 'Working…';
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+
+    if (existing) {
+      // Turning OFF
+      await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(existing.endpoint)}`, {method:'DELETE', headers:H()});
+      await existing.unsubscribe();
+      msgEl.style.color = '#15803d'; msgEl.textContent = '✓ Alerts turned off on this device.';
+    } else {
+      // Turning ON
+      if (Notification.permission === 'denied') {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = 'Notifications are blocked for this site in your browser settings — please allow them and try again.';
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        msgEl.style.color = '#dc2626'; msgEl.textContent = 'Permission was not granted, so alerts stay off.';
+        return;
+      }
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+      const subJson = sub.toJSON();
+      const r = await fetch(`${SB_URL}/rest/v1/push_subscriptions?on_conflict=endpoint`, {
+        method: 'POST',
+        headers: {...H(), 'Prefer': 'resolution=merge-duplicates,return=minimal'},
+        body: JSON.stringify({
+          staff_id: myStaffRecord.id,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+          device_label: navigator.userAgent.slice(0,120)
+        })
+      });
+      if (!r.ok) throw new Error(await r.text());
+      msgEl.style.color = '#15803d'; msgEl.textContent = '✓ Alerts turned on for this device.';
+    }
+    await refreshPushToggleUI();
+  } catch(e) {
+    msgEl.style.color = '#dc2626'; msgEl.textContent = 'Error: ' + e.message;
+    console.error('Push toggle error:', e);
+  }
 }
 
 // ============================================================

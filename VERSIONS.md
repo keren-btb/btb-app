@@ -6,17 +6,23 @@ Newest entry per file goes at the top of that file's list.
 
 ---
 
+## Push notification foundation (manifest.json, sw.js, icon-*.png, apple-touch-icon.png)
+- v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
+
 ## btb_app.html
+- v16.4.4 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails
 - v16.4.3 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC); no behaviour change
 - v16.4.2 — 2026-07-29 — Security fix: escaped customer/staff free-text fields (name, phone, email, occasion, special-person name/age, previous game, notes) before inserting into innerHTML, closing a stored-XSS risk in booking cards and the timer banner
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.12 — 2026-07-30 — New: push notification support for help alerts. "My Profile" tab now has a Notifications card where staff can turn on phone alerts (registers a service worker + push subscription tied to their staff_id). iPhone users see an "Add to Home Screen" banner first, since Apple requires the app be installed for background push to work. Doesn't send anything yet — sending is wired up in the next step.
 - v1.9.11 — 2026-07-29 — Security fix (defense-in-depth): escaped recurring availability block label, game name in today's-bookings widget, and staff name/phone/email in the admin's own staff table value attributes
 - v1.9.10 — 2026-07-29 — Security fix: escaped timesheet notes (admin/staff), hours-request messages, and staff name before inserting into innerHTML in the timesheet card, staff's own hours-request list, and admin's hours-request approval queue
 - v1.9.9 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## pos.html
+- v1.3.5 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails
 - v1.3.4 — 2026-07-29 — Security fixes: escaped customer/voucher free-text fields before inserting into innerHTML (name, email, phone, voucher recipient/message/notes) to close stored-XSS risk; encoded voucher search term before building PostgREST filter URL
 - v1.3.3 — 2026-07-28 — Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints
 

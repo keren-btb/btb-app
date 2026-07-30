@@ -920,15 +920,25 @@ function renderTimerBanner(){
 // HELP
 async function triggerHelp(room){
   document.getElementById('helpRoom').textContent=room;document.getElementById('helpOverlay').classList.add('active');
-  try{await fetch(`${SB_URL}/rest/v1/help_alerts`,{method:'POST',headers:H(),body:JSON.stringify({room,dismissed:false})})}catch(e){}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/help_alerts`,{method:'POST',headers:H(),body:JSON.stringify({room,dismissed:false})});
+    if(!r.ok) throw new Error(await r.text());
+  }catch(e){
+    alert('Help alert may not have been sent — please also call/find the floor manager directly. Error: '+e.message);
+  }
 }
 async function dismissHelp(){
   document.getElementById('helpOverlay').classList.remove('active');
   try{
     const r=await fetch(`${SB_URL}/rest/v1/help_alerts?dismissed=eq.false&order=created_at.desc&limit=1`,{headers:H()});
     const rows=await r.json();
-    if(rows[0])await fetch(`${SB_URL}/rest/v1/help_alerts?id=eq.${rows[0].id}`,{method:'PATCH',headers:H(),body:JSON.stringify({dismissed:true})});
-  }catch(e){}
+    if(rows[0]){
+      const pr=await fetch(`${SB_URL}/rest/v1/help_alerts?id=eq.${rows[0].id}`,{method:'PATCH',headers:H(),body:JSON.stringify({dismissed:true})});
+      if(!pr.ok) throw new Error(await pr.text());
+    }
+  }catch(e){
+    alert('Help alert dismissed on screen, but the record may still show as active elsewhere. Error: '+e.message);
+  }
 }
 
 // SCHEDULE
@@ -1715,16 +1725,33 @@ async function addProduct() {
 
 async function deleteProduct(id) {
   if(!confirm('Delete this product?')) return;
-  products = products.filter(p=>p.id!==id);
+  const idx = products.findIndex(p=>p.id===id);
+  const removed = idx>=0 ? products[idx] : null;
+  if(idx>=0) products.splice(idx,1);
   renderProdList();
-  try { await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()}); } catch(e){}
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()});
+    if(!r.ok) throw new Error(await r.text());
+  } catch(e) {
+    if(removed) products.splice(idx,0,removed);
+    renderProdList();
+    alert('Could not delete product: '+e.message);
+  }
 }
 
 async function toggleProdActive(id) {
   const p = products.find(x=>x.id===id); if(!p) return;
+  const prev = p.active;
   p.active = !p.active;
   renderProdList();
-  try { await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})}); } catch(e){}
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})});
+    if(!r.ok) throw new Error(await r.text());
+  } catch(e) {
+    p.active = prev;
+    renderProdList();
+    alert('Could not update active status: '+e.message);
+  }
 }
 
 // CSV EXPORT
@@ -1897,7 +1924,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.3'; // increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.4'; // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
 // v16.4.3: Code quality — replaced the two hardcoded "300 seconds" timer
 // warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC),
 // so changing the warning window only needs one edit in this file instead of
