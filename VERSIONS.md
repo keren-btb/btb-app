@@ -17,6 +17,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.9.9 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## pos.html
+- v1.3.5 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails
 - v1.3.4 — 2026-07-29 — Security fixes: escaped customer/voucher free-text fields before inserting into innerHTML (name, email, phone, voucher recipient/message/notes) to close stored-XSS risk; encoded voucher search term before building PostgREST filter URL
 - v1.3.3 — 2026-07-28 — Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints
 
