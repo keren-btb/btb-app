@@ -38,6 +38,15 @@
         }
     </script>
 
+    <div id="loadErrorScreen" class="hidden flex-grow flex items-center justify-center p-4">
+        <div class="bg-[#231647] border border-red-800/60 rounded-2xl p-8 w-full max-w-sm text-center shadow-xl">
+            <div class="text-3xl mb-2">⚠️</div>
+            <h1 class="text-lg font-bold tracking-wider text-white mb-2">We're having trouble loading</h1>
+            <p class="text-sm text-purple-300/80 mb-6">Something went wrong loading the current room list, so the Control Room can't safely start — sorry about that. Please try refreshing the page in a moment.</p>
+            <button onclick="location.reload()" class="w-full py-2.5 rounded-lg bg-accent text-slate-900 font-bold text-sm hover:opacity-90 transition">Refresh page</button>
+        </div>
+    </div>
+
     <div id="mainApp" class="hidden flex-col flex-grow">
 
     <header class="bg-[#110a24] border-b border-purple-900/40 px-6 py-4 flex justify-between items-center shadow-lg">
@@ -316,18 +325,15 @@ let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the p
         // 🎮 LOAD ESCAPE ROOMS FROM SETTINGS (dynamic, matches btb_app.html)
         // ==========================================
         async function loadEscapeGames(){
-            try{
-                const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games`, {headers:H()});
-                const rows = await r.json();
-                if(rows[0]){
-                    const all = JSON.parse(rows[0].value);
-                    if(Array.isArray(all)) escapeGames = all.filter(g=>g.category==='escape');
-                }
-            }catch(e){ console.error('Failed to load games:', e); }
-            if(!escapeGames.length){
-                // Fallback so the screen isn't empty if settings hasn't loaded yet
-escapeGames = [{id:'g1',name:'Sherlock',icon:'🔍'},{id:'g2',name:'Saving Christmas',icon:'🎄'},{id:'g3',name:'Gregg in the Box',icon:'📦'}];
-            }
+            const r = await fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_games`, {headers:H()});
+            if(!r.ok) throw new Error('Games fetch failed: ' + r.status);
+            const rows = await r.json();
+            if(!rows[0]) throw new Error('No btb_games settings row found');
+            const all = JSON.parse(rows[0].value);
+            if(!Array.isArray(all)) throw new Error('btb_games settings row was not an array');
+            escapeGames = all.filter(g=>g.category==='escape');
+            // Note: an empty result here (no escape-category games currently active)
+            // is a valid state, not a load failure — don't throw for that.
         }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -342,7 +348,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 12; // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
+        const BUILD_VERSION = 13; // v13: Fixed silent failure if live game settings can't load: previously fell back to a stale 3-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching the pattern already used in gift_voucher_request.html and the booking widget.
+        // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
         // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
         // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
         // v9: NZ timezone fix — todayStr()/date picker default now always uses Pacific/Auckland time.
@@ -352,7 +359,17 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
         // Bundles the loads that used to fire on plain page load — now only
         // run once a staff member is actually logged in.
         async function loadControlRoomData(){
-            await Promise.all([loadEscapeGames(), loadStaff()]);
+            try{
+                await loadEscapeGames();
+            }catch(e){
+                console.error('Failed to load games — showing load-error screen instead of continuing on stale data:', e);
+                document.getElementById('mainApp').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('flex');
+                document.getElementById('loadErrorScreen').classList.remove('hidden');
+                document.getElementById('loadErrorScreen').classList.add('flex');
+                return;
+            }
+            await loadStaff();
             initDatePicker();
             loadControlRoomPin();
         }
