@@ -1068,7 +1068,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.12';
+const BUILD_VERSION = '1.9.13'; // v1.9.13: Bug fix — weekly-repeat shift date calculation now uses UTC-safe methods (setUTCDate instead of setDate) to avoid a timezone-related date-shift bug when creating repeating shifts; also cleaned up a stray merged line in the admin state variable declarations left over from a previous edit
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
