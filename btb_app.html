@@ -762,7 +762,7 @@ function getGameColor(name) {
   return `hsl(${hue}, 70%, 90%)`;
 }
 
-function buildCard(b){
+function buildCard(b,hideTime){
   const isOpen=openPanels.has(b.id);
   const gmName=b.gms?.length>0?b.gms.map(id=>{const p=staff.find(x=>x.id===id);return p?p.name:'?'}).join(', '):'Unassigned';
   const tagHtml=(b.tags||[]).map(tid=>{const t=tags.find(x=>x.id===tid);return t?`<span class="tag-pill" style="${tagStyle(t.colorIdx)}">${t.label}</span>`:''}).join('');
