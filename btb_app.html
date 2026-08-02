@@ -447,6 +447,16 @@ async function fetchLatestSetting(key,fallback)
   }catch(e){}
   return fallback;
 }
+// ⚠️ DUAL-WRITE WARNING: the game list is stored in TWO places — the
+// `games` table (proper relational record, linked to `products` for shop
+// pricing/stock) and `settings.btb_games` (a JSON mirror every app reads
+// from for speed). This function is the ONLY place that writes to both at
+// once, which is the ONLY reason they stay in sync. If you ever add another
+// way to edit a game (bulk import, a second admin screen, an API integration,
+// etc.), it MUST write to both `games` AND `settings.btb_games`, or the two
+// copies will silently drift apart — e.g. the booking widget could show a
+// different price than the till. If this ever needs fixing properly, the
+// real answer is to stop mirroring and have every app read `games` directly.
 async function saveGames(){
       saveSetting('btb_games',games);
       try{
@@ -1924,7 +1934,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.4'; // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
+const BUILD_VERSION = '16.4.5'; // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
+// v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
 // v16.4.3: Code quality — replaced the two hardcoded "300 seconds" timer
 // warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC),
 // so changing the warning window only needs one edit in this file instead of
