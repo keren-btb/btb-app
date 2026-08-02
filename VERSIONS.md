@@ -54,6 +54,11 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.1 — 2026-07-29 — Security fix: escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
+## client_profile.html
+- v1.0.2 — 2026-08-02 — Single sign-on: switched from its own separate sessionStorage session ('btb_profile_user') to the shared localStorage session ('btb_staff_session') used by every other staff app
+- v1.0.1 — (undated, pre-existing) — Updated links to point to the renamed clients.html (was client_overview.html)
+- v1.0.0 — (undated, pre-existing) — Initial build
+
 ## client_inbox.html
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
