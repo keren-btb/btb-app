@@ -73,7 +73,7 @@
   </div>
   <nav class="nav">
     <a href="btb_app.html" class="nav-btn" style="text-decoration:none"><i class="ti ti-calendar"></i>Calendar</a>
-    <a href="enquiries.html" class="nav-btn" style="text-decoration:none"><i class="ti ti-users"></i>Enquiries</a>
+    <!-- Enquiries nav link removed 2026-08-02 — enquiries.html functionality is folded into clients.html; file kept on disk but no longer linked from navigation -->
     <span class="nav-btn active" style="cursor:default"><i class="ti ti-inbox"></i>Inbox</span>
   </nav>
 
@@ -168,7 +168,8 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.2.4'; // v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
+const BUILD_VERSION = '1.2.5'; // v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
+// v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
 // v1.2.1 — Default tab changed from "Needs reply" to "All", so newly added

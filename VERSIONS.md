@@ -30,6 +30,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.6 — 2026-08-02 — Renamed sidebar back-link label from "Staff App" to "BtB App" — too easily confused with Staff Portal
 - v1.0.5 — 2026-08-02 — Bug fix: sidebar "back" link pointed at staff_app.html (a file that doesn't exist); now points to btb_app.html, same as every other app's back-link
 - v1.0.4 — 2026-07-29 — Security fix: escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
@@ -59,7 +60,13 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.1 — (undated, pre-existing) — Updated links to point to the renamed clients.html (was client_overview.html)
 - v1.0.0 — (undated, pre-existing) — Initial build
 
+## clients.html
+- v1.4.3 — 2026-08-02 — Removed the Enquiries nav link and the enquiry-badge's link out to enquiries.html (being retired, functionality already folded in here) — badge now just shows status, click opens the client panel like the rest of the row
+- v1.4.2 — (undated, pre-existing) — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+- (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
+
 ## client_inbox.html
+- v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## deepseek/script.js
