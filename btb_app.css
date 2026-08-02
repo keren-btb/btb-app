@@ -58,9 +58,9 @@ body{background:#e5e7eb;min-height:100vh;display:flex;justify-content:center;pad
 .filter-chip{font-size:12px;padding:4px 12px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
 .filter-chip.active{background:#e0f7f9;color:#07b4c5;border-color:#07b4c5;font-weight:600}
 .booking-card{background:#f9fafb;border-radius:10px;border-left:4px solid #07b4c5;margin-bottom:10px;overflow:hidden}
-.time-group-wrapper{border-left:4px solid #07b4c5;padding-left:10px;margin-bottom:10px}
+.time-group-wrapper{border-left:8px solid #07b4c5;padding-left:10px;margin-bottom:10px}
 .time-group-wrapper .booking-card{border-left:none;border-radius:10px}
-.time-group-label{font-size:13px;font-weight:600;color:#6b7280;margin-bottom:6px}
+.time-group-label{font-size:17px;font-weight:700;color:#111827;margin-bottom:6px}
 .booking-card.done{opacity:.5}
 .booking-card.expanded{border:2px solid #07b4c5;border-radius:12px;box-shadow:0 2px 14px rgba(7,180,197,.18);overflow:visible}
 .booking-top{display:grid;grid-template-columns:1fr 1fr;cursor:pointer}
