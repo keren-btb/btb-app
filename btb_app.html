@@ -899,7 +899,26 @@ function renderEvents(){
   document.getElementById('bookingListTitle').textContent=`${dayLbl(selectedDate)} ${selectedDate} ${MONTHS[viewMonth-1]} — ${filtered.length} booking${filtered.length!==1?'s':''}`;
   renderQuickBookRow();
   if(!filtered.length){list.innerHTML='<div class="empty-state">No bookings for this day.</div>';return}
-  filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(b=>list.appendChild(buildCard(b)));
+const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  let i=0;
+  while(i<sorted.length){
+    let j=i;
+    while(j<sorted.length&&sorted[j].time===sorted[i].time)j++;
+    const grp=sorted.slice(i,j);
+    if(grp.length>1){
+      const wrap=document.createElement('div');
+      wrap.className='time-group-wrapper';
+      const label=document.createElement('div');
+      label.className='time-group-label';
+      label.textContent=`${fmt12(grp[0].time||'00:00')} · ${grp.length} games`;
+      wrap.appendChild(label);
+      grp.forEach(b=>wrap.appendChild(buildCard(b,true)));
+      list.appendChild(wrap);
+    }else{
+      list.appendChild(buildCard(grp[0]));
+    }
+    i=j;
+  }
 }
 function renderActiveView(){if(calView==='sched')renderSchedule();else renderEvents()}
 
