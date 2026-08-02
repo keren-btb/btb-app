@@ -4399,9 +4399,9 @@ if (count > 1 && staffId) { msgEl.className='msg err'; msgEl.textContent='Assign
     const seriesId = repeat ? crypto.randomUUID() : null;
     const rowsToCreate = [];
     for (let w = 0; w < repeatWeeks; w++) {
-      const d = new Date(date + 'T00:00:00');
-      d.setDate(d.getDate() + (w * 7));
-      const weekDate = d.toISOString().slice(0,10);
+const d = new Date(date + 'T00:00:00Z');
+d.setUTCDate(d.getUTCDate() + (w * 7));
+const weekDate = d.toISOString().slice(0,10);
       const slotGroupId = count > 1 ? crypto.randomUUID() : null;
       for (let i = 0; i < count; i++) {
         rowsToCreate.push({
