@@ -10,8 +10,10 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
 
 ## btb_app.html
+## btb_app.html
+- v16.4.6 — 2026-08-03 — Booking list: same-time bookings now group under one shared time label with a thicker connecting line, instead of repeating the time on every card. Also added a `?v=16.4.6` cache-busting query string to the btb_app.css link (btb_app.css wasn't versioned before, so CSS edits could silently be served from browser cache even after a fresh deploy). Bump this `?v=` number whenever btb_app.css changes.
 - v16.4.5 — 2026-08-02 — Docs only: added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
-- v16.4.4 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails
+- - v16.4.4 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails
 - v16.4.3 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC); no behaviour change
 - v16.4.2 — 2026-07-29 — Security fix: escaped customer/staff free-text fields (name, phone, email, occasion, special-person name/age, previous game, notes) before inserting into innerHTML, closing a stored-XSS risk in booking cards and the timer banner
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
