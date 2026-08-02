@@ -30,6 +30,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.5 — 2026-08-02 — Bug fix: sidebar "back" link pointed at staff_app.html (a file that doesn't exist); now points to btb_app.html, same as every other app's back-link
 - v1.0.4 — 2026-07-29 — Security fix: escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 

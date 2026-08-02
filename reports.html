@@ -162,7 +162,7 @@ tr:hover td{background:#fafafa}
       <span id="sidebarUser">—</span>
       <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
     </div>
-    <a class="sidebar-back" href="staff_app.html"><i class="ti ti-chevron-left"></i> Staff App</a>
+    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Staff App</a>
 
     <div class="sidebar-section">Revenue</div>
     <div class="nav-item active" onclick="showReport('revenue',this)"><i class="ti ti-currency-dollar"></i> Revenue Overview</div>
@@ -409,7 +409,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.4'; // v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
+const BUILD_VERSION = '1.0.5'; // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
+// v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
 // v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cReports — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
