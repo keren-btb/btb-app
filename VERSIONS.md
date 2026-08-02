@@ -72,7 +72,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.4.2 — (undated, pre-existing) — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
-## client_inbox.html
+## clients_mobile.html
 - v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
