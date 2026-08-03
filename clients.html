@@ -149,6 +149,19 @@ tr:last-child td{border-bottom:none}
 .form-section-label:first-of-type{margin-top:0;padding-top:0;border-top:none}
 .tpl-card{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#fafbfc}
 .tpl-msg{font-size:12px;margin-left:8px}
+
+/* TO-DO CHECKLIST */
+.todo-item{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;background:#fffdf7}
+.todo-item input[type=checkbox]{margin-top:2px;width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.todo-item-body{flex:1;min-width:0}
+.todo-item-text{font-size:13px;color:var(--text);line-height:1.4}
+.todo-item-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.todo-item-meta .overdue{color:#dc2626;font-weight:600}
+.todo-edit-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;padding:2px}
+.todo-edit-btn:hover{color:var(--teal)}
+.todo-section-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.todo-client-link{font-weight:600;color:var(--teal);cursor:pointer}
+.todo-client-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -192,7 +205,8 @@ tr:last-child td{border-bottom:none}
     <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Calendar</a>
 
     <div class="sidebar-section">Communications</div>
-    <span class="nav-item active"><i class="ti ti-table"></i> Clients</span>
+    <span class="nav-item active" id="navClients" onclick="switchView('clients')"><i class="ti ti-table"></i> Clients</span>
+    <span class="nav-item" id="navTodos" onclick="switchView('todos')"><i class="ti ti-checklist"></i> To-Dos</span>
     <!-- Enquiries nav link removed 2026-08-02 — enquiries.html functionality is folded into this page; file kept on disk but no longer linked from navigation -->
     <a class="nav-item" href="clients_mobile.html"><i class="ti ti-inbox"></i> Clients (mobile)</a>
 
@@ -203,8 +217,9 @@ tr:last-child td{border-bottom:none}
 
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title">Clients <span class="count" id="clientCount"></span></div>
-      <div class="filters-row">
+      <div class="topbar-title" id="topbarTitleClients">Clients <span class="count" id="clientCount"></span></div>
+      <div class="topbar-title" id="topbarTitleTodos" style="display:none">To-Dos <span class="count" id="todoCount"></span></div>
+      <div class="filters-row" id="clientsFiltersRow">
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
           <option value="">All sources</option>
@@ -218,15 +233,32 @@ tr:last-child td{border-bottom:none}
         </select>
         <div class="filters-row" id="statusChipsRow" style="margin-left:0"></div>
       </div>
+      <div class="filters-row" id="todosFiltersRow" style="display:none">
+        <select class="filter-select" id="todoAssigneeFilter" onchange="renderTodosView()">
+          <option value="">Everyone</option>
+        </select>
+      </div>
     </div>
 
     <div class="content">
-      <div class="table-card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Last contact</th><th>Email</th><th>Phone</th><th>Action</th></tr></thead>
-            <tbody id="clientTbody"></tbody>
-          </table>
+      <div id="clientsSection">
+        <div class="table-card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Last contact</th><th>Email</th><th>Phone</th><th>Action</th></tr></thead>
+              <tbody id="clientTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="todosSection" style="display:none">
+        <div class="table-card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Client</th><th>To-do</th><th>Assigned to</th><th>Due</th><th>Done</th><th></th></tr></thead>
+              <tbody id="todosTbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -248,6 +280,10 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
   <div class="panel-body">
+    <div id="panelTodoSection" style="display:none;margin-bottom:16px">
+      <div class="todo-section-title"><i class="ti ti-checklist"></i> Open to-dos</div>
+      <div id="panelTodoList"></div>
+    </div>
     <div id="panelMessages"></div>
 
     <div class="quick-add" id="panelReplyBox">
@@ -373,6 +409,29 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<div class="modal-backdrop" id="todoEditBackdrop" onclick="if(event.target===this)closeTodoEdit()">
+  <div class="modal-card" style="max-width:400px">
+    <button class="modal-close-x" onclick="closeTodoEdit()"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Edit to-do</div>
+    <div class="form-row"><div class="form-label">Note</div>
+      <textarea class="form-input" id="teContent" rows="3" style="resize:vertical"></textarea>
+    </div>
+    <div class="form-2col">
+      <div class="form-row"><div class="form-label">Assigned to</div>
+        <select class="form-select" id="teAssignee"><option value="">Unassigned</option></select>
+      </div>
+      <div class="form-row"><div class="form-label">Due date</div>
+        <input class="form-input" type="date" id="teDueDate">
+      </div>
+    </div>
+    <div class="modal-error" id="teError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTodoEdit()">Cancel</button>
+      <button class="add-btn" onclick="saveTodoEdit()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // BUILD VERSION — bump this each time this file is shipped.
 // v1.0.0 — initial build. Desktop table view of all clients (reports.html-style
@@ -430,7 +489,16 @@ tr:last-child td{border-bottom:none}
 // 26 Jul 2026).
 // v1.4.1 — Moved "New client" and "Manage templates" out of the topbar and
 // into the sidebar under a new "Actions" section, per feedback.
-const BUILD_VERSION = '1.4.4'; // v1.4.4: Added collapse/expand button for the left navy sidebar — collapses to a thin edge tab, state remembered via localStorage// v1.4.2: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+// v1.5.0 — To-Do Hub. client_interactions gained assigned_staff_id (FK ->
+// staff.id) and due_date columns (SQL migration run 3 Aug 2026). Added a new
+// "To-Dos" nav view listing every open to-do across all clients (filterable
+// by assignee), each individually tickable and editable (note text, assignee,
+// due date) via a small modal — replacing the old all-or-nothing model where
+// only the total count was visible. The client panel now shows the same
+// individual checklist for that client's own open to-dos, above the message
+// thread. The bulk "Clear to-dos" button in the panel header is unchanged
+// and still available as a convenience for clearing everything at once.
+const BUILD_VERSION = '1.5.0'; // v1.4.4: Added collapse/expand button for the left navy sidebar — collapses to a thin edge tab, state remembered via localStorage// v1.4.2: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -480,6 +548,20 @@ let activeClientId=null;
 let replyState={}; // {templateId, subject, body} for whichever panel is open
 let games=[]; // from settings.btb_games — used to populate the enquiry "game of interest" dropdown
 let tplAdminOpen=false;
+let staffList=[]; // active staff, for to-do "assigned to" pickers
+let currentView='clients'; // 'clients' | 'todos'
+let todoEditingId=null; // interaction id currently open in the to-do edit modal
+
+async function loadStaffList(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&select=id,name&order=name`,{headers:H()});
+    staffList=await r.json();
+  }catch(e){console.error('Staff list load:',e);staffList=[]}
+}
+function staffName(id){
+  if(!id)return '';
+  return staffList.find(s=>s.id===id)?.name||'—';
+}
 
 async function loadStatusList(){
   try{
@@ -674,6 +756,110 @@ function renderTable(){
   }).join('');
 }
 
+function switchView(view){
+  currentView=view;
+  document.getElementById('navClients').classList.toggle('active',view==='clients');
+  document.getElementById('navTodos').classList.toggle('active',view==='todos');
+  document.getElementById('clientsSection').style.display=view==='clients'?'':'none';
+  document.getElementById('todosSection').style.display=view==='todos'?'':'none';
+  document.getElementById('topbarTitleClients').style.display=view==='clients'?'':'none';
+  document.getElementById('topbarTitleTodos').style.display=view==='todos'?'':'none';
+  document.getElementById('clientsFiltersRow').style.display=view==='clients'?'':'none';
+  document.getElementById('todosFiltersRow').style.display=view==='todos'?'':'none';
+  if(view==='todos')renderTodosView();
+}
+function populateAssigneeFilter(){
+  const sel=document.getElementById('todoAssigneeFilter');
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">Everyone</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  sel.value=cur;
+  document.getElementById('teAssignee').innerHTML=`<option value="">Unassigned</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+function allOpenTodos(){
+  const rows=[];
+  clientGroups.forEach(g=>{
+    g.interactions.forEach(i=>{
+      if(i.to_do&&!i.to_do_done)rows.push({...i,clientId:g.clientId,clientName:[g.client.first_name,g.client.last_name].filter(Boolean).join(' ')||g.client.email||'Unknown'});
+    });
+  });
+  return rows;
+}
+function isOverdue(dueDate){
+  if(!dueDate)return false;
+  return new Date(dueDate+'T00:00:00')<new Date(new Date().toDateString());
+}
+function renderTodosView(){
+  const assigneeFilter=document.getElementById('todoAssigneeFilter').value;
+  let rows=allOpenTodos();
+  if(assigneeFilter)rows=rows.filter(r=>r.assigned_staff_id===assigneeFilter);
+  rows.sort((a,b)=>{
+    if(!!a.due_date!==!!b.due_date)return a.due_date?-1:1; // items with a due date first
+    if(a.due_date&&b.due_date&&a.due_date!==b.due_date)return a.due_date<b.due_date?-1:1;
+    return new Date(a.created_at)-new Date(b.created_at);
+  });
+  document.getElementById('todoCount').textContent=`(${rows.length})`;
+  const tbody=document.getElementById('todosTbody');
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state">No open to-dos${assigneeFilter?' for this person':''}.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=rows.map(r=>{
+    const overdue=isOverdue(r.due_date);
+    const dueLabel=r.due_date?new Date(r.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):'—';
+    return `<tr>
+      <td><span class="todo-client-link" onclick="openPanel('${r.clientId}');switchView('clients')">${escapeHtml(r.clientName)}</span></td>
+      <td>${escapeHtml(r.content||'')}</td>
+      <td class="muted-cell">${escapeHtml(staffName(r.assigned_staff_id))||'—'}</td>
+      <td class="muted-cell" style="${overdue?'color:#dc2626;font-weight:600':''}">${dueLabel}</td>
+      <td><input type="checkbox" onchange="toggleTodoDone('${r.id}',this.checked)"></td>
+      <td><button class="todo-edit-btn" onclick="openTodoEdit('${r.id}')"><i class="ti ti-pencil"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleTodoDone(interactionId,checked){
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:checked})});
+    await loadInteractions();buildClientGroups();
+    renderTable();
+    if(currentView==='todos')renderTodosView();
+    if(activeClientId)renderPanel();
+  }catch(e){alert('Error updating to-do: '+e.message)}
+}
+function openTodoEdit(interactionId){
+  const i=rawInteractions.find(x=>x.id===interactionId);
+  if(!i)return;
+  todoEditingId=interactionId;
+  document.getElementById('teContent').value=i.content||'';
+  document.getElementById('teAssignee').value=i.assigned_staff_id||'';
+  document.getElementById('teDueDate').value=i.due_date||'';
+  document.getElementById('teError').textContent='';
+  document.getElementById('todoEditBackdrop').classList.add('open');
+}
+function closeTodoEdit(){
+  todoEditingId=null;
+  document.getElementById('todoEditBackdrop').classList.remove('open');
+}
+async function saveTodoEdit(){
+  if(!todoEditingId)return;
+  const content=document.getElementById('teContent').value.trim();
+  const assignedStaffId=document.getElementById('teAssignee').value||null;
+  const dueDate=document.getElementById('teDueDate').value||null;
+  const errEl=document.getElementById('teError');
+  if(!content){errEl.textContent='Note can\'t be empty.';return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${todoEditingId}`,{
+      method:'PATCH',headers:H(),
+      body:JSON.stringify({content,assigned_staff_id:assignedStaffId,due_date:dueDate})
+    });
+    closeTodoEdit();
+    await loadInteractions();buildClientGroups();
+    renderTable();
+    if(currentView==='todos')renderTodosView();
+    if(activeClientId)renderPanel();
+  }catch(e){errEl.textContent='Error: '+e.message}
+}
+
 function openNewClientForm(){
   document.getElementById('ncFirst').value='';
   document.getElementById('ncLast').value='';
@@ -776,6 +962,7 @@ function renderPanel(){
   const metaParts=[g.client.email,g.client.phone,SOURCE_LABELS[g.client.source]].filter(Boolean);
   document.getElementById('panelMeta').textContent=metaParts.join(' · ')||'No contact details on file';
   document.getElementById('panelResolveBtn').style.display=g.openTodoCount>0?'':'none';
+  renderPanelTodos(g);
   const statusSelect=document.getElementById('panelStatusSelect');
   statusSelect.innerHTML=statusList.map(s=>`<option value="${s.id}" ${g.status===s.id?'selected':''}>${s.emoji||''} ${escapeHtml(s.label)}</option>`).join('');
 
@@ -805,6 +992,27 @@ function renderPanel(){
   }).join('')||'<div class="empty-state" style="padding:20px 0">No contact logged yet.</div>';
 }
 
+function renderPanelTodos(g){
+  const openTodos=g.interactions.filter(i=>i.to_do&&!i.to_do_done);
+  const section=document.getElementById('panelTodoSection');
+  if(!openTodos.length){section.style.display='none';return}
+  section.style.display='';
+  document.getElementById('panelTodoList').innerHTML=openTodos.map(i=>{
+    const overdue=isOverdue(i.due_date);
+    const dueLabel=i.due_date?new Date(i.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):null;
+    const metaParts=[];
+    if(i.assigned_staff_id)metaParts.push(`Assigned: ${escapeHtml(staffName(i.assigned_staff_id))}`);
+    if(dueLabel)metaParts.push(`<span class="${overdue?'overdue':''}">Due ${dueLabel}</span>`);
+    return `<div class="todo-item">
+      <input type="checkbox" onchange="toggleTodoDone('${i.id}',this.checked)">
+      <div class="todo-item-body">
+        <div class="todo-item-text">${escapeHtml(i.content||'')}</div>
+        ${metaParts.length?`<div class="todo-item-meta">${metaParts.join(' · ')}</div>`:''}
+      </div>
+      <button class="todo-edit-btn" onclick="openTodoEdit('${i.id}')"><i class="ti ti-pencil"></i></button>
+    </div>`;
+  }).join('');
+}
 function updateReplyFromLine(){
   const tpl=enquiryTemplates.find(t=>t.id===replyState.templateId);
   document.getElementById('panelReplyFromLine').textContent=tpl
@@ -1016,13 +1224,14 @@ async function refreshAuthToken() {
 }
 
 async function loadAppData(){
-  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadOpenEnquiries(),loadStatusList(),loadGames()]);
+  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadOpenEnquiries(),loadStatusList(),loadGames(),loadStaffList()]);
   await reconcileAbandonedDrafts();
   // Reconciliation may have created/updated clients and logged interactions,
   // so refresh those two before building the table.
   await Promise.all([loadClients(),loadInteractions()]);
   buildClientGroups();
   renderStatusChips();
+  populateAssigneeFilter();
 }
 
 async function doLogin(){

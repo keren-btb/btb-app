@@ -34,6 +34,27 @@
 .quick-add textarea{width:100%;font-family:inherit;font-size:13px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;min-height:60px;resize:vertical;margin-bottom:8px}
 #replyBody{min-height:220px}
 .resolve-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid #15803d;color:#15803d;background:#f0fdf8;cursor:pointer;font-weight:600}
+
+/* TO-DO CHECKLIST */
+.todo-item{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border:1px solid #e5e7eb;border-radius:9px;margin-bottom:7px;background:#fffdf7}
+.todo-item input[type=checkbox]{margin-top:2px;width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.todo-item-body{flex:1;min-width:0}
+.todo-item-text{font-size:13px;color:#111827;line-height:1.4}
+.todo-item-meta{font-size:11px;color:#6b7280;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.todo-item-meta .overdue{color:#dc2626;font-weight:600}
+.todo-edit-btn{background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;flex-shrink:0;padding:2px}
+.todo-edit-btn:hover{color:#07b4c5}
+.todo-section-title{font-size:12px;font-weight:700;color:#111827;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+
+/* MODAL (to-do edit) */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:950;align-items:center;justify-content:center;padding:16px}
+.modal-backdrop.open{display:flex}
+.modal-card{background:#fff;border-radius:14px;width:100%;max-width:380px;padding:20px}
+.modal-title{font-size:15px;font-weight:700;color:#111827;margin-bottom:14px}
+.modal-close-x{float:right;background:none;border:none;color:#6b7280;cursor:pointer;font-size:16px}
+.modal-error{font-size:12px;color:#dc2626;margin-top:4px;min-height:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.btn-cancel{font-size:13px;padding:8px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
@@ -99,6 +120,10 @@
         </div>
       </div>
     </div>
+    <div id="threadTodoSection" style="display:none;margin-bottom:16px">
+      <div class="todo-section-title"><i class="ti ti-checklist"></i> Open to-dos</div>
+      <div id="threadTodoList"></div>
+    </div>
     <div id="threadMessages"></div>
 
     <div class="quick-add" id="replyBox">
@@ -142,6 +167,29 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="todoEditBackdrop" onclick="if(event.target===this)closeTodoEdit()">
+  <div class="modal-card">
+    <button class="modal-close-x" onclick="closeTodoEdit()"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Edit to-do</div>
+    <div class="form-row"><div class="form-label">Note</div>
+      <textarea class="form-input" id="teContent" rows="3" style="resize:vertical;width:100%;font-family:inherit"></textarea>
+    </div>
+    <div class="form-2col">
+      <div class="form-row"><div class="form-label">Assigned to</div>
+        <select class="form-select" id="teAssignee"><option value="">Unassigned</option></select>
+      </div>
+      <div class="form-row"><div class="form-label">Due date</div>
+        <input class="form-input" type="date" id="teDueDate">
+      </div>
+    </div>
+    <div class="modal-error" id="teError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTodoEdit()">Cancel</button>
+      <button class="add-btn" onclick="saveTodoEdit()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
@@ -168,7 +216,13 @@ async function callEdgeFunction(action,params={},token=null){
 // v1.1.1 — Email reply box made much taller (60px -> 220px min-height) so
 //          the message is readable while composing, without affecting the
 //          shorter call/note log box.
-const BUILD_VERSION = '1.2.5'; // v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
+// v1.3.0 — To-Do Hub (mobile). Each client's thread view now shows their
+// open to-dos as an individually tickable checklist (with an edit button for
+// note text, assigned staff, and due date) instead of only the bulk "Mark
+// resolved" button, matching clients.html's new per-client checklist. No
+// global cross-client To-Dos view here (kept to the desktop hub) and no new
+// client-creation change — this page stays view/reply/log-note only.
+const BUILD_VERSION = '1.3.0'; // v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 // v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
@@ -210,6 +264,23 @@ let clientGroups=[]; // built by merging allClients + rawInteractions
 let activeFilter='all'; // needs_reply | awaiting_them | all
 let activeClientId=null;
 let replyState={}; // {templateId, subject, body} for whichever thread is open
+let staffList=[]; // active staff, for to-do "assigned to" pickers
+let todoEditingId=null; // interaction id currently open in the to-do edit modal
+
+async function loadStaffList(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&select=id,name&order=name`,{headers:H()});
+    staffList=await r.json();
+  }catch(e){console.error('Staff list load:',e);staffList=[]}
+}
+function staffName(id){
+  if(!id)return '';
+  return staffList.find(s=>s.id===id)?.name||'—';
+}
+function isOverdue(dueDate){
+  if(!dueDate)return false;
+  return new Date(dueDate+'T00:00:00')<new Date(new Date().toDateString());
+}
 
 async function loadInteractions(){
   try{
@@ -347,6 +418,7 @@ function renderThread(){
   const metaParts=[g.client.email,g.client.phone].filter(Boolean);
   document.getElementById('threadMeta').textContent=metaParts.join(' · ')||'No contact details on file';
   document.getElementById('resolveBtn').style.display=(g.status==='resolved'||g.status==='no_contact')?'none':'';
+  renderThreadTodos(g);
 
   // Reply-by-email panel
   const hasEmail=!!g.client.email;
@@ -376,6 +448,67 @@ function renderThread(){
   }).join('');
 }
 
+function renderThreadTodos(g){
+  const openTodos=g.interactions.filter(i=>i.to_do&&!i.to_do_done);
+  const section=document.getElementById('threadTodoSection');
+  if(!openTodos.length){section.style.display='none';return}
+  section.style.display='';
+  document.getElementById('threadTodoList').innerHTML=openTodos.map(i=>{
+    const overdue=isOverdue(i.due_date);
+    const dueLabel=i.due_date?new Date(i.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):null;
+    const metaParts=[];
+    if(i.assigned_staff_id)metaParts.push(`Assigned: ${escapeHtml(staffName(i.assigned_staff_id))}`);
+    if(dueLabel)metaParts.push(`<span class="${overdue?'overdue':''}">Due ${dueLabel}</span>`);
+    return `<div class="todo-item">
+      <input type="checkbox" onchange="toggleTodoDone('${i.id}',this.checked)">
+      <div class="todo-item-body">
+        <div class="todo-item-text">${escapeHtml(i.content||'')}</div>
+        ${metaParts.length?`<div class="todo-item-meta">${metaParts.join(' · ')}</div>`:''}
+      </div>
+      <button class="todo-edit-btn" onclick="openTodoEdit('${i.id}')"><i class="ti ti-pencil"></i></button>
+    </div>`;
+  }).join('');
+}
+async function toggleTodoDone(interactionId,checked){
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:checked})});
+    await loadInteractions();buildClientGroups();
+    renderFilters();renderQueue();updateHeader();
+    if(activeClientId)renderThread();
+  }catch(e){alert('Error updating to-do: '+e.message)}
+}
+function openTodoEdit(interactionId){
+  const i=rawInteractions.find(x=>x.id===interactionId);
+  if(!i)return;
+  todoEditingId=interactionId;
+  document.getElementById('teContent').value=i.content||'';
+  document.getElementById('teAssignee').value=i.assigned_staff_id||'';
+  document.getElementById('teDueDate').value=i.due_date||'';
+  document.getElementById('teError').textContent='';
+  document.getElementById('todoEditBackdrop').classList.add('open');
+}
+function closeTodoEdit(){
+  todoEditingId=null;
+  document.getElementById('todoEditBackdrop').classList.remove('open');
+}
+async function saveTodoEdit(){
+  if(!todoEditingId)return;
+  const content=document.getElementById('teContent').value.trim();
+  const assignedStaffId=document.getElementById('teAssignee').value||null;
+  const dueDate=document.getElementById('teDueDate').value||null;
+  const errEl=document.getElementById('teError');
+  if(!content){errEl.textContent='Note can\'t be empty.';return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${todoEditingId}`,{
+      method:'PATCH',headers:H(),
+      body:JSON.stringify({content,assigned_staff_id:assignedStaffId,due_date:dueDate})
+    });
+    closeTodoEdit();
+    await loadInteractions();buildClientGroups();
+    renderFilters();renderQueue();updateHeader();
+    if(activeClientId)renderThread();
+  }catch(e){errEl.textContent='Error: '+e.message}
+}
 function updateReplyFromLine(){
   const tpl=enquiryTemplates.find(t=>t.id===replyState.templateId);
   document.getElementById('replyFromLine').textContent=tpl
@@ -492,8 +625,9 @@ async function refreshAuthToken() {
 }
 
 async function loadAppData(){
-  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates()]);
+  await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadStaffList()]);
   buildClientGroups();
+  document.getElementById('teAssignee').innerHTML=`<option value="">Unassigned</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
 }
 
 async function doLogin(){
