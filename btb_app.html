@@ -93,6 +93,7 @@
         <div class="form-row"><div class="form-label">Game</div><select class="form-select" id="wGame"></select></div>
         <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="wName" placeholder="Sarah Robinson"></div>
         <div class="form-row"><div class="form-label">Phone</div><input class="form-input" type="tel" id="wPhone" placeholder="021 123 4567"></div>
+        <div class="form-row"><div class="form-label">Email (optional)</div><input class="form-input" type="email" id="wEmail" placeholder="sarah@example.com"></div>
         <div class="form-row"><div class="form-label">Occasion</div>
           <select class="form-select" id="wOccasion">
             <option value="">None</option><option value="Birthday">Birthday 🎂</option><option value="Team building">Team building 💼</option><option value="Date night">Date night 💑</option><option value="Hen/Stag do">Hen/Stag do 🥂</option><option value="Other">Other</option>
@@ -113,6 +114,7 @@
             </select>
           </div>
         </div>
+        <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="wSkipEmail"> Don't send confirmation email</label></div>
         <div class="form-btns">
           <button class="form-cancel" onclick="toggleWalkin()">Cancel</button>
           <button class="form-submit" onclick="submitWalkin()">Add booking</button>
@@ -640,7 +642,10 @@ function toggleWalkin(){
     const n=nzNow();
     document.getElementById('wTime').value=`${String(n.getHours()).padStart(2,'0')}:${String(Math.round(n.getMinutes()/5)*5%60).padStart(2,'0')}`;
     document.getElementById('wGame').innerHTML=games.map(g=>`<option value="${g.id}">${g.name} (${g.duration}min)</option>`).join('');
-    walkinGMs=[];renderWalkinGMChips();document.getElementById('wNote').value='';document.getElementById('wName').focus();
+    walkinGMs=[];renderWalkinGMChips();document.getElementById('wNote').value='';
+    const we=document.getElementById('wEmail');if(we)we.value='';
+    const wse=document.getElementById('wSkipEmail');if(wse)wse.checked=false;
+    document.getElementById('wName').focus();
   }
 }
 // Opens the walk-in form pre-filled with a specific game + slot time — used when clicking a quick-book slot button
@@ -676,6 +681,8 @@ async function submitWalkin(){
   const gameId=document.getElementById('wGame').value;
   const name=document.getElementById('wName').value.trim();
   const phone=document.getElementById('wPhone').value.trim();
+  const email=document.getElementById('wEmail').value.trim();
+  const skipEmail=document.getElementById('wSkipEmail')?.checked||false;
   const occasion=document.getElementById('wOccasion').value;
   const note=document.getElementById('wNote').value.trim();
   const deposit=parseFloat(document.getElementById('wDeposit')?.value)||null;
@@ -688,9 +695,27 @@ async function submitWalkin(){
   }
   const ds=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
   try{
+    // Find or create client — same pattern as enquiries.html, so the same
+    // person always resolves to the same client record whether they enquire,
+    // book online, or get added here manually by staff.
+    let clientId=null;
+    if(email||phone){
+      const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
+      const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
+      const ex=await cr.json();
+      if(ex.length>0){clientId=ex[0].id}
+      else{
+        const nameParts=name.split(' ');
+        const first=nameParts[0]||'Guest';
+        const last=nameParts.slice(1).join(' ')||null;
+        const nr=await fetch(`${SB_URL}/rest/v1/clients`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({first_name:first,last_name:last,email:email||null,phone:phone||null,source:'staff'})});
+        const nc=await nr.json();clientId=nc[0]?.id;
+      }
+    }
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{
       method:'POST',headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({
+        client_id:clientId,skip_confirmation_email:skipEmail,
         game_id:gameId,game_name:game.name,booking_date:ds,slot_time:time+':00',
         players_booked:players,occasion:occasion||null,status:'confirmed',source:'walkin',
         assigned_staff_ids:JSON.stringify(walkinGMs),tags:JSON.stringify([]),
@@ -708,7 +733,8 @@ async function submitWalkin(){
     }
   }catch(e){alert('Error: '+e.message);return}
   walkinGMs=[];walkinOpen=false;document.getElementById('walkinForm').style.display='none';
-  ['wPlayers','wName','wPhone','wNote','wDeposit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  ['wPlayers','wName','wPhone','wEmail','wNote','wDeposit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  const wse=document.getElementById('wSkipEmail');if(wse)wse.checked=false;
   const wp=document.getElementById('wHowPaid');if(wp)wp.value='';
   buildCalendar();renderActiveView();updateHeader();
 }
@@ -1955,7 +1981,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.6'; // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
+const BUILD_VERSION = '16.4.7'; // v16.4.7: New booking (walk-in) form now has an email field and links to a real client record (find-or-create by email/phone, same pattern as enquiries.html) instead of only capturing name/phone as free text. Also added a "Don't send confirmation email" checkbox, wired to game_bookings.skip_confirmation_email — lets staff opt a specific manual booking out of the automatic confirmation email.
+// v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
 // v16.4.3: Code quality — replaced the two hardcoded "300 seconds" timer
