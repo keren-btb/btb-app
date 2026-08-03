@@ -42,6 +42,7 @@
 .todo-item-text{font-size:13px;color:#111827;line-height:1.4}
 .todo-item-meta{font-size:11px;color:#6b7280;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
 .todo-item-meta .overdue{color:#dc2626;font-weight:600}
+.todo-assign-select{font-size:11px;color:#6b7280;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px;background:#fff;cursor:pointer}
 .todo-edit-btn{background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;flex-shrink:0;padding:2px}
 .todo-edit-btn:hover{color:#07b4c5}
 .todo-section-title{font-size:12px;font-weight:700;color:#111827;display:flex;align-items:center;gap:6px;margin-bottom:8px}
@@ -283,6 +284,20 @@ function assigneeLabel(staffId,role){
   if(staffId)return staffName(staffId);
   return '';
 }
+function assigneeOptionsHtml(selectedId,selectedRole){
+  const staffOpts=staffList.map(s=>`<option value="${s.id}" ${selectedId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}" ${selectedRole===k?'selected':''}>${escapeHtml(label)}</option>`).join('');
+  return `<option value="">Assign…</option>`+staffOpts+roleOpts;
+}
+async function quickAssignTodo(interactionId,val){
+  const assignedStaffId=val.startsWith('role:')?null:(val||null);
+  const assignedRole=val.startsWith('role:')?val.slice(5):null;
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({assigned_staff_id:assignedStaffId,assigned_role:assignedRole})});
+    await loadInteractions();buildClientGroups();
+    if(activeClientId)renderThread();
+  }catch(e){alert('Error assigning to-do: '+e.message)}
+}
 function isOverdue(dueDate){
   if(!dueDate)return false;
   return new Date(dueDate+'T00:00:00')<new Date(new Date().toDateString());
@@ -463,13 +478,15 @@ function renderThreadTodos(g){
     const overdue=isOverdue(i.due_date);
     const dueLabel=i.due_date?new Date(i.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):null;
     const metaParts=[];
-    if(i.assigned_staff_id||i.assigned_role)metaParts.push(`Assigned: ${escapeHtml(assigneeLabel(i.assigned_staff_id,i.assigned_role))}`);
     if(dueLabel)metaParts.push(`<span class="${overdue?'overdue':''}">Due ${dueLabel}</span>`);
     return `<div class="todo-item">
       <input type="checkbox" onchange="toggleTodoDone('${i.id}',this.checked)">
       <div class="todo-item-body">
         <div class="todo-item-text">${escapeHtml(i.content||'')}</div>
-        ${metaParts.length?`<div class="todo-item-meta">${metaParts.join(' · ')}</div>`:''}
+        <div class="todo-item-meta">
+          <select class="todo-assign-select" onchange="quickAssignTodo('${i.id}',this.value)">${assigneeOptionsHtml(i.assigned_staff_id,i.assigned_role)}</select>
+          ${metaParts.join(' · ')}
+        </div>
       </div>
       <button class="todo-edit-btn" onclick="openTodoEdit('${i.id}')"><i class="ti ti-pencil"></i></button>
     </div>`;

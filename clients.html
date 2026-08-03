@@ -115,7 +115,7 @@ tr:last-child td{border-bottom:none}
 /* SLIDE-IN PANEL */
 .panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;z-index:900;transition:background .2s}
 .panel-backdrop.open{pointer-events:auto}
-.side-panel{position:fixed;top:0;right:0;height:100vh;width:440px;max-width:92vw;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.13);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
+.side-panel{position:fixed;top:0;right:0;height:100vh;width:640px;max-width:95vw;background:#f4fafb;box-shadow:-4px 0 24px rgba(0,0,0,.13);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
 .side-panel.open{transform:translateX(0)}
 .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .panel-close{background:none;border:1px solid var(--border);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -157,6 +157,7 @@ tr:last-child td{border-bottom:none}
 .todo-item-text{font-size:13px;color:var(--text);line-height:1.4}
 .todo-item-meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
 .todo-item-meta .overdue{color:#dc2626;font-weight:600}
+.todo-assign-select{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:2px 6px;background:#fff;cursor:pointer}
 .todo-edit-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0;padding:2px}
 .todo-edit-btn:hover{color:var(--teal)}
 .todo-section-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;margin-bottom:8px}
@@ -205,8 +206,7 @@ tr:last-child td{border-bottom:none}
     <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Calendar</a>
 
     <div class="sidebar-section">Communications</div>
-    <span class="nav-item active" id="navClients" onclick="switchView('clients')"><i class="ti ti-table"></i> Clients</span>
-    <span class="nav-item" id="navTodos" onclick="switchView('todos')"><i class="ti ti-checklist"></i> To-Dos</span>
+    <span class="nav-item active" id="navClients"><i class="ti ti-table"></i> Clients</span>
     <!-- Enquiries nav link removed 2026-08-02 — enquiries.html functionality is folded into this page; file kept on disk but no longer linked from navigation -->
     <a class="nav-item" href="clients_mobile.html"><i class="ti ti-inbox"></i> Clients (mobile)</a>
 
@@ -218,7 +218,6 @@ tr:last-child td{border-bottom:none}
   <div class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbarTitleClients">Clients <span class="count" id="clientCount"></span></div>
-      <div class="topbar-title" id="topbarTitleTodos" style="display:none">To-Dos <span class="count" id="todoCount"></span></div>
       <div class="filters-row" id="clientsFiltersRow">
         <input class="filter-search" id="searchInput" type="text" placeholder="Search name…" oninput="renderTable()">
         <select class="filter-select" id="sourceFilter" onchange="renderTable()">
@@ -233,11 +232,6 @@ tr:last-child td{border-bottom:none}
         </select>
         <div class="filters-row" id="statusChipsRow" style="margin-left:0"></div>
       </div>
-      <div class="filters-row" id="todosFiltersRow" style="display:none">
-        <select class="filter-select" id="todoAssigneeFilter" onchange="renderTodosView()">
-          <option value="">Everyone</option>
-        </select>
-      </div>
     </div>
 
     <div class="content">
@@ -247,16 +241,6 @@ tr:last-child td{border-bottom:none}
             <table>
               <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Last contact</th><th>Email</th><th>Phone</th><th>Action</th></tr></thead>
               <tbody id="clientTbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div id="todosSection" style="display:none">
-        <div class="table-card">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Client</th><th>To-do</th><th>Assigned to</th><th>Due</th><th>Done</th><th></th></tr></thead>
-              <tbody id="todosTbody"></tbody>
             </table>
           </div>
         </div>
@@ -550,7 +534,6 @@ let games=[]; // from settings.btb_games — used to populate the enquiry "game 
 let tplAdminOpen=false;
 let staffList=[]; // active staff, for to-do "assigned to" pickers
 const ROLE_LABELS={manager:'Any Manager',admin:'Any Admin',gamemaster_own:'Any Gamemaster'};
-let currentView='clients'; // 'clients' | 'todos'
 let todoEditingId=null; // interaction id currently open in the to-do edit modal
 
 async function loadStaffList(){
@@ -567,6 +550,21 @@ function assigneeLabel(staffId,role){
   if(role)return ROLE_LABELS[role]||role;
   if(staffId)return staffName(staffId);
   return '';
+}
+function assigneeOptionsHtml(selectedId,selectedRole){
+  const staffOpts=staffList.map(s=>`<option value="${s.id}" ${selectedId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}" ${selectedRole===k?'selected':''}>${escapeHtml(label)}</option>`).join('');
+  return `<option value="">Assign…</option>`+staffOpts+roleOpts;
+}
+async function quickAssignTodo(interactionId,val){
+  const assignedStaffId=val.startsWith('role:')?null:(val||null);
+  const assignedRole=val.startsWith('role:')?val.slice(5):null;
+  try{
+    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({assigned_staff_id:assignedStaffId,assigned_role:assignedRole})});
+    await loadInteractions();buildClientGroups();
+    renderTable();
+    if(activeClientId)renderPanel();
+  }catch(e){alert('Error assigning to-do: '+e.message)}
 }
 
 async function loadStatusList(){
@@ -762,69 +760,13 @@ function renderTable(){
   }).join('');
 }
 
-function switchView(view){
-  currentView=view;
-  document.getElementById('navClients').classList.toggle('active',view==='clients');
-  document.getElementById('navTodos').classList.toggle('active',view==='todos');
-  document.getElementById('clientsSection').style.display=view==='clients'?'':'none';
-  document.getElementById('todosSection').style.display=view==='todos'?'':'none';
-  document.getElementById('topbarTitleClients').style.display=view==='clients'?'':'none';
-  document.getElementById('topbarTitleTodos').style.display=view==='todos'?'':'none';
-  document.getElementById('clientsFiltersRow').style.display=view==='clients'?'':'none';
-  document.getElementById('todosFiltersRow').style.display=view==='todos'?'':'none';
-  if(view==='todos')renderTodosView();
-}
 function populateAssigneeFilter(){
-  const sel=document.getElementById('todoAssigneeFilter');
-  const cur=sel.value;
   const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}">${escapeHtml(label)}</option>`).join('');
-  sel.innerHTML=`<option value="">Everyone</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')+roleOpts;
-  sel.value=cur;
   document.getElementById('teAssignee').innerHTML=`<option value="">Unassigned</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')+roleOpts;
-}
-function allOpenTodos(){
-  const rows=[];
-  clientGroups.forEach(g=>{
-    g.interactions.forEach(i=>{
-      if(i.to_do&&!i.to_do_done)rows.push({...i,clientId:g.clientId,clientName:[g.client.first_name,g.client.last_name].filter(Boolean).join(' ')||g.client.email||'Unknown'});
-    });
-  });
-  return rows;
 }
 function isOverdue(dueDate){
   if(!dueDate)return false;
   return new Date(dueDate+'T00:00:00')<new Date(new Date().toDateString());
-}
-function renderTodosView(){
-  const assigneeFilter=document.getElementById('todoAssigneeFilter').value;
-  let rows=allOpenTodos();
-  if(assigneeFilter){
-    if(assigneeFilter.startsWith('role:'))rows=rows.filter(r=>r.assigned_role===assigneeFilter.slice(5));
-    else rows=rows.filter(r=>r.assigned_staff_id===assigneeFilter);
-  }
-  rows.sort((a,b)=>{
-    if(!!a.due_date!==!!b.due_date)return a.due_date?-1:1; // items with a due date first
-    if(a.due_date&&b.due_date&&a.due_date!==b.due_date)return a.due_date<b.due_date?-1:1;
-    return new Date(a.created_at)-new Date(b.created_at);
-  });
-  document.getElementById('todoCount').textContent=`(${rows.length})`;
-  const tbody=document.getElementById('todosTbody');
-  if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state">No open to-dos${assigneeFilter?' for this person':''}.</div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML=rows.map(r=>{
-    const overdue=isOverdue(r.due_date);
-    const dueLabel=r.due_date?new Date(r.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):'—';
-    return `<tr>
-      <td><span class="todo-client-link" onclick="openPanel('${r.clientId}');switchView('clients')">${escapeHtml(r.clientName)}</span></td>
-      <td>${escapeHtml(r.content||'')}</td>
-      <td class="muted-cell">${escapeHtml(assigneeLabel(r.assigned_staff_id,r.assigned_role))||'—'}</td>
-      <td class="muted-cell" style="${overdue?'color:#dc2626;font-weight:600':''}">${dueLabel}</td>
-      <td><input type="checkbox" onchange="toggleTodoDone('${r.id}',this.checked)"></td>
-      <td><button class="todo-edit-btn" onclick="openTodoEdit('${r.id}')"><i class="ti ti-pencil"></i></button></td>
-    </tr>`;
-  }).join('');
 }
 
 async function toggleTodoDone(interactionId,checked){
@@ -832,7 +774,6 @@ async function toggleTodoDone(interactionId,checked){
     await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:checked})});
     await loadInteractions();buildClientGroups();
     renderTable();
-    if(currentView==='todos')renderTodosView();
     if(activeClientId)renderPanel();
   }catch(e){alert('Error updating to-do: '+e.message)}
 }
@@ -867,7 +808,6 @@ async function saveTodoEdit(){
     closeTodoEdit();
     await loadInteractions();buildClientGroups();
     renderTable();
-    if(currentView==='todos')renderTodosView();
     if(activeClientId)renderPanel();
   }catch(e){errEl.textContent='Error: '+e.message}
 }
@@ -1013,13 +953,15 @@ function renderPanelTodos(g){
     const overdue=isOverdue(i.due_date);
     const dueLabel=i.due_date?new Date(i.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):null;
     const metaParts=[];
-    if(i.assigned_staff_id||i.assigned_role)metaParts.push(`Assigned: ${escapeHtml(assigneeLabel(i.assigned_staff_id,i.assigned_role))}`);
     if(dueLabel)metaParts.push(`<span class="${overdue?'overdue':''}">Due ${dueLabel}</span>`);
     return `<div class="todo-item">
       <input type="checkbox" onchange="toggleTodoDone('${i.id}',this.checked)">
       <div class="todo-item-body">
         <div class="todo-item-text">${escapeHtml(i.content||'')}</div>
-        ${metaParts.length?`<div class="todo-item-meta">${metaParts.join(' · ')}</div>`:''}
+        <div class="todo-item-meta">
+          <select class="todo-assign-select" onchange="quickAssignTodo('${i.id}',this.value)">${assigneeOptionsHtml(i.assigned_staff_id,i.assigned_role)}</select>
+          ${metaParts.join(' · ')}
+        </div>
       </div>
       <button class="todo-edit-btn" onclick="openTodoEdit('${i.id}')"><i class="ti ti-pencil"></i></button>
     </div>`;
