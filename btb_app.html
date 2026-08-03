@@ -54,6 +54,7 @@
     <a href="waiver.html" target="_blank" class="nav-btn" data-tab="waiver" style="flex:1;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;border-radius:14px;background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);margin:2px 6px;transition:all .25s ease;box-shadow:0 2px 12px rgba(124,58,237,.3)"><span style="font-size:14px;font-weight:700;color:#fff">Waiver</span></a>
     <button class="nav-btn active" data-tab="calendar" onclick="showTab('calendar',this)"><i class="ti ti-calendar"></i>Calendar</button>
 <a href="clients.html" class="nav-btn" data-tab="leads" style="text-decoration:none"><i class="ti ti-users"></i>Clients</a>
+    <a href="task_hub.html" target="_blank" class="nav-btn" data-tab="task_hub" style="text-decoration:none"><i class="ti ti-checklist"></i>Task Hub</a>
     <button class="nav-btn" data-tab="settings" onclick="showTab('settings',this)"><i class="ti ti-settings"></i>Settings</button>
   </nav>
   <div id="calendar" class="section active">
@@ -1478,7 +1479,7 @@ async function renderRolesList(){
   const el=document.getElementById('rolesList');if(!el)return;
   try{
     const rows=await callEdgeFunction('list_roles',{},currentUser?.token);
-    const allTabs=[{id:'calendar',label:'Calendar'},{id:'leads',label:'Enquiries'},{id:'pos',label:'POS'},{id:'waiver',label:'Waiver'},{id:'reports',label:'Reports'},{id:'control_room',label:'Control Room'},{id:'staff_portal',label:'Staff Portal'},{id:'settings',label:'Settings'}];
+    const allTabs=[{id:'calendar',label:'Calendar'},{id:'leads',label:'Enquiries'},{id:'pos',label:'POS'},{id:'waiver',label:'Waiver'},{id:'task_hub',label:'Task Hub'},{id:'reports',label:'Reports'},{id:'control_room',label:'Control Room'},{id:'staff_portal',label:'Staff Portal'},{id:'settings',label:'Settings'}];
     if(!rows.length){el.innerHTML='<div class="empty-state">No staff accounts yet.</div>';return}
     el.innerHTML=rows.map(r=>{
       const tabs=parseAllowedTabs(r.allowed_tabs);
@@ -1493,7 +1494,7 @@ async function createLogin(){
   if(!name||!email||!pass){msgEl.style.color='#dc2626';msgEl.textContent='Fill in all fields.';return}
   if(pass.length<6){msgEl.style.color='#dc2626';msgEl.textContent='Password must be 6+ chars.';return}
   msgEl.style.color='#6b7280';msgEl.textContent='Creating…';
-  const tabs={admin:'["calendar","leads","pos","settings"]',manager:'["calendar","leads","pos"]',gamemaster:'["calendar","pos"]',gamemaster_own:'["calendar","pos"]'};
+  const tabs={admin:'["calendar","leads","pos","settings","task_hub"]',manager:'["calendar","leads","pos","task_hub"]',gamemaster:'["calendar","pos","task_hub"]',gamemaster_own:'["calendar","pos","task_hub"]'};
   try{
     const result=await callEdgeFunction('create_staff_login',{email,password:pass,name,role,allowed_tabs:tabs[role]||'["calendar"]'},currentUser?.token);
     const sr=await fetch(`${SB_URL}/rest/v1/staff`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,email,user_role_id:result.id,active:true})});
