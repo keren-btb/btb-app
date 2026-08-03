@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Task Hub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#1d9e75;
+  --amber:#ef9f27;--red:#dc2626;--purple:#7c3aed;
+  --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;
+  --text:#111827;--muted:#6b7280;--light:#f9fafb;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* LOGIN (same pattern as clients.html) */
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-logo{font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.login-sub{font-size:13px;color:#8a9bb5;margin-bottom:32px}
+.login-card{background:#fff;border-radius:14px;padding:28px;width:100%;max-width:340px}
+.login-title{font-size:16px;font-weight:700;color:#111827;margin-bottom:18px}
+.login-field{margin-bottom:14px}
+.login-label{font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.login-input{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
+
+/* SIDEBAR / SHELL (same pattern as clients.html) */
+.app-wrap{display:flex;min-height:100vh;width:100%}
+.sidebar{width:220px;background:var(--navy);color:#fff;flex-shrink:0;position:relative;transition:width .18s ease}
+.sidebar.collapsed{width:0;overflow:hidden}
+.sidebar-collapse-btn{position:absolute;top:18px;right:12px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);color:#a0b0c8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;z-index:5}
+.sidebar-edge-tab{display:none;position:fixed;top:18px;left:0;width:26px;height:26px;border-radius:0 50% 50% 0;background:var(--navy);border:1px solid rgba(255,255,255,.2);border-left:none;color:#a0b0c8;cursor:pointer;align-items:center;justify-content:center;font-size:14px;z-index:902}
+.sidebar-edge-tab.show{display:flex}
+.sidebar-logo{padding:20px 16px 14px}
+.sidebar-brand{font-size:15px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:7px}
+.sidebar-sub{font-size:11px;color:#8a9bb5;margin-top:3px}
+.sidebar-user{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px;color:#8a9bb5;display:flex;justify-content:space-between;align-items:center}
+.sidebar-logout{color:#8a9bb5;cursor:pointer;font-size:11px;text-decoration:underline}
+.sidebar-back{display:block;padding:8px 16px;font-size:12px;color:#8a9bb5;text-decoration:none;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-section{padding:14px 16px 6px;font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:#a0b0c8;cursor:pointer;border-left:3px solid transparent;transition:all .15s;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:rgba(7,180,197,.12);color:var(--teal);border-left-color:var(--teal);font-weight:600}
+.nav-item i{font-size:16px;flex-shrink:0}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:16px 24px}
+.topbar-title{font-size:18px;font-weight:700;color:var(--text)}
+.content{padding:20px 24px;flex:1;overflow-y:auto}
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;margin-bottom:14px}
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+
+/* FORM ELEMENTS */
+.form-row{margin-bottom:12px}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block}
+.form-select,.form-input,.form-textarea{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.form-textarea{min-height:60px;resize:vertical}
+.btn{font-size:13px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--teal);color:#fff}
+.btn-secondary{background:#fff;border:1px solid var(--border);color:var(--text)}
+.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+.btn-sm{font-size:12px;padding:5px 10px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.tab-item{padding:9px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab-item.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* DAILY TASKS */
+.daily-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;background:#fffdf7}
+.daily-item input[type=checkbox]{margin-top:2px;width:18px;height:18px;flex-shrink:0;cursor:pointer}
+.daily-item-body{flex:1;min-width:0}
+.daily-item-name{font-size:14px;font-weight:600;color:var(--text)}
+.daily-item-meta{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* CHECKLIST FIELDS (both templates admin + fill-out form) */
+.field-block{border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:10px;background:var(--light)}
+.field-block-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px}
+.flag-badge{font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:99px;font-weight:600;margin-left:6px}
+.radio-opt{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:4px}
+.photo-preview{width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
+.template-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#fff;cursor:pointer}
+.template-row:hover{border-color:var(--teal)}
+.template-row-name{font-weight:600;font-size:13px}
+.template-row-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.field-editor-row{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff}
+.field-editor-row .form-row{margin-bottom:8px}
+.review-card{border:1px solid #fecaca;background:#fff7f7;border-radius:9px;padding:12px 14px;margin-bottom:10px}
+.tag-pill{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;background:#e0f2fe;color:#0369a1;display:inline-block}
+</style>
+</head>
+<body>
+
+<div class="login-screen active" id="loginScreen">
+  <div class="login-logo"><i class="ti ti-box"></i> Beyond the Box</div>
+  <div class="login-sub">Task Hub</div>
+  <div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-field"><div class="login-label">Username</div>
+      <input class="login-input" type="text" id="loginEmail" placeholder="firstname" autocapitalize="off" autocorrect="off" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div class="login-field"><div class="login-label">Password</div>
+      <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<script>
+  if(localStorage.getItem('btb_staff_session')){
+    document.getElementById('loginScreen').classList.remove('active');
+  }
+</script>
+
+<div class="app-wrap" id="appWrap" style="display:none">
+  <button class="sidebar-edge-tab" id="sidebarEdgeTab" onclick="toggleSidebar()"><i class="ti ti-chevron-right"></i></button>
+  <aside class="sidebar" id="mainSidebar">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebar()"><i class="ti ti-chevron-left"></i></button>
+    <div class="sidebar-logo">
+      <div class="sidebar-brand"><i class="ti ti-box"></i> Beyond the Box</div>
+      <div class="sidebar-sub">Task Hub <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5;letter-spacing:0.5px;vertical-align:middle"></span></div>
+    </div>
+    <div class="sidebar-user">
+      <span id="sidebarUser">—</span>
+      <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
+    </div>
+    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Calendar</a>
+
+    <div class="sidebar-section">Task Hub</div>
+    <span class="nav-item active" id="navDaily" onclick="switchTab('daily')"><i class="ti ti-checklist"></i> Daily Tasks</span>
+    <span class="nav-item" id="navRoom" onclick="switchTab('room')"><i class="ti ti-door"></i> Room Checklists</span>
+    <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
+    <span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Daily Tasks</div>
+    </div>
+
+    <div class="content">
+      <!-- DAILY TASKS -->
+      <div id="dailySection">
+        <div id="dailyList"></div>
+      </div>
+
+      <!-- ROOM CHECKLISTS -->
+      <div id="roomSection" style="display:none">
+        <div class="card">
+          <div class="form-row">
+            <label class="form-label">Room</label>
+            <select class="form-select" id="roomGameSelect" onchange="onRoomFormChange()"><option value="">Choose a room…</option></select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Checklist type</label>
+            <select class="form-select" id="roomTypeSelect" onchange="onRoomFormChange()">
+              <option value="reset">Reset</option>
+              <option value="setup">Setup</option>
+              <option value="shutdown">Shutdown</option>
+            </select>
+          </div>
+          <div class="form-row" id="roomBookingRow" style="display:none">
+            <label class="form-label">Which booking is this for?</label>
+            <select class="form-select" id="roomBookingSelect"></select>
+          </div>
+        </div>
+        <div id="roomChecklistForm"></div>
+      </div>
+
+      <!-- REVIEW QUEUE -->
+      <div id="reviewSection" style="display:none">
+        <div id="reviewList"></div>
+      </div>
+
+      <!-- TEMPLATES ADMIN -->
+      <div id="templatesSection" style="display:none">
+        <div class="tabs">
+          <span class="tab-item active" id="tplTabDaily" onclick="switchTemplateTab('daily')">Daily Tasks</span>
+          <span class="tab-item" id="tplTabRoom" onclick="switchTemplateTab('room')">Room Checklists</span>
+        </div>
+        <div id="templateListWrap"></div>
+        <button class="btn btn-primary" style="margin-top:10px" onclick="openNewTemplateForm()"><i class="ti ti-plus"></i> New template</button>
+        <div id="templateEditorWrap" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BUILD_VERSION = '1.0.0';
+console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
+
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const H = (k) => {
+  const token = k || (currentUser && currentUser.token) || SB_ANON;
+  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
+};
+const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+async function callEdgeFunction(action,params={},token=null){
+  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
+  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  return r.json();
+}
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+const ROLE_LABELS={manager:'Any Manager',admin:'Any Admin',gamemaster_own:'Any Gamemaster'};
+let currentUser=null;
+let canEditTemplates=false;
+let staffList=[];
+let games=[];
+let taskTemplates=[]; // all templates (daily + room), fields loaded separately per-template when needed
+let templateFieldsCache={}; // template_id -> [fields]
+let dailyInstances=[];
+let activeTab='daily';
+let activeTemplateTypeTab='daily';
+let currentRoomTemplate=null; // the active template object for the room form currently shown
+let editingTemplateId=null; // template currently open in the editor, or 'new'
+let editingFields=[]; // working copy of fields while editing a template
+
+// ───────────────────────── AUTH (same pattern as clients.html) ─────────────────────────
+let tokenRefreshTimer=null;
+function scheduleTokenRefresh(){
+  clearTimeout(tokenRefreshTimer);
+  if(!currentUser||!currentUser.expiresAt)return;
+  const msUntilRefresh=Math.max(5000,currentUser.expiresAt-Date.now()-(2*60*1000));
+  tokenRefreshTimer=setTimeout(refreshAuthToken,msUntilRefresh);
+}
+async function refreshAuthToken(){
+  if(!currentUser||!currentUser.refreshToken)return;
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const data=await r.json();
+    if(!r.ok||!data.access_token)throw new Error(data.error_description||'Refresh failed');
+    currentUser.token=data.access_token;
+    currentUser.refreshToken=data.refresh_token||currentUser.refreshToken;
+    currentUser.expiresAt=Date.now()+((data.expires_in||3600)*1000);
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+  }catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';return}
+  try{
+    const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
+    const userId=data.user.id;const token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>({name:email.split('@')[0],role:'gamemaster'}))||{name:email.split('@')[0],role:'gamemaster'};
+    let staffId=userId;
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id,can_edit_task_templates`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0]){staffId=srows[0].id;canEditTemplates=!!srows[0].can_edit_task_templates}}catch(e){}
+    currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
+    scheduleTokenRefresh();
+    await loadAppData();
+    showApp();
+  }catch(e){errEl.textContent='Connection error.';console.error(e)}
+}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='';
+  document.getElementById('sidebarUser').textContent=currentUser.name;
+  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
+  document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
+  document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
+  if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
+    document.getElementById('mainSidebar').classList.add('collapsed');
+    document.getElementById('sidebarEdgeTab').classList.add('show');
+  }
+  switchTab(activeTab);
+}
+function toggleSidebar(){
+  const sb=document.getElementById('mainSidebar');const tab=document.getElementById('sidebarEdgeTab');
+  const collapsed=sb.classList.toggle('collapsed');tab.classList.toggle('show',collapsed);
+  localStorage.setItem('btb_sidebar_collapsed',collapsed?'1':'0');
+}
+
+// ───────────────────────── DATA LOADING ─────────────────────────
+async function loadStaffList(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&select=id,name&order=name`,{headers:H()});staffList=await r.json()}catch(e){console.error('Staff list load:',e);staffList=[]}
+}
+function staffName(id){if(!id)return '';return staffList.find(s=>s.id===id)?.name||'—'}
+function assigneeLabel(staffId,role){if(role)return ROLE_LABELS[role]||role;if(staffId)return staffName(staffId);return 'Anyone'}
+function assigneeOptionsHtml(selectedId,selectedRole){
+  const staffOpts=staffList.map(s=>`<option value="${s.id}" ${selectedId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}" ${selectedRole===k?'selected':''}>${escapeHtml(label)}</option>`).join('');
+  return `<option value="">Anyone</option>`+staffOpts+roleOpts;
+}
+async function loadGames(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/games?active=eq.true&select=id,name,category&order=sort_order`,{headers:H()});games=await r.json()}catch(e){console.error('Games load:',e);games=[]}
+}
+async function loadTemplates(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/task_templates?select=*&order=sort_order`,{headers:H()});taskTemplates=await r.json()}catch(e){console.error('Templates load:',e);taskTemplates=[]}
+}
+async function loadTemplateFields(templateId){
+  if(templateFieldsCache[templateId])return templateFieldsCache[templateId];
+  const r=await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}&select=*&order=sort_order`,{headers:H()});
+  const fields=await r.json();
+  templateFieldsCache[templateId]=fields;
+  return fields;
+}
+async function ensureDailyInstancesForToday(){
+  const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
+  const date=todayStr();
+  for(const t of dailyTemplates){
+    try{
+      await fetch(`${SB_URL}/rest/v1/daily_task_instances?on_conflict=template_id,task_date`,{
+        method:'POST',headers:{...H(),'Prefer':'resolution=ignore-duplicates,return=minimal'},
+        body:JSON.stringify({template_id:t.id,task_date:date})
+      });
+    }catch(e){console.error('Ensure daily instance:',e)}
+  }
+}
+async function loadDailyInstances(){
+  const date=todayStr();
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/daily_task_instances?task_date=eq.${date}&select=*`,{headers:H()});
+    dailyInstances=await r.json();
+  }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
+}
+async function loadAppData(){
+  await Promise.all([loadStaffList(),loadGames(),loadTemplates()]);
+  await ensureDailyInstancesForToday();
+  await loadDailyInstances();
+}
+
+// ───────────────────────── TAB SWITCHING ─────────────────────────
+function switchTab(tab){
+  activeTab=tab;
+  document.getElementById('navDaily').classList.toggle('active',tab==='daily');
+  document.getElementById('navRoom').classList.toggle('active',tab==='room');
+  document.getElementById('navReview').classList.toggle('active',tab==='review');
+  document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
+  document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
+  document.getElementById('roomSection').style.display=tab==='room'?'':'none';
+  document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
+  document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
+  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates'};
+  document.getElementById('topbarTitle').textContent=titles[tab];
+  if(tab==='daily')renderDailyTasks();
+  if(tab==='room')renderRoomTab();
+  if(tab==='review')renderReviewTab();
+  if(tab==='templates')renderTemplatesTab();
+}
+
+// ───────────────────────── DAILY TASKS ─────────────────────────
+function renderDailyTasks(){
+  const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
+  const list=document.getElementById('dailyList');
+  if(!dailyTemplates.length){list.innerHTML='<div class="empty-state">No daily tasks set up yet.</div>';return}
+  list.innerHTML=dailyTemplates.map(t=>{
+    const inst=dailyInstances.find(i=>i.template_id===t.id);
+    const done=inst&&inst.done;
+    const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
+    const assignMeta=(inst&&(inst.assigned_staff_id||inst.assigned_role))?`Assigned: ${escapeHtml(assigneeLabel(inst.assigned_staff_id,inst.assigned_role))}`:'Open to anyone';
+    return `<div class="daily-item">
+      <input type="checkbox" ${done?'checked':''} onchange="toggleDailyDone('${t.id}',this.checked)">
+      <div class="daily-item-body">
+        <div class="daily-item-name">${escapeHtml(t.name)}</div>
+        <div class="daily-item-meta">${assignMeta}${done?' · '+doneMeta:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function toggleDailyDone(templateId,checked){
+  const date=todayStr();
+  const body=checked?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString()}:{done:false,done_by:null,done_at:null};
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_instances?template_id=eq.${templateId}&task_date=eq.${date}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    await loadDailyInstances();renderDailyTasks();
+  }catch(e){alert('Error updating task: '+e.message)}
+}
+
+// ───────────────────────── ROOM CHECKLISTS ─────────────────────────
+function renderRoomTab(){
+  const sel=document.getElementById('roomGameSelect');
+  if(sel.options.length<=1){
+    sel.innerHTML='<option value="">Choose a room…</option>'+games.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
+  }
+  onRoomFormChange();
+}
+async function onRoomFormChange(){
+  const gameId=document.getElementById('roomGameSelect').value;
+  const type=document.getElementById('roomTypeSelect').value;
+  const bookingRow=document.getElementById('roomBookingRow');
+  const formWrap=document.getElementById('roomChecklistForm');
+  if(!gameId){formWrap.innerHTML='';bookingRow.style.display='none';return}
+  bookingRow.style.display='';
+  await loadBookingsForGame(gameId);
+  const tpl=taskTemplates.find(t=>t.type===type&&t.game_id===gameId&&t.active);
+  currentRoomTemplate=tpl||null;
+  if(!tpl){formWrap.innerHTML=`<div class="empty-state">No ${escapeHtml(type)} checklist set up for this room yet.</div>`;return}
+  const fields=await loadTemplateFields(tpl.id);
+  formWrap.innerHTML=`<div class="card">
+    <div class="field-block-label" style="margin-bottom:12px;font-size:15px">${escapeHtml(tpl.name)}</div>
+    <div id="roomFieldsWrap">${fields.map(f=>fieldInputHtml(f)).join('')}</div>
+    <button class="btn btn-primary" style="margin-top:6px" onclick="submitRoomChecklist('${tpl.id}')"><i class="ti ti-check"></i> Submit checklist</button>
+    <div id="roomSubmitError" class="login-error" style="text-align:left"></div>
+  </div>`;
+}
+async function loadBookingsForGame(gameId){
+  const sel=document.getElementById('roomBookingSelect');
+  sel.innerHTML='<option value="">No specific booking / not linked</option>';
+  try{
+    const date=todayStr();
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${gameId}&booking_date=eq.${date}&select=id,slot_time,status,clients(first_name,last_name)&order=slot_time`,{headers:H()});
+    const rows=await r.json();
+    sel.innerHTML+=rows.map(b=>{
+      const name=b.clients?[b.clients.first_name,b.clients.last_name].filter(Boolean).join(' '):'Unknown';
+      const time=b.slot_time?b.slot_time.slice(0,5):'';
+      return `<option value="${b.id}">${time} — ${escapeHtml(name)} (${escapeHtml(b.status||'')})</option>`;
+    }).join('');
+  }catch(e){console.error('Bookings load:',e)}
+}
+function fieldInputHtml(f){
+  const flag=f.flags_review?'<span class="flag-badge">Flags for review</span>':'';
+  let input='';
+  if(f.field_type==='checkbox'){
+    input=`<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" data-field-id="${f.id}" data-field-type="checkbox" style="width:18px;height:18px"> Yes</label>`;
+  }else if(f.field_type==='text'){
+    input=`<textarea class="form-textarea" data-field-id="${f.id}" data-field-type="text" placeholder="Type here…"></textarea>`;
+  }else if(f.field_type==='radio'){
+    const opts=(f.options||[]);
+    input=opts.map(o=>`<label class="radio-opt"><input type="radio" name="field_${f.id}" value="${escapeHtml(o)}" data-field-id="${f.id}" data-field-type="radio"> ${escapeHtml(o)}</label>`).join('');
+  }else if(f.field_type==='photo'){
+    input=`<input type="file" accept="image/*" capture="environment" data-field-id="${f.id}" data-field-type="photo" onchange="onPhotoFieldChange(this)">
+           <img class="photo-preview" id="preview-${f.id}" style="display:none">`;
+  }
+  return `<div class="field-block">
+    <div class="field-block-label">${escapeHtml(f.label)} ${flag}</div>
+    ${input}
+  </div>`;
+}
+const pendingPhotoBlobs={}; // field_id -> compressed Blob, staged until submit
+async function onPhotoFieldChange(inputEl){
+  const fieldId=inputEl.dataset.fieldId;
+  const file=inputEl.files[0];
+  if(!file)return;
+  const blob=await compressImage(file,1600,0.75);
+  pendingPhotoBlobs[fieldId]=blob;
+  const url=URL.createObjectURL(blob);
+  const img=document.getElementById('preview-'+fieldId);
+  img.src=url;img.style.display='';
+}
+function compressImage(file,maxDim,quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const reader=new FileReader();
+    reader.onload=e=>{img.src=e.target.result};
+    reader.onerror=reject;
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim}
+      else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(blob=>resolve(blob),'image/jpeg',quality);
+    };
+    img.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadTaskPhoto(blob,path){
+  const r=await fetch(`${SB_URL}/storage/v1/object/task-photos/${path}`,{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${currentUser.token}`,'apikey':SB_ANON,'Content-Type':'image/jpeg'},
+    body:blob
+  });
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Photo upload failed')}
+  return path;
+}
+async function submitRoomChecklist(templateId){
+  const errEl=document.getElementById('roomSubmitError');errEl.textContent='';
+  const fields=templateFieldsCache[templateId]||[];
+  const bookingId=document.getElementById('roomBookingSelect').value||null;
+  const wrap=document.getElementById('roomFieldsWrap');
+  const responses=[];
+  let needsReview=false;
+  try{
+    for(const f of fields){
+      let value=null,photoPath=null;
+      if(f.field_type==='checkbox'){
+        const el=wrap.querySelector(`input[data-field-id="${f.id}"][data-field-type="checkbox"]`);
+        value=el&&el.checked?'true':'false';
+        if(f.flags_review&&value==='true')needsReview=true;
+      }else if(f.field_type==='text'){
+        const el=wrap.querySelector(`textarea[data-field-id="${f.id}"]`);
+        value=el?el.value.trim():'';
+        if(f.flags_review&&value)needsReview=true;
+      }else if(f.field_type==='radio'){
+        const el=wrap.querySelector(`input[data-field-id="${f.id}"]:checked`);
+        value=el?el.value:'';
+        if(f.flags_review&&value)needsReview=true;
+      }else if(f.field_type==='photo'){
+        const blob=pendingPhotoBlobs[f.id];
+        if(blob){
+          photoPath=`${templateId}/${Date.now()}-${f.id}.jpg`;
+          await uploadTaskPhoto(blob,photoPath);
+          if(f.flags_review)needsReview=true;
+        }
+      }
+      responses.push({field_id:f.id,value,photo_path:photoPath});
+    }
+    const instR=await fetch(`${SB_URL}/rest/v1/task_instances`,{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({template_id:templateId,booking_id:bookingId,staff_id:currentUser.staffId,needs_review:needsReview})
+    });
+    const instRows=await instR.json();
+    const instanceId=instRows[0].id;
+    await fetch(`${SB_URL}/rest/v1/task_instance_responses`,{
+      method:'POST',headers:H(),
+      body:JSON.stringify(responses.map(r=>({...r,instance_id:instanceId})))
+    });
+    for(const k in pendingPhotoBlobs)delete pendingPhotoBlobs[k];
+    document.getElementById('roomChecklistForm').innerHTML=`<div class="card" style="text-align:center;color:var(--green)"><i class="ti ti-check" style="font-size:24px"></i><div style="margin-top:6px;font-weight:600">Checklist submitted${needsReview?' — flagged for review':''}.</div></div>`;
+  }catch(e){errEl.textContent='Error submitting: '+e.message;console.error(e)}
+}
+
+// ───────────────────────── REVIEW QUEUE ─────────────────────────
+async function renderReviewTab(){
+  const list=document.getElementById('reviewList');
+  list.innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/task_instances?needs_review=eq.true&reviewed=eq.false&select=*,task_templates(name,type),game_bookings(slot_time,booking_date,clients(first_name,last_name))&order=completed_at.desc`,{headers:H()});
+    const rows=await r.json();
+    updateReviewCount(rows.length);
+    if(!rows.length){list.innerHTML='<div class="empty-state">Nothing needs review right now.</div>';return}
+    list.innerHTML='';
+    for(const inst of rows){
+      const respR=await fetch(`${SB_URL}/rest/v1/task_instance_responses?instance_id=eq.${inst.id}&select=*,task_template_fields(label,field_type,flags_review)`,{headers:H()});
+      const responses=await respR.json();
+      const clientName=inst.game_bookings&&inst.game_bookings.clients?[inst.game_bookings.clients.first_name,inst.game_bookings.clients.last_name].filter(Boolean).join(' '):null;
+      let respHtml='';
+      for(const resp of responses){
+        const f=resp.task_template_fields;
+        if(!f)continue;
+        if(f.field_type==='photo'&&resp.photo_path){
+          const signedUrl=await getSignedPhotoUrl(resp.photo_path);
+          respHtml+=`<div style="margin-top:6px"><div style="font-size:12px;color:var(--muted)">${escapeHtml(f.label)}</div>${signedUrl?`<img class="photo-preview" src="${signedUrl}">`:'<div style="font-size:12px;color:var(--muted)">Photo unavailable</div>'}</div>`;
+        }else if(resp.value){
+          respHtml+=`<div style="margin-top:6px"><span style="font-size:12px;color:var(--muted)">${escapeHtml(f.label)}:</span> <span style="font-size:13px">${escapeHtml(resp.value)}</span></div>`;
+        }
+      }
+      const card=document.createElement('div');
+      card.className='review-card';
+      card.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:700;font-size:13px">${escapeHtml(inst.task_templates?.name||'')} <span class="tag-pill">${escapeHtml(inst.task_templates?.type||'')}</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">By ${escapeHtml(staffName(inst.staff_id))} · ${new Date(inst.completed_at).toLocaleString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${clientName?' · '+escapeHtml(clientName):''}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="markReviewed('${inst.id}')"><i class="ti ti-check"></i> Mark reviewed</button>
+        </div>
+        ${respHtml}
+      `;
+      list.appendChild(card);
+    }
+  }catch(e){list.innerHTML='<div class="empty-state">Error loading review queue: '+escapeHtml(e.message)+'</div>'}
+}
+async function getSignedPhotoUrl(path){
+  try{
+    const r=await fetch(`${SB_URL}/storage/v1/object/sign/task-photos/${path}`,{method:'POST',headers:H(),body:JSON.stringify({expiresIn:3600})});
+    const data=await r.json();
+    return data.signedURL?`${SB_URL}/storage/v1${data.signedURL}`:null;
+  }catch(e){console.error('Signed URL error:',e);return null}
+}
+async function markReviewed(instanceId){
+  try{
+    await fetch(`${SB_URL}/rest/v1/task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify({reviewed:true,reviewed_by:currentUser.staffId,reviewed_at:new Date().toISOString()})});
+    renderReviewTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+async function updateReviewCount(n){
+  const el=document.getElementById('reviewCount');
+  if(el)el.textContent=n?`(${n})`:'';
+}
+
+// ───────────────────────── TEMPLATES ADMIN ─────────────────────────
+function switchTemplateTab(t){
+  activeTemplateTypeTab=t;
+  document.getElementById('tplTabDaily').classList.toggle('active',t==='daily');
+  document.getElementById('tplTabRoom').classList.toggle('active',t==='room');
+  editingTemplateId=null;
+  document.getElementById('templateEditorWrap').innerHTML='';
+  renderTemplatesTab();
+}
+function renderTemplatesTab(){
+  const wrap=document.getElementById('templateListWrap');
+  const list=activeTemplateTypeTab==='daily'
+    ?taskTemplates.filter(t=>t.type==='daily')
+    :taskTemplates.filter(t=>t.type!=='daily');
+  if(!list.length){wrap.innerHTML='<div class="empty-state">No templates yet.</div>';return}
+  wrap.innerHTML=list.map(t=>{
+    const gameName=t.game_id?(games.find(g=>g.id===t.game_id)?.name||'Unknown room'):'';
+    const meta=t.type==='daily'?(t.active?'Active':'Inactive'):`${escapeHtml(gameName)} · ${escapeHtml(t.type)} · ${t.active?'Active':'Inactive'}`;
+    return `<div class="template-row" onclick="openTemplateEditor('${t.id}')">
+      <div><div class="template-row-name">${escapeHtml(t.name)}</div><div class="template-row-meta">${meta}</div></div>
+      <i class="ti ti-chevron-right"></i>
+    </div>`;
+  }).join('');
+}
+function openNewTemplateForm(){
+  editingTemplateId='new';
+  editingFields=[];
+  const isDaily=activeTemplateTypeTab==='daily';
+  renderTemplateEditor({id:null,name:'',type:isDaily?'daily':'reset',game_id:'',active:true},isDaily);
+}
+async function openTemplateEditor(id){
+  editingTemplateId=id;
+  const t=taskTemplates.find(x=>x.id===id);
+  const isDaily=t.type==='daily';
+  if(!isDaily)editingFields=JSON.parse(JSON.stringify(await loadTemplateFields(id)));
+  else editingFields=[];
+  renderTemplateEditor(t,isDaily);
+}
+function renderTemplateEditor(t,isDaily){
+  const wrap=document.getElementById('templateEditorWrap');
+  const gameOptions=games.filter(g=>g.category==='escape'||!t.game_id||g.id===t.game_id).map(g=>`<option value="${g.id}" ${t.game_id===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('');
+  wrap.innerHTML=`<div class="card">
+    <div class="form-row"><label class="form-label">Name</label><input class="form-input" id="tplName" value="${escapeHtml(t.name)}" placeholder="e.g. Vault Room — Reset"></div>
+    ${isDaily?'':`
+    <div class="form-row"><label class="form-label">Checklist type</label>
+      <select class="form-select" id="tplType">
+        <option value="reset" ${t.type==='reset'?'selected':''}>Reset</option>
+        <option value="setup" ${t.type==='setup'?'selected':''}>Setup</option>
+        <option value="shutdown" ${t.type==='shutdown'?'selected':''}>Shutdown</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Room</label><select class="form-select" id="tplGame"><option value="">Choose…</option>${gameOptions}</select></div>
+    `}
+    <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="tplActive" ${t.active?'checked':''}> Active</label></div>
+    ${isDaily?`
+    <div class="form-row"><label class="form-label">Default assignment</label><select class="form-select" id="tplDefaultAssignee">${assigneeOptionsHtml('','')}</select>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Note: this sets who it's assigned to going forward — today's copy won't change retroactively.</div></div>
+    `:`
+    <div class="form-row"><label class="form-label">Fields</label><div id="fieldEditorList"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addEditingField()"><i class="ti ti-plus"></i> Add field</button>
+    </div>
+    `}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" onclick="saveTemplate()"><i class="ti ti-device-floppy"></i> Save</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('templateEditorWrap').innerHTML=''">Cancel</button>
+      ${t.id?`<button class="btn btn-danger" onclick="deactivateTemplate('${t.id}')">Deactivate</button>`:''}
+    </div>
+  </div>`;
+  if(!isDaily)renderFieldEditorList();
+}
+function renderFieldEditorList(){
+  const el=document.getElementById('fieldEditorList');
+  if(!el)return;
+  el.innerHTML=editingFields.map((f,idx)=>`
+    <div class="field-editor-row">
+      <div style="flex:1">
+        <div class="form-row"><input class="form-input" placeholder="Field label" value="${escapeHtml(f.label||'')}" oninput="editingFields[${idx}].label=this.value"></div>
+        <div class="form-row" style="display:flex;gap:8px">
+          <select class="form-select" onchange="editingFields[${idx}].field_type=this.value;renderFieldEditorList()">
+            <option value="checkbox" ${f.field_type==='checkbox'?'selected':''}>Checkbox</option>
+            <option value="text" ${f.field_type==='text'?'selected':''}>Text box</option>
+            <option value="photo" ${f.field_type==='photo'?'selected':''}>Photo</option>
+            <option value="radio" ${f.field_type==='radio'?'selected':''}>Multiple choice</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input type="checkbox" ${f.flags_review?'checked':''} onchange="editingFields[${idx}].flags_review=this.checked"> Flags for review</label>
+        </div>
+        ${f.field_type==='radio'?`<div class="form-row"><input class="form-input" placeholder="Options, comma separated" value="${escapeHtml((f.options||[]).join(', '))}" oninput="editingFields[${idx}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)"></div>`:''}
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="editingFields.splice(${idx},1);renderFieldEditorList()"><i class="ti ti-trash"></i></button>
+    </div>
+  `).join('');
+}
+function addEditingField(){
+  editingFields.push({label:'',field_type:'checkbox',options:[],flags_review:false,sort_order:editingFields.length});
+  renderFieldEditorList();
+}
+async function saveTemplate(){
+  const name=document.getElementById('tplName').value.trim();
+  if(!name){alert('Please enter a name.');return}
+  const active=document.getElementById('tplActive').checked;
+  const isDaily=activeTemplateTypeTab==='daily'&&editingTemplateId==='new'||(editingTemplateId!=='new'&&taskTemplates.find(t=>t.id===editingTemplateId)?.type==='daily');
+  const type=isDaily?'daily':document.getElementById('tplType').value;
+  const gameId=isDaily?null:(document.getElementById('tplGame').value||null);
+  if(!isDaily&&!gameId){alert('Please choose which room this checklist is for.');return}
+  try{
+    let templateId=editingTemplateId;
+    if(editingTemplateId==='new'){
+      const r=await fetch(`${SB_URL}/rest/v1/task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,type,game_id:gameId,active,created_by:currentUser.staffId,sort_order:taskTemplates.length})});
+      const rows=await r.json();templateId=rows[0].id;
+    }else{
+      await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${templateId}`,{method:'PATCH',headers:H(),body:JSON.stringify({name,type,game_id:gameId,active})});
+    }
+    if(!isDaily){
+      // Simplest reliable approach: replace all fields for this template.
+      await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}`,{method:'DELETE',headers:H()});
+      if(editingFields.length){
+        await fetch(`${SB_URL}/rest/v1/task_template_fields`,{method:'POST',headers:H(),body:JSON.stringify(editingFields.map((f,idx)=>({template_id:templateId,field_type:f.field_type,label:f.label,options:f.options&&f.options.length?f.options:null,flags_review:f.flags_review,sort_order:idx})))});
+      }
+      delete templateFieldsCache[templateId];
+    }
+    document.getElementById('templateEditorWrap').innerHTML='';
+    await loadTemplates();
+    if(isDaily)await ensureDailyInstancesForToday();
+    renderTemplatesTab();
+  }catch(e){alert('Error saving template: '+e.message)}
+}
+async function deactivateTemplate(id){
+  if(!confirm('Deactivate this template? It will stop showing up for staff, but history is kept.'))return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})});
+    document.getElementById('templateEditorWrap').innerHTML='';
+    await loadTemplates();renderTemplatesTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ───────────────────────── INIT ─────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  const saved=localStorage.getItem('btb_staff_session');
+  if(saved){
+    try{
+      const cached=JSON.parse(saved);
+      currentUser=cached;
+      if(!currentUser.refreshToken){doLogout();return}
+      const msLeft=(currentUser.expiresAt||0)-Date.now();
+      if(msLeft<5*60*1000){await refreshAuthToken();if(!currentUser)return}
+      scheduleTokenRefresh();
+      try{
+        const sr=await fetch(`${SB_URL}/rest/v1/staff?id=eq.${currentUser.staffId}&select=can_edit_task_templates`,{headers:H()});
+        const srows=await sr.json();canEditTemplates=!!(srows[0]&&srows[0].can_edit_task_templates);
+      }catch(e){}
+      await loadAppData();
+      showApp();
+    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
+  }
+});
+</script>
+</body>
+</html>
