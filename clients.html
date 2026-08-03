@@ -549,6 +549,7 @@ let replyState={}; // {templateId, subject, body} for whichever panel is open
 let games=[]; // from settings.btb_games — used to populate the enquiry "game of interest" dropdown
 let tplAdminOpen=false;
 let staffList=[]; // active staff, for to-do "assigned to" pickers
+const ROLE_LABELS={manager:'Any Manager',admin:'Any Admin',gamemaster_own:'Any Gamemaster'};
 let currentView='clients'; // 'clients' | 'todos'
 let todoEditingId=null; // interaction id currently open in the to-do edit modal
 
@@ -561,6 +562,11 @@ async function loadStaffList(){
 function staffName(id){
   if(!id)return '';
   return staffList.find(s=>s.id===id)?.name||'—';
+}
+function assigneeLabel(staffId,role){
+  if(role)return ROLE_LABELS[role]||role;
+  if(staffId)return staffName(staffId);
+  return '';
 }
 
 async function loadStatusList(){
@@ -771,9 +777,10 @@ function switchView(view){
 function populateAssigneeFilter(){
   const sel=document.getElementById('todoAssigneeFilter');
   const cur=sel.value;
-  sel.innerHTML=`<option value="">Everyone</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}">${escapeHtml(label)}</option>`).join('');
+  sel.innerHTML=`<option value="">Everyone</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')+roleOpts;
   sel.value=cur;
-  document.getElementById('teAssignee').innerHTML=`<option value="">Unassigned</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  document.getElementById('teAssignee').innerHTML=`<option value="">Unassigned</option>`+staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')+roleOpts;
 }
 function allOpenTodos(){
   const rows=[];
@@ -791,7 +798,10 @@ function isOverdue(dueDate){
 function renderTodosView(){
   const assigneeFilter=document.getElementById('todoAssigneeFilter').value;
   let rows=allOpenTodos();
-  if(assigneeFilter)rows=rows.filter(r=>r.assigned_staff_id===assigneeFilter);
+  if(assigneeFilter){
+    if(assigneeFilter.startsWith('role:'))rows=rows.filter(r=>r.assigned_role===assigneeFilter.slice(5));
+    else rows=rows.filter(r=>r.assigned_staff_id===assigneeFilter);
+  }
   rows.sort((a,b)=>{
     if(!!a.due_date!==!!b.due_date)return a.due_date?-1:1; // items with a due date first
     if(a.due_date&&b.due_date&&a.due_date!==b.due_date)return a.due_date<b.due_date?-1:1;
@@ -809,7 +819,7 @@ function renderTodosView(){
     return `<tr>
       <td><span class="todo-client-link" onclick="openPanel('${r.clientId}');switchView('clients')">${escapeHtml(r.clientName)}</span></td>
       <td>${escapeHtml(r.content||'')}</td>
-      <td class="muted-cell">${escapeHtml(staffName(r.assigned_staff_id))||'—'}</td>
+      <td class="muted-cell">${escapeHtml(assigneeLabel(r.assigned_staff_id,r.assigned_role))||'—'}</td>
       <td class="muted-cell" style="${overdue?'color:#dc2626;font-weight:600':''}">${dueLabel}</td>
       <td><input type="checkbox" onchange="toggleTodoDone('${r.id}',this.checked)"></td>
       <td><button class="todo-edit-btn" onclick="openTodoEdit('${r.id}')"><i class="ti ti-pencil"></i></button></td>
@@ -831,7 +841,7 @@ function openTodoEdit(interactionId){
   if(!i)return;
   todoEditingId=interactionId;
   document.getElementById('teContent').value=i.content||'';
-  document.getElementById('teAssignee').value=i.assigned_staff_id||'';
+  document.getElementById('teAssignee').value=i.assigned_role?('role:'+i.assigned_role):(i.assigned_staff_id||'');
   document.getElementById('teDueDate').value=i.due_date||'';
   document.getElementById('teError').textContent='';
   document.getElementById('todoEditBackdrop').classList.add('open');
@@ -843,14 +853,16 @@ function closeTodoEdit(){
 async function saveTodoEdit(){
   if(!todoEditingId)return;
   const content=document.getElementById('teContent').value.trim();
-  const assignedStaffId=document.getElementById('teAssignee').value||null;
+  const assigneeVal=document.getElementById('teAssignee').value||'';
+  const assignedStaffId=assigneeVal.startsWith('role:')?null:(assigneeVal||null);
+  const assignedRole=assigneeVal.startsWith('role:')?assigneeVal.slice(5):null;
   const dueDate=document.getElementById('teDueDate').value||null;
   const errEl=document.getElementById('teError');
   if(!content){errEl.textContent='Note can\'t be empty.';return}
   try{
     await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${todoEditingId}`,{
       method:'PATCH',headers:H(),
-      body:JSON.stringify({content,assigned_staff_id:assignedStaffId,due_date:dueDate})
+      body:JSON.stringify({content,assigned_staff_id:assignedStaffId,assigned_role:assignedRole,due_date:dueDate})
     });
     closeTodoEdit();
     await loadInteractions();buildClientGroups();
@@ -1001,7 +1013,7 @@ function renderPanelTodos(g){
     const overdue=isOverdue(i.due_date);
     const dueLabel=i.due_date?new Date(i.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):null;
     const metaParts=[];
-    if(i.assigned_staff_id)metaParts.push(`Assigned: ${escapeHtml(staffName(i.assigned_staff_id))}`);
+    if(i.assigned_staff_id||i.assigned_role)metaParts.push(`Assigned: ${escapeHtml(assigneeLabel(i.assigned_staff_id,i.assigned_role))}`);
     if(dueLabel)metaParts.push(`<span class="${overdue?'overdue':''}">Due ${dueLabel}</span>`);
     return `<div class="todo-item">
       <input type="checkbox" onchange="toggleTodoDone('${i.id}',this.checked)">
