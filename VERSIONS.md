@@ -78,6 +78,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.2.0 — 2026-08-05 — Conditional fields: a checklist field can now be set to "only show if" another checkbox/multiple-choice field on the same checklist has a specific answer. Added depends_on_field_id/depends_on_value columns to task_template_fields; template editor has a picker to set this per field; staff fill-out form now shows/hides these fields live as answers change, and hidden fields are skipped entirely on submit (not saved, not required, not flagged for review).
 - v1.1.0 — 2026-08-04 — Checklist types (Reset/Setup/Shutdown) are no longer hardcoded. Added task_checklist_types table + new "Checklist Types" sidebar item (visible to anyone with can_edit_task_templates) to add/rename/deactivate types. Both the staff-facing "Checklist type" dropdown and the admin template editor dropdown now read from this table live instead of a fixed 3-option list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
