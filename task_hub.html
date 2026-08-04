@@ -147,6 +147,10 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
     <div class="content">
       <!-- DAILY TASKS -->
       <div id="dailySection">
+        <div class="card" style="display:flex;gap:8px;margin-bottom:12px">
+          <input class="form-input" id="newAdhocTaskLabel" placeholder="Add a one-off task for today…" onkeydown="if(event.key==='Enter')addAdhocDailyTask()">
+          <button class="btn btn-primary btn-sm" onclick="addAdhocDailyTask()"><i class="ti ti-plus"></i> Add</button>
+        </div>
         <div id="dailyList"></div>
       </div>
 
@@ -199,7 +203,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.2.0';
+const BUILD_VERSION = '1.3.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -376,9 +380,10 @@ document.getElementById('navTemplates').classList.toggle('active',tab==='templat
 // ───────────────────────── DAILY TASKS ─────────────────────────
 function renderDailyTasks(){
   const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
+  const adhocInstances=dailyInstances.filter(i=>!i.template_id);
   const list=document.getElementById('dailyList');
-  if(!dailyTemplates.length){list.innerHTML='<div class="empty-state">No daily tasks set up yet.</div>';return}
-  list.innerHTML=dailyTemplates.map(t=>{
+  if(!dailyTemplates.length&&!adhocInstances.length){list.innerHTML='<div class="empty-state">No daily tasks set up yet.</div>';return}
+  const templatedHtml=dailyTemplates.map(t=>{
     const inst=dailyInstances.find(i=>i.template_id===t.id);
     const done=inst&&inst.done;
     const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
@@ -391,6 +396,20 @@ function renderDailyTasks(){
       </div>
     </div>`;
   }).join('');
+  const adhocHtml=adhocInstances.map(inst=>{
+    const done=inst.done;
+    const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
+    const addedMeta=`Added by ${escapeHtml(staffName(inst.created_by))} · one-off`;
+    return `<div class="daily-item">
+      <input type="checkbox" ${done?'checked':''} onchange="toggleAdhocDailyDone('${inst.id}',this.checked)">
+      <div class="daily-item-body">
+        <div class="daily-item-name">${escapeHtml(inst.label)}</div>
+        <div class="daily-item-meta">${addedMeta}${done?' · '+doneMeta:''}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteAdhocDailyTask('${inst.id}')"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+  list.innerHTML=templatedHtml+adhocHtml;
 }
 async function toggleDailyDone(templateId,checked){
   const date=todayStr();
@@ -400,6 +419,31 @@ async function toggleDailyDone(templateId,checked){
     await loadDailyInstances();renderDailyTasks();
   }catch(e){alert('Error updating task: '+e.message)}
 }
+async function addAdhocDailyTask(){
+  const labelEl=document.getElementById('newAdhocTaskLabel');
+  const label=labelEl.value.trim();
+  if(!label)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_instances`,{method:'POST',headers:H(),body:JSON.stringify({task_date:todayStr(),label,created_by:currentUser.staffId,done:false})});
+    labelEl.value='';
+    await loadDailyInstances();renderDailyTasks();
+  }catch(e){alert('Error adding task: '+e.message)}
+}
+async function toggleAdhocDailyDone(instanceId,checked){
+  const body=checked?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString()}:{done:false,done_by:null,done_at:null};
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    await loadDailyInstances();renderDailyTasks();
+  }catch(e){alert('Error updating task: '+e.message)}
+}
+async function deleteAdhocDailyTask(instanceId){
+  if(!confirm('Remove this one-off task?'))return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_instances?id=eq.${instanceId}`,{method:'DELETE',headers:H()});
+    await loadDailyInstances();renderDailyTasks();
+  }catch(e){alert('Error removing task: '+e.message)}
+}
+
 
 // ───────────────────────── ROOM CHECKLISTS ─────────────────────────
 function renderRoomTab(){
