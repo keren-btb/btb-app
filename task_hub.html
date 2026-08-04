@@ -199,7 +199,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.1.0';
+const BUILD_VERSION = '1.2.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -431,6 +431,32 @@ if(!tpl){formWrap.innerHTML=`<div class="empty-state">No ${escapeHtml(checklistT
     <button class="btn btn-primary" style="margin-top:6px" onclick="submitRoomChecklist('${tpl.id}')"><i class="ti ti-check"></i> Submit checklist</button>
     <div id="roomSubmitError" class="login-error" style="text-align:left"></div>
   </div>`;
+  const fieldsWrapEl=document.getElementById('roomFieldsWrap');
+  fieldsWrapEl.onchange=()=>evaluateFieldVisibility(fields);
+  evaluateFieldVisibility(fields);
+}
+function currentFieldValue(f,wrap){
+  if(f.field_type==='checkbox'){
+    const el=wrap.querySelector(`input[data-field-id="${f.id}"][data-field-type="checkbox"]`);
+    return el&&el.checked?'true':'false';
+  }
+  if(f.field_type==='radio'){
+    const el=wrap.querySelector(`input[data-field-id="${f.id}"]:checked`);
+    return el?el.value:'';
+  }
+  return null;
+}
+function evaluateFieldVisibility(fields){
+  const wrap=document.getElementById('roomFieldsWrap');
+  if(!wrap)return;
+  fields.forEach(f=>{
+    if(!f.depends_on_field_id)return;
+    const wrapperEl=wrap.querySelector(`[data-field-wrap-id="${f.id}"]`);
+    if(!wrapperEl)return;
+    const depField=fields.find(x=>x.id===f.depends_on_field_id);
+    const visible=depField?currentFieldValue(depField,wrap)===f.depends_on_value:true;
+    wrapperEl.style.display=visible?'':'none';
+  });
 }
 async function loadBookingsForGame(gameId){
   const sel=document.getElementById('roomBookingSelect');
@@ -460,7 +486,7 @@ function fieldInputHtml(f){
     input=`<input type="file" accept="image/*" capture="environment" data-field-id="${f.id}" data-field-type="photo" onchange="onPhotoFieldChange(this)">
            <img class="photo-preview" id="preview-${f.id}" style="display:none">`;
   }
-  return `<div class="field-block">
+  return `<div class="field-block" data-field-wrap-id="${f.id}">
     <div class="field-block-label">${escapeHtml(f.label)} ${flag}</div>
     ${input}
   </div>`;
@@ -512,6 +538,8 @@ async function submitRoomChecklist(templateId){
   let needsReview=false;
   try{
     for(const f of fields){
+      const wrapperEl=wrap.querySelector(`[data-field-wrap-id="${f.id}"]`);
+      if(wrapperEl&&wrapperEl.style.display==='none')continue;
       let value=null,photoPath=null;
       if(f.field_type==='checkbox'){
         const el=wrap.querySelector(`input[data-field-id="${f.id}"][data-field-type="checkbox"]`);
