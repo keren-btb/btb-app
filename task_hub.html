@@ -643,8 +643,12 @@ async function openTemplateEditor(id){
   editingTemplateId=id;
   const t=taskTemplates.find(x=>x.id===id);
   const isDaily=t.type==='daily';
-  if(!isDaily)editingFields=JSON.parse(JSON.stringify(await loadTemplateFields(id)));
-  else editingFields=[];
+  if(!isDaily){
+    editingFields=JSON.parse(JSON.stringify(await loadTemplateFields(id)));
+    editingFields.forEach(f=>{
+      f.depends_on_idx=f.depends_on_field_id?editingFields.findIndex(x=>x.id===f.depends_on_field_id):null;
+    });
+  }else editingFields=[];
   renderTemplateEditor(t,isDaily);
 }
 function renderTemplateEditor(t,isDaily){
@@ -683,7 +687,7 @@ function renderFieldEditorList(){
       <div style="flex:1">
         <div class="form-row"><input class="form-input" placeholder="Field label" value="${escapeHtml(f.label||'')}" oninput="editingFields[${idx}].label=this.value"></div>
         <div class="form-row" style="display:flex;gap:8px">
-          <select class="form-select" onchange="editingFields[${idx}].field_type=this.value;renderFieldEditorList()">
+          <select class="form-select" onchange="editingFields[${idx}].field_type=this.value;invalidateDependentsOn(${idx});renderFieldEditorList()">
             <option value="checkbox" ${f.field_type==='checkbox'?'selected':''}>Checkbox</option>
             <option value="text" ${f.field_type==='text'?'selected':''}>Text box</option>
             <option value="photo" ${f.field_type==='photo'?'selected':''}>Photo</option>
@@ -692,13 +696,68 @@ function renderFieldEditorList(){
           <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input type="checkbox" ${f.flags_review?'checked':''} onchange="editingFields[${idx}].flags_review=this.checked"> Flags for review</label>
         </div>
         ${f.field_type==='radio'?`<div class="form-row"><input class="form-input" placeholder="Options, comma separated" value="${escapeHtml((f.options||[]).join(', '))}" oninput="editingFields[${idx}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)"></div>`:''}
+        <div class="form-row" style="display:flex;gap:8px;align-items:center;margin-top:4px">
+          <label style="font-size:11px;color:var(--muted);white-space:nowrap">Only show if</label>
+          <select class="form-select" onchange="setFieldDependency(${idx},this.value)">${dependencyOptionsHtml(idx)}</select>
+          ${f.depends_on_idx!=null?dependencyValueSelectHtml(idx):''}
+        </div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="editingFields.splice(${idx},1);renderFieldEditorList()"><i class="ti ti-trash"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="removeEditingField(${idx})"><i class="ti ti-trash"></i></button>
     </div>
   `).join('');
 }
+function dependencyOptionsHtml(ownIdx){
+  let html='<option value="">— Always show —</option>';
+  editingFields.forEach((f,i)=>{
+    if(i===ownIdx)return;
+    if(f.field_type!=='checkbox'&&f.field_type!=='radio')return;
+    html+=`<option value="${i}" ${editingFields[ownIdx].depends_on_idx===i?'selected':''}>${escapeHtml(f.label||'(untitled field)')}</option>`;
+  });
+  return html;
+}
+function dependencyValueSelectHtml(ownIdx){
+  const own=editingFields[ownIdx];
+  const dep=editingFields[own.depends_on_idx];
+  if(!dep)return '';
+  if(dep.field_type==='checkbox'){
+    return `<select class="form-select" onchange="editingFields[${ownIdx}].depends_on_value=this.value">
+      <option value="true" ${own.depends_on_value==='true'?'selected':''}>is checked (Yes)</option>
+      <option value="false" ${own.depends_on_value==='false'?'selected':''}>is unchecked (No)</option>
+    </select>`;
+  }
+  const opts=dep.options||[];
+  return `<select class="form-select" onchange="editingFields[${ownIdx}].depends_on_value=this.value">
+    ${opts.map(o=>`<option value="${escapeHtml(o)}" ${own.depends_on_value===o?'selected':''}>is "${escapeHtml(o)}"</option>`).join('')}
+  </select>`;
+}
+function setFieldDependency(ownIdx,depIdxStr){
+  const depIdx=depIdxStr===''?null:parseInt(depIdxStr);
+  editingFields[ownIdx].depends_on_idx=depIdx;
+  if(depIdx===null){editingFields[ownIdx].depends_on_value=null}
+  else{
+    const dep=editingFields[depIdx];
+    editingFields[ownIdx].depends_on_value=dep.field_type==='checkbox'?'true':((dep.options&&dep.options[0])||'');
+  }
+  renderFieldEditorList();
+}
+function invalidateDependentsOn(changedIdx){
+  const f=editingFields[changedIdx];
+  const stillValid=f.field_type==='checkbox'||f.field_type==='radio';
+  if(stillValid)return;
+  editingFields.forEach(o=>{
+    if(o.depends_on_idx===changedIdx){o.depends_on_idx=null;o.depends_on_value=null}
+  });
+}
+function removeEditingField(removeIdx){
+  editingFields.splice(removeIdx,1);
+  editingFields.forEach(f=>{
+    if(f.depends_on_idx===removeIdx){f.depends_on_idx=null;f.depends_on_value=null}
+    else if(f.depends_on_idx!=null&&f.depends_on_idx>removeIdx){f.depends_on_idx--}
+  });
+  renderFieldEditorList();
+}
 function addEditingField(){
-  editingFields.push({label:'',field_type:'checkbox',options:[],flags_review:false,sort_order:editingFields.length});
+  editingFields.push({label:'',field_type:'checkbox',options:[],flags_review:false,sort_order:editingFields.length,depends_on_idx:null,depends_on_value:null});
   renderFieldEditorList();
 }
 async function saveTemplate(){
@@ -721,7 +780,17 @@ async function saveTemplate(){
       // Simplest reliable approach: replace all fields for this template.
       await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}`,{method:'DELETE',headers:H()});
       if(editingFields.length){
-        await fetch(`${SB_URL}/rest/v1/task_template_fields`,{method:'POST',headers:H(),body:JSON.stringify(editingFields.map((f,idx)=>({template_id:templateId,field_type:f.field_type,label:f.label,options:f.options&&f.options.length?f.options:null,flags_review:f.flags_review,sort_order:idx})))});
+        const insR=await fetch(`${SB_URL}/rest/v1/task_template_fields`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(editingFields.map((f,idx)=>({template_id:templateId,field_type:f.field_type,label:f.label,options:f.options&&f.options.length?f.options:null,flags_review:f.flags_review,sort_order:idx})))});
+        const insRows=await insR.json();
+        const idxToId={};
+        insRows.forEach(row=>{idxToId[row.sort_order]=row.id});
+        const patches=editingFields.map((f,idx)=>{
+          if(f.depends_on_idx==null)return null;
+          const depId=idxToId[f.depends_on_idx];
+          if(!depId)return null;
+          return fetch(`${SB_URL}/rest/v1/task_template_fields?id=eq.${idxToId[idx]}`,{method:'PATCH',headers:H(),body:JSON.stringify({depends_on_field_id:depId,depends_on_value:f.depends_on_value})});
+        }).filter(Boolean);
+        if(patches.length)await Promise.all(patches);
       }
       delete templateFieldsCache[templateId];
     }
