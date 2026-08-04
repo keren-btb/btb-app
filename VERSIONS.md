@@ -77,6 +77,10 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
+## task_hub.html
+- v1.1.0 — 2026-08-04 — Checklist types (Reset/Setup/Shutdown) are no longer hardcoded. Added task_checklist_types table + new "Checklist Types" sidebar item (visible to anyone with can_edit_task_templates) to add/rename/deactivate types. Both the staff-facing "Checklist type" dropdown and the admin template editor dropdown now read from this table live instead of a fixed 3-option list.
+- v1.0.0 — (undated, pre-existing) — Initial build
+
 ## deepseek/script.js
 - v1.7.7 — 2026-07-28 — Removed the pause before the game name pulse (now starts right as shimmer ends); reduced the gap between DATE/TIME/PLAYERS pulses from 500ms to 350ms.
 - v1.7.6 — 2026-07-28 — Pulse sequence rewritten to be fully sequential (each pulse finishes before the next starts) with a 500ms gap in between, instead of overlapping; timing pulled into named constants (SHIMMER_MS, NAME_PULSE_MS, BOX_PULSE_MS, GAP_MS) for easier future tuning.
