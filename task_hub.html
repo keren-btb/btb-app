@@ -157,13 +157,9 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
             <label class="form-label">Room</label>
             <select class="form-select" id="roomGameSelect" onchange="onRoomFormChange()"><option value="">Choose a room…</option></select>
           </div>
-          <div class="form-row">
+<div class="form-row">
             <label class="form-label">Checklist type</label>
-            <select class="form-select" id="roomTypeSelect" onchange="onRoomFormChange()">
-              <option value="reset">Reset</option>
-              <option value="setup">Setup</option>
-              <option value="shutdown">Shutdown</option>
-            </select>
+            <select class="form-select" id="roomTypeSelect" onchange="onRoomFormChange()"></select>
           </div>
           <div class="form-row" id="roomBookingRow" style="display:none">
             <label class="form-label">Which booking is this for?</label>
@@ -318,6 +314,11 @@ async function loadChecklistTypes(){
   try{const r=await fetch(`${SB_URL}/rest/v1/task_checklist_types?select=*&order=sort_order`,{headers:H()});checklistTypes=await r.json()}catch(e){console.error('Checklist types load:',e);checklistTypes=[]}
 }
 function checklistTypeLabel(key){return checklistTypes.find(c=>c.key===key)?.label||key}
+function checklistTypeOptionsHtml(selectedKey){
+  let list=checklistTypes.filter(c=>c.active||c.key===selectedKey);
+  if(selectedKey&&!list.some(c=>c.key===selectedKey))list=list.concat([{key:selectedKey,label:selectedKey,active:false}]);
+  return list.map(c=>`<option value="${c.key}" ${c.key===selectedKey?'selected':''}>${escapeHtml(c.label)}${c.active===false?' (inactive)':''}</option>`).join('');
+}
   async function loadTemplateFields(templateId){
   if(templateFieldsCache[templateId])return templateFieldsCache[templateId];
   const r=await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}&select=*&order=sort_order`,{headers:H()});
@@ -406,9 +407,13 @@ function renderRoomTab(){
   if(sel.options.length<=1){
     sel.innerHTML='<option value="">Choose a room…</option>'+games.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
   }
+  const typeSel=document.getElementById('roomTypeSelect');
+  const prevType=typeSel.value;
+  typeSel.innerHTML=checklistTypes.filter(c=>c.active).map(c=>`<option value="${c.key}">${escapeHtml(c.label)}</option>`).join('');
+  if(prevType&&checklistTypes.some(c=>c.key===prevType&&c.active))typeSel.value=prevType;
   onRoomFormChange();
 }
-async function onRoomFormChange(){
+  async function onRoomFormChange(){
   const gameId=document.getElementById('roomGameSelect').value;
   const type=document.getElementById('roomTypeSelect').value;
   const bookingRow=document.getElementById('roomBookingRow');
@@ -418,8 +423,8 @@ async function onRoomFormChange(){
   await loadBookingsForGame(gameId);
   const tpl=taskTemplates.find(t=>t.type===type&&t.game_id===gameId&&t.active);
   currentRoomTemplate=tpl||null;
-  if(!tpl){formWrap.innerHTML=`<div class="empty-state">No ${escapeHtml(type)} checklist set up for this room yet.</div>`;return}
-  const fields=await loadTemplateFields(tpl.id);
+if(!tpl){formWrap.innerHTML=`<div class="empty-state">No ${escapeHtml(checklistTypeLabel(type))} checklist set up for this room yet.</div>`;return}
+    const fields=await loadTemplateFields(tpl.id);
   formWrap.innerHTML=`<div class="card">
     <div class="field-block-label" style="margin-bottom:12px;font-size:15px">${escapeHtml(tpl.name)}</div>
     <div id="roomFieldsWrap">${fields.map(f=>fieldInputHtml(f)).join('')}</div>
@@ -621,7 +626,7 @@ function renderTemplatesTab(){
   if(!list.length){wrap.innerHTML='<div class="empty-state">No templates yet.</div>';return}
   wrap.innerHTML=list.map(t=>{
     const gameName=t.game_id?(games.find(g=>g.id===t.game_id)?.name||'Unknown room'):'';
-    const meta=t.type==='daily'?(t.active?'Active':'Inactive'):`${escapeHtml(gameName)} · ${escapeHtml(t.type)} · ${t.active?'Active':'Inactive'}`;
+const meta=t.type==='daily'?(t.active?'Active':'Inactive'):`${escapeHtml(gameName)} · ${escapeHtml(checklistTypeLabel(t.type))} · ${t.active?'Active':'Inactive'}`;
     return `<div class="template-row" onclick="openTemplateEditor('${t.id}')">
       <div><div class="template-row-name">${escapeHtml(t.name)}</div><div class="template-row-meta">${meta}</div></div>
       <i class="ti ti-chevron-right"></i>
@@ -648,14 +653,10 @@ function renderTemplateEditor(t,isDaily){
   wrap.innerHTML=`<div class="card">
     <div class="form-row"><label class="form-label">Name</label><input class="form-input" id="tplName" value="${escapeHtml(t.name)}" placeholder="e.g. Vault Room — Reset"></div>
     ${isDaily?'':`
-    <div class="form-row"><label class="form-label">Checklist type</label>
-      <select class="form-select" id="tplType">
-        <option value="reset" ${t.type==='reset'?'selected':''}>Reset</option>
-        <option value="setup" ${t.type==='setup'?'selected':''}>Setup</option>
-        <option value="shutdown" ${t.type==='shutdown'?'selected':''}>Shutdown</option>
-      </select>
+<div class="form-row"><label class="form-label">Checklist type</label>
+      <select class="form-select" id="tplType">${checklistTypeOptionsHtml(t.type)}</select>
     </div>
-    <div class="form-row"><label class="form-label">Room</label><select class="form-select" id="tplGame"><option value="">Choose…</option>${gameOptions}</select></div>
+<div class="form-row"><label class="form-label">Room</label><select class="form-select" id="tplGame"><option value="">Choose…</option>${gameOptions}</select></div>
     `}
     <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="tplActive" ${t.active?'checked':''}> Active</label></div>
     ${isDaily?`
