@@ -134,8 +134,10 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
     <span class="nav-item active" id="navDaily" onclick="switchTab('daily')"><i class="ti ti-checklist"></i> Daily Tasks</span>
     <span class="nav-item" id="navRoom" onclick="switchTab('room')"><i class="ti ti-door"></i> Room Checklists</span>
     <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
-    <span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
+<span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
+    <span class="nav-item" id="navChecklistTypes" style="display:none" onclick="switchTab('checklisttypes')"><i class="ti ti-list"></i> Checklist Types</span>
   </aside>
+    
 
   <div class="main">
     <div class="topbar">
@@ -184,12 +186,22 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
         </div>
         <div id="templateListWrap"></div>
         <button class="btn btn-primary" style="margin-top:10px" onclick="openNewTemplateForm()"><i class="ti ti-plus"></i> New template</button>
-        <div id="templateEditorWrap" style="margin-top:16px"></div>
+<div id="templateEditorWrap" style="margin-top:16px"></div>
+      </div>
+
+      <!-- CHECKLIST TYPES ADMIN -->
+      <div id="checklistTypesSection" style="display:none">
+        <div id="checklistTypesListWrap"></div>
+        <div class="card" style="margin-top:16px">
+          <div class="field-block-label" style="margin-bottom:8px">Add a new checklist type</div>
+          <div class="form-row"><input class="form-input" id="newChecklistTypeLabel" placeholder="e.g. Deep Clean"></div>
+          <button class="btn btn-primary btn-sm" onclick="addChecklistType()"><i class="ti ti-plus"></i> Add</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
+        
 <script>
 const BUILD_VERSION = '1.0.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -224,7 +236,8 @@ let activeTemplateTypeTab='daily';
 let currentRoomTemplate=null; // the active template object for the room form currently shown
 let editingTemplateId=null; // template currently open in the editor, or 'new'
 let editingFields=[]; // working copy of fields while editing a template
-
+let checklistTypes=[]; // room checklist types (Reset/Setup/Shutdown/etc), loaded from task_checklist_types
+  
 // ───────────────────────── AUTH (same pattern as clients.html) ─────────────────────────
 let tokenRefreshTimer=null;
 function scheduleTokenRefresh(){
@@ -269,7 +282,8 @@ function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='';
   document.getElementById('sidebarUser').textContent=currentUser.name;
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
-  document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
+document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
+  document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
   document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
     document.getElementById('mainSidebar').classList.add('collapsed');
@@ -300,7 +314,11 @@ async function loadGames(){
 async function loadTemplates(){
   try{const r=await fetch(`${SB_URL}/rest/v1/task_templates?select=*&order=sort_order`,{headers:H()});taskTemplates=await r.json()}catch(e){console.error('Templates load:',e);taskTemplates=[]}
 }
-async function loadTemplateFields(templateId){
+async function loadChecklistTypes(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/task_checklist_types?select=*&order=sort_order`,{headers:H()});checklistTypes=await r.json()}catch(e){console.error('Checklist types load:',e);checklistTypes=[]}
+}
+function checklistTypeLabel(key){return checklistTypes.find(c=>c.key===key)?.label||key}
+  async function loadTemplateFields(templateId){
   if(templateFieldsCache[templateId])return templateFieldsCache[templateId];
   const r=await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}&select=*&order=sort_order`,{headers:H()});
   const fields=await r.json();
@@ -327,7 +345,7 @@ async function loadDailyInstances(){
   }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
 }
 async function loadAppData(){
-  await Promise.all([loadStaffList(),loadGames(),loadTemplates()]);
+  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes()]);
   await ensureDailyInstancesForToday();
   await loadDailyInstances();
 }
@@ -338,19 +356,22 @@ function switchTab(tab){
   document.getElementById('navDaily').classList.toggle('active',tab==='daily');
   document.getElementById('navRoom').classList.toggle('active',tab==='room');
   document.getElementById('navReview').classList.toggle('active',tab==='review');
-  document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
+document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
+  document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
   document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
   document.getElementById('roomSection').style.display=tab==='room'?'':'none';
   document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
   document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
-  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates'};
+  document.getElementById('checklistTypesSection').style.display=tab==='checklisttypes'?'':'none';
+  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types'};
   document.getElementById('topbarTitle').textContent=titles[tab];
   if(tab==='daily')renderDailyTasks();
   if(tab==='room')renderRoomTab();
   if(tab==='review')renderReviewTab();
   if(tab==='templates')renderTemplatesTab();
+  if(tab==='checklisttypes')renderChecklistTypesTab();
 }
-
+  
 // ───────────────────────── DAILY TASKS ─────────────────────────
 function renderDailyTasks(){
   const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
@@ -714,12 +735,54 @@ async function deactivateTemplate(id){
   try{
     await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})});
     document.getElementById('templateEditorWrap').innerHTML='';
-    await loadTemplates();renderTemplatesTab();
+await loadTemplates();renderTemplatesTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ───────────────────────── CHECKLIST TYPES ADMIN ─────────────────────────
+function renderChecklistTypesTab(){
+  const wrap=document.getElementById('checklistTypesListWrap');
+  if(!checklistTypes.length){wrap.innerHTML='<div class="empty-state">No checklist types yet.</div>';return}
+  wrap.innerHTML=checklistTypes.map(c=>`
+    <div class="template-row" style="cursor:default">
+      <div>
+        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(c.label)}" onchange="renameChecklistType('${c.id}',this.value)">
+        <div class="template-row-meta">key: ${escapeHtml(c.key)} · ${c.active?'Active':'Inactive'}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="toggleChecklistTypeActive('${c.id}',${!c.active})">${c.active?'Deactivate':'Activate'}</button>
+    </div>
+  `).join('');
+}
+async function addChecklistType(){
+  const labelEl=document.getElementById('newChecklistTypeLabel');
+  const label=labelEl.value.trim();
+  if(!label){alert('Please enter a name.');return}
+  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!key){alert('Please use at least one letter or number.');return}
+  if(checklistTypes.some(c=>c.key===key)){alert('A checklist type with that name already exists.');return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/task_checklist_types`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:checklistTypes.length})});
+    labelEl.value='';
+    await loadChecklistTypes();renderChecklistTypesTab();
+  }catch(e){alert('Error adding checklist type: '+e.message)}
+}
+async function renameChecklistType(id,newLabel){
+  newLabel=newLabel.trim();
+  if(!newLabel)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
+    await loadChecklistTypes();renderChecklistTypesTab();
+  }catch(e){alert('Error renaming: '+e.message)}
+}
+async function toggleChecklistTypeActive(id,active){
+  try{
+    await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
+    await loadChecklistTypes();renderChecklistTypesTab();
   }catch(e){alert('Error: '+e.message)}
 }
 
 // ───────────────────────── INIT ─────────────────────────
-window.addEventListener('DOMContentLoaded',async()=>{
+  window.addEventListener('DOMContentLoaded',async()=>{
   const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
