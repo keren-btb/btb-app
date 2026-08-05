@@ -133,6 +133,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
     <div class="sidebar-section">Task Hub</div>
     <span class="nav-item active" id="navDaily" onclick="switchTab('daily')"><i class="ti ti-checklist"></i> Daily Tasks</span>
     <span class="nav-item" id="navRoom" onclick="switchTab('room')"><i class="ti ti-door"></i> Room Checklists</span>
+    <span class="nav-item" id="navGeneralTasks" onclick="switchTab('generaltasks')"><i class="ti ti-clipboard-list"></i> General Tasks</span>
     <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
 <span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
     <span class="nav-item" id="navChecklistTypes" style="display:none" onclick="switchTab('checklisttypes')"><i class="ti ti-list"></i> Checklist Types</span>
@@ -184,6 +185,16 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
         <div id="roomChecklistForm"></div>
       </div>
 
+      <!-- GENERAL TASKS -->
+      <div id="generalTasksSection" style="display:none">
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:13px;color:var(--muted)">Tasks assigned to you, your role, or open to anyone</div>
+          <button class="btn btn-primary btn-sm" id="newGeneralTaskBtn" style="display:none" onclick="openNewGeneralTaskForm()"><i class="ti ti-plus"></i> New task</button>
+        </div>
+        <div id="generalTaskEditorWrap" style="margin-bottom:12px"></div>
+        <div id="generalTasksList"></div>
+      </div>
+
       <!-- REVIEW QUEUE -->
       <div id="reviewSection" style="display:none">
         <div id="reviewList"></div>
@@ -224,7 +235,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.5.0';
+const BUILD_VERSION = '1.6.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -245,6 +256,9 @@ function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 
 const ROLE_LABELS={manager:'Any Manager',admin:'Any Admin',gamemaster_own:'Any Gamemaster'};
+const URGENCY_STYLE={low:'background:#f3f4f6;color:#6b7280',medium:'background:#e0f2fe;color:#0369a1',high:'background:#fef3c7;color:#92400e',urgent:'background:#fee2e2;color:#991b1b'};
+const URGENCY_ORDER={urgent:0,high:1,medium:2,low:3};
+const URGENCY_LABEL={low:'Low',medium:'Medium',high:'High',urgent:'Urgent'};
 let currentUser=null;
 let canEditTemplates=false;
 let staffList=[];
@@ -259,6 +273,9 @@ let editingTemplateId=null; // template currently open in the editor, or 'new'
 let editingFields=[]; // working copy of fields while editing a template
 let checklistTypes=[]; // room checklist types (Reset/Setup/Shutdown/etc), loaded from task_checklist_types
 let taskTags=[]; // General Task tags, loaded from general_task_tags
+let generalTaskTemplates=[]; // general_task_templates rows
+let generalTaskInstances=[]; // general_task_instances rows for the current period(s)
+let editingGeneralTaskId=null;
   
 // ───────────────────────── AUTH (same pattern as clients.html) ─────────────────────────
 let tokenRefreshTimer=null;
@@ -307,6 +324,7 @@ function showApp(){
 document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
   document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
   document.getElementById('navTaskTags').style.display=canEditTemplates?'':'none';
+  document.getElementById('newGeneralTaskBtn').style.display=canEditTemplates?'':'none';
   document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   document.getElementById('dailyHistoryLinkWrap').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
@@ -345,6 +363,50 @@ async function loadTaskTags(){
   try{const r=await fetch(`${SB_URL}/rest/v1/general_task_tags?select=*&order=sort_order`,{headers:H()});taskTags=await r.json()}catch(e){console.error('Task tags load:',e);taskTags=[]}
 }
 function taskTagLabel(key){return taskTags.find(t=>t.key===key)?.label||key}
+async function loadGeneralTaskTemplates(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/general_task_templates?active=eq.true&select=*`,{headers:H()});generalTaskTemplates=await r.json()}catch(e){console.error('General task templates load:',e);generalTaskTemplates=[]}
+}
+function periodStartStr(recurrence){
+  const d=new Date();
+  if(recurrence==='weekly'){
+    const day=d.getDay();const diff=(day===0?-6:1-day);
+    const monday=new Date(d);monday.setDate(d.getDate()+diff);
+    return monday.getFullYear()+'-'+String(monday.getMonth()+1).padStart(2,'0')+'-'+String(monday.getDate()).padStart(2,'0');
+  }
+  if(recurrence==='monthly')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+  return todayStr();
+}
+async function ensureGeneralTaskInstances(){
+  const recurring=generalTaskTemplates.filter(t=>t.active&&t.recurrence!=='once');
+  for(const t of recurring){
+    try{
+      await fetch(`${SB_URL}/rest/v1/general_task_instances?on_conflict=template_id,occurrence_date`,{
+        method:'POST',headers:{...H(),'Prefer':'resolution=ignore-duplicates,return=minimal'},
+        body:JSON.stringify({template_id:t.id,occurrence_date:periodStartStr(t.recurrence)})
+      });
+    }catch(e){console.error('Ensure general task instance:',e)}
+  }
+}
+async function loadGeneralTaskInstances(){
+  const ids=generalTaskTemplates.map(t=>t.id);
+  if(!ids.length){generalTaskInstances=[];return}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/general_task_instances?template_id=in.(${ids.join(',')})&select=*`,{headers:H()});
+    generalTaskInstances=await r.json();
+  }catch(e){console.error('General task instances load:',e);generalTaskInstances=[]}
+}
+function currentGeneralTaskInstance(t){
+  if(t.recurrence==='once')return generalTaskInstances.find(i=>i.template_id===t.id);
+  const occDate=periodStartStr(t.recurrence);
+  return generalTaskInstances.find(i=>i.template_id===t.id&&i.occurrence_date===occDate);
+}
+function generalTaskVisibleToCurrentUser(t){
+  if(currentUser.role==='admin'||currentUser.role==='manager')return true;
+  if(!t.assigned_role&&!t.assigned_staff_id)return true;
+  if(t.assigned_staff_id===currentUser.staffId)return true;
+  if(t.assigned_role===currentUser.role)return true;
+  return false;
+}
 function checklistTypeLabel(key){return checklistTypes.find(c=>c.key===key)?.label||key}
 function checklistTypeOptionsHtml(selectedKey){
   let list=checklistTypes.filter(c=>c.active||c.key===selectedKey);
@@ -378,7 +440,7 @@ async function loadDailyInstances(){
   }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
 }
 async function loadAppData(){
-  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadTaskTags()]);
+  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadTaskTags(),loadGeneralTaskTemplates()]);
   await ensureDailyInstancesForToday();
   await loadDailyInstances();
 }
@@ -388,20 +450,23 @@ function switchTab(tab){
   activeTab=tab;
   document.getElementById('navDaily').classList.toggle('active',tab==='daily');
   document.getElementById('navRoom').classList.toggle('active',tab==='room');
+  document.getElementById('navGeneralTasks').classList.toggle('active',tab==='generaltasks');
   document.getElementById('navReview').classList.toggle('active',tab==='review');
 document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
   document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
   document.getElementById('navTaskTags').classList.toggle('active',tab==='tasktags');
   document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
   document.getElementById('roomSection').style.display=tab==='room'?'':'none';
+  document.getElementById('generalTasksSection').style.display=tab==='generaltasks'?'':'none';
   document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
   document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
   document.getElementById('checklistTypesSection').style.display=tab==='checklisttypes'?'':'none';
   document.getElementById('taskTagsSection').style.display=tab==='tasktags'?'':'none';
-  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',tasktags:'Task Tags'};
+  const titles={daily:'Daily Tasks',room:'Room Checklists',generaltasks:'General Tasks',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',tasktags:'Task Tags'};
   document.getElementById('topbarTitle').textContent=titles[tab];
   if(tab==='daily')renderDailyTasks();
   if(tab==='room')renderRoomTab();
+  if(tab==='generaltasks')renderGeneralTasksTab();
   if(tab==='review')renderReviewTab();
   if(tab==='templates')renderTemplatesTab();
   if(tab==='checklisttypes')renderChecklistTypesTab();
@@ -1036,6 +1101,133 @@ async function toggleTaskTagActive(id,active){
   try{
     await fetch(`${SB_URL}/rest/v1/general_task_tags?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
     await loadTaskTags();renderTaskTagsTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ───────────────────────── GENERAL TASKS ─────────────────────────
+async function renderGeneralTasksTab(){
+  const list=document.getElementById('generalTasksList');
+  list.innerHTML='<div class="empty-state">Loading…</div>';
+  await ensureGeneralTaskInstances();
+  await loadGeneralTaskInstances();
+  const visible=generalTaskTemplates.filter(generalTaskVisibleToCurrentUser);
+  const rows=visible.map(t=>({t,inst:currentGeneralTaskInstance(t)})).filter(r=>r.inst);
+  rows.sort((a,b)=>{
+    const uo=URGENCY_ORDER[a.t.urgency]-URGENCY_ORDER[b.t.urgency];
+    if(uo!==0)return uo;
+    const ad=a.t.due_date||'9999-99-99',bd=b.t.due_date||'9999-99-99';
+    return ad.localeCompare(bd);
+  });
+  if(!rows.length){list.innerHTML='<div class="empty-state">No tasks right now.</div>';return}
+  list.innerHTML=rows.map(({t,inst})=>{
+    const tagsHtml=(t.tags||[]).map(k=>`<span class="tag-pill">${escapeHtml(taskTagLabel(k))}</span>`).join(' ');
+    const recurLabel=t.recurrence==='once'?(t.due_date?`Due ${new Date(t.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'})}`:'One-off'):`Repeats ${t.recurrence}`;
+    const doneMeta=inst.done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${inst.completion_note?' — "'+escapeHtml(inst.completion_note)+'"':''}`:'';
+    return `<div class="daily-item">
+      <input type="checkbox" ${inst.done?'checked':''} onchange="toggleGeneralTaskDone('${inst.id}',this.checked)">
+      <div class="daily-item-body">
+        <div class="daily-item-name">${escapeHtml(t.title)} <span class="tag-pill" style="${URGENCY_STYLE[t.urgency]}">${URGENCY_LABEL[t.urgency]}</span> ${tagsHtml}</div>
+        <div class="daily-item-meta">${escapeHtml(assigneeLabel(t.assigned_staff_id,t.assigned_role))} · ${recurLabel}${t.description?' · '+escapeHtml(t.description):''}${inst.done?' · '+doneMeta:''}</div>
+      </div>
+      ${canEditTemplates?`<button class="btn btn-secondary btn-sm" onclick="openGeneralTaskEditor('${t.id}')"><i class="ti ti-pencil"></i></button>`:''}
+    </div>`;
+  }).join('');
+}
+async function toggleGeneralTaskDone(instanceId,checked){
+  const body=checked
+    ?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString(),completion_note:prompt('Any notes about completing this task? (optional)')||null}
+    :{done:false,done_by:null,done_at:null,completion_note:null};
+  try{
+    await fetch(`${SB_URL}/rest/v1/general_task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    await loadGeneralTaskInstances();renderGeneralTasksTab();
+  }catch(e){alert('Error updating task: '+e.message)}
+}
+function openNewGeneralTaskForm(){
+  editingGeneralTaskId='new';
+  renderGeneralTaskEditor({id:null,title:'',description:'',assigned_role:null,assigned_staff_id:null,urgency:'medium',recurrence:'once',due_date:'',tags:[],active:true});
+}
+function openGeneralTaskEditor(id){
+  editingGeneralTaskId=id;
+  const t=generalTaskTemplates.find(x=>x.id===id);
+  renderGeneralTaskEditor(t);
+}
+function renderGeneralTaskEditor(t){
+  const wrap=document.getElementById('generalTaskEditorWrap');
+  const tagCheckboxes=taskTags.filter(g=>g.active||(t.tags||[]).includes(g.key)).map(g=>`
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:10px">
+      <input type="checkbox" value="${g.key}" ${(t.tags||[]).includes(g.key)?'checked':''} class="genTaskTagCheckbox"> ${escapeHtml(g.label)}
+    </label>`).join('');
+  wrap.innerHTML=`<div class="card">
+    <div class="form-row"><label class="form-label">Title</label><input class="form-input" id="gtTitle" value="${escapeHtml(t.title||'')}" placeholder="e.g. Restock printer paper"></div>
+    <div class="form-row"><label class="form-label">Instructions (optional)</label><textarea class="form-textarea" id="gtDescription" rows="2">${escapeHtml(t.description||'')}</textarea></div>
+    <div class="form-row" style="display:flex;gap:8px">
+      <div style="flex:1"><label class="form-label">Assign to</label><select class="form-select" id="gtAssignee">${assigneeOptionsHtml(t.assigned_staff_id,t.assigned_role)}</select></div>
+      <div style="flex:1"><label class="form-label">Urgency</label><select class="form-select" id="gtUrgency">
+        <option value="low" ${t.urgency==='low'?'selected':''}>Low</option>
+        <option value="medium" ${t.urgency==='medium'?'selected':''}>Medium</option>
+        <option value="high" ${t.urgency==='high'?'selected':''}>High</option>
+        <option value="urgent" ${t.urgency==='urgent'?'selected':''}>Urgent</option>
+      </select></div>
+    </div>
+    <div class="form-row" style="display:flex;gap:8px">
+      <div style="flex:1"><label class="form-label">Repeats</label><select class="form-select" id="gtRecurrence" onchange="onGeneralTaskRecurrenceChange()">
+        <option value="once" ${t.recurrence==='once'?'selected':''}>One-off (due by a date)</option>
+        <option value="daily" ${t.recurrence==='daily'?'selected':''}>Daily</option>
+        <option value="weekly" ${t.recurrence==='weekly'?'selected':''}>Weekly</option>
+        <option value="monthly" ${t.recurrence==='monthly'?'selected':''}>Monthly</option>
+      </select></div>
+      <div style="flex:1" id="gtDueDateWrap"><label class="form-label">Required by</label><input type="date" class="form-input" id="gtDueDate" value="${t.due_date||''}"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Tags</label><div>${tagCheckboxes||'<div style="font-size:12px;color:var(--muted)">No tags yet — add some under Task Tags.</div>'}</div></div>
+    <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="gtActive" ${t.active!==false?'checked':''}> Active</label></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" onclick="saveGeneralTask()"><i class="ti ti-device-floppy"></i> Save</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('generalTaskEditorWrap').innerHTML=''">Cancel</button>
+      ${t.id?`<button class="btn btn-danger" onclick="deactivateGeneralTask('${t.id}')">Deactivate</button>`:''}
+    </div>
+  </div>`;
+  onGeneralTaskRecurrenceChange();
+}
+function onGeneralTaskRecurrenceChange(){
+  const rec=document.getElementById('gtRecurrence').value;
+  document.getElementById('gtDueDateWrap').style.display=rec==='once'?'':'none';
+}
+async function saveGeneralTask(){
+  const title=document.getElementById('gtTitle').value.trim();
+  if(!title){alert('Please enter a task title.');return}
+  const assigneeVal=document.getElementById('gtAssignee').value;
+  const assigned_role=assigneeVal.startsWith('role:')?assigneeVal.slice(5):null;
+  const assigned_staff_id=(!assigned_role&&assigneeVal)?assigneeVal:null;
+  const urgency=document.getElementById('gtUrgency').value;
+  const recurrence=document.getElementById('gtRecurrence').value;
+  const due_date=recurrence==='once'?(document.getElementById('gtDueDate').value||null):null;
+  const description=document.getElementById('gtDescription').value.trim()||null;
+  const active=document.getElementById('gtActive').checked;
+  const tags=[...document.querySelectorAll('.genTaskTagCheckbox:checked')].map(cb=>cb.value);
+  const body={title,description,assigned_role,assigned_staff_id,urgency,recurrence,due_date,active,tags};
+  try{
+    if(editingGeneralTaskId==='new'){
+      body.created_by=currentUser.staffId;
+      const r=await fetch(`${SB_URL}/rest/v1/general_task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
+      const rows=await r.json();
+      if(recurrence==='once'&&rows[0]){
+        await fetch(`${SB_URL}/rest/v1/general_task_instances`,{method:'POST',headers:H(),body:JSON.stringify({template_id:rows[0].id,occurrence_date:due_date||todayStr()})});
+      }
+    }else{
+      await fetch(`${SB_URL}/rest/v1/general_task_templates?id=eq.${editingGeneralTaskId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    }
+    document.getElementById('generalTaskEditorWrap').innerHTML='';
+    await loadGeneralTaskTemplates();
+    renderGeneralTasksTab();
+  }catch(e){alert('Error saving task: '+e.message)}
+}
+async function deactivateGeneralTask(id){
+  if(!confirm('Deactivate this task? It will stop showing up, but history is kept.'))return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/general_task_templates?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})});
+    document.getElementById('generalTaskEditorWrap').innerHTML='';
+    await loadGeneralTaskTemplates();
+    renderGeneralTasksTab();
   }catch(e){alert('Error: '+e.message)}
 }
 
