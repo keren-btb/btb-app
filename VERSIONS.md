@@ -50,6 +50,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.11 — 2026-08-05 — Replaced realistic-looking placeholder names ("Sarah Robinson" / "sarah@example.com") with neutral placeholders across booking, contact, and enquiry forms. Fixed scroll race that could leave the review-screen ticket animation off-screen. Ticket highlight animation reworked: red flash instead of teal, game name now gets a matching red box (not just text pulse), sequence overlaps and runs much faster (~5s total, down from ~20s). Note: v1.7.1 entry below is stale — actual file has progressed well past that point (merged deepseek/ build, SSO, security fixes, etc.) without matching VERSIONS.md entries; recommend a full changelog reconciliation next time this file is substantially touched.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html

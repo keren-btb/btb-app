@@ -123,7 +123,7 @@ body {
   height: 100%;
   background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
   transform: skewX(-15deg);
-  animation: shimmerSweep 1.9s ease-in-out;
+  animation: shimmerSweep 1.3s ease-in-out;
   pointer-events: none;
   z-index: 20;
 }
@@ -134,7 +134,7 @@ body {
 }
 
 .pulse-box {
-  animation: pulseBox 4.5s ease-in-out 1;
+  animation: pulseBox 1.4s ease-in-out 1;
 }
 
 @keyframes pulseBox {
@@ -144,30 +144,45 @@ body {
     border-color: var(--border-color);
   }
   50% {
-    box-shadow: 0 0 0 3px var(--accent-glow);
-    background: var(--accent-dim);
-    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+    background: rgba(220, 38, 38, 0.15);
+    border-color: var(--red);
   }
 }
 
 .pulse-box .tbc-small {
   display: inline-block;
-  animation: pulseZoom 4.5s ease-in-out 1;
+  animation: pulseZoom 1.4s ease-in-out 1;
 }
 
 @keyframes pulseZoom {
   0%, 100% { transform: scale(1); color: var(--text-muted); }
-  50% { transform: scale(1.5); color: var(--accent); }
+  50% { transform: scale(1.5); color: var(--red); }
 }
 
 .pulse-name {
   display: inline-block;
-  animation: pulseName 3.5s ease-in-out 1;
+  animation: pulseName 1.4s ease-in-out 1;
 }
 
 @keyframes pulseName {
   0%, 100% { color: var(--text-primary); text-shadow: none; transform: scale(1); }
-  50% { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); transform: scale(1.3); }
+  50% { color: var(--red); text-shadow: 0 0 10px rgba(220, 38, 38, 0.35); transform: scale(1.3); }
+}
+
+/* Red-tinted background flash box around the game name, matching the
+   DATE/TIME/PLAYERS boxes below. Uses padding+negative margin so it gets
+   breathing room without shifting surrounding layout. */
+.pulse-name-box {
+  animation: pulseNameBox 1.4s ease-in-out 1;
+  padding: 3px 6px;
+  margin: -3px -6px;
+  border-radius: 4px;
+}
+
+@keyframes pulseNameBox {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(220, 38, 38, 0.15); }
 }
 
 /* ============ TICKET STUB (LEFT) ============ */
@@ -3607,17 +3622,17 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="field-row" style="margin-bottom:16px">
               <div class="field">
                 <div class="field-label">First name <span class="req">*</span></div>
-<input class="field-input" type="text" id="fFirst" placeholder="Sarah" autocomplete="given-name" oninput="updateTicketPreview()">
+<input class="field-input" type="text" id="fFirst" placeholder="First name" autocomplete="given-name" oninput="updateTicketPreview()">
               </div>
               <div class="field">
                 <div class="field-label">Last name <span class="req">*</span></div>
-                <input class="field-input" type="text" id="fLast" placeholder="Robinson" autocomplete="family-name">
+                <input class="field-input" type="text" id="fLast" placeholder="Last name" autocomplete="family-name">
               </div>
             </div>
 
             <div class="field">
               <div class="field-label">Email <span class="req">*</span></div>
-              <input class="field-input" type="email" id="fEmail" placeholder="sarah@example.com" autocomplete="email">
+              <input class="field-input" type="email" id="fEmail" placeholder="you@example.com" autocomplete="email">
             </div>
             <div class="field">
               <div class="field-label">Phone <span class="req">*</span></div>
@@ -3755,11 +3770,11 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="section-sub">Fill in as much or as little as you like — we'll get back to you as soon as we can.</div>
             <div class="err-msg" id="enqFormErr"></div>
             <div class="field-row" style="margin-bottom:16px">
-              <div class="field"><div class="field-label">First name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="cFirst" placeholder="Sarah" autocomplete="given-name"></div>
-              <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" id="cLast" placeholder="Robinson" autocomplete="family-name"></div>
+              <div class="field"><div class="field-label">First name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="cFirst" placeholder="First name" autocomplete="given-name"></div>
+              <div class="field"><div class="field-label">Last name</div><input class="field-input" type="text" id="cLast" placeholder="Last name" autocomplete="family-name"></div>
             </div>
             <div class="field"><div class="field-label">Phone <span style="color:var(--red)">*</span></div><input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567" autocomplete="tel"></div>
-            <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com" autocomplete="email"></div>
+            <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="cEmail" placeholder="you@example.com" autocomplete="email"></div>
             <div class="field"><div class="field-label">What are you interested in?</div>
               <select class="field-select" id="cGame">
                 <option value="">Not sure yet</option>
@@ -3807,7 +3822,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
     <div class="enq-modal-sub" id="enqSub">Tell us what you're after and we'll get back to you.</div>
     <div class="field">
       <div class="field-label">Your name <span class="req">*</span></div>
-      <input class="field-input" type="text" id="enqName" placeholder="Sarah Robinson">
+      <input class="field-input" type="text" id="enqName" placeholder="Full name">
     </div>
     <div class="field">
       <div class="field-label">Contact (phone or email) <span class="req">*</span></div>
@@ -3847,7 +3862,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.10'; // v1.7.10: Security fix — escaped customer name/email/phone/occasion/special-person name/age/company/school/previous-game before inserting into innerHTML on the review and confirmation screens (self-XSS, defense-in-depth for data that later lands on the booking record). Also fixed silent failure on settings load: shows a clear error screen with a refresh button instead of continuing on the stale hardcoded game/pricing fallback if the live settings fetch fails.
+const BUILD_VERSION = '1.7.11'; // v1.7.11: Replaced realistic-looking placeholder names ("Sarah Robinson" / "sarah@example.com") across the booking form, contact form, and enquiry form with neutral placeholders. Fixed a scroll race that could leave the review-screen ticket animation off-screen (goTo() and playTicketHighlight() were both scrolling at once). Ticket highlight animation reworked: DATE/TIME/PLAYERS/game-name pulses now flash red instead of teal, the game name gets a matching red box (not just text pulse), and the whole sequence overlaps and runs much faster (~5s total, down from ~20s).
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4308,7 +4323,14 @@ function goTo(screenId, step) {
   const screenEl = document.getElementById(screenId);
   screenEl.classList.add('active');
   setStep(step);
-  scrollScreenIntoView(screenEl);
+  // The review screen (s3review) is a special case: playTicketHighlight()
+  // does its own scroll to bring the ticket (which sits above .screens)
+  // into view. If we also scroll here to the screen container itself, the
+  // two scrolls race and sometimes leave the ticket off-screen while the
+  // animation plays. So skip our own scroll here and let that one own it.
+  if (screenId !== 's3review') {
+    scrollScreenIntoView(screenEl);
+  }
   updateLeftSummary();
 }
 
@@ -4985,6 +5007,7 @@ function playTicketHighlight() {
   });
 
   const nameEl = document.getElementById('stubGame');
+  const nameBoxEl = nameEl?.closest('.stub-row');
   const boxEls = ['ticketDate', 'ticketTime', 'ticketPlayers']
     .map(id => document.getElementById(id)?.closest('.seat-box'))
     .filter(Boolean);
@@ -4998,15 +5021,15 @@ function playTicketHighlight() {
   };
 
   // Timing constants (kept together so future tweaks are easy):
-  // shimmer -> gap -> name pulse -> gap -> DATE pulse -> gap -> TIME pulse -> gap -> PLAYERS pulse
-  // Each step now fully finishes before the next one starts, with a pause in between.
-  const SHIMMER_DELAY = 250;
-  const SHIMMER_MS = 1900;   // matches @keyframes shimmerSweep duration in CSS
-  const NAME_PULSE_MS = 3500; // matches @keyframes pulseName duration in CSS
-  const BOX_PULSE_MS = 4500;  // matches @keyframes pulseBox/pulseZoom duration in CSS
-  const GAP_AFTER_SHIMMER = 0;   // no pause before the game name pulse - starts right as shimmer ends
-  const GAP_AFTER_NAME = 500;    // pause before DATE starts
-  const GAP_BETWEEN_BOXES = 350; // pause between DATE/TIME/PLAYERS (reduced from 500)
+  // shimmer -> name pulse -> DATE pulse -> TIME pulse -> PLAYERS pulse
+  // Each next step now starts OVERLAP_MS before the previous one finishes,
+  // instead of waiting for a full finish + pause, so the whole sequence
+  // reads as quick and continuous rather than slow and sequential.
+  const SHIMMER_DELAY = 80;   // was 250 - starts almost immediately
+  const SHIMMER_MS = 1300;    // matches @keyframes shimmerSweep duration in CSS
+  const NAME_PULSE_MS = 1400; // matches @keyframes pulseName/pulseNameBox duration in CSS
+  const BOX_PULSE_MS = 1400;  // matches @keyframes pulseBox/pulseZoom duration in CSS
+  const OVERLAP_MS = 450;     // each step starts this many ms before the previous one ends
 
   setTimeout(() => {
     wrapper.classList.remove('shimmer-play');
@@ -5015,12 +5038,15 @@ function playTicketHighlight() {
     wrapper.addEventListener('animationend', () => wrapper.classList.remove('shimmer-play'), { once: true });
   }, SHIMMER_DELAY);
 
-  let t = SHIMMER_DELAY + SHIMMER_MS + GAP_AFTER_SHIMMER;
-  setTimeout(() => pulse(nameEl, 'pulse-name'), t);
-  t += NAME_PULSE_MS + GAP_AFTER_NAME;
+  let t = SHIMMER_DELAY + SHIMMER_MS - OVERLAP_MS;
+  setTimeout(() => {
+    pulse(nameEl, 'pulse-name');
+    pulse(nameBoxEl, 'pulse-name-box');
+  }, t);
+  t += NAME_PULSE_MS - OVERLAP_MS;
   boxEls.forEach(el => {
     setTimeout(() => pulse(el, 'pulse-box'), t);
-    t += BOX_PULSE_MS + GAP_BETWEEN_BOXES;
+    t += BOX_PULSE_MS - OVERLAP_MS;
   });
 }
 
