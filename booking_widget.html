@@ -415,6 +415,32 @@ body {
   background: var(--accent-glow);
 }
 
+/* Red arrow + label pointing down from the ticket to the Confirm Booking
+   button below. Lives outside .ticket-wrapper (which clips overflow) so it
+   isn't cut off, and pulls up with a negative margin to visually start
+   right at the ticket's bottom edge. */
+.confirm-arrow-hint {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: -8px 8px 6px 0;
+}
+
+.confirm-arrow-svg {
+  width: 62px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.confirm-arrow-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  margin-top: 22px;
+  white-space: nowrap;
+}
+
 .seat-box {
   background: #f0f0f0;
   border-radius: 8px;
@@ -3459,6 +3485,14 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
         </div>
         <!-- /ticket-wrapper -->
 
+        <div class="confirm-arrow-hint" id="confirmArrowHint" style="display:none">
+          <svg class="confirm-arrow-svg" viewBox="0 0 100 85" aria-hidden="true">
+            <path d="M50 4 C 10 20, 20 55, 50 60 C 65 63, 68 55, 78 68" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M68 58 L86 76 L70 72 Z" fill="#dc2626"/>
+          </svg>
+          <div class="confirm-arrow-label">Confirm booking below ↓</div>
+        </div>
+
         <!-- ====== FLAT SCREENS (outside ticket card) ====== -->
         <div class="screens">
           <!-- ====== SCREENS ====== -->
@@ -3883,7 +3917,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.13'; // v1.7.13: Removed Game/Date/Time/Players rows from the review card underneath the ticket - the ticket above already shows all four, so they were duplicated. Review card now starts with Name/Email/Phone.
+const BUILD_VERSION = '1.7.14'; // v1.7.14: Added a red curved arrow + "Confirm booking below" label under the ticket on the review screen, pointing down toward the Confirm Booking button. Shown/hidden alongside the Replay animation button.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4355,6 +4389,8 @@ function goTo(screenId, step) {
   }
   const replayBtn = document.getElementById('btnReplayAnim');
   if (replayBtn) replayBtn.style.display = (screenId === 's3review') ? '' : 'none';
+  const arrowHint = document.getElementById('confirmArrowHint');
+  if (arrowHint) arrowHint.style.display = (screenId === 's3review') ? '' : 'none';
   updateLeftSummary();
 }
 
