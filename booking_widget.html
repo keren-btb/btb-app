@@ -3883,7 +3883,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.12'; // v1.7.12: Fixed "Have you played with us before?" showing "First time" as already selected when it first becomes visible - it was being silently auto-answered while hidden, and that stale answer stuck around once shown. Added a "Replay animation" button on the ticket (visible only on the review screen). Ticket highlight animation nudged slightly slower per feedback (~6.8s total, up from v1.7.11's ~5s).
+const BUILD_VERSION = '1.7.13'; // v1.7.13: Removed Game/Date/Time/Players rows from the review card underneath the ticket - the ticket above already shows all four, so they were duplicated. Review card now starts with Name/Email/Phone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4988,8 +4988,6 @@ function showReviewScreen() {
   if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
   if (!phone) { showErr('Please enter a phone number so we can reach you.'); return; }
 
-  const d = new Date(selDate + 'T12:00');
-  const dateLabel = DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
   const occasion = document.getElementById('fOccasion').value;
   const specialName = document.getElementById('fSpecialName').value.trim();
   const specialAge = document.getElementById('fSpecialAge')?.value;
@@ -5002,10 +5000,6 @@ function showReviewScreen() {
   const depositLabels = { stripe: '💳 Card', bank_transfer: '🏦 Bank transfer', invoice: '📧 Invoice me', cash: '💵 Cash in person' };
 
   const rows = [
-    ['Game', `${selGame.icon || ''} ${selGame.name}`],
-    ['Date', dateLabel],
-    ['Time', fmt12(selSlot)],
-    ['Players', playerCount],
     ['Name', `${escapeHtml(first)} ${escapeHtml(last)}`],
     ['Email', escapeHtml(email)],
     ['Phone', escapeHtml(phone)],
