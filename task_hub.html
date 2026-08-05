@@ -151,6 +151,16 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
           <input class="form-input" id="newAdhocTaskLabel" placeholder="Add a one-off task for today…" onkeydown="if(event.key==='Enter')addAdhocDailyTask()">
           <button class="btn btn-primary btn-sm" onclick="addAdhocDailyTask()"><i class="ti ti-plus"></i> Add</button>
         </div>
+        <div id="dailyHistoryLinkWrap" style="display:none;margin-bottom:10px">
+          <span class="tab-item" onclick="toggleDailyHistoryPanel()"><i class="ti ti-history"></i> History</span>
+        </div>
+        <div id="dailyHistoryPanel" class="card" style="display:none;margin-bottom:12px">
+          <div class="form-row" style="display:flex;gap:8px;align-items:center">
+            <input type="date" class="form-input" id="dailyHistoryDate" onchange="loadDailyHistoryForDate()">
+            <button class="btn btn-secondary btn-sm" onclick="toggleDailyHistoryPanel()">Close</button>
+          </div>
+          <div id="dailyHistoryList" style="margin-top:10px"></div>
+        </div>
         <div id="dailyList"></div>
       </div>
 
@@ -203,7 +213,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.3.0';
+const BUILD_VERSION = '1.4.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -285,6 +295,7 @@ function showApp(){
 document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
   document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
   document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
+  document.getElementById('dailyHistoryLinkWrap').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
     document.getElementById('mainSidebar').classList.add('collapsed');
     document.getElementById('sidebarEdgeTab').classList.add('show');
@@ -442,6 +453,40 @@ async function deleteAdhocDailyTask(instanceId){
     await fetch(`${SB_URL}/rest/v1/daily_task_instances?id=eq.${instanceId}`,{method:'DELETE',headers:H()});
     await loadDailyInstances();renderDailyTasks();
   }catch(e){alert('Error removing task: '+e.message)}
+}
+function toggleDailyHistoryPanel(){
+  const panel=document.getElementById('dailyHistoryPanel');
+  const open=panel.style.display==='none';
+  panel.style.display=open?'':'none';
+  if(open){
+    const dateEl=document.getElementById('dailyHistoryDate');
+    if(!dateEl.value)dateEl.value=todayStr();
+    loadDailyHistoryForDate();
+  }
+}
+async function loadDailyHistoryForDate(){
+  const date=document.getElementById('dailyHistoryDate').value;
+  const list=document.getElementById('dailyHistoryList');
+  if(!date)return;
+  list.innerHTML='<div class="empty-state">Loading…</div>';
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/daily_task_instances?task_date=eq.${date}&select=*,task_templates(name)`,{headers:H()});
+    const rows=await r.json();
+    if(!rows.length){list.innerHTML='<div class="empty-state">No daily tasks recorded for this day.</div>';return}
+    list.innerHTML=rows.map(inst=>{
+      const name=inst.task_templates?.name||inst.label||'(untitled task)';
+      const oneOff=!inst.template_id?' <span class="tag-pill">one-off</span>':'';
+      const status=inst.done
+        ?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`
+        :'Not done';
+      return `<div class="daily-item">
+        <div class="daily-item-body">
+          <div class="daily-item-name">${escapeHtml(name)}${oneOff}</div>
+          <div class="daily-item-meta">${status}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){list.innerHTML='<div class="empty-state">Error loading history: '+escapeHtml(e.message)+'</div>'}
 }
 
 
