@@ -136,6 +136,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
     <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
 <span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
     <span class="nav-item" id="navChecklistTypes" style="display:none" onclick="switchTab('checklisttypes')"><i class="ti ti-list"></i> Checklist Types</span>
+    <span class="nav-item" id="navTaskTags" style="display:none" onclick="switchTab('tasktags')"><i class="ti ti-tags"></i> Task Tags</span>
   </aside>
     
 
@@ -208,12 +209,22 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
           <button class="btn btn-primary btn-sm" onclick="addChecklistType()"><i class="ti ti-plus"></i> Add</button>
         </div>
       </div>
+
+      <!-- GENERAL TASK TAGS ADMIN -->
+      <div id="taskTagsSection" style="display:none">
+        <div id="taskTagsListWrap"></div>
+        <div class="card" style="margin-top:16px">
+          <div class="field-block-label" style="margin-bottom:8px">Add a new tag</div>
+          <div class="form-row"><input class="form-input" id="newTaskTagLabel" placeholder="e.g. Maintenance"></div>
+          <button class="btn btn-primary btn-sm" onclick="addTaskTag()"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
         
 <script>
-const BUILD_VERSION = '1.4.1';
+const BUILD_VERSION = '1.5.0';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -247,6 +258,7 @@ let currentRoomTemplate=null; // the active template object for the room form cu
 let editingTemplateId=null; // template currently open in the editor, or 'new'
 let editingFields=[]; // working copy of fields while editing a template
 let checklistTypes=[]; // room checklist types (Reset/Setup/Shutdown/etc), loaded from task_checklist_types
+let taskTags=[]; // General Task tags, loaded from general_task_tags
   
 // ───────────────────────── AUTH (same pattern as clients.html) ─────────────────────────
 let tokenRefreshTimer=null;
@@ -294,6 +306,7 @@ function showApp(){
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
 document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
   document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
+  document.getElementById('navTaskTags').style.display=canEditTemplates?'':'none';
   document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   document.getElementById('dailyHistoryLinkWrap').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
@@ -328,6 +341,10 @@ async function loadTemplates(){
 async function loadChecklistTypes(){
   try{const r=await fetch(`${SB_URL}/rest/v1/task_checklist_types?select=*&order=sort_order`,{headers:H()});checklistTypes=await r.json()}catch(e){console.error('Checklist types load:',e);checklistTypes=[]}
 }
+async function loadTaskTags(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/general_task_tags?select=*&order=sort_order`,{headers:H()});taskTags=await r.json()}catch(e){console.error('Task tags load:',e);taskTags=[]}
+}
+function taskTagLabel(key){return taskTags.find(t=>t.key===key)?.label||key}
 function checklistTypeLabel(key){return checklistTypes.find(c=>c.key===key)?.label||key}
 function checklistTypeOptionsHtml(selectedKey){
   let list=checklistTypes.filter(c=>c.active||c.key===selectedKey);
@@ -361,7 +378,7 @@ async function loadDailyInstances(){
   }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
 }
 async function loadAppData(){
-  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes()]);
+  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadTaskTags()]);
   await ensureDailyInstancesForToday();
   await loadDailyInstances();
 }
@@ -374,18 +391,21 @@ function switchTab(tab){
   document.getElementById('navReview').classList.toggle('active',tab==='review');
 document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
   document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
+  document.getElementById('navTaskTags').classList.toggle('active',tab==='tasktags');
   document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
   document.getElementById('roomSection').style.display=tab==='room'?'':'none';
   document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
   document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
   document.getElementById('checklistTypesSection').style.display=tab==='checklisttypes'?'':'none';
-  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types'};
+  document.getElementById('taskTagsSection').style.display=tab==='tasktags'?'':'none';
+  const titles={daily:'Daily Tasks',room:'Room Checklists',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',tasktags:'Task Tags'};
   document.getElementById('topbarTitle').textContent=titles[tab];
   if(tab==='daily')renderDailyTasks();
   if(tab==='room')renderRoomTab();
   if(tab==='review')renderReviewTab();
   if(tab==='templates')renderTemplatesTab();
   if(tab==='checklisttypes')renderChecklistTypesTab();
+  if(tab==='tasktags')renderTaskTagsTab();
 }
   
 // ───────────────────────── DAILY TASKS ─────────────────────────
@@ -974,6 +994,48 @@ async function toggleChecklistTypeActive(id,active){
   try{
     await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
     await loadChecklistTypes();renderChecklistTypesTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ───────────────────────── GENERAL TASK TAGS ADMIN ─────────────────────────
+function renderTaskTagsTab(){
+  const wrap=document.getElementById('taskTagsListWrap');
+  if(!taskTags.length){wrap.innerHTML='<div class="empty-state">No tags yet.</div>';return}
+  wrap.innerHTML=taskTags.map(t=>`
+    <div class="template-row" style="cursor:default">
+      <div>
+        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(t.label)}" onchange="renameTaskTag('${t.id}',this.value)">
+        <div class="template-row-meta">key: ${escapeHtml(t.key)} · ${t.active?'Active':'Inactive'}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="toggleTaskTagActive('${t.id}',${!t.active})">${t.active?'Deactivate':'Activate'}</button>
+    </div>
+  `).join('');
+}
+async function addTaskTag(){
+  const labelEl=document.getElementById('newTaskTagLabel');
+  const label=labelEl.value.trim();
+  if(!label){alert('Please enter a name.');return}
+  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!key){alert('Please use at least one letter or number.');return}
+  if(taskTags.some(t=>t.key===key)){alert('A tag with that name already exists.');return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/general_task_tags`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:taskTags.length})});
+    labelEl.value='';
+    await loadTaskTags();renderTaskTagsTab();
+  }catch(e){alert('Error adding tag: '+e.message)}
+}
+async function renameTaskTag(id,newLabel){
+  newLabel=newLabel.trim();
+  if(!newLabel)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/general_task_tags?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
+    await loadTaskTags();renderTaskTagsTab();
+  }catch(e){alert('Error renaming: '+e.message)}
+}
+async function toggleTaskTagActive(id,active){
+  try{
+    await fetch(`${SB_URL}/rest/v1/general_task_tags?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
+    await loadTaskTags();renderTaskTagsTab();
   }catch(e){alert('Error: '+e.message)}
 }
 
