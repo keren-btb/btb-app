@@ -123,7 +123,7 @@ body {
   height: 100%;
   background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
   transform: skewX(-15deg);
-  animation: shimmerSweep 1.3s ease-in-out;
+  animation: shimmerSweep 1.5s ease-in-out;
   pointer-events: none;
   z-index: 20;
 }
@@ -134,7 +134,7 @@ body {
 }
 
 .pulse-box {
-  animation: pulseBox 1.4s ease-in-out 1;
+  animation: pulseBox 1.7s ease-in-out 1;
 }
 
 @keyframes pulseBox {
@@ -152,7 +152,7 @@ body {
 
 .pulse-box .tbc-small {
   display: inline-block;
-  animation: pulseZoom 1.4s ease-in-out 1;
+  animation: pulseZoom 1.7s ease-in-out 1;
 }
 
 @keyframes pulseZoom {
@@ -162,7 +162,7 @@ body {
 
 .pulse-name {
   display: inline-block;
-  animation: pulseName 1.4s ease-in-out 1;
+  animation: pulseName 1.7s ease-in-out 1;
 }
 
 @keyframes pulseName {
@@ -174,7 +174,7 @@ body {
    DATE/TIME/PLAYERS boxes below. Uses padding+negative margin so it gets
    breathing room without shifting surrounding layout. */
 .pulse-name-box {
-  animation: pulseNameBox 1.4s ease-in-out 1;
+  animation: pulseNameBox 1.7s ease-in-out 1;
   padding: 3px 6px;
   margin: -3px -6px;
   border-radius: 4px;
@@ -394,6 +394,25 @@ body {
   gap: 12px;
   margin-top: 14px;
   flex-wrap: wrap;
+}
+
+.ticket-replay-btn {
+  display: block;
+  margin: 12px auto 0 auto;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.ticket-replay-btn:hover {
+  background: var(--accent-glow);
 }
 
 .seat-box {
@@ -3432,7 +3451,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               <div class="seat-box"><span>TIME <span class="tbc-small" id="ticketTime">– TBC</span></span></div>
               <div class="seat-box"><span>PLAYERS <span class="tbc-small" id="ticketPlayers">– TBC</span></span></div>
             </div>
-            
+
+            <button type="button" class="ticket-replay-btn" id="btnReplayAnim" onclick="playTicketHighlight()" style="display:none">↻ Replay animation</button>
+
           </div>
           <!-- /ticket-main -->
         </div>
@@ -3862,7 +3883,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.11'; // v1.7.11: Replaced realistic-looking placeholder names ("Sarah Robinson" / "sarah@example.com") across the booking form, contact form, and enquiry form with neutral placeholders. Fixed a scroll race that could leave the review-screen ticket animation off-screen (goTo() and playTicketHighlight() were both scrolling at once). Ticket highlight animation reworked: DATE/TIME/PLAYERS/game-name pulses now flash red instead of teal, the game name gets a matching red box (not just text pulse), and the whole sequence overlaps and runs much faster (~5s total, down from ~20s).
+const BUILD_VERSION = '1.7.12'; // v1.7.12: Fixed "Have you played with us before?" showing "First time" as already selected when it first becomes visible - it was being silently auto-answered while hidden, and that stale answer stuck around once shown. Added a "Replay animation" button on the ticket (visible only on the review screen). Ticket highlight animation nudged slightly slower per feedback (~6.8s total, up from v1.7.11's ~5s).
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -3973,6 +3994,7 @@ let selDate = null;
 let selSlot = null;
 let playerCount = 2;
 let playedBefore = null;
+let playedBeforeAuto = false; // true only when playedBefore was silently auto-set while the question was hidden (not a real user answer)
 let selectedExperiences = [];
 const EXPERIENCE_LEVELS = [
   { value: 'First time', label: 'First time — totally new!' },
@@ -4331,6 +4353,8 @@ function goTo(screenId, step) {
   if (screenId !== 's3review') {
     scrollScreenIntoView(screenEl);
   }
+  const replayBtn = document.getElementById('btnReplayAnim');
+  if (replayBtn) replayBtn.style.display = (screenId === 's3review') ? '' : 'none';
   updateLeftSummary();
 }
 
@@ -4910,8 +4934,9 @@ document.getElementById('fSpecialAge').addEventListener('input', function() {
   document.getElementById('childHint').style.display = (!isNaN(age) && age < 18 && age >= 0) ? '' : 'none';
 });
 
-function setPlayedBefore(val) {
+function setPlayedBefore(val, auto = false) {
   playedBefore = val;
+  playedBeforeAuto = auto;
   document.getElementById('rb-yes').classList.toggle('selected', val === true);
   document.getElementById('rb-no').classList.toggle('selected', val === false);
   document.getElementById('prevGameWrap').style.display = val ? '' : 'none';
@@ -4923,9 +4948,19 @@ function updatePlayedBeforeVisibility() {
   const wrap = document.getElementById('playedBeforeWrap');
   if (isEscape && isFirstTime) {
     wrap.style.display = 'none';
-    setPlayedBefore(false);
+    setPlayedBefore(false, true); // auto-answered while hidden - not a real user choice
   } else {
     wrap.style.display = '';
+    if (playedBeforeAuto) {
+      // The question was previously hidden and silently auto-answered
+      // "First time". Now that it's visible again, clear that back to
+      // unanswered so it doesn't look pre-selected before the user picks.
+      playedBefore = null;
+      playedBeforeAuto = false;
+      document.getElementById('rb-yes').classList.remove('selected');
+      document.getElementById('rb-no').classList.remove('selected');
+      document.getElementById('prevGameWrap').style.display = 'none';
+    }
   }
 }
 
@@ -5025,11 +5060,11 @@ function playTicketHighlight() {
   // Each next step now starts OVERLAP_MS before the previous one finishes,
   // instead of waiting for a full finish + pause, so the whole sequence
   // reads as quick and continuous rather than slow and sequential.
-  const SHIMMER_DELAY = 80;   // was 250 - starts almost immediately
-  const SHIMMER_MS = 1300;    // matches @keyframes shimmerSweep duration in CSS
-  const NAME_PULSE_MS = 1400; // matches @keyframes pulseName/pulseNameBox duration in CSS
-  const BOX_PULSE_MS = 1400;  // matches @keyframes pulseBox/pulseZoom duration in CSS
-  const OVERLAP_MS = 450;     // each step starts this many ms before the previous one ends
+  const SHIMMER_DELAY = 120;  // starts almost immediately, slightly softer than before
+  const SHIMMER_MS = 1500;    // matches @keyframes shimmerSweep duration in CSS
+  const NAME_PULSE_MS = 1700; // matches @keyframes pulseName/pulseNameBox duration in CSS
+  const BOX_PULSE_MS = 1700;  // matches @keyframes pulseBox/pulseZoom duration in CSS
+  const OVERLAP_MS = 400;     // each step starts this many ms before the previous one ends
 
   setTimeout(() => {
     wrapper.classList.remove('shimmer-play');
@@ -5215,6 +5250,7 @@ function startOver() {
   selSlot = null;
   playerCount = 2;
   playedBefore = null;
+  playedBeforeAuto = false;
   escapeView = 'game';
   ['fFirst', 'fLast', 'fEmail', 'fPhone', 'fSpecialName', 'fCompanyName', 'fSchoolName', 'fSchoolAgeGroup'].forEach(id => {
     const el = document.getElementById(id);
