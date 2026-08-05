@@ -50,6 +50,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.15 — 2026-08-05 — Fixed confirm-booking arrow (was rendering as a broken curved blob pushed to the right). Now a simple straight down-pointing arrow stacked above the label, positioned under the ticket-main column so it starts under the ticket and points down onto the page.
 - v1.7.14 — 2026-08-05 — Added a red curved arrow + "Confirm booking below" label under the ticket on the review screen, pointing down toward the Confirm Booking button. Shown/hidden alongside the Replay animation button.
 - v1.7.13 — 2026-08-05 — Removed Game/Date/Time/Players rows from the review card underneath the ticket, since the ticket above already shows all four. Review card now starts with Name/Email/Phone.
 - v1.7.12 — 2026-08-05 — Fixed "Have you played with us before?" showing "First time" as already selected when it first becomes visible (was silently auto-answered while hidden, stale answer stuck around once shown). Added a "Replay animation" button on the ticket, visible only on the review screen. Ticket highlight animation nudged slightly slower per feedback (~6.8s total, up from v1.7.11's ~5s).

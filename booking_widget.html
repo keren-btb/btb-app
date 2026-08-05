@@ -415,29 +415,33 @@ body {
   background: var(--accent-glow);
 }
 
-/* Red arrow + label pointing down from the ticket to the Confirm Booking
-   button below. Lives outside .ticket-wrapper (which clips overflow) so it
-   isn't cut off, and pulls up with a negative margin to visually start
-   right at the ticket's bottom edge. */
+/* Red arrow + label pointing straight down from the ticket to the Confirm
+   Booking button below. Lives outside .ticket-wrapper (which clips overflow)
+   so it isn't cut off, and pulls up with a negative margin to visually start
+   right at the ticket's bottom edge. Offset left by the ticket-stub's width
+   (160px) so it lines up under ticket-main, where the replay button sits -
+   the stub stacks on top on mobile instead, so that offset is removed there. */
 .confirm-arrow-hint {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  margin: -8px 8px 6px 0;
+  margin: -6px 0 10px 160px;
 }
 
 .confirm-arrow-svg {
-  width: 62px;
-  height: 52px;
+  width: 46px;
+  height: 100px;
   flex-shrink: 0;
 }
 
 .confirm-arrow-label {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--red);
-  margin-top: 22px;
+  background: rgba(220, 38, 38, 0.08);
+  padding: 4px 12px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
@@ -481,6 +485,10 @@ body {
 @media (max-width: 700px) {
   .page {
     padding: 16px;
+  }
+
+  .confirm-arrow-hint {
+    margin-left: 0;
   }
 
 .ticket-wrapper {
@@ -3486,11 +3494,10 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
         <!-- /ticket-wrapper -->
 
         <div class="confirm-arrow-hint" id="confirmArrowHint" style="display:none">
-          <svg class="confirm-arrow-svg" viewBox="0 0 100 85" aria-hidden="true">
-            <path d="M50 4 C 10 20, 20 55, 50 60 C 65 63, 68 55, 78 68" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M68 58 L86 76 L70 72 Z" fill="#dc2626"/>
+          <svg class="confirm-arrow-svg" viewBox="0 0 60 130" aria-hidden="true">
+            <path d="M22 0 L38 0 L38 80 L54 80 L30 128 L6 80 L22 80 Z" fill="#dc2626"/>
           </svg>
-          <div class="confirm-arrow-label">Confirm booking below ↓</div>
+          <div class="confirm-arrow-label">Confirm booking below</div>
         </div>
 
         <!-- ====== FLAT SCREENS (outside ticket card) ====== -->
@@ -3917,7 +3924,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.14'; // v1.7.14: Added a red curved arrow + "Confirm booking below" label under the ticket on the review screen, pointing down toward the Confirm Booking button. Shown/hidden alongside the Replay animation button.
+const BUILD_VERSION = '1.7.15'; // v1.7.15: Fixed confirm-booking arrow - was rendering as a broken curved blob pushed to the right. Now a simple straight down-pointing arrow, stacked above the label, positioned under the ticket-main column (offset past the stub) so it starts under the ticket and points down onto the page.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
