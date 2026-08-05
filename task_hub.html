@@ -213,7 +213,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.4.0';
+const BUILD_VERSION = '1.4.1';
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -473,19 +473,28 @@ async function loadDailyHistoryForDate(){
     const r=await fetch(`${SB_URL}/rest/v1/daily_task_instances?task_date=eq.${date}&select=*,task_templates(name)`,{headers:H()});
     const rows=await r.json();
     if(!rows.length){list.innerHTML='<div class="empty-state">No daily tasks recorded for this day.</div>';return}
-    list.innerHTML=rows.map(inst=>{
+    const bodyRows=rows.map(inst=>{
       const name=inst.task_templates?.name||inst.label||'(untitled task)';
       const oneOff=!inst.template_id?' <span class="tag-pill">one-off</span>':'';
-      const status=inst.done
-        ?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`
-        :'Not done';
-      return `<div class="daily-item">
-        <div class="daily-item-body">
-          <div class="daily-item-name">${escapeHtml(name)}${oneOff}</div>
-          <div class="daily-item-meta">${status}</div>
-        </div>
-      </div>`;
+      const who=inst.done?escapeHtml(staffName(inst.done_by)):'—';
+      const when=inst.done?new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'}):'—';
+      const statusBadge=inst.done?'<span class="tag-pill" style="background:#dcfce7;color:#166534">Done</span>':'<span class="tag-pill" style="background:#f3f4f6;color:#6b7280">Not done</span>';
+      return `<tr>
+        <td style="padding:7px 10px;font-size:13px">${escapeHtml(name)}${oneOff}</td>
+        <td style="padding:7px 10px">${statusBadge}</td>
+        <td style="padding:7px 10px;font-size:13px;color:var(--muted)">${who}</td>
+        <td style="padding:7px 10px;font-size:13px;color:var(--muted)">${when}</td>
+      </tr>`;
     }).join('');
+    list.innerHTML=`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Task</th>
+        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Status</th>
+        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Done by</th>
+        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Time</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
   }catch(e){list.innerHTML='<div class="empty-state">Error loading history: '+escapeHtml(e.message)+'</div>'}
 }
 
