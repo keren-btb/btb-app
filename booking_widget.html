@@ -5426,7 +5426,7 @@ try {
   thanks.innerHTML = `<div style="background:var(--bg-card);border:var(--ticket-border);border-radius:var(--ticket-radius);padding:32px;width:100%;max-width:380px;text-align:center;box-shadow:var(--shadow)">
       <div style="font-size:52px;margin-bottom:14px">🥽</div>
       <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">Enquiry sent!</div>
-Thanks ${first}! We'll be in touch at <strong style="color:var(--text-primary)">${phone || email}</strong> as soon as we can.
+Thanks ${escapeHtml(name)}! We'll get back to you at <strong style="color:var(--text-primary)">${escapeHtml(contact)}</strong> as soon as we can to confirm availability.
 <button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
     </div>`;
   document.body.appendChild(thanks);
@@ -5510,7 +5510,7 @@ try {
         <div style="font-size:52px;margin-bottom:14px">💬</div>
         <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">Message sent!</div>
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:24px">
-
+          Thanks ${escapeHtml(first)}! We'll be in touch at <strong style="color:var(--text-primary)">${escapeHtml(phone || email)}</strong> as soon as we can.
         </div>
         <button class="btn btn-primary" onclick="this.closest('div[style]').remove();startOver()">Done →</button>
       </div>`;
