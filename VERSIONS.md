@@ -51,6 +51,8 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.18 — 2026-08-06 — Made page copy editable via settings (key: btb_booking_text) instead of hardcoded — the 4 category circle titles/tooltips, the cafe "How it works" panel text, and the VR casual card title/sub. Also added an optional "i" tooltip icon to game cards (Escape/VR/Cafe), driven by a new per-game `tooltip` field, and to the VR casual card. All fall back to today's wording if settings/field is blank, so nothing changes until edited.
+- v1.7.17 — 2026-08-06 — Board Game Cafe "How it works" pricing line was a hardcoded "$2 per person per hour" that never updated when the rate was raised to $4 in settings. Now pulls the rate and minimum players live from bookingConfig, same as the price tag above it, so it can't go stale again.
 - v1.7.16 — 2026-08-06 — Fixed reflected-XSS in the two enquiry thank-you popups (name/contact and first/phone/email now escaped via escapeHtml()). Also restored the submitContactEnquiry thank-you message text, which had gone missing.
 - v1.7.15 — 2026-08-05 — Fixed confirm-booking arrow (was rendering as a broken curved blob pushed to the right). Now a simple straight down-pointing arrow stacked above the label, positioned under the ticket-main column so it starts under the ticket and points down onto the page.
 - v1.7.14 — 2026-08-05 — Added a red curved arrow + "Confirm booking below" label under the ticket on the review screen, pointing down toward the Confirm Booking button. Shown/hidden alongside the Replay animation button.

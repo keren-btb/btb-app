@@ -745,6 +745,38 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ============ CARD TOOLTIPS (game cards, VR casual card) ============ */
+/* Same "i" icon as the circles above, reused on any card via .tooltip-icon;
+   the popup itself opens downward since these cards sit in a vertical list. */
+.card-tooltip {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  transform: translateY(-6px);
+  background: #f0f9fa;
+  color: var(--text-secondary);
+  padding: 12px 16px;
+  border-radius: 14px;
+  width: min(280px, 100%);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+  z-index: 20;
+  text-align: left;
+  border: 1px solid rgba(7, 180, 197, 0.15);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+.tooltip-open > .card-tooltip {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -1014,8 +1046,13 @@ body {
   display: flex;
   align-items: stretch;
   min-height: 92px;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.game-card .game-photo {
+  overflow: hidden;
+  border-radius: 10px 0 0 10px;
 }
 
 .game-card:hover {
@@ -1839,6 +1876,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 12px;
+  position: relative;
 }
 
 .casual-card:hover {
@@ -3520,29 +3558,29 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               <!-- Escape Rooms -->
               <div class="cat-circle" onclick="selectCategory('escape')">
                 <div class="circle">🚪<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
-                <div class="cat-title">Escape Rooms</div>
-                <div class="tooltip">Solve puzzles &amp; complete your mission before time runs out. 60 min sessions.</div>
+                <div class="cat-title" id="catTitle-escape">Escape Rooms</div>
+                <div class="tooltip" id="catTooltip-escape">Solve puzzles &amp; complete your mission before time runs out. 60 min sessions.</div>
               </div>
 
               <!-- VR -->
               <div class="cat-circle" onclick="selectCategory('vr')">
                 <div class="circle">🥽<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
-                <div class="cat-title">VR Experiences</div>
-                <div class="tooltip">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
+                <div class="cat-title" id="catTitle-vr">VR Experiences</div>
+                <div class="tooltip" id="catTooltip-vr">Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.</div>
               </div>
 
               <!-- Cafe -->
               <div class="cat-circle" onclick="selectCategory('cafe')">
                 <div class="circle">☕<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
-                <div class="cat-title">Board Game Cafe</div>
-                <div class="tooltip">Hire a table, choose from our game library, and enjoy food &amp; drinks with your group.</div>
+                <div class="cat-title" id="catTitle-cafe">Board Game Cafe</div>
+                <div class="tooltip" id="catTooltip-cafe">Hire a table, choose from our game library, and enjoy food &amp; drinks with your group.</div>
               </div>
 
               <!-- Contact -->
               <div class="cat-circle" onclick="selectCategory('enquiry')">
                 <div class="circle">💬<div class="tooltip-icon" onclick="event.stopPropagation(); showTooltip(this)">i</div></div>
-                <div class="cat-title">Contact Us</div>
-                <div class="tooltip">Got a question, custom booking, or group rates? Send us a message.</div>
+                <div class="cat-title" id="catTitle-enquiry">Contact Us</div>
+                <div class="tooltip" id="catTooltip-enquiry">Got a question, custom booking, or group rates? Send us a message.</div>
               </div>
             </div>
           </div>
@@ -3622,8 +3660,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               </div>
             </div>
             <div class="casual-card" onclick="openEnquiry('casual-vr')">
-              <div class="casual-title">🎮 Casual VR — check availability</div>
-              <div class="casual-sub">Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.</div>
+              <div id="vrCasualTooltipIcon"></div>
+              <div class="casual-title" id="vrCasualTitle">🎮 Casual VR — check availability</div>
+              <div class="casual-sub" id="vrCasualSub">Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.</div>
             </div>
           </div>
 
@@ -3635,10 +3674,10 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="info-panel">
               <div class="info-panel-title">How it works</div>
               <div class="info-panel-body">
-                <strong>Table hire</strong> includes access to our full library of 200+ board games. Stay as long as you like during opening hours.<br><br>
-                <strong>Pricing:</strong> $2 per person per hour · Minimum 2 players<br><br>
-                <strong>Food & drinks</strong> available to order at the counter.<br><br>
-                <strong>Large groups or private hire?</strong> Get in touch and we'll sort something out for you.
+                <strong>Table hire</strong> <span id="cafeTextTableHire">includes access to our full library of 200+ board games. Stay as long as you like during opening hours.</span><br><br>
+                <strong>Pricing:</strong> <span id="cafePricingText">$0 per person per hour · Minimum 2 players</span><br><br>
+                <strong>Food & drinks</strong> <span id="cafeTextFoodDrinks">available to order at the counter.</span><br><br>
+                <strong>Large groups or private hire?</strong> <span id="cafeTextLargeGroups">Get in touch and we'll sort something out for you.</span>
               </div>
             </div>
             <div class="game-list" id="cafeGameList"></div>
@@ -3924,7 +3963,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.16'; // v1.7.16: Fixed reflected-XSS in the two enquiry thank-you popups (name/contact and first/phone/email now escaped). Also restored the submitContactEnquiry thank-you message text, which had gone missing.
+const BUILD_VERSION = '1.7.18'; // v1.7.18: Made page copy editable via settings (key: btb_booking_text) instead of hardcoded — the 4 category circle titles/tooltips, the cafe "How it works" panel text, and the VR casual card title/sub. Also added an optional "i" tooltip icon to game cards (Escape/VR/Cafe), driven by a new per-game `tooltip` field, and to the VR casual card. All fall back to today's wording if settings/field is blank, so nothing changes until edited.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4016,6 +4055,28 @@ let bookingConfig = {
   depositAmount: 35,
 };
 
+// Editable page copy (settings key: btb_booking_text). These are the fallback
+// values shown if that settings row is missing or a field is blank, so the
+// page never shows empty text — same pattern as bookingConfig above.
+let bookingText = {
+  cafeInfo: {
+    tableHire: 'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.',
+    foodDrinks: 'available to order at the counter.',
+    largeGroups: "Get in touch and we'll sort something out for you.",
+  },
+  vrCasual: {
+    title: '🎮 Casual VR — check availability',
+    sub: "Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.",
+    tooltip: '',
+  },
+  categories: {
+    escape: { title: 'Escape Rooms', tooltip: 'Solve puzzles & complete your mission before time runs out. 60 min sessions.' },
+    vr: { title: 'VR Experiences', tooltip: 'Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.' },
+    cafe: { title: 'Board Game Cafe', tooltip: 'Hire a table, choose from our game library, and enjoy food & drinks with your group.' },
+    enquiry: { title: 'Contact Us', tooltip: 'Got a question, custom booking, or group rates? Send us a message.' },
+  },
+};
+
 let staffAvail = {};
 let staffTraining = [];
 let staffAvailStatus = {};
@@ -4057,9 +4118,40 @@ async function init() {
   } catch (e) {
     return; // error screen already shown by loadSettings()
   }
+  applyBookingText();
   await loadStaffData();
   await loadExistingBookings();
   populatePrevGameSelect();
+}
+
+// Pushes the editable page copy (bookingText, loaded in loadSettings) into the
+// static HTML for the category circles, cafe info panel, and VR casual card.
+// All values are escaped since they came from settings, which staff edit via
+// btb_app.html — same trust level as any other admin-entered text on this page.
+function applyBookingText() {
+  ['escape', 'vr', 'cafe', 'enquiry'].forEach(cat => {
+    const c = bookingText.categories[cat];
+    const titleEl = document.getElementById('catTitle-' + cat);
+    const tooltipEl = document.getElementById('catTooltip-' + cat);
+    if (titleEl) titleEl.textContent = c.title;
+    if (tooltipEl) tooltipEl.textContent = c.tooltip;
+  });
+
+  const th = document.getElementById('cafeTextTableHire');
+  if (th) th.textContent = bookingText.cafeInfo.tableHire;
+  const fd = document.getElementById('cafeTextFoodDrinks');
+  if (fd) fd.textContent = bookingText.cafeInfo.foodDrinks;
+  const lg = document.getElementById('cafeTextLargeGroups');
+  if (lg) lg.textContent = bookingText.cafeInfo.largeGroups;
+
+  const vt = document.getElementById('vrCasualTitle');
+  if (vt) vt.textContent = bookingText.vrCasual.title;
+  const vs = document.getElementById('vrCasualSub');
+  if (vs) vs.textContent = bookingText.vrCasual.sub;
+  const vIconWrap = document.getElementById('vrCasualTooltipIcon');
+  if (vIconWrap && bookingText.vrCasual.tooltip) {
+    vIconWrap.innerHTML = `<div class="tooltip-icon" onclick="toggleCardTooltip(event, this, '.casual-card')">i</div><div class="card-tooltip">${escapeHtml(bookingText.vrCasual.tooltip)}</div>`;
+  }
 }
 
 async function loadSettings() {
@@ -4075,6 +4167,18 @@ async function loadSettings() {
         if (row.key === 'btb_training_statuses' && Array.isArray(d)) trainingStatuses = d;
         if (row.key === 'btb_booking_config' && typeof d === 'object' && !Array.isArray(d)) {
           bookingConfig = { ...bookingConfig, ...d };
+        }
+        if (row.key === 'btb_booking_text' && typeof d === 'object' && !Array.isArray(d)) {
+          bookingText = {
+            cafeInfo: { ...bookingText.cafeInfo, ...(d.cafeInfo || {}) },
+            vrCasual: { ...bookingText.vrCasual, ...(d.vrCasual || {}) },
+            categories: {
+              escape: { ...bookingText.categories.escape, ...((d.categories || {}).escape || {}) },
+              vr: { ...bookingText.categories.vr, ...((d.categories || {}).vr || {}) },
+              cafe: { ...bookingText.categories.cafe, ...((d.categories || {}).cafe || {}) },
+              enquiry: { ...bookingText.categories.enquiry, ...((d.categories || {}).enquiry || {}) },
+            },
+          };
         }
       } catch (e) {}
     });
@@ -4453,7 +4557,23 @@ document.addEventListener('click', function(e) {
   if (!e.target.closest('.cat-circle')) {
     document.querySelectorAll('.cat-circle.active').forEach(c => c.classList.remove('active'));
   }
+  if (!e.target.closest('.tooltip-open')) {
+    document.querySelectorAll('.tooltip-open').forEach(c => c.classList.remove('tooltip-open'));
+  }
 });
+
+// Generic tooltip toggle for game cards and the VR casual card. Separate from
+// showTooltip() above (which also drives the circle's "selected" hover look) —
+// this only opens/closes the info popup and stops the click reaching the
+// card's own onclick (selecting the game / opening the enquiry form).
+function toggleCardTooltip(e, iconEl, containerSelector) {
+  e.stopPropagation();
+  const container = iconEl.closest(containerSelector);
+  if (!container) return;
+  const isOpen = container.classList.contains('tooltip-open');
+  document.querySelectorAll(containerSelector + '.tooltip-open').forEach(c => c.classList.remove('tooltip-open'));
+  if (!isOpen) container.classList.add('tooltip-open');
+}
 
 function updateTicketPreview() {
   const gameEl = document.getElementById('stubGame');
@@ -4531,8 +4651,12 @@ function gameCardHtml(g, idPrefix, clickFn) {
   const photo = g.photoUrl
     ? `<img src="${g.photoUrl}" alt="${g.name}">`
     : `<div class="game-photo-placeholder">${g.icon || '🚪'}</div>`;
+  const tooltipHtml = g.tooltip
+    ? `<div class="tooltip-icon" onclick="toggleCardTooltip(event, this, '.game-card')">i</div><div class="card-tooltip">${escapeHtml(g.tooltip)}</div>`
+    : '';
   return `
       <div class="game-card" id="${idPrefix}-${g.id}" onclick="${clickFn}('${g.id}')">
+        ${tooltipHtml}
         <div class="game-photo">${photo}</div>
         <div class="game-info">
           <div class="game-name">${g.name}</div>
@@ -4704,6 +4828,15 @@ function selectVRDate(ds, el) {
 function renderCafeGames() {
   const cafeGames = games.filter(g => g.category === 'cafe' && g.bookable !== false);
   document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => gameCardHtml(g, 'cgc', 'selectCafeGame')).join('');
+  // Keep the "How it works" pricing line in sync with the live settings, so it
+  // can't go stale again the next time the per-person-per-hour rate is changed.
+  const pricingTextEl = document.getElementById('cafePricingText');
+  if (pricingTextEl && cafeGames.length) {
+    const g = cafeGames[0];
+    const rate = (bookingConfig.gamePerPersonPerHour || {})[g.id] ?? 0;
+    const minPlayers = (bookingConfig.gamePlayerLimits || {})[g.id]?.min ?? 2;
+    pricingTextEl.textContent = `$${rate} per person per hour · Minimum ${minPlayers} player${minPlayers !== 1 ? 's' : ''}`;
+  }
 }
 
 function selectCafeGame(gameId) {
