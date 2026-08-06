@@ -581,7 +581,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.3.5'; // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
+const BUILD_VERSION = '1.4.0'; // v1.4.0: New — "Email receipt" button on the receipt display sends a plain HTML receipt (game/add-ons/total/balance) to a customer-entered email via Resend, through the new send_pos_receipt_email action in btb-admin. No automatic sending and no logged note yet — manual button + on-screen confirmation only.
+// v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
 // NZ timezone fix: 'today' is now always Pacific/Auckland time, not the device's local timezone
@@ -1052,7 +1053,58 @@ ${(()=>{
     ${balance>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid #f3f4f6;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:''}
   </div>`;
 })()}
+<div class="pos-receipt-email" style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
+  <button onclick="toggleReceiptEmailBox('${b.id}')" style="font-size:12px;color:#07b4c5;font-weight:600;background:none;border:none;cursor:pointer;padding:0">✉️ Email receipt</button>
+  <div id="receipt-email-wrap-${b.id}" style="display:none;margin-top:8px;gap:6px;flex-direction:column">
+    <input type="email" id="receipt-email-${b.id}" placeholder="Customer email…" value="${escapeHtml(b.customerEmail)||''}" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb">
+    <button onclick="sendReceiptEmail('${b.id}')" style="font-size:12px;font-weight:600;color:#fff;background:#07b4c5;border:none;border-radius:8px;padding:7px 10px;cursor:pointer">Send</button>
+    <div id="receipt-email-msg-${b.id}" style="font-size:12px"></div>
+  </div>
+</div>
 </div>`
+}
+
+function toggleReceiptEmailBox(id){
+  const w=document.getElementById('receipt-email-wrap-'+id);
+  if(w)w.style.display=w.style.display==='none'?'flex':'none';
+}
+
+async function sendReceiptEmail(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const msgEl=document.getElementById('receipt-email-msg-'+id);
+  const emailInput=document.getElementById('receipt-email-'+id);
+  const to=emailInput?.value.trim();
+  if(!to){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address.'}return}
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const addons=b.addons?JSON.parse(b.addons):[];
+  const total=b.total_amount??calcPrice(b.game_id,players);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const dep=b.deposit_amount??calcDeposit(total);
+  const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+  const balance=Math.max(0,total-collected);
+  const gamePrice=calcPrice(b.game_id,players);
+  const rows=[`<tr><td style="padding:4px 0">${escapeHtml(b.name)} (${players} player${players!==1?'s':''})</td><td style="padding:4px 0;text-align:right">$${gamePrice.toFixed(2)}</td></tr>`];
+  addons.forEach(a=>{
+    rows.push(`<tr><td style="padding:4px 0">${escapeHtml(a.label)}</td><td style="padding:4px 0;text-align:right">$${parseFloat(a.amount||0).toFixed(2)}</td></tr>`);
+  });
+  const htmlBody=`<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto">
+    <h2 style="color:#07b4c5;margin-bottom:4px">Beyond the Box</h2>
+    <div style="color:#6b7280;font-size:13px;margin-bottom:16px">Receipt${b.dateStr?' — '+b.dateStr:''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">${rows.join('')}</table>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;border-top:2px solid #e5e7eb;padding-top:8px;margin-top:8px">
+      <span>Total</span><span>$${total.toFixed(2)}</span>
+    </div>
+    ${balance>0?`<div style="color:#ef9f27;font-weight:600;font-size:13px;margin-top:6px">Balance owing: $${balance.toFixed(2)}</div>`:`<div style="color:#1d9e75;font-weight:600;font-size:13px;margin-top:6px">✓ Fully paid</div>`}
+    <div style="color:#9ca3af;font-size:12px;margin-top:20px">Thanks for visiting Beyond the Box!</div>
+  </div>`;
+  msgEl.style.color='#6b7280';msgEl.textContent='Sending…';
+  try{
+    await callEdgeFunction('send_pos_receipt_email',{to,subject:'Your Beyond the Box receipt',htmlBody},currentUser?.token);
+    msgEl.style.color='#1d9e75';msgEl.textContent=`✓ Sent to ${to}`;
+    setTimeout(()=>{msgEl.textContent=''},4000);
+  }catch(e){
+    msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e);
+  }
 }
 
 function buildActionTilesHTML(b){
