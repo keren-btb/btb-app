@@ -3924,7 +3924,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.15'; // v1.7.15: Fixed confirm-booking arrow - was rendering as a broken curved blob pushed to the right. Now a simple straight down-pointing arrow, stacked above the label, positioned under the ticket-main column (offset past the stub) so it starts under the ticket and points down onto the page.
+const BUILD_VERSION = '1.7.16'; // v1.7.16: Fixed reflected-XSS in the two enquiry thank-you popups (name/contact and first/phone/email now escaped). Also restored the submitContactEnquiry thank-you message text, which had gone missing.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
