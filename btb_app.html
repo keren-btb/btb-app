@@ -188,6 +188,7 @@
             <button class="settings-card" onclick="openPanel('pShiftTimes')"><i class="ti ti-clock" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Shift Times</div><div class="settings-card-sub">Weekly routine for staff scheduling</div></button>
             <button class="settings-card" id="cardConfig" style="display:none" onclick="openPanel('pConfig')"><i class="ti ti-clock-edit" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Booking Config</div><div class="settings-card-sub">Hours, slots & rules</div></button>
             <button class="settings-card" id="cardPricingPresets" style="display:none" onclick="openPanel('pPricingPresets')"><i class="ti ti-currency-dollar" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Pricing Presets</div><div class="settings-card-sub">Shared pricing library</div></button>
+            <button class="settings-card" id="cardPageText" style="display:none" onclick="openPanel('pPageText')"><i class="ti ti-text-caption" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Page Text</div><div class="settings-card-sub">Booking widget copy & tooltips</div></button>
             <button class="settings-card" id="cardPersonalised" style="display:none" onclick="openPanel('pPersonalised')"><i class="ti ti-sparkles" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Personalised</div><div class="settings-card-sub">Paid occasion add-ons</div></button>
             <button class="settings-card" id="cardRoles" style="display:none" onclick="openPanel('pRoles')"><i class="ti ti-shield" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Logins & Roles</div><div class="settings-card-sub">Staff accounts</div></button>
             <button class="settings-card" onclick="openPanel('pTraining')"><i class="ti ti-certificate" style="font-size:26px;color:#07b4c5"></i><div class="settings-card-label">Training Levels</div><div class="settings-card-sub">Skill definitions</div></button>
@@ -228,6 +229,23 @@
     <div id="pTraining" class="panel">><div class="panel-header"><button class="back-btn" onclick="closePanel('pTraining')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Training Levels</span></div><div class="panel-body"><p class="panel-sub">Skill levels for staff game training. "Qualifies solo" means they can run that room without supervision — this drives slot availability in the booking widget.</p><div id="trainingList"></div><div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input-sm" type="text" id="newTrainEmoji" placeholder="🎓" style="width:52px"><input class="add-input" type="text" id="newTrainLabel" placeholder="e.g. Fully trained…" onkeydown="if(event.key==='Enter')addTraining()"><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;cursor:pointer"><input type="checkbox" id="newTrainQualifies" style="accent-color:#07b4c5;width:15px;height:15px"> Qualifies solo</label><button class="add-btn" onclick="addTraining()"><i class="ti ti-plus"></i> Add</button></div></div></div></div>
     <div id="pConfig" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pConfig')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Booking Configuration</span></div><div class="panel-body"><p class="panel-sub">Opening hours, slot times and booking rules for the customer booking widget.</p><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-clock" style="color:#07b4c5"></i> Opening hours</div><div class="hours-grid" id="openingHoursGrid"></div><p class="hint" style="margin-top:4px">These are your <strong>escape room</strong> hours.</p><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-building-store" style="color:#07b4c5"></i> Shop hours <span style="color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">(board games &amp; VR casual)</span></div><div class="hours-grid" id="shopHoursGrid"></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-clock-play" style="color:#07b4c5"></i> Slot times</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="slotDayTabs"></div><div id="slotTimesForDay"></div><div style="display:flex;gap:7px;align-items:center;margin-top:8px"><input type="time" id="newSlotTime" class="time-input"><button class="add-btn" onclick="addSlotTime()"><i class="ti ti-plus"></i> Add slot</button></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-phone" style="color:#07b4c5"></i> Call-to-book cutoff</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><input type="number" id="cutoffHours" class="time-input" style="width:60px" min="0" max="72" value="3"><span style="font-size:13px;color:#374151">hours before slot time</span></div><div style="font-size:12px;font-weight:700;color:#374151;margin:14px 0 8px"><i class="ti ti-currency-dollar" style="color:#07b4c5"></i> Deposit</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap"><select id="depositType" class="time-input" style="width:130px"><option value="fixed">Fixed amount $</option><option value="percent">Percentage %</option></select><input type="number" id="depositAmt" class="time-input" style="width:70px" min="0" value="35"><span style="font-size:12px;color:#9ca3af" id="depositLabel">NZD</span></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveConfig()"><i class="ti ti-device-floppy"></i> Save config</button><div id="configMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
     <div id="pPricingPresets" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPricingPresets')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Pricing Presets</span></div><div class="panel-body"><p class="panel-sub">Shared pricing presets. Edit a preset here and every game using it updates automatically — assign presets to games from the Games tab.</p><div id="pricingPresetsList"></div><div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:7px">Add preset</div><select class="form-select" id="newPresetType"><option value="per_person_tiered">Escape room — per person (tiered)</option><option value="per_hour_flat">Hourly flat rate (e.g. VR Hour)</option><option value="per_person_per_hour">Per person per hour (e.g. Cafe)</option></select><button class="add-btn" style="margin-top:8px" onclick="addPreset()"><i class="ti ti-plus"></i> Add preset</button></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="savePricingPresets()"><i class="ti ti-device-floppy"></i> Save presets</button><div id="pricingPresetsMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
+    <div id="pPageText" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPageText')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Page Text</span></div><div class="panel-body"><p class="panel-sub">Copy shown on the public booking widget — category circles, the Board Game Cafe info panel, and the VR Casual card. Leave a tooltip blank to hide its "i" icon.</p>
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-circles" style="color:#07b4c5"></i> Category circles (Step 1)</div>
+      <div id="pageTextCategories" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px"></div>
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-coffee" style="color:#07b4c5"></i> Board Game Cafe — "How it works"</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div><div class="row-sub" style="margin-bottom:3px">Table hire — <span style="color:#9ca3af">after the bold "Table hire" label</span></div><textarea class="form-select" id="ptCafeTableHire" rows="2" style="width:100%;resize:vertical"></textarea></div>
+        <div><div class="row-sub" style="margin-bottom:3px">Food & drinks — <span style="color:#9ca3af">after the bold "Food & drinks" label</span></div><textarea class="form-select" id="ptCafeFoodDrinks" rows="2" style="width:100%;resize:vertical"></textarea></div>
+        <div><div class="row-sub" style="margin-bottom:3px">Large groups — <span style="color:#9ca3af">after the bold "Large groups or private hire?" label</span></div><textarea class="form-select" id="ptCafeLargeGroups" rows="2" style="width:100%;resize:vertical"></textarea></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-vr" style="color:#07b4c5"></i> VR Casual card</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div><div class="row-sub" style="margin-bottom:3px">Title</div><input class="add-input" type="text" id="ptVrTitle" style="width:100%"></div>
+        <div><div class="row-sub" style="margin-bottom:3px">Sub text</div><textarea class="form-select" id="ptVrSub" rows="2" style="width:100%;resize:vertical"></textarea></div>
+        <div><div class="row-sub" style="margin-bottom:3px">Tooltip <span style="color:#9ca3af">(optional — blank hides the "i" icon)</span></div><textarea class="form-select" id="ptVrTooltip" rows="2" style="width:100%;resize:vertical"></textarea></div>
+      </div>
+      <button class="add-btn" style="width:100%;justify-content:center;margin-top:4px" onclick="savePageTextPanel()"><i class="ti ti-device-floppy"></i> Save page text</button><div id="pageTextMsg" style="font-size:12px;margin-top:6px;text-align:center"></div>
+    </div></div>
     <div id="pPersonalised" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPersonalised')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Personalised Experiences</span></div><div class="panel-body"><p class="panel-sub">Offer paid add-ons shown when customers select a special occasion. Set price 0 for free.</p><div id="personalExpList"></div><div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:7px">Add experience</div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input" type="text" id="newExpLabel" placeholder="e.g. Decorations package"><input class="add-input-sm" type="number" id="newExpPrice" placeholder="$" min="0" style="width:55px"></div><input class="add-input" type="text" id="newExpDesc" placeholder="Short description (optional)" style="width:100%;margin-top:6px"><div style="margin-top:7px;font-size:11px;color:#6b7280;margin-bottom:4px">Show for occasion(s): <span style="color:#9ca3af">leave blank = all occasions</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="newExpOccasionPicker"></div><button class="add-btn" onclick="addPersonalisedExp()"><i class="ti ti-plus"></i> Add</button></div></div></div>
     <div id="pSurcharge" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pSurcharge')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Card Surcharge</span></div><div class="panel-body"><p class="panel-sub">Applied at checkout in POS for card payments. Stripe can also handle surcharges automatically.</p><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-credit-card" style="color:#07b4c5"></i> Card surcharge</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="number" id="cardSurcharge" class="time-input" style="width:60px" min="0" max="10" step="0.1" value="0"><span style="font-size:12px;color:#374151">% added for card payments (0 = no surcharge)</span></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveSurcharge()"><i class="ti ti-device-floppy"></i> Save</button><div id="surchargeMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
     <div id="pRoles" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pRoles')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Logins & Roles</span></div><div class="panel-body"><p class="panel-sub">Create staff login accounts and control tab access.</p><div id="rolesList"></div><div style="margin-top:14px;border-top:2px solid #f3f4f6;padding-top:14px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Create new login</div><div class="form-row"><div class="form-label">Name</div><input class="add-input" type="text" id="newStaffName" placeholder="e.g. Alex"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Email</div><input class="add-input" type="email" id="newStaffEmail" placeholder="alex@btb.co.nz"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Temporary password</div><input class="add-input" type="text" id="newStaffPass" placeholder="Welcome123"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Role</div><select class="form-select" id="newStaffRole"><option value="gamemaster_own">Gamemaster Own — only their bookings</option><option value="gamemaster">Gamemaster — all calendar</option><option value="manager">Manager — all except Settings</option><option value="admin">Admin — everything</option></select></div><button class="add-btn" style="margin-top:10px;width:100%;justify-content:center" onclick="createLogin()"><i class="ti ti-plus"></i> Create login</button><div id="loginMsg" style="font-size:12px;margin-top:6px"></div></div></div></div>
@@ -385,6 +403,27 @@ let bookingConfig={
   // Used for board games / VR casual availability. Same day-indexed shape.
   shopHours:[{day:0,open:null,label:'Sun'},{day:1,open:null,label:'Mon'},{day:2,open:null,label:'Tue'},{day:3,open:null,label:'Wed'},{day:4,open:null,label:'Thu'},{day:5,open:null,label:'Fri'},{day:6,open:'10:00',close:'14:00',label:'Sat'}],
 };
+// Editable copy shown on the public booking widget (settings key: btb_booking_text).
+// Same fallback pattern as bookingConfig above — if the settings row or a field
+// is missing, these defaults are used, so the widget never shows blank text.
+let bookingText={
+  cafeInfo:{
+    tableHire:'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.',
+    foodDrinks:'available to order at the counter.',
+    largeGroups:"Get in touch and we'll sort something out for you.",
+  },
+  vrCasual:{
+    title:'🎮 Casual VR — check availability',
+    sub:"Not booking a full hour? Drop us a message and we'll let you know if we can fit you in for a shorter session.",
+    tooltip:'',
+  },
+  categories:{
+    escape:{title:'Escape Rooms',tooltip:'Solve puzzles & complete your mission before time runs out. 60 min sessions.'},
+    vr:{title:'VR Experiences',tooltip:'Fully immersive virtual reality. Book a full VR Hour or enquire about casual play.'},
+    cafe:{title:'Board Game Cafe',tooltip:'Hire a table, choose from our game library, and enjoy food & drinks with your group.'},
+    enquiry:{title:'Contact Us',tooltip:'Got a question, custom booking, or group rates? Send us a message.'},
+  },
+};
 let staff=[],staffTraining=[],bookings=[],enquiries=[];
 let openTrainingPanels=new Set(),openPanels=new Set();
 const _n=nzNow();
@@ -418,6 +457,18 @@ async function loadSettings(){
         if(row.key==='btb_statuses'&&Array.isArray(d))statuses=d;
         if(row.key==='btb_training_statuses'&&Array.isArray(d))trainingStatuses=d;
         if(row.key==='btb_booking_config'&&typeof d==='object'&&!Array.isArray(d))bookingConfig={...bookingConfig,...d};
+        if(row.key==='btb_booking_text'&&typeof d==='object'&&!Array.isArray(d)){
+          bookingText={
+            cafeInfo:{...bookingText.cafeInfo,...(d.cafeInfo||{})},
+            vrCasual:{...bookingText.vrCasual,...(d.vrCasual||{})},
+            categories:{
+              escape:{...bookingText.categories.escape,...((d.categories||{}).escape||{})},
+              vr:{...bookingText.categories.vr,...((d.categories||{}).vr||{})},
+              cafe:{...bookingText.categories.cafe,...((d.categories||{}).cafe||{})},
+              enquiry:{...bookingText.categories.enquiry,...((d.categories||{}).enquiry||{})},
+            },
+          };
+        }
         if(row.key==='btb_pos_categories'&&Array.isArray(d))posCategories=d;
       }catch(e){}
     });
@@ -427,10 +478,10 @@ async function saveSetting(key,data){
   await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
 }
 function gameFromRow(r){
-  return {id:r.id,name:r.name,duration:r.duration,bufferMinutes:r.buffer_minutes,icon:r.icon,photoUrl:r.photo_url,thumbnailUrl:r.thumbnail_url,category:r.category,pricingType:r.pricing_type,pricingPresetId:r.pricing_preset_id,maxPlayers:r.max_players,minPlayers:r.min_players,bookable:r.bookable,showOnQuickBook:r.show_on_quick_book,trackPlayers:r.track_players,active:r.active,sortOrder:r.sort_order};
+  return {id:r.id,name:r.name,duration:r.duration,bufferMinutes:r.buffer_minutes,icon:r.icon,photoUrl:r.photo_url,thumbnailUrl:r.thumbnail_url,category:r.category,pricingType:r.pricing_type,pricingPresetId:r.pricing_preset_id,maxPlayers:r.max_players,minPlayers:r.min_players,bookable:r.bookable,showOnQuickBook:r.show_on_quick_book,trackPlayers:r.track_players,active:r.active,sortOrder:r.sort_order,tooltip:r.tooltip};
 }
 function rowFromGame(g,idx){
-  return {id:g.id,name:g.name,duration:g.duration,buffer_minutes:g.bufferMinutes,icon:g.icon,photo_url:g.photoUrl||null,thumbnail_url:g.thumbnailUrl||null,category:g.category,pricing_type:g.pricingType,pricing_preset_id:g.pricingPresetId,max_players:g.maxPlayers,min_players:g.minPlayers,bookable:g.bookable,show_on_quick_book:g.showOnQuickBook,track_players:g.trackPlayers,active:g.active!==false,sort_order:idx};
+  return {id:g.id,name:g.name,duration:g.duration,buffer_minutes:g.bufferMinutes,icon:g.icon,photo_url:g.photoUrl||null,thumbnail_url:g.thumbnailUrl||null,category:g.category,pricing_type:g.pricingType,pricing_preset_id:g.pricingPresetId,max_players:g.maxPlayers,min_players:g.minPlayers,bookable:g.bookable,show_on_quick_book:g.showOnQuickBook,track_players:g.trackPlayers,active:g.active!==false,sort_order:idx,tooltip:g.tooltip||null};
 }
 async function loadGames(){
   try{
@@ -472,6 +523,7 @@ async function saveGames(){
 const saveStatuses=()=>saveSetting('btb_statuses',statuses);
 const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
 const saveBookingConfigSetting=()=>saveSetting('btb_booking_config',bookingConfig);
+const savePageText=()=>saveSetting('btb_booking_text',bookingText);
 let posCategories=[
   {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
   {id:'vr_casual',label:'VR Casual',icon:'ti-vr',color:'#8b5cf6',type:'products',filter:'VR'},
@@ -1176,6 +1228,10 @@ function renderGamesList(){
         <input type="checkbox" ${isQuickBook?'checked':''} onchange="toggleQuickBook('${g.id}')" style="accent-color:#07b4c5;width:15px;height:15px">
         Show in calendar quick-book row
       </label>
+      <div style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:#6b7280">
+        <span>Info tooltip <span style="color:#9ca3af;font-weight:400">(optional — shown on the booking widget card, blank = no icon)</span></span>
+        <textarea class="form-select" rows="2" style="width:100%;resize:vertical;font-size:12px" onchange="setGameTooltip('${g.id}',this.value)">${escapeHtml(g.tooltip||'')}</textarea>
+      </div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -1208,6 +1264,11 @@ function toggleQuickBook(id){
 function toggleTrackPlayers(id){
   const g=games.find(x=>x.id===id);if(!g)return;
   g.trackPlayers=!(g.trackPlayers!==false);
+  renderGamesList();saveGames();
+}
+function setGameTooltip(id,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.tooltip=val.trim();
   renderGamesList();saveGames();
 }
 function addGame(){
@@ -1408,6 +1469,51 @@ function savePricingPresets(){
   saveGames();saveBookingConfigSetting();
   if(msgEl){msgEl.style.color='#15803d';msgEl.textContent='✓ Saved!';setTimeout(()=>{msgEl.textContent=''},3000);}
 }
+const PAGE_TEXT_CATEGORY_LABELS={escape:'Escape Rooms',vr:'VR Experiences',cafe:'Board Game Cafe',enquiry:'Contact Us'};
+function renderPageTextPanel(){
+  const el=document.getElementById('pageTextCategories');
+  if(el){
+    el.innerHTML=Object.keys(PAGE_TEXT_CATEGORY_LABELS).map(catId=>{
+      const c=bookingText.categories[catId]||{title:'',tooltip:''};
+      return`<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px">
+        <div class="row-sub" style="margin-bottom:6px;font-weight:600;color:#374151">${PAGE_TEXT_CATEGORY_LABELS[catId]}</div>
+        <div class="row-sub" style="margin-bottom:3px">Title</div>
+        <input class="add-input" type="text" id="ptCatTitle-${catId}" value="${escapeHtml(c.title)}" style="width:100%;margin-bottom:6px">
+        <div class="row-sub" style="margin-bottom:3px">Tooltip</div>
+        <textarea class="form-select" id="ptCatTooltip-${catId}" rows="2" style="width:100%;resize:vertical">${escapeHtml(c.tooltip)}</textarea>
+      </div>`;
+    }).join('');
+  }
+  const set=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val||''};
+  set('ptCafeTableHire',bookingText.cafeInfo.tableHire);
+  set('ptCafeFoodDrinks',bookingText.cafeInfo.foodDrinks);
+  set('ptCafeLargeGroups',bookingText.cafeInfo.largeGroups);
+  set('ptVrTitle',bookingText.vrCasual.title);
+  set('ptVrSub',bookingText.vrCasual.sub);
+  set('ptVrTooltip',bookingText.vrCasual.tooltip);
+}
+function savePageTextPanel(){
+  const get=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+  Object.keys(PAGE_TEXT_CATEGORY_LABELS).forEach(catId=>{
+    bookingText.categories[catId]={
+      title:get('ptCatTitle-'+catId)||PAGE_TEXT_CATEGORY_LABELS[catId],
+      tooltip:get('ptCatTooltip-'+catId),
+    };
+  });
+  bookingText.cafeInfo={
+    tableHire:get('ptCafeTableHire'),
+    foodDrinks:get('ptCafeFoodDrinks'),
+    largeGroups:get('ptCafeLargeGroups'),
+  };
+  bookingText.vrCasual={
+    title:get('ptVrTitle'),
+    sub:get('ptVrSub'),
+    tooltip:get('ptVrTooltip'),
+  };
+  savePageText();
+  const msgEl=document.getElementById('pageTextMsg');
+  if(msgEl){msgEl.style.color='#15803d';msgEl.textContent='✓ Saved!';setTimeout(()=>{msgEl.textContent=''},3000);}
+}
 function renderConfigPanel(){
   renderOpeningHoursGrid();renderShopHoursGrid();renderSlotDayTabs();
   const c=document.getElementById('cutoffHours');if(c)c.value=bookingConfig.callToBookCutoffHours??3;
@@ -1521,7 +1627,7 @@ function toggleSettingsGroup(titleEl){
 }
 function openPanel(id){
   // Admin-only panels — block even if someone calls this from the console
-  const adminOnly = ['pConfig','pRoles','pPricingPresets'];
+  const adminOnly = ['pConfig','pRoles','pPricingPresets','pPageText'];
   if(adminOnly.includes(id) && currentUser?.role !== 'admin'){
     console.warn('Access denied to panel:',id);return;
   }
@@ -1534,6 +1640,7 @@ function openPanel(id){
   if(id==='pProducts'){loadProducts().then(()=>{prodCatFilter='All';renderProdCatTabs();renderProdList();toggleProdBoardgameFields();})}
   if(id==='pConfig')renderConfigPanel();
   if(id==='pPricingPresets')renderPricingPresetsList();
+  if(id==='pPageText')renderPageTextPanel();
   if(id==='pPersonalised')renderPersonalisedPanel();
   if(id==='pSurcharge'){const cs=document.getElementById('cardSurcharge');if(cs)cs.value=bookingConfig.cardSurchargePercent??0;}
   if(id==='pShiftTimes')renderShiftTimesList();
@@ -1639,6 +1746,7 @@ function showApp(){
   document.getElementById('cardConfig').style.display=isAdmin?'':'none';
   document.getElementById('cardRoles').style.display=isAdmin?'':'none';
   document.getElementById('cardPricingPresets').style.display=isAdmin?'':'none';
+  document.getElementById('cardPageText').style.display=isAdmin?'':'none';
   document.getElementById('cardPersonalised').style.display=isAdmin?'':'none';
   // Match by data-tab — safe regardless of array order in Supabase
   document.querySelectorAll('.nav-btn').forEach(btn=>{
@@ -1982,7 +2090,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.7'; // v16.4.7: New booking (walk-in) form now has an email field and links to a real client record (find-or-create by email/phone, same pattern as enquiries.html) instead of only capturing name/phone as free text. Also added a "Don't send confirmation email" checkbox, wired to game_bookings.skip_confirmation_email — lets staff opt a specific manual booking out of the automatic confirmation email.
+const BUILD_VERSION = '16.4.8'; // v16.4.8: New "Page Text" settings panel (admin only) lets staff edit the booking widget's category circle titles/tooltips, Board Game Cafe "How it works" text, and VR Casual card text — previously hardcoded, now saved to settings.btb_booking_text. Also added an optional per-game "Info tooltip" field (games.tooltip) shown as an "i" icon on that game's card in the booking widget.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
