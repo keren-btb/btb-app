@@ -51,6 +51,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.16 — 2026-08-06 — Fixed reflected-XSS in the two enquiry thank-you popups (name/contact and first/phone/email now escaped via escapeHtml()). Also restored the submitContactEnquiry thank-you message text, which had gone missing.
 - v1.7.15 — 2026-08-05 — Fixed confirm-booking arrow (was rendering as a broken curved blob pushed to the right). Now a simple straight down-pointing arrow stacked above the label, positioned under the ticket-main column so it starts under the ticket and points down onto the page.
 - v1.7.14 — 2026-08-05 — Added a red curved arrow + "Confirm booking below" label under the ticket on the review screen, pointing down toward the Confirm Booking button. Shown/hidden alongside the Replay animation button.
 - v1.7.13 — 2026-08-05 — Removed Game/Date/Time/Players rows from the review card underneath the ticket, since the ticket above already shows all four. Review card now starts with Name/Email/Phone.
