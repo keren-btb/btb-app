@@ -747,15 +747,15 @@ body {
 
 /* ============ CARD TOOLTIPS (game cards, VR casual card) ============ */
 /* Same "i" icon as the circles above, reused on any card via .tooltip-icon;
-   the popup itself opens downward since these cards sit in a vertical list. */
+   the popup opens upward from the icon, same direction as the circle tooltips. */
 .card-tooltip {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   right: 0;
-  transform: translateY(-6px);
+  transform: translateY(6px);
   background: #f0f9fa;
   color: var(--text-secondary);
   padding: 12px 16px;
@@ -769,6 +769,16 @@ body {
   text-align: left;
   border: 1px solid rgba(7, 180, 197, 0.15);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+.card-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  border: 9px solid transparent;
+  border-top-color: #f0f9fa;
+  border-top-width: 9px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06));
 }
 .tooltip-open .card-tooltip {
   opacity: 1;
@@ -3958,7 +3968,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.20'; // v1.7.20: Board Game Cafe "How it works" panel is now a freely-orderable list of title/body lines (bookingText.cafeInfo.items) instead of 3 fixed fields — titles are editable and you can add/remove/reorder lines from the Page Text panel. The Pricing line stays live-calculated but can be renamed/reordered like any other line.
+const BUILD_VERSION = '1.7.21'; // v1.7.21: Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 

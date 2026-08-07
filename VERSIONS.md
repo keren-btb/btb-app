@@ -53,6 +53,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.21 — 2026-08-06 — Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
 - v1.7.20 — 2026-08-06 — Board Game Cafe "How it works" panel is now a freely-orderable list of title/body lines (bookingText.cafeInfo.items) instead of 3 fixed fields — titles are editable and lines can be added/removed/reordered from the Page Text panel. Pricing line stays live-calculated but can be renamed/reordered.
 - v1.7.19 — 2026-08-06 — Fixed VR Casual card tooltip not opening on tap — CSS only revealed a card-tooltip that was a direct child of the open card, but the VR casual icon/tooltip sits one level deeper in a wrapper div. Switched to a descendant selector.
 - v1.7.18 — 2026-08-06 — Made page copy editable via settings (key: btb_booking_text) instead of hardcoded — the 4 category circle titles/tooltips, the cafe "How it works" panel text, and the VR casual card title/sub. Also added an optional "i" tooltip icon to game cards (Escape/VR/Cafe), driven by a new per-game `tooltip` field, and to the VR casual card. All fall back to today's wording if settings/field is blank, so nothing changes until edited.
