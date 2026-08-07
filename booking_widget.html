@@ -770,7 +770,7 @@ body {
   border: 1px solid rgba(7, 180, 197, 0.15);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
 }
-.tooltip-open > .card-tooltip {
+.tooltip-open .card-tooltip {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -3963,7 +3963,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.18'; // v1.7.18: Made page copy editable via settings (key: btb_booking_text) instead of hardcoded — the 4 category circle titles/tooltips, the cafe "How it works" panel text, and the VR casual card title/sub. Also added an optional "i" tooltip icon to game cards (Escape/VR/Cafe), driven by a new per-game `tooltip` field, and to the VR casual card. All fall back to today's wording if settings/field is blank, so nothing changes until edited.
+const BUILD_VERSION = '1.7.19'; // v1.7.19: Fixed VR Casual card tooltip not opening on tap — the CSS only revealed a card-tooltip that was a *direct* child of the open card, but the VR casual icon/tooltip pair sits one level deeper in a wrapper div. Switched to a descendant selector so it works for both the wrapped VR casual case and the flat game-card case.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
