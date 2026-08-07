@@ -1052,6 +1052,13 @@ async function triggerHelp(room){
   }catch(e){
     alert('Help alert may not have been sent — please also call/find the floor manager directly. Error: '+e.message);
   }
+  // Fire the push notification separately — if this fails, the help_alerts row above
+  // still exists (visible on the calendar/control room), so we only log, not alert().
+  try{
+    await callEdgeFunction('send_help_push',{room},currentUser?.token);
+  }catch(e){
+    console.error('Push notification failed to send:',e.message);
+  }
 }
 async function dismissHelp(){
   document.getElementById('helpOverlay').classList.remove('active');
@@ -2171,7 +2178,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.15'; // v16.4.15: Fixed calendar coming up empty on a fresh login (not a restored session) — doLogin() was reloading shift times, games, and staff with the real staff token but never bookings, so game_bookings (anon has no SELECT access, INSERT-only) stayed empty until a manual refresh. Added the missing loadBookings() call, matching what the restored-session path already did. Also removed an accidental duplicate loadShiftTimes() call in the same block.
+const BUILD_VERSION = '16.4.16'; // v16.4.16: Added PWA install support (manifest/icon/theme-color tags + service worker registration) so the whole app can be installed as one staff app, not just Staff Portal. Also wired triggerHelp() to call the new send_help_push action on btb-admin after logging a help_alerts row, so raising a help alert now actually sends a push notification to subscribed staff phones (previously nothing sent one, even though the receiving side existed).
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
