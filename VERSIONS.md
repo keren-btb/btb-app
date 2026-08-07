@@ -14,6 +14,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.14 — 2026-08-08 — Fixed misread of prior request — thickened the time-group connector line to 4px (double the original 2px), not thinner.
 - v16.4.13 — 2026-08-08 — Thinned the time-group connector line (added in v16.4.12) from 2px to 1px.
 - v16.4.12 — 2026-08-08 — Day-view Events calendar: when 2+ games share the same time slot, each game card now has a short horizontal teal connector line linking it to the group's vertical line on the left, centred on the card's vertical middle (works even when a card expands/collapses).
 - v16.4.11 — 2026-08-08 — Moved the profile avatar button inline with the "BtB APP" title (absolute-positioned top-right) instead of its own row below, so it no longer adds extra height to the header. Shrunk avatar slightly (34px→30px) to sit cleanly alongside the title text.
