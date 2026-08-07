@@ -1716,20 +1716,31 @@ async function loadSettings() {
   } catch(e) { console.error('Settings load:', e); }
 }
 
-async function loadAllStaff() {
+hhh
+    async function loadAllStaff() {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/staff?order=name`, {headers:H()});
+    const isAdmin = ['admin','manager'].includes(currentUser.role);
+    const endpoint = isAdmin ? 'staff' : 'staff_directory';
+    const r = await fetch(`${SB_URL}/rest/v1/${endpoint}?order=name`, {headers:H()});
     const rows = await r.json();
     if (Array.isArray(rows)) allStaff = rows;
   } catch(e) { console.error('Staff load:', e); }
 }
 
 async function findMyStaffRecord() {
-  myStaffRecord = allStaff.find(s => s.email === currentUser.email) ||
-                  allStaff.find(s => s.user_role_id === currentUser.id) ||
-                  null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${currentUser.id}`, {headers:H()});
+    const rows = await r.json();
+    myStaffRecord = (Array.isArray(rows) && rows[0]) ||
+                    allStaff.find(s => s.email === currentUser.email) ||
+                    null;
+  } catch(e) {
+    console.error('My staff record load:', e);
+    myStaffRecord = allStaff.find(s => s.email === currentUser.email) ||
+                    allStaff.find(s => s.user_role_id === currentUser.id) ||
+                    null;
+  }
 }
-
 async function loadAdminRoles() {
   try {
     const rows = await callEdgeFunction('list_roles', {}, currentUser.token);
