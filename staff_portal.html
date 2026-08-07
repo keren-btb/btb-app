@@ -1068,7 +1068,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.13'; // v1.9.13: Bug fix — weekly-repeat shift date calculation now uses UTC-safe methods (setUTCDate instead of setDate) to avoid a timezone-related date-shift bug when creating repeating shifts; also cleaned up a stray merged line in the admin state variable declarations left over from a previous edit
+const BUILD_VERSION = '1.9.15'; // v1.9.15: Bug fix — the timesheet detail popup's "Manual Hours" field now auto-recalculates whenever Clock in or Clock out is edited, so an old/stale hours value can no longer get saved unchanged after adjusting the times (was causing wildly wrong totals like "104.86h")
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
@@ -2863,12 +2863,14 @@ function openTsDetail(tsId, isAdmin) {
         <span class="time-edit-label" style="font-weight:600;">Clock in</span>
         <input type="datetime-local" class="time-edit-input" id="tsEditIn"
           value="${ts.clock_in ? ts.clock_in.slice(0,16) : ''}"
+          onchange="recalcTsEditHours()"
           ${!canEdit ? 'disabled' : ''}>
       </div>
       <div class="time-edit-row" style="margin-top:10px;">
         <span class="time-edit-label" style="font-weight:600;">Clock out</span>
         <input type="datetime-local" class="time-edit-input" id="tsEditOut"
           value="${ts.clock_out ? ts.clock_out.slice(0,16) : ''}"
+          onchange="recalcTsEditHours()"
           ${!canEdit ? 'disabled' : ''}>
       </div>
       <div class="time-edit-row" style="margin-top:10px;">
@@ -2915,6 +2917,20 @@ function openTsDetail(tsId, isAdmin) {
   openPanel('panelTsDetail');
 }
 
+// Keeps the Manual Hours field in sync whenever Clock in/out is edited, so a
+// stale pre-filled hours value can't silently get saved after a time change.
+function recalcTsEditHours() {
+  const inEl = document.getElementById('tsEditIn');
+  const outEl = document.getElementById('tsEditOut');
+  const hoursEl = document.getElementById('tsEditHours');
+  if (!inEl || !outEl || !hoursEl) return;
+  if (inEl.value && outEl.value) {
+    const ci = new Date(inEl.value).toISOString();
+    const co = new Date(outEl.value).toISOString();
+    hoursEl.value = hoursFromClockInOut(ci, co);
+  }
+}
+
 async function saveTsEdits(id, isAdminUser) {
   const inVal = document.getElementById('tsEditIn')?.value;
   const outVal = document.getElementById('tsEditOut')?.value;
@@ -2926,6 +2942,11 @@ async function saveTsEdits(id, isAdminUser) {
   const clockOut = outVal ? new Date(outVal).toISOString() : null;
   const hours = hoursVal || (clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null);
 
+  // Look up the record's current status so we know whether this save is
+  // turning an active "clocked_in" session into a completed one.
+  const existingTs = [...timesheets, ...adminTs].find(t => t.id === id);
+  const wasClockedIn = existingTs?.status === 'clocked_in';
+
   try {
     const payload = {
       clock_in: clockIn,
@@ -2936,6 +2957,12 @@ async function saveTsEdits(id, isAdminUser) {
     
     if (isAdminUser) {
       payload.admin_notes = adminNote;
+      // If an admin fills in a clock-out time on a still-"clocked_in" record,
+      // move it out of "clocked_in" so it shows up correctly for approval
+      // instead of being stuck showing "Clocked in" forever.
+      if (wasClockedIn && clockOut) {
+        payload.status = 'pending';
+      }
     } else {
       payload.staff_notes = staffNote;
       payload.status = 'pending';
@@ -2961,8 +2988,10 @@ async function saveTsEdits(id, isAdminUser) {
         t.clock_in = clockIn;
         t.clock_out = clockOut;
         t.hours_worked = hours;
-        if (isAdminUser) t.admin_notes = adminNote;
-        else {
+        if (isAdminUser) {
+          t.admin_notes = adminNote;
+          if (wasClockedIn && clockOut) t.status = 'pending';
+        } else {
           t.staff_notes = staffNote;
           t.status = 'pending';
         }
@@ -2972,6 +3001,8 @@ async function saveTsEdits(id, isAdminUser) {
     updateLocal(adminTs);
     
     renderMyTimesheets();
+    renderAdminTimesheets();
+    renderClockGrid();
   } catch (e) {
     const msgEl = document.getElementById('tsDetailMsg');
     if (msgEl) {
@@ -3926,19 +3957,28 @@ async function adminSaveTimes(staffId, tsId) {
   const clockIn  = inEl?.value  ? new Date(inEl.value).toISOString()  : null;
   const clockOut = outEl?.value ? new Date(outEl.value).toISOString() : null;
   const hours = clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null;
+
+  // Defensive: if this record was still "clocked_in" and we're now saving a
+  // clock-out time onto it, move it to "pending" so it doesn't get stuck
+  // showing "Clocked in" after it's actually finished.
+  const existingTs = todayTimesheets.find(t => t.id === tsId) || adminTs.find(t => t.id === tsId);
+  const wasClockedIn = existingTs?.status === 'clocked_in';
+  const statusUpdate = (wasClockedIn && clockOut) ? { status: 'pending' } : {};
+
   try {
     await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
       method:'PATCH', headers:H(),
-      body:JSON.stringify({clock_in:clockIn, clock_out:clockOut, hours_worked:hours, updated_at:new Date().toISOString()})
+      body:JSON.stringify({clock_in:clockIn, clock_out:clockOut, hours_worked:hours, updated_at:new Date().toISOString(), ...statusUpdate})
     });
     const updateLocal = arr => {
       const t = arr.find(x=>x.id===tsId);
-      if (t) { t.clock_in=clockIn; t.clock_out=clockOut; t.hours_worked=hours; }
+      if (t) { t.clock_in=clockIn; t.clock_out=clockOut; t.hours_worked=hours; if (statusUpdate.status) t.status = statusUpdate.status; }
     };
     updateLocal(todayTimesheets); updateLocal(adminTs);
     if (msgEl) { msgEl.className='msg ok'; msgEl.textContent='✓ Saved'; setTimeout(()=>msgEl.textContent='',2000); }
     renderClockGrid();
     renderMyTimesheets();
+    renderAdminTimesheets();
   } catch(e) {
     if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
   }
@@ -3972,6 +4012,8 @@ async function adminApproveDirect(tsId) {
 function openPanel(id)  { document.getElementById(id)?.classList.add('open'); }
 function closePanel(id) { document.getElementById(id)?.classList.remove('open'); }
 
+let currentTabId = 'tabHome';
+
 function showTab(id, btn) {
     document.querySelectorAll('.section').forEach(s => {
         s.classList.remove('active');
@@ -3987,7 +4029,14 @@ function showTab(id, btn) {
     }
     
     if (btn) btn.classList.add('active');
-    
+    currentTabId = id;
+    refreshTabData(id);
+}
+
+// Reloads whatever data the given tab needs from the server. Shared by
+// showTab() (switching tabs) and the visibility listener below (returning
+// to the app after it was backgrounded), so data can't go stale either way.
+function refreshTabData(id) {
     if (id === 'tabTs') renderMyTimesheets();
     if (id === 'tabShifts') { if(['admin','manager'].includes(currentUser?.role)) renderAdminShifts(); else renderStaffShifts(); }
     if (id === 'tabClock') loadClockGrid();
@@ -3999,6 +4048,15 @@ function showTab(id, btn) {
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
     if (id === 'tabRoster') loadRosterOverview();
 }
+
+// Auto-refresh: if the app is backgrounded (phone locked, switched apps/tabs)
+// and then comes back into view, re-pull fresh data for whichever tab is
+// currently open instead of showing whatever was last loaded.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentUser) {
+        refreshTabData(currentTabId);
+    }
+});
 
 // ============================================================
 // BOOT
