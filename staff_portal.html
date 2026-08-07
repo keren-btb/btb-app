@@ -1068,7 +1068,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.15'; // v1.9.15: Bug fix — the timesheet detail popup's "Manual Hours" field now auto-recalculates whenever Clock in or Clock out is edited, so an old/stale hours value can no longer get saved unchanged after adjusting the times (was causing wildly wrong totals like "104.86h")
+const BUILD_VERSION = '1.9.16'; // v1.9.16: Bug fix — clock in/out edit fields (timesheet detail popup, Clock tab grid, and "Log Missed Shift" form) were displaying and saving times using the raw UTC digits / the device's own timezone instead of NZ time, causing edited times to be hours (sometimes a whole date) off. Added isoToNzDatetimeLocal()/nzDatetimeLocalToIso() helpers so every editable clock field now reliably shows and saves Pacific/Auckland time regardless of device timezone; fmtDatetime() (read-only time display) now also explicitly pins to Pacific/Auckland instead of relying on the device setting
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
@@ -1112,6 +1112,45 @@ function nzNow() {
   const o = {}; parts.forEach(p => o[p.type] = p.value);
   if (o.hour === '24') o.hour = '00';
   return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+
+// v1.9.16: Converts a stored UTC timestamp (from Supabase) into the
+// 'YYYY-MM-DDTHH:mm' string a <input type="datetime-local"> needs to DISPLAY
+// that instant as NZ wall-clock time — regardless of the device's own
+// timezone. Use this (not iso.slice(0,16)) any time a clock_in/clock_out
+// value is put into an editable datetime field.
+function isoToNzDatetimeLocal(iso) {
+  if (!iso) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(new Date(iso));
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  return `${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}`;
+}
+
+// v1.9.16: Converts a 'YYYY-MM-DDTHH:mm' value typed into a datetime-local
+// field — understood as NZ wall-clock time — into a correct UTC ISO string
+// for storage. Use this (not new Date(val).toISOString()) any time we're
+// reading a clock_in/clock_out value back out of an editable field, so
+// saved times are correct regardless of the device's own timezone.
+function nzDatetimeLocalToIso(localStr) {
+  if (!localStr) return null;
+  // Step 1: treat the typed digits as if they were UTC, to get a reference instant
+  const guess = new Date(localStr + ':00Z');
+  // Step 2: see what NZ wall-clock time that reference instant actually falls on
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(guess);
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  if (o.hour === '24') o.hour = '00';
+  const nzWallOfGuess = new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}Z`);
+  // Step 3: the gap between what we wanted (guess, read as NZ time) and what
+  // that instant actually is in NZ time tells us the correction to apply
+  const correction = nzWallOfGuess.getTime() - guess.getTime();
+  return new Date(guess.getTime() - correction).toISOString();
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1348,8 +1387,8 @@ function fmtFriendlyDate(dateStr) {
 function fmtDatetime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short'}) + ' ' +
-    d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('en-NZ',{day:'numeric',month:'short',timeZone:'Pacific/Auckland'}) + ' ' +
+    d.toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit',timeZone:'Pacific/Auckland'});
 }
 
 function hoursFromClockInOut(inIso, outIso) {
@@ -2786,8 +2825,8 @@ async function submitManualTs(dateStr) {
     return;
   }
   
-  const clockIn = new Date(inVal).toISOString();
-  const clockOut = new Date(outVal).toISOString();
+  const clockIn = nzDatetimeLocalToIso(inVal);
+  const clockOut = nzDatetimeLocalToIso(outVal);
   const hours = hoursFromClockInOut(clockIn, clockOut);
   
   if (hours <= 0) {
@@ -2862,14 +2901,14 @@ function openTsDetail(tsId, isAdmin) {
       <div class="time-edit-row">
         <span class="time-edit-label" style="font-weight:600;">Clock in</span>
         <input type="datetime-local" class="time-edit-input" id="tsEditIn"
-          value="${ts.clock_in ? ts.clock_in.slice(0,16) : ''}"
+          value="${isoToNzDatetimeLocal(ts.clock_in)}"
           onchange="recalcTsEditHours()"
           ${!canEdit ? 'disabled' : ''}>
       </div>
       <div class="time-edit-row" style="margin-top:10px;">
         <span class="time-edit-label" style="font-weight:600;">Clock out</span>
         <input type="datetime-local" class="time-edit-input" id="tsEditOut"
-          value="${ts.clock_out ? ts.clock_out.slice(0,16) : ''}"
+          value="${isoToNzDatetimeLocal(ts.clock_out)}"
           onchange="recalcTsEditHours()"
           ${!canEdit ? 'disabled' : ''}>
       </div>
@@ -2925,8 +2964,8 @@ function recalcTsEditHours() {
   const hoursEl = document.getElementById('tsEditHours');
   if (!inEl || !outEl || !hoursEl) return;
   if (inEl.value && outEl.value) {
-    const ci = new Date(inEl.value).toISOString();
-    const co = new Date(outEl.value).toISOString();
+    const ci = nzDatetimeLocalToIso(inEl.value);
+    const co = nzDatetimeLocalToIso(outEl.value);
     hoursEl.value = hoursFromClockInOut(ci, co);
   }
 }
@@ -2938,8 +2977,8 @@ async function saveTsEdits(id, isAdminUser) {
   const staffNote = document.getElementById('tsStaffNote')?.value.trim() || null;
   const adminNote = document.getElementById('tsAdminNote')?.value.trim() || null;
 
-  const clockIn = inVal ? new Date(inVal).toISOString() : null;
-  const clockOut = outVal ? new Date(outVal).toISOString() : null;
+  const clockIn = inVal ? nzDatetimeLocalToIso(inVal) : null;
+  const clockOut = outVal ? nzDatetimeLocalToIso(outVal) : null;
   const hours = hoursVal || (clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null);
 
   // Look up the record's current status so we know whether this save is
@@ -3832,10 +3871,10 @@ function renderClockGrid() {
     const hours = ts?.hours_worked ? ts.hours_worked + 'h' : (isClockedIn ? 'In progress' : '—');
 
     const inInput = ts
-      ? `<input type="datetime-local" class="clock-edit-input" id="ccIn-${s.id}" value="${ts.clock_in ? ts.clock_in.slice(0,16) : ''}" style="width:100%;min-width:150px">`
+      ? `<input type="datetime-local" class="clock-edit-input" id="ccIn-${s.id}" value="${isoToNzDatetimeLocal(ts.clock_in)}" style="width:100%;min-width:150px">`
       : '—';
     const outInput = ts
-      ? `<input type="datetime-local" class="clock-edit-input" id="ccOut-${s.id}" value="${ts.clock_out ? ts.clock_out.slice(0,16) : ''}" style="width:100%;min-width:150px">`
+      ? `<input type="datetime-local" class="clock-edit-input" id="ccOut-${s.id}" value="${isoToNzDatetimeLocal(ts.clock_out)}" style="width:100%;min-width:150px">`
       : '—';
 
     const actions = [];
@@ -3924,7 +3963,7 @@ async function adminClockOut(staffId, tsId) {
   const clockOut = new Date().toISOString();
 
   const inEl = document.getElementById('ccIn-'+staffId);
-  const clockIn = inEl?.value ? new Date(inEl.value).toISOString() : null;
+  const clockIn = inEl?.value ? nzDatetimeLocalToIso(inEl.value) : null;
   const hours = clockIn ? hoursFromClockInOut(clockIn, clockOut) : null;
 
   try {
@@ -3954,8 +3993,8 @@ async function adminSaveTimes(staffId, tsId) {
   const msgEl = document.getElementById('ccMsg-'+staffId);
   const inEl  = document.getElementById('ccIn-'+staffId);
   const outEl = document.getElementById('ccOut-'+staffId);
-  const clockIn  = inEl?.value  ? new Date(inEl.value).toISOString()  : null;
-  const clockOut = outEl?.value ? new Date(outEl.value).toISOString() : null;
+  const clockIn  = inEl?.value  ? nzDatetimeLocalToIso(inEl.value)  : null;
+  const clockOut = outEl?.value ? nzDatetimeLocalToIso(outEl.value) : null;
   const hours = clockIn && clockOut ? hoursFromClockInOut(clockIn, clockOut) : null;
 
   // Defensive: if this record was still "clocked_in" and we're now saving a
