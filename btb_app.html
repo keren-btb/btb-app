@@ -40,16 +40,13 @@
 </script>
 <div class="app" id="mainApp" style="display:none">
   <div class="header">
-    <div style="text-align:center;padding:4px 0 2px">
+    <div style="text-align:center;padding:4px 0 2px;position:relative">
       <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">BtB APP <span id="buildVersionTag" style="font-size:10px;font-weight:400;color:rgba(255,255,255,.4);letter-spacing:0.5px;vertical-align:middle"></span></div>
-    </div>
-    <div class="header-sub" id="headerSub">Loading…</div>
-    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px;position:relative">
-      <div id="profileMenuWrap" style="position:relative">
-        <button id="profileAvatarBtn" onclick="toggleProfileMenu(event)" title="" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#07b4c5 0%,#0891a3 100%);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:13px;font-weight:800;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;padding:0">
+      <div id="profileMenuWrap" style="position:absolute;top:50%;right:0;transform:translateY(-50%)">
+        <button id="profileAvatarBtn" onclick="toggleProfileMenu(event)" title="" style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#07b4c5 0%,#0891a3 100%);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:12px;font-weight:800;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;padding:0">
           <span id="profileAvatarInitials"></span>
         </button>
-        <div id="profileMenuDropdown" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:190px;overflow:hidden;z-index:500;border:1px solid #eef0f2">
+        <div id="profileMenuDropdown" style="display:none;position:absolute;top:38px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:190px;overflow:hidden;z-index:500;border:1px solid #eef0f2">
           <div style="padding:10px 14px 8px;font-size:12px;font-weight:700;color:#111827;border-bottom:1px solid #f1f2f4" id="profileMenuName"></div>
           <button class="profile-menu-item" onclick="window.open('staff_portal.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-id-badge-2" style="font-size:16px;color:#6b7280"></i>Staff Portal</button>
           <button class="profile-menu-item" onclick="window.open('control_room.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-device-gamepad-2" style="font-size:16px;color:#6b7280"></i>Control Room</button>
@@ -59,6 +56,7 @@
         </div>
       </div>
     </div>
+    <div class="header-sub" id="headerSub">Loading…</div>
   </div>
   <div class="timer-banner" id="timerBanner"></div>
   <nav class="nav">
@@ -2165,7 +2163,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.10'; // v16.4.10: Fixed bug where the calendar always came up empty on first login and needed a manual refresh — bookings weren't being reloaded with the real staff token like shift times/games/staff already were. Also replaced the plain "Name · Sign out" header badge with an initials avatar + dropdown menu (Staff Portal, Control Room, Booking Widget, Gift Voucher, Sign out).
+const BUILD_VERSION = '16.4.11'; // v16.4.11: Moved the profile avatar button inline with the "BtB APP" title (absolute-positioned top-right) instead of its own row below, so it no longer adds extra height to the header. Shrunk avatar slightly (34px→30px) to sit cleanly alongside the title text.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
