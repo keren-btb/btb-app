@@ -3673,12 +3673,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="sec-title">Table hire &<br>board games</div>
             <div class="info-panel">
               <div class="info-panel-title">How it works</div>
-              <div class="info-panel-body">
-                <strong>Table hire</strong> <span id="cafeTextTableHire">includes access to our full library of 200+ board games. Stay as long as you like during opening hours.</span><br><br>
-                <strong>Pricing:</strong> <span id="cafePricingText">$0 per person per hour · Minimum 2 players</span><br><br>
-                <strong>Food & drinks</strong> <span id="cafeTextFoodDrinks">available to order at the counter.</span><br><br>
-                <strong>Large groups or private hire?</strong> <span id="cafeTextLargeGroups">Get in touch and we'll sort something out for you.</span>
-              </div>
+              <div class="info-panel-body" id="cafeInfoPanelBody"></div>
             </div>
             <div class="game-list" id="cafeGameList"></div>
             <div id="cafeDateWrap" style="display:none">
@@ -3963,7 +3958,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.19'; // v1.7.19: Fixed VR Casual card tooltip not opening on tap — the CSS only revealed a card-tooltip that was a *direct* child of the open card, but the VR casual icon/tooltip pair sits one level deeper in a wrapper div. Switched to a descendant selector so it works for both the wrapped VR casual case and the flat game-card case.
+const BUILD_VERSION = '1.7.20'; // v1.7.20: Board Game Cafe "How it works" panel is now a freely-orderable list of title/body lines (bookingText.cafeInfo.items) instead of 3 fixed fields — titles are editable and you can add/remove/reorder lines from the Page Text panel. The Pricing line stays live-calculated but can be renamed/reordered like any other line.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4060,9 +4055,12 @@ let bookingConfig = {
 // page never shows empty text — same pattern as bookingConfig above.
 let bookingText = {
   cafeInfo: {
-    tableHire: 'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.',
-    foodDrinks: 'available to order at the counter.',
-    largeGroups: "Get in touch and we'll sort something out for you.",
+    items: [
+      { id: 'tableHire', kind: 'text', title: 'Table hire', body: 'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.' },
+      { id: 'pricing', kind: 'pricing', title: 'Pricing' },
+      { id: 'foodDrinks', kind: 'text', title: 'Food & drinks', body: 'available to order at the counter.' },
+      { id: 'largeGroups', kind: 'text', title: 'Large groups or private hire?', body: "Get in touch and we'll sort something out for you." },
+    ],
   },
   vrCasual: {
     title: '🎮 Casual VR — check availability',
@@ -4137,12 +4135,7 @@ function applyBookingText() {
     if (tooltipEl) tooltipEl.textContent = c.tooltip;
   });
 
-  const th = document.getElementById('cafeTextTableHire');
-  if (th) th.textContent = bookingText.cafeInfo.tableHire;
-  const fd = document.getElementById('cafeTextFoodDrinks');
-  if (fd) fd.textContent = bookingText.cafeInfo.foodDrinks;
-  const lg = document.getElementById('cafeTextLargeGroups');
-  if (lg) lg.textContent = bookingText.cafeInfo.largeGroups;
+  renderCafeInfoPanel();
 
   const vt = document.getElementById('vrCasualTitle');
   if (vt) vt.textContent = bookingText.vrCasual.title;
@@ -4152,6 +4145,26 @@ function applyBookingText() {
   if (vIconWrap && bookingText.vrCasual.tooltip) {
     vIconWrap.innerHTML = `<div class="tooltip-icon" onclick="toggleCardTooltip(event, this, '.casual-card')">i</div><div class="card-tooltip">${escapeHtml(bookingText.vrCasual.tooltip)}</div>`;
   }
+}
+
+// Builds the Board Game Cafe "How it works" panel from bookingText.cafeInfo.items
+// (a freely-orderable list of custom title/body lines plus one special "pricing"
+// item, whose body is calculated live from bookingConfig rather than stored).
+function renderCafeInfoPanel() {
+  const el = document.getElementById('cafeInfoPanelBody');
+  if (!el) return;
+  const cafeGames = games.filter(g => g.category === 'cafe' && g.bookable !== false);
+  const g = cafeGames[0];
+  const rate = g ? ((bookingConfig.gamePerPersonPerHour || {})[g.id] ?? 0) : 0;
+  const minPlayers = g ? ((bookingConfig.gamePlayerLimits || {})[g.id]?.min ?? 2) : 2;
+  const items = bookingText.cafeInfo.items || [];
+  el.innerHTML = items.map(item => {
+    const title = escapeHtml(item.title || '');
+    const body = item.kind === 'pricing'
+      ? `$${rate} per person per hour · Minimum ${minPlayers} player${minPlayers !== 1 ? 's' : ''}`
+      : escapeHtml(item.body || '');
+    return `<strong>${title}</strong> ${body}`;
+  }).join('<br><br>');
 }
 
 async function loadSettings() {
@@ -4169,8 +4182,11 @@ async function loadSettings() {
           bookingConfig = { ...bookingConfig, ...d };
         }
         if (row.key === 'btb_booking_text' && typeof d === 'object' && !Array.isArray(d)) {
+          const dCafeItems = d.cafeInfo && Array.isArray(d.cafeInfo.items) && d.cafeInfo.items.length
+            ? d.cafeInfo.items
+            : bookingText.cafeInfo.items;
           bookingText = {
-            cafeInfo: { ...bookingText.cafeInfo, ...(d.cafeInfo || {}) },
+            cafeInfo: { items: dCafeItems },
             vrCasual: { ...bookingText.vrCasual, ...(d.vrCasual || {}) },
             categories: {
               escape: { ...bookingText.categories.escape, ...((d.categories || {}).escape || {}) },
@@ -4828,15 +4844,6 @@ function selectVRDate(ds, el) {
 function renderCafeGames() {
   const cafeGames = games.filter(g => g.category === 'cafe' && g.bookable !== false);
   document.getElementById('cafeGameList').innerHTML = cafeGames.map(g => gameCardHtml(g, 'cgc', 'selectCafeGame')).join('');
-  // Keep the "How it works" pricing line in sync with the live settings, so it
-  // can't go stale again the next time the per-person-per-hour rate is changed.
-  const pricingTextEl = document.getElementById('cafePricingText');
-  if (pricingTextEl && cafeGames.length) {
-    const g = cafeGames[0];
-    const rate = (bookingConfig.gamePerPersonPerHour || {})[g.id] ?? 0;
-    const minPlayers = (bookingConfig.gamePlayerLimits || {})[g.id]?.min ?? 2;
-    pricingTextEl.textContent = `$${rate} per person per hour · Minimum ${minPlayers} player${minPlayers !== 1 ? 's' : ''}`;
-  }
 }
 
 function selectCafeGame(gameId) {

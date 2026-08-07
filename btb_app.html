@@ -233,11 +233,9 @@
       <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-circles" style="color:#07b4c5"></i> Category circles (Step 1)</div>
       <div id="pageTextCategories" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px"></div>
       <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-coffee" style="color:#07b4c5"></i> Board Game Cafe — "How it works"</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-        <div><div class="row-sub" style="margin-bottom:3px">Table hire — <span style="color:#9ca3af">after the bold "Table hire" label</span></div><textarea class="form-select" id="ptCafeTableHire" rows="2" style="width:100%;resize:vertical"></textarea></div>
-        <div><div class="row-sub" style="margin-bottom:3px">Food & drinks — <span style="color:#9ca3af">after the bold "Food & drinks" label</span></div><textarea class="form-select" id="ptCafeFoodDrinks" rows="2" style="width:100%;resize:vertical"></textarea></div>
-        <div><div class="row-sub" style="margin-bottom:3px">Large groups — <span style="color:#9ca3af">after the bold "Large groups or private hire?" label</span></div><textarea class="form-select" id="ptCafeLargeGroups" rows="2" style="width:100%;resize:vertical"></textarea></div>
-      </div>
+      <p class="row-sub" style="margin-bottom:8px">Each line has a bold title and body text, shown in the order below. The "Pricing" line's amount is calculated automatically from the game's rate — you can rename it and move it, but not edit its amount here.</p>
+      <div id="cafeInfoItemsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+      <button class="add-btn" style="margin-bottom:16px" onclick="addCafeInfoItem()"><i class="ti ti-plus"></i> Add line</button>
       <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-vr" style="color:#07b4c5"></i> VR Casual card</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
         <div><div class="row-sub" style="margin-bottom:3px">Title</div><input class="add-input" type="text" id="ptVrTitle" style="width:100%"></div>
@@ -408,9 +406,12 @@ let bookingConfig={
 // is missing, these defaults are used, so the widget never shows blank text.
 let bookingText={
   cafeInfo:{
-    tableHire:'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.',
-    foodDrinks:'available to order at the counter.',
-    largeGroups:"Get in touch and we'll sort something out for you.",
+    items:[
+      {id:'tableHire',kind:'text',title:'Table hire',body:'includes access to our full library of 200+ board games. Stay as long as you like during opening hours.'},
+      {id:'pricing',kind:'pricing',title:'Pricing'},
+      {id:'foodDrinks',kind:'text',title:'Food & drinks',body:'available to order at the counter.'},
+      {id:'largeGroups',kind:'text',title:'Large groups or private hire?',body:"Get in touch and we'll sort something out for you."},
+    ],
   },
   vrCasual:{
     title:'🎮 Casual VR — check availability',
@@ -458,8 +459,9 @@ async function loadSettings(){
         if(row.key==='btb_training_statuses'&&Array.isArray(d))trainingStatuses=d;
         if(row.key==='btb_booking_config'&&typeof d==='object'&&!Array.isArray(d))bookingConfig={...bookingConfig,...d};
         if(row.key==='btb_booking_text'&&typeof d==='object'&&!Array.isArray(d)){
+          const dCafeItems=(d.cafeInfo&&Array.isArray(d.cafeInfo.items)&&d.cafeInfo.items.length)?d.cafeInfo.items:bookingText.cafeInfo.items;
           bookingText={
-            cafeInfo:{...bookingText.cafeInfo,...(d.cafeInfo||{})},
+            cafeInfo:{items:dCafeItems},
             vrCasual:{...bookingText.vrCasual,...(d.vrCasual||{})},
             categories:{
               escape:{...bookingText.categories.escape,...((d.categories||{}).escape||{})},
@@ -1484,13 +1486,62 @@ function renderPageTextPanel(){
       </div>`;
     }).join('');
   }
+  renderCafeInfoItemsList();
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val||''};
-  set('ptCafeTableHire',bookingText.cafeInfo.tableHire);
-  set('ptCafeFoodDrinks',bookingText.cafeInfo.foodDrinks);
-  set('ptCafeLargeGroups',bookingText.cafeInfo.largeGroups);
   set('ptVrTitle',bookingText.vrCasual.title);
   set('ptVrSub',bookingText.vrCasual.sub);
   set('ptVrTooltip',bookingText.vrCasual.tooltip);
+}
+// Cafe "How it works" is a freely-orderable list of {id,kind,title,body} lines.
+// Edits apply straight to bookingText.cafeInfo.items as you type/reorder — same
+// live-edit pattern as the Pricing Presets list — savePageTextPanel() just
+// persists whatever's currently in bookingText when you hit Save.
+function renderCafeInfoItemsList(){
+  const el=document.getElementById('cafeInfoItemsList');if(!el)return;
+  const items=bookingText.cafeInfo.items||[];
+  if(!items.length){el.innerHTML='<div class="empty-state">No lines yet — add one below.</div>';return}
+  el.innerHTML=items.map((item,i)=>{
+    const isPricing=item.kind==='pricing';
+    return`<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#f9fafb">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="display:flex;flex-direction:column">
+          <button class="icon-btn" ${i===0?'disabled':''} onclick="moveCafeInfoItem('${item.id}',-1)" title="Move up" style="padding:0"><i class="ti ti-chevron-up" style="font-size:13px"></i></button>
+          <button class="icon-btn" ${i===items.length-1?'disabled':''} onclick="moveCafeInfoItem('${item.id}',1)" title="Move down" style="padding:0"><i class="ti ti-chevron-down" style="font-size:13px"></i></button>
+        </div>
+        <input type="text" value="${escapeHtml(item.title)}" onchange="setCafeInfoItemTitle('${item.id}',this.value)" placeholder="Title" style="flex:1;font-size:13px;font-weight:600;color:#374151;border:1px solid #e5e7eb;border-radius:6px;padding:4px 8px">
+        ${isPricing?'<span style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Auto-priced</span>':''}
+        <button class="icon-btn danger" onclick="deleteCafeInfoItem('${item.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+      ${isPricing
+        ? '<div class="row-sub" style="font-style:italic">Body text is calculated automatically from the Board Game Cafe rate & minimum players — edit those on the Games tab.</div>'
+        : `<textarea class="form-select" rows="2" placeholder="Body text" style="width:100%;resize:vertical" onchange="setCafeInfoItemBody('${item.id}',this.value)">${escapeHtml(item.body||'')}</textarea>`
+      }
+    </div>`;
+  }).join('');
+}
+function setCafeInfoItemTitle(id,val){
+  const item=(bookingText.cafeInfo.items||[]).find(x=>x.id===id);if(!item)return;
+  item.title=val.trim();
+}
+function setCafeInfoItemBody(id,val){
+  const item=(bookingText.cafeInfo.items||[]).find(x=>x.id===id);if(!item)return;
+  item.body=val.trim();
+}
+function moveCafeInfoItem(id,dir){
+  const items=bookingText.cafeInfo.items||[];
+  const i=items.findIndex(x=>x.id===id);if(i<0)return;
+  const j=i+dir;if(j<0||j>=items.length)return;
+  [items[i],items[j]]=[items[j],items[i]];
+  renderCafeInfoItemsList();
+}
+function deleteCafeInfoItem(id){
+  bookingText.cafeInfo.items=(bookingText.cafeInfo.items||[]).filter(x=>x.id!==id);
+  renderCafeInfoItemsList();
+}
+function addCafeInfoItem(){
+  if(!bookingText.cafeInfo.items)bookingText.cafeInfo.items=[];
+  bookingText.cafeInfo.items.push({id:'item_'+Date.now(),kind:'text',title:'New line',body:''});
+  renderCafeInfoItemsList();
 }
 function savePageTextPanel(){
   const get=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
@@ -1500,11 +1551,6 @@ function savePageTextPanel(){
       tooltip:get('ptCatTooltip-'+catId),
     };
   });
-  bookingText.cafeInfo={
-    tableHire:get('ptCafeTableHire'),
-    foodDrinks:get('ptCafeFoodDrinks'),
-    largeGroups:get('ptCafeLargeGroups'),
-  };
   bookingText.vrCasual={
     title:get('ptVrTitle'),
     sub:get('ptVrSub'),
@@ -2090,7 +2136,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.8'; // v16.4.8: New "Page Text" settings panel (admin only) lets staff edit the booking widget's category circle titles/tooltips, Board Game Cafe "How it works" text, and VR Casual card text — previously hardcoded, now saved to settings.btb_booking_text. Also added an optional per-game "Info tooltip" field (games.tooltip) shown as an "i" icon on that game's card in the booking widget.
+const BUILD_VERSION = '16.4.9'; // v16.4.9: Page Text panel's Board Game Cafe section is now a freely-orderable list (add/delete/move-up-down) of title/body lines instead of 3 fixed fields, matching booking_widget.html v1.7.20. The Pricing line's amount stays auto-calculated but its title can be renamed and moved.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
