@@ -1,8 +1,8 @@
 {
-  "name": "Beyond the Box Staff Portal",
+  "name": "Beyond the Box Staff",
   "short_name": "BtB Staff",
-  "description": "Beyond the Box staff portal — shifts, timesheets, and alerts",
-  "start_url": "staff_portal.html",
+  "description": "Beyond the Box staff app — calendar, shifts, POS, control room, timesheets, and alerts",
+  "start_url": "btb_app.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#07b4c5",
