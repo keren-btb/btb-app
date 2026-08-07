@@ -1772,7 +1772,6 @@ async function doLogin(){
     // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
     // so shiftTimes came back empty. Refresh it before showing the app.
     await loadShiftTimes();
-await loadShiftTimes();
     // Same fix as shift times above — RLS on `games` only lets anon see
     // active=true rows, so any inactive games were missing from the initial
     // load. Reload now with the real token to get the full list for admin.
@@ -1782,6 +1781,11 @@ await loadShiftTimes();
     // never got any staff back, leaving the calendar's assign-staff chips
     // empty all session. Reload now with the real token.
     await loadStaff();
+    // v16.4.14 fix: this reload was missing entirely — RLS on `game_bookings` has no
+    // anon SELECT at all (anon can only INSERT, for the public booking widget), so a
+    // fresh login's calendar was always empty until a manual refresh. loadBookings()
+    // was already being called on the restored-session path but not here.
+    await loadBookings(viewMonth,viewYear);
     showApp();
     renderActiveView();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
@@ -2163,7 +2167,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.14'; // v16.4.14: Fixed misread of prior request — thickened the time-group connector line to 4px (double the original 2px), not thinner.
+const BUILD_VERSION = '16.4.15'; // v16.4.15: Fixed calendar coming up empty on a fresh login (not a restored session) — doLogin() was reloading shift times, games, and staff with the real staff token but never bookings, so game_bookings (anon has no SELECT access, INSERT-only) stayed empty until a manual refresh. Added the missing loadBookings() call, matching what the restored-session path already did. Also removed an accidental duplicate loadShiftTimes() call in the same block.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
