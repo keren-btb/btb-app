@@ -1005,7 +1005,7 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
       label.className='time-group-label';
       label.textContent=`${fmt12(grp[0].time||'00:00')} · ${grp.length} games`;
       wrap.appendChild(label);
-      grp.forEach(b=>wrap.appendChild(buildCard(b,true)));
+      grp.forEach(b=>{const row=document.createElement('div');row.className='time-group-row';row.appendChild(buildCard(b,true));wrap.appendChild(row)});
       list.appendChild(wrap);
     }else{
       list.appendChild(buildCard(grp[0]));
@@ -2163,7 +2163,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.11'; // v16.4.11: Moved the profile avatar button inline with the "BtB APP" title (absolute-positioned top-right) instead of its own row below, so it no longer adds extra height to the header. Shrunk avatar slightly (34px→30px) to sit cleanly alongside the title text.
+const BUILD_VERSION = '16.4.12'; // v16.4.12: Day-view Events calendar — when 2+ games share the same time slot, each game card now has a short horizontal teal connector line linking it to the group's vertical line on the left, centred on the card's vertical middle (works even when a card expands/collapses).
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
