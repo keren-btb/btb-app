@@ -44,8 +44,20 @@
       <div style="font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;line-height:1">BtB APP <span id="buildVersionTag" style="font-size:10px;font-weight:400;color:rgba(255,255,255,.4);letter-spacing:0.5px;vertical-align:middle"></span></div>
     </div>
     <div class="header-sub" id="headerSub">Loading…</div>
-    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px">
-      <span class="auth-badge" id="authBadge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span> · Sign out</span>
+    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:4px;position:relative">
+      <div id="profileMenuWrap" style="position:relative">
+        <button id="profileAvatarBtn" onclick="toggleProfileMenu(event)" title="" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#07b4c5 0%,#0891a3 100%);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:13px;font-weight:800;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;padding:0">
+          <span id="profileAvatarInitials"></span>
+        </button>
+        <div id="profileMenuDropdown" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:190px;overflow:hidden;z-index:500;border:1px solid #eef0f2">
+          <div style="padding:10px 14px 8px;font-size:12px;font-weight:700;color:#111827;border-bottom:1px solid #f1f2f4" id="profileMenuName"></div>
+          <button class="profile-menu-item" onclick="window.open('staff_portal.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-id-badge-2" style="font-size:16px;color:#6b7280"></i>Staff Portal</button>
+          <button class="profile-menu-item" onclick="window.open('control_room.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-device-gamepad-2" style="font-size:16px;color:#6b7280"></i>Control Room</button>
+          <button class="profile-menu-item" onclick="window.open('booking_widget.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-event" style="font-size:16px;color:#6b7280"></i>Booking Widget</button>
+          <button class="profile-menu-item" onclick="window.open('gift_voucher_request.html','_blank');closeProfileMenu()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border:none;background:none;font-size:13.5px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-gift" style="font-size:16px;color:#6b7280"></i>Gift Voucher</button>
+          <button class="profile-menu-item" onclick="doLogout()" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:10px 14px;border-top:1px solid #f1f2f4;background:none;font-size:13.5px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-logout" style="font-size:16px;color:#dc2626"></i>Sign out</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="timer-banner" id="timerBanner"></div>
@@ -1782,10 +1794,27 @@ await loadShiftTimes();
   try{ const p=JSON.parse(raw); return Array.isArray(p)?p:['calendar']; }
   catch(e){ return ['calendar']; }
 }
-function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
+function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('mainApp').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value='';closeProfileMenu()}
+function toggleProfileMenu(e){
+  e.stopPropagation();
+  const dd=document.getElementById('profileMenuDropdown');
+  dd.style.display=(dd.style.display==='none'||!dd.style.display)?'block':'none';
+}
+function closeProfileMenu(){
+  const dd=document.getElementById('profileMenuDropdown');
+  if(dd)dd.style.display='none';
+}
+document.addEventListener('click',(e)=>{
+  const wrap=document.getElementById('profileMenuWrap');
+  if(wrap&&!wrap.contains(e.target))closeProfileMenu();
+});
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
-  document.getElementById('authName').textContent=currentUser.name;
+  const nm=currentUser.name||'';
+  const initials=nm.trim().split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase()||'?';
+  document.getElementById('profileAvatarInitials').textContent=initials;
+  document.getElementById('profileAvatarBtn').title=nm;
+  document.getElementById('profileMenuName').textContent=nm;
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
   const isAdmin=currentUser.role==='admin';
   document.getElementById('settingsGroupSetup').style.display=isAdmin?'':'none';
@@ -2136,7 +2165,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.9'; // v16.4.9: Page Text panel's Board Game Cafe section is now a freely-orderable list (add/delete/move-up-down) of title/body lines instead of 3 fixed fields, matching booking_widget.html v1.7.20. The Pricing line's amount stays auto-calculated but its title can be renamed and moved.
+const BUILD_VERSION = '16.4.10'; // v16.4.10: Fixed bug where the calendar always came up empty on first login and needed a manual refresh — bookings weren't being reloaded with the real staff token like shift times/games/staff already were. Also replaced the plain "Name · Sign out" header badge with an initials avatar + dropdown menu (Staff Portal, Control Room, Booking Widget, Gift Voucher, Sign out).
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
@@ -2225,6 +2254,12 @@ await loadShiftTimes();
         // never got any staff back, leaving the calendar's assign-staff chips
         // empty all session. Reload now with the real token.
         await loadStaff();
+        // Same fix as shift times above — RLS on `game_bookings` has no anon
+        // SELECT at all (anon can only INSERT, for the public booking widget),
+        // so the initial DOMContentLoaded load (anon key) always came back
+        // empty, leaving the calendar blank until a manual refresh. Reload
+        // now with the real token to get the actual bookings.
+        await loadBookings(viewMonth,viewYear);
         // Speed fix: show the app right away using the cached role/permissions
         // from last login, instead of waiting on a get_my_role round-trip first.
         // Validate quietly in the background; only sign out if that check fails,
