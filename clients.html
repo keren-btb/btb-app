@@ -486,7 +486,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.1'; // v1.4.4: Added collapse/expand button for the left navy sidebar — collapses to a thin edge tab, state remembered via localStorage// v1.4.2: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+const BUILD_VERSION = '1.5.2'; // v1.5.2: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.// v1.4.4: Added collapse/expand button for the left navy sidebar — collapses to a thin edge tab, state remembered via localStorage// v1.4.2: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
