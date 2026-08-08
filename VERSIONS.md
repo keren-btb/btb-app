@@ -6,7 +6,8 @@ Newest entry per file goes at the top of that file's list.
 
 ---
 
-## Push notification foundation (manifest.json, sw.js, icon-*.png, apple-touch-icon.png)
+## Push notification foundation (manifest.json, sw.js, icon-*.png, apple-touch-icon.png, icon-maskable-512.png)
+- v1.1.0 — 2026-08-08 — App-wide PWA: manifest.json now covers the whole suite (name "Beyond the Box Staff", start_url btb_app.html) instead of just Staff Portal. All 12 staff-reachable pages (btb_app, staff_portal, control_room, pos, reports, clients, client_profile, clients_mobile, task_hub, waiver, booking_widget, gift_voucher_request) now link the manifest/icon/theme-color tags and register the service worker, so the whole app installs as one unit. Replaced the placeholder icon set with the teal "BtB" design (icon-192, icon-512, icon-maskable-512, apple-touch-icon all regenerated to match). Generated a brand-new VAPID key pair — the old public key baked into staff_portal.html had no matching private key saved anywhere, so push could never have worked; old push_subscriptions rows (signed under the orphaned key) were cleared. Added the actual send_help_push action to the btb-admin edge function (previously nothing sent a push when a help alert fired, even though the phone-side subscribe/receive code existed) and wired triggerHelp() in btb_app.html to call it. MANUAL STEP STILL NEEDED: VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be added as secrets in the Supabase dashboard before this works end-to-end — Claude has no tool access to set secrets.
 - v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
 
 ## btb_app.css
@@ -14,6 +15,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.16 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page — as the app's start page — can be installed to a phone home screen along with the rest of the suite. triggerHelp() now also calls the new send_help_push action on btb-admin right after logging the help_alerts row, so raising a help alert actually sends a push notification to subscribed staff phones (previously nothing did, despite the receiving side existing).
 - v16.4.15 — 2026-08-08 — Fixed calendar coming up empty on a fresh login (not a restored session) — doLogin() was reloading shift times, games, and staff with the real staff token but never bookings, so game_bookings (anon has no SELECT access, INSERT-only) stayed empty until a manual refresh. Added the missing loadBookings() call, matching what the restored-session path already did. Also removed an accidental duplicate loadShiftTimes() call in the same block.
 - v16.4.14 — 2026-08-08 — Fixed misread of prior request — thickened the time-group connector line to 4px (double the original 2px), not thinner.
 - v16.4.13 — 2026-08-08 — Thinned the time-group connector line (added in v16.4.12) from 2px to 1px.
@@ -31,6 +33,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.17 — 2026-08-08 — Swapped in a new VAPID_PUBLIC_KEY. The previous one had no matching private key saved anywhere (confirmed — no secret existed), so push notifications could never have actually worked despite the subscribe UI/code being in place. Existing push_subscriptions rows (signed under the old, orphaned key) were cleared — staff need to re-toggle "Alerts" on once the new VAPID secrets are added in Supabase, to get a valid subscription under the new key.
 - v1.9.16 — 2026-08-07 — Bug fix: clock in/out edit fields (timesheet detail popup, Clock tab grid, and "Log Missed Shift" form) were displaying and saving times using raw UTC digits / the device's own timezone instead of NZ time, causing edited times to be off by hours or a whole date. Added isoToNzDatetimeLocal()/nzDatetimeLocalToIso() helpers so every editable clock field reliably shows and saves Pacific/Auckland time regardless of device timezone; fmtDatetime() read-only display also now explicitly pins to Pacific/Auckland
 - v1.9.15 — 2026-08-07 — Bug fix: timesheet detail popup's "Manual Hours" field now auto-recalculates whenever Clock in or Clock out is edited, so a stale hours value can no longer be saved unchanged after adjusting the times (was producing wildly wrong totals like "104.86h")
 - v1.9.14 — 2026-08-07 — Bug fix: manually adding/editing a clock-out time (via the timesheet detail popup's "Update & Save Times" as admin, or the Clock tab's grid Save button) now correctly moves the record out of "clocked_in" status into "pending" instead of staying stuck showing "Clocked in" after the shift is actually finished; added auto-refresh so returning to the app after it's backgrounded (phone locked/app switched) re-pulls fresh data for the tab you're on
@@ -41,6 +44,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.9.9 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## pos.html
+- v1.4.1 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.4.0 — 2026-08-06 — New: "Email receipt" button on the receipt display. Staff enters/confirms a customer email and sends a plain HTML receipt (game, add-ons, total, balance owing) via Resend, through the new send_pos_receipt_email action added to btb-admin (edge function v16). Manual only — no auto-send on sale completion, and no note/log saved yet.
 - v1.3.5 — 2026-07-30 — Finding 13 fix: deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails
 - v1.3.4 — 2026-07-29 — Security fixes: escaped customer/voucher free-text fields before inserting into innerHTML (name, email, phone, voucher recipient/message/notes) to close stored-XSS risk; encoded voucher search term before building PostgREST filter URL
@@ -50,18 +54,21 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.7 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.6 — 2026-08-02 — Renamed sidebar back-link label from "Staff App" to "BtB App" — too easily confused with Staff Portal
 - v1.0.5 — 2026-08-02 — Bug fix: sidebar "back" link pointed at staff_app.html (a file that doesn't exist); now points to btb_app.html, same as every other app's back-link
 - v1.0.4 — 2026-07-29 — Security fix: escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (This file has no internal BUILD_VERSION counter like the others — noting the change here without a version number.)
 - v13 — 2026-08-02 — Fixed silent failure if live game settings can't load: previously fell back to a stale 3-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching gift_voucher_request.html / booking widget pattern
 - v12 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy); no behaviour change
 - v11 — 2026-07-29 — Security fix: escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.22 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
 - v1.7.21 — 2026-08-06 — Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
 - v1.7.20 — 2026-08-06 — Board Game Cafe "How it works" panel is now a freely-orderable list of title/body lines (bookingText.cafeInfo.items) instead of 3 fixed fields — titles are editable and lines can be added/removed/reordered from the Page Text panel. Pricing line stays live-calculated but can be renamed/reordered.
 - v1.7.19 — 2026-08-06 — Fixed VR Casual card tooltip not opening on tap — CSS only revealed a card-tooltip that was a direct child of the open card, but the VR casual icon/tooltip sits one level deeper in a wrapper div. Switched to a descendant selector.
@@ -76,31 +83,37 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html
+- v1.1.5 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
 - v1.1.4 — 2026-07-29 — Added phone number (0220 537 365) to the "having trouble loading" error screen
 - v1.1.3 — 2026-07-29 — Fixed silent failure if live settings can't load: now shows a clear error screen with a refresh button instead of quietly continuing on stale hardcoded prices
 - v1.1.2 — 2026-07-29 — Security/bug fixes: escaped confirmation-screen fields (self-XSS); fixed calcPrice() to respect each game's pricingType instead of always using tiered pricing — was mispricing VR Hour, Mini Escape Room, Board Game Cafe vouchers
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
+- v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Fixed silent failure if live game settings can't load: previously fell back to a stale 4-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching gift_voucher_request.html / booking widget pattern
 - v1.0.1 — 2026-07-29 — Security fix: escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Single sign-on: switched from its own separate sessionStorage session ('btb_profile_user') to the shared localStorage session ('btb_staff_session') used by every other staff app
 - v1.0.1 — (undated, pre-existing) — Updated links to point to the renamed clients.html (was client_overview.html)
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.5.1 before this — ahead of what was last logged here; gap not reconciled.)
 - v1.4.3 — 2026-08-02 — Removed the Enquiries nav link and the enquiry-badge's link out to enquiries.html (being retired, functionality already folded in here) — badge now just shows status, click opens the client panel like the rest of the row
 - v1.4.2 — (undated, pre-existing) — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.1 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.3.0 before this — ahead of what was last logged here; gap not reconciled.)
 - v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.6.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.6.1 — 2026-08-05 — General Tasks: added Every 3 months, Every 6 months, and Yearly to the repeat options (alongside daily/weekly/monthly). Quarters start Jan/Apr/Jul/Oct, half-years start Jan/Jul, years start Jan 1 — same auto-refresh mechanism as the other repeat options.
 - v1.6.0 — 2026-08-05 — General Tasks tab is live: a new sidebar item (visible to everyone) showing tasks assigned to a specific person, a role, or open to anyone. Each task has a title, optional instructions, urgency (Low/Medium/High/Urgent), tags, and either a one-off due date or a repeat schedule (daily/weekly/monthly — auto-generates a fresh occurrence each period like Daily Tasks does). Staff only see tasks relevant to them (their own, their role, or unassigned); admins/managers with template-edit permission see everything and get a "New task" button plus an edit/deactivate option on each task. Marking a task done prompts for an optional completion note, visible afterwards next to "Done by [name]".
 - v1.5.0 — 2026-08-05 — First piece of General Tasks (role/person-assigned tasks, separate from Daily Tasks and Room Checklists). Added general_task_tags, general_task_templates, general_task_instances tables. New "Task Tags" sidebar item lets you add/rename/deactivate tags (same pattern as Checklist Types). The actual General Tasks task list/tab is not built yet — this is just the tags and the underlying tables.
