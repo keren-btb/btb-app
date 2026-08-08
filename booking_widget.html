@@ -3972,7 +3972,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.21'; // v1.7.21: Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
+const BUILD_VERSION = '1.7.22'; // v1.7.22: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
