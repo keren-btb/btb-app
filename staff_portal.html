@@ -1068,7 +1068,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.16'; // v1.9.16: Bug fix — clock in/out edit fields (timesheet detail popup, Clock tab grid, and "Log Missed Shift" form) were displaying and saving times using the raw UTC digits / the device's own timezone instead of NZ time, causing edited times to be hours (sometimes a whole date) off. Added isoToNzDatetimeLocal()/nzDatetimeLocalToIso() helpers so every editable clock field now reliably shows and saves Pacific/Auckland time regardless of device timezone; fmtDatetime() (read-only time display) now also explicitly pins to Pacific/Auckland instead of relying on the device setting
+const BUILD_VERSION = '1.9.17'; // v1.9.17: The old VAPID_PUBLIC_KEY had no matching private key saved anywhere (confirmed — no secret existed), so push notifications could never have worked. Generated a fresh VAPID key pair and swapped in the new public key here to match. Any existing rows in push_subscriptions were signed with the old orphaned key and are being cleared — staff need to re-toggle "Alerts" on to get a valid subscription under the new key.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
@@ -1881,7 +1881,7 @@ function loadProfile() {
 // PUSH NOTIFICATIONS — help alert alerts to staff phones
 // ============================================================
 // This is the public VAPID key (safe to expose client-side) generated for this project.
-const VAPID_PUBLIC_KEY = 'BCTp4j-gbM6dS06f4w9GdTEWlmgj7bPAlqufSKG8x6OTeeJrYaTvhO4Z_zfo51eDeTR-ITm78sOXDnmjKzqOqn0';
+const VAPID_PUBLIC_KEY = 'BC3ibt5yJwisnyJWgKf7Iq3-HsHBsy4WFd10PPVwqSxgPGmsi0vVyRhZw4gVd-CKZw1PtHq5XGWH7KF-c5aF0Ug';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
