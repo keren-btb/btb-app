@@ -585,7 +585,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.4.0'; // v1.4.0: New — "Email receipt" button on the receipt display sends a plain HTML receipt (game/add-ons/total/balance) to a customer-entered email via Resend, through the new send_pos_receipt_email action in btb-admin. No automatic sending and no logged note yet — manual button + on-screen confirmation only.
+const BUILD_VERSION = '1.4.1'; // v1.4.1: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
