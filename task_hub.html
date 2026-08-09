@@ -152,6 +152,11 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   <div class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbarTitle">Daily Tasks</div>
+      <div class="pill-tabs" id="hubPillTabs">
+        <span class="pill-tab active" id="pillDaily" onclick="switchTab('daily')">Daily Tasks</span>
+        <span class="pill-tab" id="pillRoom" onclick="switchTab('room')">Room Checklists</span>
+        <span class="pill-tab" id="pillGeneralTasks" onclick="switchTab('generaltasks')">General Tasks</span>
+      </div>
     </div>
 
     <div class="content">
@@ -473,6 +478,9 @@ function switchTab(tab){
 document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
   document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
   document.getElementById('navTaskTags').classList.toggle('active',tab==='tasktags');
+  document.getElementById('pillDaily').classList.toggle('active',tab==='daily');
+  document.getElementById('pillRoom').classList.toggle('active',tab==='room');
+  document.getElementById('pillGeneralTasks').classList.toggle('active',tab==='generaltasks');
   document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
   document.getElementById('roomSection').style.display=tab==='room'?'':'none';
   document.getElementById('generalTasksSection').style.display=tab==='generaltasks'?'':'none';
