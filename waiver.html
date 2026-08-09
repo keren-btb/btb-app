@@ -18,7 +18,7 @@
 /* ==========================================================================
    1. GLOBAL RE-SETS & ROOT DESIGN TOKENS
    ========================================================================== */
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{
   --teal:#07b4c5;     /* Main accent color used for buttons, active inputs, and accents */
   --navy:#1a1035;     /* Core brand color used for backgrounds, headings, and primary buttons */
@@ -372,7 +372,7 @@ const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`
 // BUILD VERSION — bump this each time this file is shipped, so you can confirm
 // in the browser console which copy you're looking at. (No header UI tag for
 // this one yet — this file didn't have build version tracking before.)
-const BUILD_VERSION = '1.0.3'; // v1.0.3: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
+const BUILD_VERSION = '1.0.4'; // v1.0.4: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.0.1: Security fix — escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
