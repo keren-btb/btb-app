@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
 /* ── Reset ─────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
 
 /* ── Login ──────────────────────────────────────── */
@@ -585,7 +585,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.4.1'; // v1.4.1: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
+const BUILD_VERSION = '1.4.2'; // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
