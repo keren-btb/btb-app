@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.18">
+<link rel="stylesheet" href="btb_app.css?v=16.4.19">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -884,8 +884,8 @@ function buildCard(b,hideTime){
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
         <div style="position:relative;align-self:flex-end">
-          <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
-          <div id="actionsDD-${b.id}" style="display:none;position:absolute;top:32px;right:0;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
+          <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',this,event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
+          <div id="actionsDD-${b.id}" style="display:none;position:fixed;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
             <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
             <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
             <button class="action-menu-item" onclick="openReschedule('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-time" style="font-size:15px;color:#6b7280"></i>Reschedule</button>
@@ -1051,10 +1051,19 @@ function toggleDone(id){const b=bookings.find(x=>x.id===id);if(!b)return;b.statu
 function togglePost(id,field){const b=bookings.find(x=>x.id===id);if(!b)return;b[field]=!b[field];openPanels.add(id);saveBooking(id);renderActiveView()}
 
 // BOOKING ACTIONS MENU — Call / Email / Reschedule / Cancel, opened from the ⋯ button on each card
-function toggleBookingActions(id,e){
+function toggleBookingActions(id,btnEl,e){
   e.stopPropagation();
-  openActionsId=(openActionsId===id)?null:id;
-  document.querySelectorAll('[id^="actionsDD-"]').forEach(el=>{el.style.display=(el.id==='actionsDD-'+openActionsId)?'block':'none'});
+  if(openActionsId===id){closeBookingActions();return}
+  document.querySelectorAll('[id^="actionsDD-"]').forEach(el=>el.style.display='none');
+  const dd=document.getElementById('actionsDD-'+id);
+  if(btnEl&&dd){
+    const r=btnEl.getBoundingClientRect();
+    dd.style.top=(r.bottom+4)+'px';
+    dd.style.right=(window.innerWidth-r.right)+'px';
+    dd.style.left='auto';
+    dd.style.display='block';
+  }
+  openActionsId=id;
 }
 function closeBookingActions(){
   openActionsId=null;
@@ -2299,7 +2308,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.18'; // v16.4.18: Quick-book row is now icon-only (name on hover) so it fits on one line. Removed the "🎂 Mention: ..." birthday upsell banner from booking cards entirely. Added a ⋯ actions menu to each booking card: Call (opens phone dialer), Email (opens device mail app), Reschedule (inline date/time picker with the same 90-min overlap warning the walk-in form uses, but lets you book over it anyway), and Cancel booking (inline confirm with a checkbox to optionally send a cancellation email via Resend, logged against the client's record).
+const BUILD_VERSION = '16.4.19'; // v16.4.19: Fixed nav bar labels (e.g. "Task Hub") not centering under their icon when the label wraps to two lines. Fixed the new booking actions (⋯) dropdown getting clipped by the card's rounded-corner overflow:hidden when the booking was collapsed — it's now positioned fixed to the viewport based on the button's location, so it always shows in full.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
