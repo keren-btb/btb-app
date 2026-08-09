@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
 
 /* ── APP WRAPPER — sidebar layout ── */
@@ -1068,7 +1068,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.17'; // v1.9.17: The old VAPID_PUBLIC_KEY had no matching private key saved anywhere (confirmed — no secret existed), so push notifications could never have worked. Generated a fresh VAPID key pair and swapped in the new public key here to match. Any existing rows in push_subscriptions were signed with the old orphaned key and are being cleared — staff need to re-toggle "Alerts" on to get a valid subscription under the new key.
+const BUILD_VERSION = '1.9.18'; // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
