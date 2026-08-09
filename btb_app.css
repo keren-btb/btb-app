@@ -123,6 +123,9 @@ body{background:#e5e7eb;min-height:100vh;display:flex;justify-content:center;pad
 .qb-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .qb-btn{font-size:12px;padding:6px 13px;border-radius:99px;border:1px solid #07b4c5;background:#fff;color:#07b4c5;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:5px}
 .qb-btn.active{background:#07b4c5;color:#fff}
+.qb-btn.icon-only{padding:6px 11px;min-width:34px;justify-content:center;font-size:16px;line-height:1}
+.action-menu-item:hover:not(:disabled){background:#f9fafb}
+.action-menu-item:disabled{opacity:.45;cursor:not-allowed}
 .qb-popup{background:#f0fafb;border:1px solid #07b4c5;border-radius:12px;padding:12px 13px;margin-bottom:14px}
 .qb-popup-title{font-size:12px;font-weight:700;color:#07b4c5;margin-bottom:8px}
 .qb-popup-empty{font-size:12px;color:#9ca3af}

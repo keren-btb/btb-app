@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.17">
+<link rel="stylesheet" href="btb_app.css?v=16.4.18">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -441,6 +441,7 @@ let bookingText={
 };
 let staff=[],staffTraining=[],bookings=[],enquiries=[];
 let openTrainingPanels=new Set(),openPanels=new Set();
+let openActionsId=null,rescheduleOpenIds=new Set(),cancelOpenIds=new Set();
 const _n=nzNow();
 const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
@@ -654,6 +655,7 @@ async function loadBookings(month,year){
           })(),
           customerPhone:row.clients?.phone||'',
           customerEmail:row.clients?.email||'',
+          clientId:row.client_id||null,
           time:(row.slot_time||'').slice(0,5),
           duration:games.find(g=>g.id===row.game_id)?.duration||60,
           meta:`${row.players_booked} player${row.players_booked!==1?'s':''} · ${row.source||''}`,
@@ -864,15 +866,6 @@ function buildCard(b,hideTime){
   const gmName=b.gms?.length>0?b.gms.map(id=>{const p=staff.find(x=>x.id===id);return p?p.name:'?'}).join(', '):'Unassigned';
   const tagHtml=(b.tags||[]).map(tid=>{const t=tags.find(x=>x.id===tid);return t?`<span class="tag-pill" style="${tagStyle(t.colorIdx)}">${t.label}</span>`:''}).join('');
   const chipHtml=tags.map(t=>`<button class="chip-btn ${(b.tags||[]).includes(t.id)?'selected':''}" onclick="toggleTag('${b.id}','${t.id}')" style="${(b.tags||[]).includes(t.id)?tagStyle(t.colorIdx):''}">${t.label}</button>`).join('');
-  // Birthday upsell reminder — pulls live from Settings → Personalised
-  // Experiences (occasion='Birthday') so the price/name here can't drift out
-  // of sync with what customers see in the booking widget. Only fires if
-  // there's already an addon logged (booked online and it wasn't taken up)
-  // or if it's simply not on the ticket yet — either way, staff get nudged.
-  const birthdayExps=(bookingConfig.personalisedExperiences||[]).filter(e=>e.active!==false&&(!e.occasions?.length||e.occasions.includes('Birthday')));
-  const hasBirthdayAddon=(()=>{try{return JSON.parse(b.addons||'[]').some(a=>birthdayExps.some(e=>e.label===a.label))}catch(_){return false}})();
-  const isBirthday=b.occasion==='Birthday'||(b.tags||[]).includes('birthday');
-  const birthdayBannerHtml=(isBirthday&&!hasBirthdayAddon&&birthdayExps.length>0)?`<div style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:6px 9px;margin-top:6px;display:flex;align-items:center;gap:5px">🎂 Mention: ${birthdayExps.map(e=>`${e.label} ($${parseFloat(e.price||0).toFixed(0)})`).join(', ')}</div>`:'';
   const notesHtml=(b.notes||[]).map((n,i)=>`<div class="saved-note"><span>${escapeHtml(n)}</span><button class="del-btn" onclick="deleteNote('${b.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
   const gmChipHtml=staff.map(p=>`<button class="gm-chip ${(b.gms||[]).includes(p.id)?'assigned':''}" onclick="toggleGM('${b.id}','${p.id}')">${(b.gms||[]).includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
   const card=document.createElement('div');
@@ -887,10 +880,18 @@ function buildCard(b,hideTime){
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
-        ${birthdayBannerHtml}
         ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${escapeHtml(n)}</div>`).join('')}</div>`:''}
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
+        <div style="position:relative;align-self:flex-end">
+          <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
+          <div id="actionsDD-${b.id}" style="display:none;position:absolute;top:32px;right:0;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
+            <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
+            <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
+            <button class="action-menu-item" onclick="openReschedule('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-time" style="font-size:15px;color:#6b7280"></i>Reschedule</button>
+            <button class="action-menu-item" onclick="openCancel('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-x" style="font-size:15px;color:#dc2626"></i>Cancel booking</button>
+          </div>
+        </div>
         ${b.occasion?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">🎉 ${escapeHtml(b.occasion)}${b.name_of_special_person?' — '+escapeHtml(b.name_of_special_person)+(b.age_of_special_person?' ('+escapeHtml(b.age_of_special_person)+')':''):''}${b.occasion==='Hen/Stag do'&&b.name_of_special_person?' 🥂':''}</div>`:''}
         ${b.experience?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">⭐ ${escapeHtml(b.experience)}</div>`:''}
         ${b.played_before?`<div style="font-size:11px;color:#07b4c5;display:flex;align-items:center;gap:3px">👋 ${b.previous_game?'Played: '+escapeHtml(b.previous_game):'Returning'}</div>`:''}
@@ -932,6 +933,27 @@ function buildCard(b,hideTime){
       <button onclick="window.open('waiver.html?booking_id=${b.id}','_blank')" style="width:100%;margin-top:10px;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
         📋 Open waiver for this booking
       </button>
+      ${rescheduleOpenIds.has(b.id)?`
+      <div style="border:1px solid #07b4c5;background:#f0fafb;border-radius:10px;padding:12px;margin-top:10px">
+        <div style="font-size:12px;font-weight:700;color:#07b4c5;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-calendar-time"></i> Reschedule this booking</div>
+        <div class="form-2col">
+          <div><div class="form-label">New date</div><input class="form-input" type="date" id="resDate-${b.id}" value="${b.year}-${String(b.month).padStart(2,'0')}-${String(b.date).padStart(2,'0')}"></div>
+          <div><div class="form-label">New time</div><input class="form-input" type="time" id="resTime-${b.id}" value="${b.time||''}"></div>
+        </div>
+        <div class="form-btns" style="margin-top:8px">
+          <button class="form-cancel" onclick="closeReschedule('${b.id}')">Cancel</button>
+          <button class="form-submit" onclick="confirmReschedule('${b.id}')">Confirm reschedule</button>
+        </div>
+      </div>`:''}
+      ${cancelOpenIds.has(b.id)?`
+      <div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:12px;margin-top:10px">
+        <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-alert-triangle"></i> Cancel this booking?</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer;margin-bottom:10px"><input type="checkbox" id="cancelEmailChk-${b.id}"> Send cancellation email to customer</label>
+        <div class="form-btns">
+          <button class="form-cancel" onclick="closeCancel('${b.id}')">Never mind</button>
+          <button class="form-submit" style="background:#dc2626" onclick="confirmCancelBooking('${b.id}')">Confirm cancel</button>
+        </div>
+      </div>`:''}
     </div>`;
   return card;
 }
@@ -948,7 +970,7 @@ function renderQuickBookRow(){
   const row=document.getElementById('quickBookRow');if(!row)return;
   const qbGames=games.filter(g=>g.showOnQuickBook===true);
   if(!qbGames.length){row.innerHTML='';document.getElementById('quickBookPopup').style.display='none';return;}
-  row.innerHTML=qbGames.map(g=>`<button class="qb-btn ${qbOpenGameId===g.id?'active':''}" onclick="toggleQuickBookPopup('${g.id}')">${g.icon||''} ${g.name}</button>`).join('');
+  row.innerHTML=qbGames.map(g=>`<button class="qb-btn icon-only ${qbOpenGameId===g.id?'active':''}" onclick="toggleQuickBookPopup('${g.id}')" title="${escapeHtml(g.name)}">${g.icon||escapeHtml(g.name.charAt(0))}</button>`).join('');
   if(qbOpenGameId)renderQuickBookPopup(qbOpenGameId);
   else document.getElementById('quickBookPopup').style.display='none';
 }
@@ -1027,6 +1049,105 @@ function saveNote(bid,btnEl){const input=btnEl?btnEl.previousElementSibling:docu
 function deleteNote(bid,idx){const b=bookings.find(x=>x.id===bid);if(!b)return;b.notes.splice(idx,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
 function toggleDone(id){const b=bookings.find(x=>x.id===id);if(!b)return;b.status=(b.status==='completed')?'confirmed':'completed';saveBooking(id);renderActiveView()}
 function togglePost(id,field){const b=bookings.find(x=>x.id===id);if(!b)return;b[field]=!b[field];openPanels.add(id);saveBooking(id);renderActiveView()}
+
+// BOOKING ACTIONS MENU — Call / Email / Reschedule / Cancel, opened from the ⋯ button on each card
+function toggleBookingActions(id,e){
+  e.stopPropagation();
+  openActionsId=(openActionsId===id)?null:id;
+  document.querySelectorAll('[id^="actionsDD-"]').forEach(el=>{el.style.display=(el.id==='actionsDD-'+openActionsId)?'block':'none'});
+}
+function closeBookingActions(){
+  openActionsId=null;
+  document.querySelectorAll('[id^="actionsDD-"]').forEach(el=>el.style.display='none');
+}
+document.addEventListener('click',(e)=>{
+  if(openActionsId&&!e.target.closest('[id^="actionsDD-"]')&&!e.target.closest('.actions-btn'))closeBookingActions();
+});
+function callCustomer(id){
+  const b=bookings.find(x=>x.id===id);closeBookingActions();if(!b)return;
+  if(!b.customerPhone){alert('No phone number on file for this booking.');return}
+  window.location.href='tel:'+b.customerPhone;
+}
+function emailCustomer(id){
+  const b=bookings.find(x=>x.id===id);closeBookingActions();if(!b)return;
+  if(!b.customerEmail){alert('No email address on file for this booking.');return}
+  const subject=encodeURIComponent('Your booking at Beyond the Box');
+  const body=encodeURIComponent(`Hi ${b.customer||''},\n\n`);
+  window.location.href=`mailto:${b.customerEmail}?subject=${subject}&body=${body}`;
+}
+function openReschedule(id){closeBookingActions();openPanels.add(id);rescheduleOpenIds.add(id);cancelOpenIds.delete(id);renderActiveView()}
+function closeReschedule(id){rescheduleOpenIds.delete(id);renderActiveView()}
+function openCancel(id){closeBookingActions();openPanels.add(id);cancelOpenIds.add(id);rescheduleOpenIds.delete(id);renderActiveView()}
+function closeCancel(id){cancelOpenIds.delete(id);renderActiveView()}
+// Same 90-minute overlap window the walk-in form uses (checkGameTimeConflict), but for an
+// arbitrary target date (not just the currently-selected calendar day) and excluding the
+// booking being moved itself, since otherwise it would always "conflict" with its old self.
+function checkGameTimeConflictOnDate(gameId,timeStr,dateNum,monthNum,yearNum,excludeId){
+  const toMin=t=>{const[h,m]=(t||'0:0').split(':').map(Number);return h*60+m};
+  const newStart=toMin(timeStr);
+  const WINDOW=90;
+  const sameDay=bookings.filter(b=>b.id!==excludeId&&b.date===dateNum&&b.month===monthNum&&b.year===yearNum&&!b.isEnquiry&&b.game_id===gameId);
+  for(const b of sameDay){
+    if(Math.abs(newStart-toMin(b.time))<WINDOW)return b;
+  }
+  return null;
+}
+async function confirmReschedule(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const dateVal=document.getElementById('resDate-'+id).value;
+  const timeVal=document.getElementById('resTime-'+id).value;
+  if(!dateVal||!timeVal){alert('Please choose both a date and a time.');return}
+  const[ny,nm,nd]=dateVal.split('-').map(Number);
+  const conflict=checkGameTimeConflictOnDate(b.game_id,timeVal,nd,nm,ny,id);
+  if(conflict){
+    const proceed=confirm(`Heads up: this overlaps with an existing ${b.name} booking at ${fmt12(conflict.time||'00:00')} (${conflict.customer||'no name'}) on that day. Reschedule anyway?`);
+    if(!proceed)return;
+  }
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({booking_date:dateVal,slot_time:timeVal+':00',updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){alert('Could not reschedule: '+e.message);return}
+  b.date=nd;b.month=nm;b.year=ny;b.time=timeVal;
+  rescheduleOpenIds.delete(id);
+  // Jump the calendar view to wherever the booking landed so it's visible right away
+  viewMonth=nm;viewYear=ny;selectedDate=nd;
+  buildCalendar();renderActiveView();updateHeader();
+}
+async function confirmCancelBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const sendEmail=document.getElementById('cancelEmailChk-'+id)?.checked||false;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'cancelled',updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){alert('Could not cancel booking: '+e.message);return}
+  if(sendEmail){
+    if(!b.customerEmail){
+      alert("Booking cancelled, but there's no email on file so no cancellation email was sent.");
+    }else{
+      try{
+        const dateStr=`${String(b.date).padStart(2,'0')}/${String(b.month).padStart(2,'0')}/${b.year}`;
+        const htmlBody=`<div style="font-family:sans-serif;color:#1a1035">
+          <h2 style="color:#07b4c5">Booking cancelled</h2>
+          <p>Hi ${escapeHtml(b.customer||'')},</p>
+          <p>This confirms your booking has been cancelled:</p>
+          <p><strong>${escapeHtml(b.name)}</strong><br>${dateStr} at ${fmt12(b.time||'00:00')}</p>
+          <p>If this wasn't expected, or you'd like to rebook, just reply to this email or give us a call.</p>
+          <p>Thanks,<br>Beyond the Box</p>
+        </div>`;
+        await callEdgeFunction('send_enquiry_template_email',{
+          to:b.customerEmail,subject:'Your booking has been cancelled',htmlBody,
+          fromEmail:'enquiries@mail.btbescaperooms.co.nz',fromName:'Beyond the Box',
+          templateName:'Booking cancellation',clientId:b.clientId||null,staffId:currentUser?.staffId||currentUser?.id||null,
+        },currentUser?.token);
+      }catch(e){
+        alert('Booking was cancelled, but the cancellation email failed to send: '+e.message);
+      }
+    }
+  }
+  cancelOpenIds.delete(id);
+  bookings=bookings.filter(x=>x.id!==id);
+  renderActiveView();updateHeader();
+}
 
 // TIMER — read-only display here. control_room.html OWNS starting/pausing/resetting the timer;
 // this app only renders the live countdown as realtime updates arrive (see setupRealtime below).
@@ -2178,7 +2299,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.17'; // v16.4.17: Fixed Android text-size-adjust bug — the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% in btb_app.css to disable it.
+const BUILD_VERSION = '16.4.18'; // v16.4.18: Quick-book row is now icon-only (name on hover) so it fits on one line. Removed the "🎂 Mention: ..." birthday upsell banner from booking cards entirely. Added a ⋯ actions menu to each booking card: Call (opens phone dialer), Email (opens device mail app), Reschedule (inline date/time picker with the same 90-min overlap warning the walk-in form uses, but lets you book over it anyway), and Cancel booking (inline confirm with a checkbox to optionally send a cancellation email via Resend, logged against the client's record).
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
