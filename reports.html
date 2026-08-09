@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{
   --navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#1d9e75;
   --amber:#ef9f27;--red:#dc2626;--purple:#7c3aed;
@@ -413,7 +413,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.7'; // v1.0.7: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
+const BUILD_VERSION = '1.0.8'; // v1.0.8: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
 // v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
 // v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
