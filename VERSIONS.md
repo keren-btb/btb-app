@@ -61,6 +61,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- 2026-08-09 — Wired triggerHelpAlert() (the Control Room's own separate "Ask for Help" button/function) to call the new send_help_push action. This was missed in the earlier PWA/push rollout — only btb_app.html's triggerHelp() was wired up, so raising a help alert from Control Room specifically logged the alert but never sent a push notification.
 - 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (This file has no internal BUILD_VERSION counter like the others — noting the change here without a version number.)
 - v13 — 2026-08-02 — Fixed silent failure if live game settings can't load: previously fell back to a stale 3-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching gift_voucher_request.html / booking widget pattern
 - v12 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy); no behaviour change
