@@ -945,6 +945,11 @@ async function resetTimer(){
                 });
                 if(!r.ok) throw new Error(await r.text());
 
+                // Fire the push notification separately — if this fails, the
+                // help_alerts row above still exists, so we only log, not alert().
+                callEdgeFunction('send_help_push',{room:currentRoom},currentUser?.token)
+                    .catch(e=>console.error('Push notification failed to send:',e.message));
+
                 btn.className = "w-full md:w-auto px-6 py-4 bg-amber-600 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3";
                 btn.innerText = "🔊 FLOOR MANAGER NOTIFIED";
                 
