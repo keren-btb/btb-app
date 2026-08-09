@@ -64,8 +64,6 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .topbar-title{font-size:18px;font-weight:700;color:var(--text)}
 .topbar-title .count{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}
 .filters-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
-.filter-chip{font-size:12px;padding:5px 14px;border-radius:99px;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
-.filter-chip.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600}
 .filter-select{font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);background:#f9fafb}
 .filter-search{font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);background:#f9fafb;width:160px}
 .filter-search:focus,.filter-select:focus{outline:none;border-color:var(--teal)}
@@ -234,7 +232,7 @@ tr:last-child td{border-bottom:none}
           <option value="text">Text</option>
           <option value="enquiry">Enquiry</option>
         </select>
-        <div class="filters-row" id="statusChipsRow" style="margin-left:0"></div>
+        <select class="filter-select" id="statusChipsRow" onchange="setStatusFilter(this.value)"></select>
       </div>
     </div>
 
@@ -486,7 +484,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.3'; // v1.5.3: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.5.4'; // v1.5.4: Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -705,9 +703,9 @@ function buildClientGroups(){
 
 function renderStatusChips(){
   const row=document.getElementById('statusChipsRow');
-  const chips=[...statusList.map(s=>`<div class="filter-chip ${statusFilter===s.id?'active':''}" onclick="setStatusFilter('${s.id}')">${s.emoji||''} ${escapeHtml(s.label)}</div>`),
-    `<div class="filter-chip ${statusFilter==='all'?'active':''}" onclick="setStatusFilter('all')">All</div>`];
-  row.innerHTML=chips.join('');
+  const opts=[`<option value="all" ${statusFilter==='all'?'selected':''}>All statuses</option>`,
+    ...statusList.map(s=>`<option value="${s.id}" ${statusFilter===s.id?'selected':''}>${s.emoji||''} ${escapeHtml(s.label)}</option>`)];
+  row.innerHTML=opts.join('');
 }
 function setStatusFilter(f){
   statusFilter=f;
