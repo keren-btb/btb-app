@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.6">
+<link rel="stylesheet" href="btb_app.css?v=16.4.17">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -2178,7 +2178,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.16'; // v16.4.16: Added PWA install support (manifest/icon/theme-color tags + service worker registration) so the whole app can be installed as one staff app, not just Staff Portal. Also wired triggerHelp() to call the new send_help_push action on btb-admin after logging a help_alerts row, so raising a help alert now actually sends a push notification to subscribed staff phones (previously nothing sent one, even though the receiving side existed).
+const BUILD_VERSION = '16.4.17'; // v16.4.17: Fixed Android text-size-adjust bug — the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% in btb_app.css to disable it.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
