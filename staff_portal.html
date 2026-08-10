@@ -2932,17 +2932,19 @@ function openTsDetail(tsId, isAdmin) {
       ${!isAdminUser ? `
       <div class="field">
         <div class="field-label">Your Adjustment Reason / Log Notes</div>
-        <input class="field-input" type="text" id="tsStaffNote" value="${ts.staff_notes||''}" placeholder="Reason for change or shift details…">
-      </div>` : ''}
+<input class="field-input" type="text" id="tsStaffNote" value="${escapeHtml(ts.staff_notes)}" placeholder="Reason for change or shift details…">
+
+</div>` : ''}
       ${isAdminUser ? `
       <div class="field">
         <div class="field-label">Admin note (visible to staff)</div>
-        <input class="field-input" type="text" id="tsAdminNote" value="${ts.admin_notes||''}" placeholder="e.g. Please clarify start time">
-      </div>
+<input class="field-input" type="text" id="tsAdminNote" value="${escapeHtml(ts.admin_notes)}" placeholder="e.g. Please clarify start time">
+
+</div>
       <div class="field">
         <div class="field-label">Staff note</div>
-        <input class="field-input" type="text" id="tsStaffNote" value="${ts.staff_notes||''}" disabled>
-      </div>` : ''}
+<input class="field-input" type="text" id="tsStaffNote" value="${escapeHtml(ts.staff_notes)}" disabled>
+</div>` : ''}
     </div>
 
     <div class="btn-row" style="margin-top:16px;">
