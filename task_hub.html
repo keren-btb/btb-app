@@ -259,7 +259,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.7.0'; // v1.7.0: Added Daily Categories admin screen (new daily_task_categories table) — lets admins/managers add, rename, and activate/deactivate categories (e.g. Opening, Shutdown, Tech) for grouping Daily Tasks. Grouped display on the Daily Tasks tab itself comes in a follow-up step.
+const BUILD_VERSION = '1.7.1'; // v1.7.1: Daily Tasks list now groups templated tasks under expandable category headers (Opening/Shutdown/Tech/etc, from daily_task_categories) with a done-count badge per group; tasks with no category assigned fall into an "Uncategorized" group. One-off tasks still show below, ungrouped, as before. Category assignment is set per-task in the Task Templates → Daily editor (Category dropdown, added in v1.7.0).
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -452,6 +452,15 @@ function checklistTypeOptionsHtml(selectedKey){
   if(selectedKey&&!list.some(c=>c.key===selectedKey))list=list.concat([{key:selectedKey,label:selectedKey,active:false}]);
   return list.map(c=>`<option value="${c.key}" ${c.key===selectedKey?'selected':''}>${escapeHtml(c.label)}${c.active===false?' (inactive)':''}</option>`).join('');
 }
+function dailyCategoryOptionsHtml(selectedId){
+  let list=dailyCategories.filter(c=>c.active||c.id===selectedId);
+  if(selectedId&&!list.some(c=>c.id===selectedId)){
+    const inactive=dailyCategories.find(c=>c.id===selectedId);
+    if(inactive)list=list.concat([inactive]);
+  }
+  const opts=list.map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${escapeHtml(c.label)}${c.active===false?' (inactive)':''}</option>`).join('');
+  return `<option value="">Uncategorized</option>`+opts;
+}
   async function loadTemplateFields(templateId){
   if(templateFieldsCache[templateId])return templateFieldsCache[templateId];
   const r=await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}&select=*&order=sort_order`,{headers:H()});
@@ -519,24 +528,50 @@ document.getElementById('navTemplates').classList.toggle('active',tab==='templat
 }
   
 // ───────────────────────── DAILY TASKS ─────────────────────────
+let dailyCategoryCollapsed={}; // in-memory only: {categoryId: true/false}, resets on page reload
+function toggleDailyCategoryCollapse(catId){
+  dailyCategoryCollapsed[catId]=!dailyCategoryCollapsed[catId];
+  renderDailyTasks();
+}
+function dailyTemplateItemHtml(t){
+  const inst=dailyInstances.find(i=>i.template_id===t.id);
+  const done=inst&&inst.done;
+  const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
+  const assignMeta=(inst&&(inst.assigned_staff_id||inst.assigned_role))?`Assigned: ${escapeHtml(assigneeLabel(inst.assigned_staff_id,inst.assigned_role))}`:'Open to anyone';
+  return `<div class="daily-item">
+    <input type="checkbox" ${done?'checked':''} onchange="toggleDailyDone('${t.id}',this.checked)">
+    <div class="daily-item-body">
+      <div class="daily-item-name">${escapeHtml(t.name)}</div>
+      <div class="daily-item-meta">${assignMeta}${done?' · '+doneMeta:''}</div>
+    </div>
+  </div>`;
+}
+function dailyCategoryGroupHtml(catId,label,items){
+  const collapsed=!!dailyCategoryCollapsed[catId];
+  const doneCount=items.filter(t=>{const inst=dailyInstances.find(i=>i.template_id===t.id);return inst&&inst.done}).length;
+  return `<div style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 4px;font-weight:600;font-size:14px;border-bottom:1px solid var(--border,#e5e5e5)" onclick="toggleDailyCategoryCollapse('${catId}')">
+      <i class="ti ti-chevron-${collapsed?'right':'down'}"></i> ${escapeHtml(label)}
+      <span style="font-weight:400;color:var(--muted);font-size:12px">(${doneCount}/${items.length})</span>
+    </div>
+    <div style="display:${collapsed?'none':'block'}">${items.map(dailyTemplateItemHtml).join('')}</div>
+  </div>`;
+}
 function renderDailyTasks(){
   const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
   const adhocInstances=dailyInstances.filter(i=>!i.template_id);
   const list=document.getElementById('dailyList');
   if(!dailyTemplates.length&&!adhocInstances.length){list.innerHTML='<div class="empty-state">No daily tasks set up yet.</div>';return}
-  const templatedHtml=dailyTemplates.map(t=>{
-    const inst=dailyInstances.find(i=>i.template_id===t.id);
-    const done=inst&&inst.done;
-    const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
-    const assignMeta=(inst&&(inst.assigned_staff_id||inst.assigned_role))?`Assigned: ${escapeHtml(assigneeLabel(inst.assigned_staff_id,inst.assigned_role))}`:'Open to anyone';
-    return `<div class="daily-item">
-      <input type="checkbox" ${done?'checked':''} onchange="toggleDailyDone('${t.id}',this.checked)">
-      <div class="daily-item-body">
-        <div class="daily-item-name">${escapeHtml(t.name)}</div>
-        <div class="daily-item-meta">${assignMeta}${done?' · '+doneMeta:''}</div>
-      </div>
-    </div>`;
-  }).join('');
+  const groups={};
+  dailyTemplates.forEach(t=>{
+    const cid=t.daily_category_id||'none';
+    (groups[cid]=groups[cid]||[]).push(t);
+  });
+  let groupsHtml='';
+  dailyCategories.filter(c=>c.active).sort((a,b)=>a.sort_order-b.sort_order).forEach(cat=>{
+    if(groups[cat.id]&&groups[cat.id].length)groupsHtml+=dailyCategoryGroupHtml(cat.id,cat.label,groups[cat.id]);
+  });
+  if(groups['none']&&groups['none'].length)groupsHtml+=dailyCategoryGroupHtml('none','Uncategorized',groups['none']);
   const adhocHtml=adhocInstances.map(inst=>{
     const done=inst.done;
     const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
@@ -550,7 +585,7 @@ function renderDailyTasks(){
       <button class="btn btn-danger btn-sm" onclick="deleteAdhocDailyTask('${inst.id}')"><i class="ti ti-trash"></i></button>
     </div>`;
   }).join('');
-  list.innerHTML=templatedHtml+adhocHtml;
+  list.innerHTML=groupsHtml+adhocHtml;
 }
 async function toggleDailyDone(templateId,checked){
   const date=todayStr();
@@ -920,6 +955,7 @@ function renderTemplateEditor(t,isDaily){
     `}
     <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="tplActive" ${t.active?'checked':''}> Active</label></div>
     ${isDaily?`
+    <div class="form-row"><label class="form-label">Category</label><select class="form-select" id="tplDailyCategory">${dailyCategoryOptionsHtml(t.daily_category_id||'')}</select></div>
     <div class="form-row"><label class="form-label">Default assignment</label><select class="form-select" id="tplDefaultAssignee">${assigneeOptionsHtml('','')}</select>
     <div style="font-size:11px;color:var(--muted);margin-top:4px">Note: this sets who it's assigned to going forward — today's copy won't change retroactively.</div></div>
     `:`
@@ -1023,14 +1059,15 @@ async function saveTemplate(){
   const isDaily=activeTemplateTypeTab==='daily'&&editingTemplateId==='new'||(editingTemplateId!=='new'&&taskTemplates.find(t=>t.id===editingTemplateId)?.type==='daily');
   const type=isDaily?'daily':document.getElementById('tplType').value;
   const gameId=isDaily?null:(document.getElementById('tplGame').value||null);
+  const dailyCategoryId=isDaily?(document.getElementById('tplDailyCategory').value||null):null;
   if(!isDaily&&!gameId){alert('Please choose which room this checklist is for.');return}
   try{
     let templateId=editingTemplateId;
     if(editingTemplateId==='new'){
-      const r=await fetch(`${SB_URL}/rest/v1/task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,type,game_id:gameId,active,created_by:currentUser.staffId,sort_order:taskTemplates.length})});
+      const r=await fetch(`${SB_URL}/rest/v1/task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,type,game_id:gameId,active,daily_category_id:dailyCategoryId,created_by:currentUser.staffId,sort_order:taskTemplates.length})});
       const rows=await r.json();templateId=rows[0].id;
     }else{
-      await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${templateId}`,{method:'PATCH',headers:H(),body:JSON.stringify({name,type,game_id:gameId,active})});
+      await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${templateId}`,{method:'PATCH',headers:H(),body:JSON.stringify({name,type,game_id:gameId,active,daily_category_id:dailyCategoryId})});
     }
     if(!isDaily){
       // Simplest reliable approach: replace all fields for this template.
