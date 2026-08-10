@@ -766,8 +766,8 @@ function renderPayments(){
     <td>${fmtDate(t.date)}</td>
     <td style="font-size:11px;color:var(--muted)">${t.booking.slice(0,8)}…</td>
     <td>${t.game}</td>
-    <td>${t.customer}</td>
-    <td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
+<td>${escapeHtml(t.customer)}</td>
+<td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
     <td>${fmtMoney(t.amount)}</td>
     <td><span class="badge ${t.type==='Invoice (pending)'?'badge-amber':'badge-green'}">${t.type}</span></td>
   </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No transactions in this period.</td></tr>';
@@ -1152,9 +1152,9 @@ function renderQuickSales(){
     const itemStr=items.map(i=>`${i.name}${i.qty>1?' ×'+i.qty:''}`).join(', ');
     return`<tr>
       <td>${fmtDate((q.sold_at||'').slice(0,10))}</td>
-      <td>${q.customer_name||'—'}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${itemStr}">${itemStr||'—'}</td>
-      <td><span class="method-pill mp-${q.method}">${METHOD_LABELS[q.method]||q.method||'—'}</span></td>
+<td>${escapeHtml(q.customer_name)||'—'}</td>
+<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(itemStr)}">${escapeHtml(itemStr)||'—'}</td>
+<td><span class="method-pill mp-${q.method}">${METHOD_LABELS[q.method]||q.method||'—'}</span></td>
       <td>${fmtMoney(q.total_amount)}</td>
       <td>${q.sold_by||'—'}</td>
       <td><span class="badge ${q.status==='paid'?'badge-green':'badge-amber'}">${q.status}</span></td>
