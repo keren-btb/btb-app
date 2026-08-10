@@ -145,6 +145,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
     <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
 <span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
     <span class="nav-item" id="navChecklistTypes" style="display:none" onclick="switchTab('checklisttypes')"><i class="ti ti-list"></i> Checklist Types</span>
+    <span class="nav-item" id="navDailyCategories" style="display:none" onclick="switchTab('dailycategories')"><i class="ti ti-category"></i> Daily Categories</span>
     <span class="nav-item" id="navTaskTags" style="display:none" onclick="switchTab('tasktags')"><i class="ti ti-tags"></i> Task Tags</span>
   </aside>
     
@@ -234,6 +235,16 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
         </div>
       </div>
 
+      <!-- DAILY CATEGORIES ADMIN -->
+      <div id="dailyCategoriesSection" style="display:none">
+        <div id="dailyCategoriesListWrap"></div>
+        <div class="card" style="margin-top:16px">
+          <div class="field-block-label" style="margin-bottom:8px">Add a new category</div>
+          <div class="form-row"><input class="form-input" id="newDailyCategoryLabel" placeholder="e.g. Tech"></div>
+          <button class="btn btn-primary btn-sm" onclick="addDailyCategory()"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      </div>
+
       <!-- GENERAL TASK TAGS ADMIN -->
       <div id="taskTagsSection" style="display:none">
         <div id="taskTagsListWrap"></div>
@@ -248,7 +259,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 </div>
         
 <script>
-const BUILD_VERSION = '1.6.3'; // v1.6.3: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.7.0'; // v1.7.0: Added Daily Categories admin screen (new daily_task_categories table) — lets admins/managers add, rename, and activate/deactivate categories (e.g. Opening, Shutdown, Tech) for grouping Daily Tasks. Grouped display on the Daily Tasks tab itself comes in a follow-up step.
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -286,6 +297,7 @@ let currentRoomTemplate=null; // the active template object for the room form cu
 let editingTemplateId=null; // template currently open in the editor, or 'new'
 let editingFields=[]; // working copy of fields while editing a template
 let checklistTypes=[]; // room checklist types (Reset/Setup/Shutdown/etc), loaded from task_checklist_types
+let dailyCategories=[]; // daily task categories (Opening/Shutdown/Tech/etc), loaded from daily_task_categories
 let taskTags=[]; // General Task tags, loaded from general_task_tags
 let generalTaskTemplates=[]; // general_task_templates rows
 let generalTaskInstances=[]; // general_task_instances rows for the current period(s)
@@ -337,6 +349,7 @@ function showApp(){
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
 document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
   document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
+  document.getElementById('navDailyCategories').style.display=canEditTemplates?'':'none';
   document.getElementById('navTaskTags').style.display=canEditTemplates?'':'none';
   document.getElementById('newGeneralTaskBtn').style.display=canEditTemplates?'':'none';
   document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
@@ -372,6 +385,9 @@ async function loadTemplates(){
 }
 async function loadChecklistTypes(){
   try{const r=await fetch(`${SB_URL}/rest/v1/task_checklist_types?select=*&order=sort_order`,{headers:H()});checklistTypes=await r.json()}catch(e){console.error('Checklist types load:',e);checklistTypes=[]}
+}
+async function loadDailyCategories(){
+  try{const r=await fetch(`${SB_URL}/rest/v1/daily_task_categories?select=*&order=sort_order`,{headers:H()});dailyCategories=await r.json()}catch(e){console.error('Daily categories load:',e);dailyCategories=[]}
 }
 async function loadTaskTags(){
   try{const r=await fetch(`${SB_URL}/rest/v1/general_task_tags?select=*&order=sort_order`,{headers:H()});taskTags=await r.json()}catch(e){console.error('Task tags load:',e);taskTags=[]}
@@ -463,7 +479,7 @@ async function loadDailyInstances(){
   }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
 }
 async function loadAppData(){
-  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadTaskTags(),loadGeneralTaskTemplates()]);
+  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadDailyCategories(),loadTaskTags(),loadGeneralTaskTemplates()]);
   await ensureDailyInstancesForToday();
   await loadDailyInstances();
 }
@@ -477,6 +493,7 @@ function switchTab(tab){
   document.getElementById('navReview').classList.toggle('active',tab==='review');
 document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
   document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
+  document.getElementById('navDailyCategories').classList.toggle('active',tab==='dailycategories');
   document.getElementById('navTaskTags').classList.toggle('active',tab==='tasktags');
   document.getElementById('pillDaily').classList.toggle('active',tab==='daily');
   document.getElementById('pillRoom').classList.toggle('active',tab==='room');
@@ -487,8 +504,9 @@ document.getElementById('navTemplates').classList.toggle('active',tab==='templat
   document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
   document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
   document.getElementById('checklistTypesSection').style.display=tab==='checklisttypes'?'':'none';
+  document.getElementById('dailyCategoriesSection').style.display=tab==='dailycategories'?'':'none';
   document.getElementById('taskTagsSection').style.display=tab==='tasktags'?'':'none';
-  const titles={daily:'Daily Tasks',room:'Room Checklists',generaltasks:'General Tasks',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',tasktags:'Task Tags'};
+  const titles={daily:'Daily Tasks',room:'Room Checklists',generaltasks:'General Tasks',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',dailycategories:'Daily Categories',tasktags:'Task Tags'};
   document.getElementById('topbarTitle').textContent=titles[tab];
   if(tab==='daily')renderDailyTasks();
   if(tab==='room')renderRoomTab();
@@ -496,6 +514,7 @@ document.getElementById('navTemplates').classList.toggle('active',tab==='templat
   if(tab==='review')renderReviewTab();
   if(tab==='templates')renderTemplatesTab();
   if(tab==='checklisttypes')renderChecklistTypesTab();
+  if(tab==='dailycategories')renderDailyCategoriesTab();
   if(tab==='tasktags')renderTaskTagsTab();
 }
   
@@ -1085,6 +1104,47 @@ async function toggleChecklistTypeActive(id,active){
   try{
     await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
     await loadChecklistTypes();renderChecklistTypesTab();
+  }catch(e){alert('Error: '+e.message)}
+}
+function dailyCategoryLabel(id){if(!id)return 'Uncategorized';return dailyCategories.find(c=>c.id===id)?.label||'Uncategorized'}
+function renderDailyCategoriesTab(){
+  const wrap=document.getElementById('dailyCategoriesListWrap');
+  if(!dailyCategories.length){wrap.innerHTML='<div class="empty-state">No categories yet.</div>';return}
+  wrap.innerHTML=dailyCategories.map(c=>`
+    <div class="template-row" style="cursor:default">
+      <div>
+        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(c.label)}" onchange="renameDailyCategory('${c.id}',this.value)">
+        <div class="template-row-meta">key: ${escapeHtml(c.key)} · ${c.active?'Active':'Inactive'}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="toggleDailyCategoryActive('${c.id}',${!c.active})">${c.active?'Deactivate':'Activate'}</button>
+    </div>
+  `).join('');
+}
+async function addDailyCategory(){
+  const labelEl=document.getElementById('newDailyCategoryLabel');
+  const label=labelEl.value.trim();
+  if(!label){alert('Please enter a name.');return}
+  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!key){alert('Please use at least one letter or number.');return}
+  if(dailyCategories.some(c=>c.key===key)){alert('A category with that name already exists.');return}
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_categories`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:dailyCategories.length})});
+    labelEl.value='';
+    await loadDailyCategories();renderDailyCategoriesTab();
+  }catch(e){alert('Error adding category: '+e.message)}
+}
+async function renameDailyCategory(id,newLabel){
+  newLabel=newLabel.trim();
+  if(!newLabel)return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_categories?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
+    await loadDailyCategories();renderDailyCategoriesTab();
+  }catch(e){alert('Error renaming: '+e.message)}
+}
+async function toggleDailyCategoryActive(id,active){
+  try{
+    await fetch(`${SB_URL}/rest/v1/daily_task_categories?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
+    await loadDailyCategories();renderDailyCategoriesTab();
   }catch(e){alert('Error: '+e.message)}
 }
 
