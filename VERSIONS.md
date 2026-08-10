@@ -120,6 +120,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.7.1 — 2026-08-10 — Daily Tasks list now groups templated tasks under expandable category headers (Opening/Shutdown/Tech/etc, with a done-count badge), instead of one flat list. Tasks with no category fall into "Uncategorized". One-off tasks still show separately below, ungrouped.
 - v1.7.0 — 2026-08-10 — Added Daily Categories admin screen (new daily_task_categories table, same add/rename/activate pattern as Checklist Types) so Opening/Shutdown/Tech-style categories can be managed in-app. Grouped/expandable display on the Daily Tasks tab itself is a follow-up step, not yet done.
 - v1.6.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.6.1 — 2026-08-05 — General Tasks: added Every 3 months, Every 6 months, and Yearly to the repeat options (alongside daily/weekly/monthly). Quarters start Jan/Apr/Jul/Oct, half-years start Jan/Jul, years start Jan 1 — same auto-refresh mechanism as the other repeat options.
