@@ -993,3 +993,132 @@ note, and the decision on where the `clients.html` "Open enquiry" badge should l
 `enquiries.html` is retired.
 
 That's the full sweep — ready for handoff to Claude Desktop.
+
+---
+
+## Database RLS Pass — Full Table Sweep (15 Aug 2026)
+
+Follow-up to Finding 12 / Finding 0 above. Rather than checking individual tables as they came up,
+did a full pass across all 34 tables in `public` schema: confirmed RLS is enabled everywhere, then
+read every policy (`pg_policies`) and cross-checked against actual grants
+(`information_schema.column_privileges` / `role_table_grants`) to see what's really reachable with
+just the anon key — the same key that's embedded client-side in every public-facing page
+(`booking_widget.html`, `waiver.html`, `gift_voucher_request.html`).
+
+Confirmed still solid from earlier work: `staff`, `staff_availability`, `timesheets`,
+`hours_requests`, `assigned_shifts` row-level protections, anon column restrictions, and the
+`trg_protect_staff_admin_columns` / `trg_protect_timesheet_admin_columns` triggers — no
+regressions found there.
+
+### Finding 17 — `products` table fully open to anon (CRITICAL)
+
+**What was wrong:** `public delete/insert/read/update products` policies, all `qual: true`. Anyone
+with the anon key could read, edit, or delete any shop product — this is the live inventory used
+at the till and also the data Janet's separate board-game-shop website project would eventually
+read from.
+
+**Fix applied:**
+- Anon: `SELECT` only, restricted to `active = true` rows (matches the existing pattern on `games`)
+- Authenticated (staff): full access
+- Follow-up: anon's column-level grant on `purchase_price` (wholesale/cost price) was also revoked —
+  the row-level fix alone would still have let anon read cost price on every active product via a
+  direct `select=purchase_price` query. `rrp` was left visible (that's just manufacturer's suggested
+  retail, not sensitive).
+
+**Status:** Fixed, tested (product listing + POS use confirmed working).
+
+### Finding 18 — `quick_sales` table fully open to anon (CRITICAL)
+
+**What was wrong:** same `public`/`qual: true` pattern as Finding 17, on till sales records.
+
+**Fix applied:** restricted to `authenticated` only, all commands.
+
+**Status:** Fixed.
+
+### Finding 19 — `staff_shifts` table fully open to anon (HIGH)
+
+**What was wrong:** `public all staff_shifts`, `qual: true`. Checked every HTML file in the repo —
+this table isn't referenced anywhere in the current app suite (likely superseded by
+`assigned_shifts`).
+
+**Fix applied:** restricted to `authenticated` only.
+
+**Status:** Fixed. Nothing to test since no file uses it.
+
+### Finding 20 — `staff_recurring_availability` table fully open to anon (HIGH)
+
+**What was wrong:** `Allow all`, `qual: true`. Actively used in `staff_portal.html`, but every call
+already goes through the authenticated `H()` header and is scoped to the logged-in user's own
+`staff_id`.
+
+**Fix applied:** own-record-or-admin, matching the existing `staff_availability` pattern
+(`staff_id` maps to `auth.uid()` via `staff.user_role_id`, or `is_admin_or_manager()`).
+
+**Status:** Fixed, tested (recurring availability toggle in staff_portal.html confirmed saving).
+
+### Finding 21 — `waivers` table readable by anyone, no login (HIGH — customer PII)
+
+**What was wrong:** the `staff read` policy was actually assigned to role `public`, not
+`authenticated` — so anyone could read every signed waiver: names, DOB, signatures, contact info,
+health/liability answers. A `public insert` policy also existed for the signing flow itself.
+(Update/delete were not actually possible — no policy permitted those despite the underlying grant
+existing.)
+
+**Fix applied:**
+- Anon: `INSERT` only (keeps the public tablet signing flow in `waiver.html` working)
+- Authenticated (staff): full access (covers `pos.html`'s waiver-status read)
+
+**Status:** Fixed, tested (signing flow + POS waiver status both confirmed working).
+
+### Finding 22 — 10 task-hub tables fully open to anon (HIGH)
+
+**What was wrong:** `daily_task_categories`, `daily_task_instances`, `general_task_instances`,
+`general_task_tags`, `general_task_templates`, `task_checklist_types`, `task_instance_responses`,
+`task_instances`, `task_template_fields`, `task_templates` all had `open`/`open access` policies,
+role `public`, `qual: true`, every command. All ten are used by `task_hub.html` — a 6th
+staff-login file (same `H()` / `btb_staff_session` auth pattern as the rest of the suite) that
+wasn't previously on record in this review.
+
+Also found: `staff.can_edit_task_templates` is a per-staff-member checkbox that already existed in
+the UI to gate template/category/tag editing — but it only hid nav links and buttons. It wasn't
+enforced anywhere, so any staff member (or, until this fix, literally anyone) could call the API
+directly and bypass it.
+
+**Fix applied:**
+- New helper function `can_edit_task_config()` (mirrors the existing `is_admin_or_manager()`
+  pattern): true if `is_admin_or_manager()` OR the staff record has `can_edit_task_templates = true`
+- Config tables (`task_templates`, `task_template_fields`, `task_checklist_types`,
+  `daily_task_categories`, `general_task_tags`, `general_task_templates`): any authenticated staff
+  can read; only `can_edit_task_config()` staff can write
+- Instance tables (`daily_task_instances`, `general_task_instances`, `task_instances`,
+  `task_instance_responses`): any authenticated staff, full access (matches existing behaviour —
+  everyone needs to complete tasks)
+- `personal_tasks` (unused anywhere in the app suite): authenticated-only, no special role logic
+
+**Status:** Fixed, tested (both a staff member without the flag and one with it confirmed correct
+template/category editing access; daily task completion still works for everyone).
+
+### Summary — Database RLS Pass
+
+| # | Finding | Severity | Status |
+|---|---|---|---|
+| 17 | `products` open to anon (+ cost price column exposure) | CRITICAL | Fixed |
+| 18 | `quick_sales` open to anon | CRITICAL | Fixed |
+| 19 | `staff_shifts` open to anon (unused table) | HIGH | Fixed |
+| 20 | `staff_recurring_availability` open to anon | HIGH | Fixed |
+| 21 | `waivers` publicly readable (customer PII) | HIGH | Fixed |
+| 22 | 10 task-hub tables open to anon; `can_edit_task_templates` unenforced | HIGH | Fixed |
+
+Full final re-check across all 34 `public` tables (policies + column grants) confirmed no table with
+a fully-open policy to `anon`/`public` remains, and no sensitive columns exposed via grant beyond
+what row-level policy already restricts.
+
+Finding 12 / Finding 0 (server-side role enforcement) can now be considered substantially addressed
+for the tables covered in this pass — `staff`, `staff_availability`, `timesheets`, `hours_requests`,
+`assigned_shifts`, `products`, `quick_sales`, `staff_shifts`, `staff_recurring_availability`,
+`waivers`, and the 10 task-hub tables all now enforce role/ownership at the database level, not just
+in the UI. Remaining broad-but-authenticated-only tables (`client_interactions`, `clients`,
+`enquiry_templates`, `game_bookings`, `help_alerts`, `settings`, `vouchers`,
+`push_subscriptions`) are lower priority — any logged-in staff member can touch all rows, which is
+likely fine for a shared staff tool, but there's no role separation within staff on those yet if
+that's ever wanted.

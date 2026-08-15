@@ -6,6 +6,17 @@ Newest entry per file goes at the top of that file's list.
 
 ---
 
+## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-08-15 — Closed 6 tables that were fully open to the public anon key (no login required):
+  `products`, `quick_sales`, `staff_shifts`, `staff_recurring_availability`, `waivers`, and 10
+  task-hub tables (`daily_task_categories`, `daily_task_instances`, `general_task_instances`,
+  `general_task_tags`, `general_task_templates`, `task_checklist_types`,
+  `task_instance_responses`, `task_instances`, `task_template_fields`, `task_templates`) plus
+  `personal_tasks`. Also revoked anon's column-level read access to `products.purchase_price`
+  (cost price). The existing `staff.can_edit_task_templates` checkbox now actually enforces
+  template/category/tag edit access at the database level (previously UI-only). Full details in
+  `btb_security_review.md` — Findings 17–22.
+
 ## Push notification foundation (manifest.json, sw.js, icon-*.png, apple-touch-icon.png, icon-maskable-512.png)
 - v1.1.0 — 2026-08-08 — App-wide PWA: manifest.json now covers the whole suite (name "Beyond the Box Staff", start_url btb_app.html) instead of just Staff Portal. All 12 staff-reachable pages (btb_app, staff_portal, control_room, pos, reports, clients, client_profile, clients_mobile, task_hub, waiver, booking_widget, gift_voucher_request) now link the manifest/icon/theme-color tags and register the service worker, so the whole app installs as one unit. Replaced the placeholder icon set with the teal "BtB" design (icon-192, icon-512, icon-maskable-512, apple-touch-icon all regenerated to match). Generated a brand-new VAPID key pair — the old public key baked into staff_portal.html had no matching private key saved anywhere, so push could never have worked; old push_subscriptions rows (signed under the orphaned key) were cleared. Added the actual send_help_push action to the btb-admin edge function (previously nothing sent a push when a help alert fired, even though the phone-side subscribe/receive code existed) and wired triggerHelp() in btb_app.html to call it. MANUAL STEP STILL NEEDED: VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be added as secrets in the Supabase dashboard before this works end-to-end — Claude has no tool access to set secrets.
 - v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
