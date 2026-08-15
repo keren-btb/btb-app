@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.20">
+<link rel="stylesheet" href="btb_app.css?v=16.4.21">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -886,14 +886,14 @@ function buildCard(b,hideTime){
       <div class="booking-col-left">
 <div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
-        ${(()=>{const ps=getPaymentStatus(b);if(!ps)return'';return`<span class="pay-badge ${ps.owing>0?'owing':'paid'}"><i class="ti ti-${ps.owing>0?'alert-circle':'circle-check'}"></i> ${ps.label}</span>`})()}
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
         ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${escapeHtml(n)}</div>`).join('')}</div>`:''}
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
-        <div style="position:relative;align-self:flex-end">
+        <div style="position:relative;align-self:flex-end;display:flex;align-items:center;gap:6px">
+          ${(()=>{const ps=getPaymentStatus(b);if(!ps)return'';return`<span class="pay-badge ${ps.owing>0?'owing':'paid'}"><i class="ti ti-${ps.owing>0?'alert-circle':'circle-check'}"></i> ${ps.label}</span>`})()}
           <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',this,event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
           <div id="actionsDD-${b.id}" style="display:none;position:fixed;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
             <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
@@ -2316,7 +2316,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.20'; // v16.4.20: Booking cards — moved Expand/Collapse into the ⋯ actions menu (removed the separate expand bar; clicking the card's left side still toggles it). Added a Paid/owing payment badge next to the customer name, based on total_amount vs sum of payments. Game name abbreviated in the card title ("Gregg in the Box"→"Gregg", "Saving Christmas"→"Christmas") and made slightly larger.
+const BUILD_VERSION = '16.4.21'; // v16.4.21: Moved the payment badge (Paid/$X owing) from under the customer name to sit directly left of the ⋯ actions button, in the top-right of the card.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build

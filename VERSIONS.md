@@ -23,12 +23,14 @@ Newest entry per file goes at the top of that file's list.
 
 ## btb_app.css
 - Tracked via the `?v=` cache-busting query string on btb_app.html's stylesheet link, not an internal BUILD_VERSION (plain CSS has nowhere to put one) — bump that query string every time this file changes
+- v16.4.21 — 2026-08-15 — .pay-badge: removed margin-bottom and added white-space:nowrap now that it sits inline next to the ⋯ button instead of stacked in the left column.
 - v16.4.20 — 2026-08-15 — Increased .booking-game font-size (13px→15px). Added .pay-badge / .pay-badge.paid / .pay-badge.owing for the new booking card payment status badge.
 - v16.4.19 — 2026-08-10 — Added text-align:center to .nav-btn so wrapped two-line labels (e.g. "Task Hub") centre correctly under their icon.
 - v16.4.18 — 2026-08-10 — Added .qb-btn.icon-only (compact icon-only quick-book buttons) and hover/disabled styles for the new booking-card actions menu.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.21 — 2026-08-15 — Moved the payment badge (Paid/$X owing) from under the customer name to sit directly left of the ⋯ actions button, top-right of the card.
 - v16.4.20 — 2026-08-15 — Booking cards: moved Expand/Collapse into the ⋯ actions menu (removed the separate "Expand ▼/Collapse ▲" bar; clicking the card's left side still toggles it open/closed). Added a Paid/$X owing payment badge next to the customer name, calculated from total_amount vs sum of the payments array. Game name in the card title is now abbreviated ("Gregg in the Box"→"Gregg", "Saving Christmas"→"Christmas") via a small lookup table, and its font size was increased slightly (13px→15px).
 - v16.4.19 — 2026-08-10 — Fixed nav bar labels (e.g. "Task Hub") not centering under their icon when the label wraps to two lines. Fixed the new booking actions (⋯) dropdown getting clipped by the card's rounded-corner overflow:hidden when the booking was collapsed — now positioned fixed to the viewport from the button's location, so it always shows in full.
 - v16.4.18 — 2026-08-10 — Quick-book row is now icon-only (name on hover) so it fits on one line. Removed the "🎂 Mention: ..." birthday upsell banner from booking cards entirely. Added a ⋯ actions menu to each booking card: Call (opens phone dialer), Email (opens device mail app), Reschedule (inline date/time picker, same 90-min overlap warning as the walk-in form but lets you book over it anyway), Cancel booking (inline confirm with a checkbox to optionally send a cancellation email via Resend, logged against the client's record). Also added client_id to the locally-loaded booking objects so cancellation emails log correctly.
