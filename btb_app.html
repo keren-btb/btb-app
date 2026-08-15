@@ -623,7 +623,7 @@ async function loadStaff(){
   renderPersonList();
 }
 async function loadTraining(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/staff_game_training`,{headers:H()});staffTraining=await r.json()}
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff_game_training`,{headers:H()});const rows=await r.json();staffTraining=Array.isArray(rows)?rows:[]}
   catch(e){staffTraining=[]}
 }
 function getTrainStatus(sid,gid){const r=staffTraining.find(t=>t.staff_id===sid&&t.game_id===gid);return r?r.status:null}
@@ -641,6 +641,13 @@ async function loadBookings(month,year){
     const last=`${year}-${String(month).padStart(2,'0')}-${new Date(year,month,0).getDate()}`;
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${first}&booking_date=lte.${last}&status=neq.cancelled&order=slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
     const rows=await r.json();
+    if(!Array.isArray(rows)){
+      // Expected before login: this table has no anon SELECT access, so the
+      // initial page-load request (before a staff session exists) is denied.
+      // Once logged in, this function re-runs with the real token and works.
+      console.log(`Bookings for ${month}/${year} not available yet (no session) — will reload after login.`);
+      return;
+    }
     bookings=bookings.filter(b=>!(b.month===month&&b.year===year));
     rows.forEach(row=>{
       const d=new Date(row.booking_date+'T12:00');
@@ -2319,7 +2326,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.22'; // v16.4.22: Fixed bug from v16.4.20 — the payment badge crashed the whole booking list because b.payments comes back from Supabase as a JSON string (double-encoded in the jsonb column), not an array, so .reduce() failed. getPaymentStatus now parses it safely first.
+const BUILD_VERSION = '16.4.23'; // v16.4.23: Cleaned up console noise from the expected pre-login 401s on staff/game_bookings/staff_game_training (those tables have no anon SELECT access by design). loadBookings and loadTraining now check the response is actually an array before processing it, instead of throwing a "rows.forEach is not a function" error that got caught and logged. No behaviour change — the app already correctly reloaded this data after login either way.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
