@@ -685,6 +685,7 @@ async function loadBookings(month,year){
           timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
           timerInterval:null,isEnquiry:row.status==='enquiry',source:row.source||'',
           payments:row.payments||null,
+          deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,
         });
       }
     });
@@ -876,7 +877,14 @@ function getPaymentStatus(b){
   let list=b.payments;
   if(typeof list==='string'){try{list=JSON.parse(list)}catch(e){list=[]}}
   if(!Array.isArray(list))list=[];
-  const paid=list.reduce((sum,p)=>sum+(parseFloat(p.amount)||0),0);
+  const paymentsTotal=list.filter(p=>!(p.method==='invoice'&&p.status==='pending')).reduce((sum,p)=>sum+(parseFloat(p.amount)||0),0);
+  // Deposits taken via the walk-in form / POS are tracked separately in
+  // deposit_paid + deposit_amount rather than being added to the payments
+  // array — mirrors the "collected" calculation in pos.html so the two
+  // apps agree on what's actually been paid.
+  const depositAmt=b.deposit_amount!=null?parseFloat(b.deposit_amount):Math.min(bookingConfig.depositAmount??35,total);
+  const depositTotal=b.deposit_paid?depositAmt:0;
+  const paid=paymentsTotal+depositTotal;
   if(paid>=total)return{label:'Paid',owing:0};
   return{label:'$'+(total-paid).toFixed(2)+' owing',owing:total-paid};
 }
@@ -2326,7 +2334,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.23'; // v16.4.23: Cleaned up console noise from the expected pre-login 401s on staff/game_bookings/staff_game_training (those tables have no anon SELECT access by design). loadBookings and loadTraining now check the response is actually an array before processing it, instead of throwing a "rows.forEach is not a function" error that got caught and logged. No behaviour change — the app already correctly reloaded this data after login either way.
+const BUILD_VERSION = '16.4.24'; // v16.4.24: Fixed payment badge showing "owing" on bookings that were actually fully paid — it only summed the payments[] array, missing deposits taken via the walk-in form / POS which are tracked separately in deposit_paid+deposit_amount. Now matches pos.html's own "collected" calculation (deposit + payments[], excluding pending invoices). Also now pulls deposit_amount/deposit_paid into the local booking object from loadBookings (previously not mapped at all).
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
