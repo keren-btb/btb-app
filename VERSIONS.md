@@ -7,6 +7,14 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-08-16 — Verification only, no schema change: re-checked live RLS policies, column grants,
+  and triggers against `btb_security_review.md` Finding 12 and the "revised severity ranking"
+  (Findings 0-4). Confirmed all of it is already closed — `user_roles` deny-all, `hours_requests`/
+  `assigned_shifts` authenticated-only and role-scoped, `staff`/`timesheets` self-edit triggers
+  blocking wage/role/approval tampering on your own row, `staff_availability`/
+  `staff_recurring_blocks` row-scoped. Closed via RLS + triggers, not the edge-function move the
+  review originally proposed — decided not to do that rework, no live vulnerability remains. Full
+  writeup in `btb_security_review.md`'s 16 Aug addendum.
 - 2026-08-16 — New trigger `trg_sync_client_status_on_booking_complete` (function
   `sync_client_status_on_booking_complete`, SECURITY DEFINER) on `game_bookings`: when a booking's
   `status` changes to `completed` for the first time (fires from either btb_app.html's calendar

@@ -803,6 +803,49 @@ general auth/role-gating work, no special-cased urgency. Noted. This whole secti
 inclusive) is now queued as a single future body of work, to be scheduled alongside the POS
 receipt/email feature and the website overhaul, not before them.
 
+**Superseded — see 16 Aug addendum below.** This body of work ended up getting done anyway, via a
+different mechanism (RLS + triggers, not the edge-function architecture proposed above), across the
+11–15 Aug sessions covering Finding 0 and the RLS table sweep. As of 16 Aug it's been verified
+closed end-to-end and no longer needs scheduling.
+
+### Addendum — 16 Aug 2026: Findings 0 and 12 verified resolved
+
+Re-checked live against the actual database (`pg_policies`, column grants, and trigger definitions
+on Supabase project `dcksohetvlonijtcbjwe`) rather than relying on this document's earlier notes.
+Both concrete examples from Finding 12, plus every item in the "Revised severity ranking" above,
+are now closed:
+
+- **`user_roles`** — zero RLS policies exist (deny-all by default). Finding 0 closed.
+- **Approving/declining your own hours request** — `hours_requests` has no `anon` policy at all
+  (authenticated only), and its `UPDATE` policy requires `is_admin_or_manager()` in both `qual` and
+  `with_check`. A non-admin's direct `PATCH` — whether from the hidden UI button or a raw API call —
+  is now rejected by the database itself. `resolveHoursRequest()` in `staff_portal.html` already
+  checks `r.ok` and surfaces the failure via `alert()`, so this isn't a silent-failure case either.
+- **Reading/editing colleagues' `hourly_rate`** — `staff`'s `SELECT` policy is row-scoped
+  (`user_role_id = auth.uid() OR is_admin_or_manager()`), so a non-admin's `loadAllStaff()` call now
+  only returns their *own* row, not everyone's. Two triggers —
+  `enforce_staff_self_edit_columns` and `protect_staff_admin_columns` — additionally block a
+  non-admin from changing `hourly_rate`, `user_role_id`, `active`, `trusted_opener`, and several
+  other admin-only fields even on their own row.
+- **Self-approving a timesheet / editing pay fields** — same shape, two triggers
+  (`enforce_timesheets_self_edit_columns`, `protect_timesheet_admin_columns`) block a non-admin from
+  touching `hourly_rate_used`, `admin_approved`, `admin_notes`, or `status`.
+- **`assigned_shifts` open to anon** — no `anon` policy exists; all commands require `authenticated`,
+  and non-open-shift updates are scoped to the claiming staff member's own `staff_id` or an admin.
+- **`staff_availability` / `staff_recurring_blocks`** — both row-scoped to own `staff_id` or admin
+  for writes (anon gets read-only access on `staff_availability`, needed for the booking widget;
+  `staff_recurring_blocks` anon is also read-only, with all writes admin-only).
+
+**What's genuinely still true from the original finding:** the app's front-end code was never
+rewired to go through `btb-admin` for these actions — it still fires direct `PATCH`/`UPDATE` calls
+against PostgREST with `H()`'s anon-key fallback. That's an architectural inconsistency (one pattern
+here, a different one — edge function + service role — everywhere else), not a live vulnerability,
+since the database now rejects anything that shouldn't succeed regardless of which path the request
+came in on. Discussed with Keren 16 Aug: not worth the rework given no live user impact and higher-
+value backlog items outstanding (payment integration, low-stock alerts, waiver reminders, etc.) —
+revisit only if `btb-admin` needs a reason to touch these actions anyway (e.g. adding an approval
+notification).
+
 ---
 
 ## Code Quality Pass — Silent Failures (across files)
@@ -981,8 +1024,8 @@ just flagging so a future change doesn't silently create an inconsistency.
 | # | Finding | Severity | Status |
 |---|---|---|---|
 | 1-11 | XSS (unescaped customer/staff data → innerHTML) across all files | HIGH-MEDIUM | Diffs ready above |
-| 12 | Role checks are UI-only, no server-side enforcement | HIGH (systemic) | Scoped, queued, no special urgency (your call) |
-| 0 | `user_roles` table open to anon (root-of-trust exposure) | CRITICAL | Same queue as #12 |
+| 12 | Role checks are UI-only, no server-side enforcement | HIGH (systemic) | **Resolved 16 Aug — via RLS + triggers, not the edge-function move originally proposed. See addendum below.** |
+| 0 | `user_roles` table open to anon (root-of-trust exposure) | CRITICAL | **Fixed — zero policies, deny-all.** |
 | 13 | Silent failures on stock/help-alert/staff-deactivation writes | MEDIUM-HIGH | 1 example fixed, rest need custom wording |
 | 14 | Gift vouchers mispriced for 3 of 6 games (live bug) | HIGH | Diff ready above |
 | 15 | Stale hardcoded fallback game/price data on public pages | MEDIUM | Needs your input on desired behaviour |
