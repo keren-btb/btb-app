@@ -476,6 +476,20 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
       </div>
       <div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Notes (optional)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="text" id="vNotes" placeholder="e.g. Christmas gift, expires 1 year"></div>
 
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 6px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer" onclick="toggleVoucherEmailOnIssue()">
+        <div id="vEmailOnIssueToggle" style="width:36px;height:20px;border-radius:99px;background:#07b4c5;position:relative;transition:background .2s;flex-shrink:0">
+          <div id="vEmailOnIssueDot" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:18px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#374151">Email voucher to customer</div>
+          <div style="font-size:11px;color:#9ca3af">Sends the code + a personal message now</div>
+        </div>
+      </div>
+      <div id="vEmailOnIssueFields" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Customer email</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="email" id="vIssueEmail" placeholder="customer@example.com"></div>
+        <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Personal message</div><textarea style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;min-height:56px;resize:vertical" id="vIssueMessage" placeholder="e.g. Thanks for your visit today!"></textarea></div>
+      </div>
+
       <button onclick="issueVoucher()" style="width:100%;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-ticket"></i> Issue voucher</button>
       <div id="vIssueMsg" style="font-size:12px;margin-top:6px;text-align:center;min-height:18px"></div>
     </div>
@@ -585,7 +599,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.4.2'; // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.5.0'; // v1.5.0: Gift voucher flow — replaced the prompt()-based "Activate" flow with an inline panel matching the rest of POS (amount paid, how-paid dropdown, editable customer email + personal message). Activating a voucher (or issuing one paid on the spot) can now email the customer their code via a new send_voucher_email action on the btb-admin edge function (Resend). Email address auto-prefills from the linked client record for online voucher requests. Added an "Unpay" action on active vouchers to revert to Requested and clear paid_amount/how_paid.
+// v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
 // Added Personalised Experiences (e.g. Birthday cafe) as a selectable "Experiences" tab alongside Products, so staff can add them to a ticket the same as any product — matching occasion shown first
@@ -1886,25 +1901,147 @@ function setVoucherTab(type){voucherType=type;document.getElementById('vfields-a
 function renderVGameSelect(){const el=document.getElementById('vGame');if(!el)return;const bookable=games.filter(g=>g.category==='escape'&&g.bookable!==false);el.innerHTML=bookable.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');el.onchange=()=>calcVPlayerPrice();calcVPlayerPrice()}
 function calcVPlayerPrice(){const gameId=document.getElementById('vGame')?.value;const players=parseInt(document.getElementById('vPlayers')?.value)||0;if(!gameId||!players)return;const price=calcPriceNum(gameId,players);const amtEl=document.getElementById('vPlayersAmt');const paidEl=document.getElementById('vPlayersPaid');if(amtEl)amtEl.value=price.toFixed(2);if(paidEl&&!paidEl.value)paidEl.value=price.toFixed(2)}
 function toggleVoucherPersonalised(){voucherPersonalised=!voucherPersonalised;document.getElementById('vPersonalisedFields').style.display=voucherPersonalised?'':'none';const tog=document.getElementById('vPersonalisedToggle');const dot=document.getElementById('vPersonalisedDot');if(tog)tog.style.background=voucherPersonalised?'#07b4c5':'#e5e7eb';if(dot)dot.style.left=voucherPersonalised?'18px':'2px'}
-async function issueVoucher(){const msgEl=document.getElementById('vIssueMsg');msgEl.style.color='#6b7280';msgEl.textContent='Saving…';const code=generateVoucherCode();let value=0,players=null,gameId=null,gameName=null;if(voucherType==='amount'){value=parseFloat(document.getElementById('vAmt').value)||0;if(!value){msgEl.style.color='#dc2626';msgEl.textContent='Enter a dollar value.';return}}else{gameId=document.getElementById('vGame').value;players=parseInt(document.getElementById('vPlayers').value)||0;value=parseFloat(document.getElementById('vPlayersAmt').value)||calcPriceNum(gameId,players);gameName=games.find(g=>g.id===gameId)?.name||'';if(!players){msgEl.style.color='#dc2626';msgEl.textContent='Enter number of players.';return}}const paid=parseFloat(document.getElementById(voucherType==='amount'?'vPaid':'vPlayersPaid').value)||value;const buyer=document.getElementById('vBuyer').value.trim()||null;const howPaid=document.getElementById('vHowPaid').value;const notes=document.getElementById('vNotes').value.trim()||null;const recipient=voucherPersonalised?document.getElementById('vRecipient').value.trim()||null:null;const message=voucherPersonalised?document.getElementById('vMessage').value.trim()||null:null;const from_name=voucherPersonalised?document.getElementById('vFrom').value.trim()||null:null;try{const r=await fetch(`${SB_URL}/rest/v1/vouchers`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({code,type:voucherType,value,players,game_id:gameId,game_name:gameName,paid_amount:paid,purchased_by:buyer,how_paid:howPaid,personalised:voucherPersonalised,recipient,message,from_name,notes,status:'active',issued_at:new Date().toISOString()})});if(!r.ok)throw new Error(await r.text());const saved=await r.json();if(saved[0])vouchers.unshift(saved[0]);msgEl.style.color='#15803d';msgEl.innerHTML=`✓ Voucher issued! Code: <strong style="font-family:monospace;font-size:14px;letter-spacing:1px;background:#dcfce7;padding:2px 8px;border-radius:6px">${code}</strong>`;['vAmt','vPaid','vPlayers','vPlayersAmt','vPlayersPaid','vBuyer','vNotes','vRecipient','vMessage','vFrom'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});if(voucherPersonalised)toggleVoucherPersonalised();renderVoucherList();setTimeout(()=>{msgEl.innerHTML=''},5000)}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}}
+// Default personal message used to prefill/backstop the voucher email when
+// staff leave the message box empty. Kept gender-neutral since we don't
+// know the recipient's pronoun.
+function buildDefaultVoucherMessage(buyerName, recipientName) {
+  const greeting = buyerName ? `Hi ${buyerName}, ` : 'Hi, ';
+  if (recipientName) {
+    return `${greeting}thanks for your payment! I hope ${recipientName} will love their Beyond the Box gift voucher. Here's the code for your reference below.`;
+  }
+  return `${greeting}thanks for your payment! Here's your Beyond the Box gift voucher code below.`;
+}
+
+function buildVoucherEmailHtml(v, personalMessage) {
+  const valueLine = v.type === 'players'
+    ? `${v.players} player${v.players !== 1 ? 's' : ''}${v.gameName ? ' — ' + v.gameName : ''} ($${parseFloat(v.value || 0).toFixed(0)} value)`
+    : `$${parseFloat(v.value || 0).toFixed(0)} value`;
+  return `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto">
+    <h2 style="color:#07b4c5;margin-bottom:4px">Beyond the Box</h2>
+    <div style="color:#6b7280;font-size:13px;margin-bottom:16px">Your gift voucher</div>
+    ${personalMessage ? `<div style="font-size:14px;color:#374151;margin-bottom:16px;white-space:pre-wrap">${escapeHtml(personalMessage)}</div>` : ''}
+    <div style="text-align:center;background:#e0f7f9;border-radius:10px;padding:16px;margin-bottom:12px">
+      <div style="font-size:11px;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">Voucher code</div>
+      <div style="font-family:monospace;font-size:22px;font-weight:700;color:#07b4c5;letter-spacing:2px">${escapeHtml(v.code)}</div>
+    </div>
+    <div style="font-size:14px;color:#374151;margin-bottom:6px">${escapeHtml(valueLine)}</div>
+    ${v.recipient ? `<div style="font-size:13px;color:#6b7280">For: ${escapeHtml(v.recipient)}${v.fromName ? ' · From: ' + escapeHtml(v.fromName) : ''}</div>` : ''}
+    <div style="color:#9ca3af;font-size:12px;margin-top:20px">Present this code when booking online or in person at Beyond the Box, Hastings. Thanks for supporting us!</div>
+  </div>`;
+}
+
+// Sends the voucher email and appends a ✓/⚠️ note to whichever status
+// element is passed in — non-blocking, never throws back to the caller.
+async function sendVoucherEmail(v, to, personalMessage, msgEl) {
+  try {
+    const htmlBody = buildVoucherEmailHtml(v, personalMessage);
+    await callEdgeFunction('send_voucher_email', { to, subject: 'Your Beyond the Box gift voucher', htmlBody, voucherId: v.id || null }, currentUser?.token);
+    if (msgEl) msgEl.innerHTML += ` · ✓ Emailed to ${escapeHtml(to)}`;
+  } catch (e) {
+    if (msgEl) msgEl.innerHTML += ` · ⚠️ Email failed: ${escapeHtml(e.message)}`;
+    console.error('voucher email failed', e);
+  }
+}
+
+let voucherEmailOnIssue = true;
+function toggleVoucherEmailOnIssue() {
+  voucherEmailOnIssue = !voucherEmailOnIssue;
+  document.getElementById('vEmailOnIssueFields').style.display = voucherEmailOnIssue ? '' : 'none';
+  const tog = document.getElementById('vEmailOnIssueToggle');
+  const dot = document.getElementById('vEmailOnIssueDot');
+  if (tog) tog.style.background = voucherEmailOnIssue ? '#07b4c5' : '#e5e7eb';
+  if (dot) dot.style.left = voucherEmailOnIssue ? '18px' : '2px';
+}
+
+async function issueVoucher(){const msgEl=document.getElementById('vIssueMsg');msgEl.style.color='#6b7280';msgEl.textContent='Saving…';const code=generateVoucherCode();let value=0,players=null,gameId=null,gameName=null;if(voucherType==='amount'){value=parseFloat(document.getElementById('vAmt').value)||0;if(!value){msgEl.style.color='#dc2626';msgEl.textContent='Enter a dollar value.';return}}else{gameId=document.getElementById('vGame').value;players=parseInt(document.getElementById('vPlayers').value)||0;value=parseFloat(document.getElementById('vPlayersAmt').value)||calcPriceNum(gameId,players);gameName=games.find(g=>g.id===gameId)?.name||'';if(!players){msgEl.style.color='#dc2626';msgEl.textContent='Enter number of players.';return}}const paid=parseFloat(document.getElementById(voucherType==='amount'?'vPaid':'vPlayersPaid').value)||value;const buyer=document.getElementById('vBuyer').value.trim()||null;const howPaid=document.getElementById('vHowPaid').value;const notes=document.getElementById('vNotes').value.trim()||null;const recipient=voucherPersonalised?document.getElementById('vRecipient').value.trim()||null:null;const message=voucherPersonalised?document.getElementById('vMessage').value.trim()||null:null;const from_name=voucherPersonalised?document.getElementById('vFrom').value.trim()||null:null;const emailTo=document.getElementById('vIssueEmail').value.trim();const personalMsgInput=document.getElementById('vIssueMessage').value.trim();try{const r=await fetch(`${SB_URL}/rest/v1/vouchers`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({code,type:voucherType,value,players,game_id:gameId,game_name:gameName,paid_amount:paid,purchased_by:buyer,how_paid:howPaid,personalised:voucherPersonalised,recipient,message,from_name,notes,status:'active',issued_at:new Date().toISOString()})});if(!r.ok)throw new Error(await r.text());const saved=await r.json();if(saved[0])vouchers.unshift(saved[0]);msgEl.style.color='#15803d';msgEl.innerHTML=`✓ Voucher issued! Code: <strong style="font-family:monospace;font-size:14px;letter-spacing:1px;background:#dcfce7;padding:2px 8px;border-radius:6px">${code}</strong>`;if(voucherEmailOnIssue&&emailTo){msgEl.innerHTML+=' · Sending email…';sendVoucherEmail({id:saved[0]?.id,code,type:voucherType,value,players,gameName,recipient,fromName:from_name},emailTo,personalMsgInput||buildDefaultVoucherMessage(buyer,recipient),msgEl);}['vAmt','vPaid','vPlayers','vPlayersAmt','vPlayersPaid','vBuyer','vNotes','vRecipient','vMessage','vFrom','vIssueEmail','vIssueMessage'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});if(voucherPersonalised)toggleVoucherPersonalised();renderVoucherList();setTimeout(()=>{msgEl.innerHTML=''},7000)}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}}
 function setVoucherFilter(f,btn){voucherStatusFilter=f;['vf-all','vf-requested','vf-active','vf-used','vf-expired'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='avail-slot'});if(btn)btn.className='avail-slot on';loadAndRenderVouchers()}
 async function searchVouchers(){const q=document.getElementById('vSearch').value.trim();await loadAndRenderVouchers(q)}
-async function loadAndRenderVouchers(search=''){const listEl=document.getElementById('voucherList');if(!listEl)return;listEl.innerHTML='<div class="empty-state">Loading…</div>';try{let url=`${SB_URL}/rest/v1/vouchers?order=issued_at.desc&limit=50`;if(voucherStatusFilter!=='all')url+=`&status=eq.${voucherStatusFilter}`;if(search){const es=encodeURIComponent(search);url+=`&or=(code.ilike.*${es}*,purchased_by.ilike.*${es}*,recipient.ilike.*${es}*)`}const r=await fetch(url,{headers:H()});vouchers=await r.json();renderVoucherList()}catch(e){listEl.innerHTML='<div class="empty-state">Error loading vouchers.</div>'}}
-function renderVoucherList(){const listEl=document.getElementById('voucherList');if(!listEl)return;if(!vouchers.length){listEl.innerHTML='<div class="empty-state">No vouchers found.</div>';return}const statusStyle={requested:'background:#dbeafe;color:#1d4ed8',active:'background:#dcfce7;color:#15803d',used:'background:#f3f4f6;color:#9ca3af',expired:'background:#fee2e2;color:#dc2626',cancelled:'background:#fee2e2;color:#dc2626'};listEl.innerHTML=vouchers.map(v=>{const valLabel=v.type==='players'?`${v.players} player${v.players!==1?'s':''} ${v.game_name?'— '+v.game_name:''} ($${parseFloat(v.value||0).toFixed(0)} value)`:`$${parseFloat(v.value||0).toFixed(0)}`;const issued=v.issued_at?new Date(v.issued_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'';const usedDate=v.used_at?new Date(v.used_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):'';return`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:11px 13px;margin-bottom:8px"><div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px"><div style="flex:1"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-family:monospace;font-size:14px;font-weight:700;color:#07b4c5;letter-spacing:1px;background:#e0f7f9;padding:2px 8px;border-radius:6px">${v.code}</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;${statusStyle[v.status]||''}">${v.status}</span>${v.personalised?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:99px;font-weight:600">✨ Personalised</span>':''}</div><div style="font-size:13px;font-weight:600;color:#374151;margin-top:4px">${valLabel}</div>${v.purchased_by?`<div style="font-size:12px;color:#6b7280">Bought by: ${escapeHtml(v.purchased_by)}</div>`:''} ${v.recipient?`<div style="font-size:12px;color:#6b7280">For: ${escapeHtml(v.recipient)}${v.from_name?' · From: '+escapeHtml(v.from_name):''}</div>`:''} ${v.message?`<div style="font-size:12px;color:#6b7280;font-style:italic">"${escapeHtml(v.message)}"</div>`:''}<div style="font-size:11px;color:#9ca3af;margin-top:3px">Issued ${issued}${v.paid_amount?' · Paid $'+parseFloat(v.paid_amount).toFixed(0):''}${v.how_paid?' · '+v.how_paid:''}${usedDate?' · Used '+usedDate:''}</div>${v.notes?`<div style="font-size:11px;color:#9ca3af">${escapeHtml(v.notes)}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">${v.status==='requested'?`<button onclick="activateVoucher('${v.id}')" class="icon-btn" title="Activate" style="color:#15803d"><i class="ti ti-check"></i></button>`:''} ${v.status==='active'?`<button onclick="cancelVoucher('${v.id}')" class="icon-btn danger" title="Cancel"><i class="ti ti-ban"></i></button>`:''} ${v.status==='used'?`<button onclick="reinstateVoucher('${v.id}')" class="icon-btn" title="Reinstate" style="color:#d97706"><i class="ti ti-refresh"></i></button>`:''}</div></div></div>`}).join('')}
-async function activateVoucher(id){
+async function loadAndRenderVouchers(search=''){const listEl=document.getElementById('voucherList');if(!listEl)return;listEl.innerHTML='<div class="empty-state">Loading…</div>';try{let url=`${SB_URL}/rest/v1/vouchers?select=*,clients(email,first_name,last_name)&order=issued_at.desc&limit=50`;if(voucherStatusFilter!=='all')url+=`&status=eq.${voucherStatusFilter}`;if(search){const es=encodeURIComponent(search);url+=`&or=(code.ilike.*${es}*,purchased_by.ilike.*${es}*,recipient.ilike.*${es}*)`}const r=await fetch(url,{headers:H()});vouchers=await r.json();renderVoucherList()}catch(e){listEl.innerHTML='<div class="empty-state">Error loading vouchers.</div>'}}
+function renderVoucherList(){const listEl=document.getElementById('voucherList');if(!listEl)return;if(!vouchers.length){listEl.innerHTML='<div class="empty-state">No vouchers found.</div>';return}const statusStyle={requested:'background:#dbeafe;color:#1d4ed8',active:'background:#dcfce7;color:#15803d',used:'background:#f3f4f6;color:#9ca3af',expired:'background:#fee2e2;color:#dc2626',cancelled:'background:#fee2e2;color:#dc2626'};listEl.innerHTML=vouchers.map(v=>{const valLabel=v.type==='players'?`${v.players} player${v.players!==1?'s':''} ${v.game_name?'— '+v.game_name:''} ($${parseFloat(v.value||0).toFixed(0)} value)`:`$${parseFloat(v.value||0).toFixed(0)}`;const issued=v.issued_at?new Date(v.issued_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'';const usedDate=v.used_at?new Date(v.used_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short'}):'';return`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:11px 13px;margin-bottom:8px"><div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px"><div style="flex:1"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-family:monospace;font-size:14px;font-weight:700;color:#07b4c5;letter-spacing:1px;background:#e0f7f9;padding:2px 8px;border-radius:6px">${v.code}</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;${statusStyle[v.status]||''}">${v.status}</span>${v.personalised?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:99px;font-weight:600">✨ Personalised</span>':''}</div><div style="font-size:13px;font-weight:600;color:#374151;margin-top:4px">${valLabel}</div>${v.purchased_by?`<div style="font-size:12px;color:#6b7280">Bought by: ${escapeHtml(v.purchased_by)}</div>`:''} ${v.recipient?`<div style="font-size:12px;color:#6b7280">For: ${escapeHtml(v.recipient)}${v.from_name?' · From: '+escapeHtml(v.from_name):''}</div>`:''} ${v.message?`<div style="font-size:12px;color:#6b7280;font-style:italic">"${escapeHtml(v.message)}"</div>`:''}<div style="font-size:11px;color:#9ca3af;margin-top:3px">Issued ${issued}${v.paid_amount?' · Paid $'+parseFloat(v.paid_amount).toFixed(0):''}${v.how_paid?' · '+v.how_paid:''}${usedDate?' · Used '+usedDate:''}</div>${v.notes?`<div style="font-size:11px;color:#9ca3af">${escapeHtml(v.notes)}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">${v.status==='requested'?`<button onclick="openActivatePanel('${v.id}')" class="icon-btn" title="Activate" style="color:#15803d"><i class="ti ti-check"></i></button>`:''} ${v.status==='active'?`<button onclick="cancelVoucher('${v.id}')" class="icon-btn danger" title="Cancel"><i class="ti ti-ban"></i></button>`:''} ${v.status==='active'?`<button onclick="unpayVoucher('${v.id}')" class="icon-btn" title="Mark unpaid" style="color:#d97706"><i class="ti ti-receipt-refund"></i></button>`:''} ${v.status==='used'?`<button onclick="reinstateVoucher('${v.id}')" class="icon-btn" title="Reinstate" style="color:#d97706"><i class="ti ti-refresh"></i></button>`:''}</div></div></div><div id="activate-panel-${v.id}"></div>`}).join('')}
+// ── Activate voucher (mark paid) — inline panel, replaces old prompt() flow ──
+let apEmailOn={};
+
+function activatePanelHtml(v){
+  const buyer=v.purchased_by||v.clients?.first_name||'';
+  const defaultMsg=buildDefaultVoucherMessage(buyer,v.recipient);
+  const prefEmail=v.clients?.email||'';
+  return `<div style="background:#f0fafb;border:1px solid #07b4c5;border-radius:10px;padding:12px;margin:-2px 0 8px">
+    <div style="font-size:12px;font-weight:700;color:#07b4c5;margin-bottom:8px"><i class="ti ti-check" style="margin-right:4px"></i>Activate voucher — mark as paid</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Amount paid ($)</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="number" min="0" id="ap-amt-${v.id}" value="${v.value!=null?v.value:''}"></div>
+      <div><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">How paid</div>
+        <select style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px" id="ap-how-${v.id}">
+          <option value="cash">Cash</option><option value="eftpos">Eftpos</option><option value="stripe">Card (Stripe)</option><option value="bank_transfer" selected>Bank transfer</option><option value="invoice">Invoice</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer" onclick="toggleApEmail('${v.id}')">
+      <div id="ap-email-toggle-${v.id}" style="width:36px;height:20px;border-radius:99px;background:#07b4c5;position:relative;transition:background .2s;flex-shrink:0"><div id="ap-email-dot-${v.id}" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:18px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:#374151">Email voucher to customer</div><div style="font-size:11px;color:#9ca3af">Sends the code + a personal message now</div></div>
+    </div>
+    <div id="ap-email-fields-${v.id}">
+      <div style="margin-bottom:6px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Customer email</div><input style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px" type="email" id="ap-emailaddr-${v.id}" value="${escapeHtml(prefEmail)}" placeholder="customer@example.com"></div>
+      <div style="margin-bottom:8px"><div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Personal message</div><textarea style="width:100%;font-size:13px;font-family:inherit;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;min-height:56px;resize:vertical" id="ap-message-${v.id}">${escapeHtml(defaultMsg)}</textarea></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="submitActivateVoucher('${v.id}')" style="flex:1;background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Confirm &amp; activate</button>
+      <button onclick="closeActivatePanel('${v.id}')" style="background:#fff;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancel</button>
+    </div>
+    <div id="ap-msg-${v.id}" style="font-size:12px;margin-top:6px;text-align:center;min-height:16px"></div>
+  </div>`;
+}
+
+function openActivatePanel(id){
   const v=vouchers.find(x=>x.id===id);if(!v)return;
-  const defaultAmt=v.value!=null?String(v.value):'';
-  const paidStr=prompt('Amount paid ($):',defaultAmt);
-  if(paidStr===null)return; // staff cancelled
-  const paid=parseFloat(paidStr);
-  if(!paid||paid<=0){alert('Please enter a valid amount.');return}
-  const howPaid=prompt('How was it paid? (cash / eftpos / stripe / bank_transfer / invoice)','eftpos');
-  if(howPaid===null)return;
+  apEmailOn[id]=true;
+  const el=document.getElementById('activate-panel-'+id);
+  if(el)el.innerHTML=activatePanelHtml(v);
+}
+function closeActivatePanel(id){
+  const el=document.getElementById('activate-panel-'+id);
+  if(el)el.innerHTML='';
+}
+function toggleApEmail(id){
+  const nowOn=apEmailOn[id]===false;
+  apEmailOn[id]=nowOn;
+  const fields=document.getElementById('ap-email-fields-'+id);
+  const tog=document.getElementById('ap-email-toggle-'+id);
+  const dot=document.getElementById('ap-email-dot-'+id);
+  if(fields)fields.style.display=nowOn?'':'none';
+  if(tog)tog.style.background=nowOn?'#07b4c5':'#e5e7eb';
+  if(dot)dot.style.left=nowOn?'18px':'2px';
+}
+async function submitActivateVoucher(id){
+  const v=vouchers.find(x=>x.id===id);if(!v)return;
+  const msgEl=document.getElementById('ap-msg-'+id);
+  const paid=parseFloat(document.getElementById('ap-amt-'+id)?.value);
+  if(!paid||paid<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter a valid amount.'}return}
+  const howPaid=document.getElementById('ap-how-'+id)?.value||'bank_transfer';
+  const wantEmail=apEmailOn[id]!==false;
+  const emailTo=document.getElementById('ap-emailaddr-'+id)?.value.trim();
+  const personalMsg=document.getElementById('ap-message-'+id)?.value.trim();
+  if(msgEl){msgEl.style.color='#6b7280';msgEl.textContent='Saving…'}
   try{
-    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',paid_amount:paid,how_paid:howPaid.trim()||null})});
-    Object.assign(v,{status:'active',paid_amount:paid,how_paid:howPaid.trim()||null});
+    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',paid_amount:paid,how_paid:howPaid})});
+    Object.assign(v,{status:'active',paid_amount:paid,how_paid:howPaid});
+    if(msgEl){msgEl.style.color='#15803d';msgEl.textContent='✓ Marked as paid'}
+    if(wantEmail&&emailTo){
+      await sendVoucherEmail({id:v.id,code:v.code,type:v.type,value:v.value,players:v.players,gameName:v.game_name,recipient:v.recipient,fromName:v.from_name},emailTo,personalMsg||buildDefaultVoucherMessage(v.purchased_by||v.clients?.first_name,v.recipient),msgEl);
+    }
+    setTimeout(()=>{renderVoucherList()},1100);
+  }catch(e){
+    if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}
+    console.error(e);
+  }
+}
+async function unpayVoucher(id){
+  const v=vouchers.find(x=>x.id===id);if(!v)return;
+  if(!confirm('Mark this voucher as unpaid? This clears the amount paid and payment method, and moves it back to Requested.'))return;
+  try{
+    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'requested',paid_amount:null,how_paid:null})});
+    Object.assign(v,{status:'requested',paid_amount:null,how_paid:null});
     renderVoucherList();
-  }catch(e){alert('Failed to activate: '+e.message)}
+  }catch(e){alert('Failed to mark as unpaid: '+e.message)}
 }
 async function cancelVoucher(id){if(!confirm('Cancel this voucher?'))return;await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'cancelled'})});const v=vouchers.find(x=>x.id===id);if(v)v.status='cancelled';renderVoucherList()}
 async function reinstateVoucher(id){await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',used_at:null,used_on_booking:null})});const v=vouchers.find(x=>x.id===id);if(v){v.status='active';v.used_at=null}renderVoucherList()}
