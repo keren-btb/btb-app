@@ -234,6 +234,16 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .qs-cart-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
 .qs-cart-item:last-child{border-bottom:none}
 
+/* ── GAME INFO POPUP ────────────────────────────── */
+.game-info-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:950;align-items:center;justify-content:center;padding:20px}
+.game-info-overlay.open{display:flex}
+.game-info-sheet{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto}
+.game-info-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.game-info-title{font-size:17px;font-weight:700;color:#111827;line-height:1.3}
+.game-info-sub{font-size:13px;color:#6b7280;margin-top:2px}
+.game-info-row{font-size:13px;color:#374151;margin-top:10px}
+.game-info-label{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
+
 /* ── Shared utils ───────────────────────────────── */
 .avail-slot{font-size:11px;padding:3px 9px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
 .avail-slot.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
@@ -527,6 +537,13 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   </div>
 </div>
 
+<!-- Game info popup (Boardgame product details) -->
+<div class="game-info-overlay" id="gameInfoOverlay" onclick="if(event.target===this)closeGameInfo()">
+  <div class="game-info-sheet" id="gameInfoSheet">
+    <!-- filled by openGameInfo(productId) -->
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════
      QUICK SALE OVERLAY
 ════════════════════════════════════════════════ -->
@@ -599,7 +616,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.5.0'; // v1.5.0: Gift voucher flow — replaced the prompt()-based "Activate" flow with an inline panel matching the rest of POS (amount paid, how-paid dropdown, editable customer email + personal message). Activating a voucher (or issuing one paid on the spot) can now email the customer their code via a new send_voucher_email action on the btb-admin edge function (Resend). Email address auto-prefills from the linked client record for online voucher requests. Added an "Unpay" action on active vouchers to revert to Requested and clear paid_amount/how_paid.
+const BUILD_VERSION = '1.6.0'; // v1.6.0: Product card redesign — Product Sale and Quick Sale grids now show a colour-block card (name + sub_name in white text on a coloured header, thick matching border) instead of flat uniform-colour buttons. Boardgame products get a stable per-item colour (hashed from product id, so it doesn't reshuffle on reload) plus a ⓘ info icon that opens a popup with description/player count/age (openGameInfo). Cards show cost_new_range + notes bottom-left, sell_price bottom-right.
 // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
@@ -1837,6 +1854,27 @@ function filterPOSProds(bookingId,query){
   if(!filtered.length){grid.innerHTML='<div style="font-size:11px;color:#9ca3af;grid-column:1/-1;padding:6px">No products found.</div>';return;}
 grid.innerHTML=filtered.map(p=>{const thumb=gameThumb(p);return`<button class="addon-btn" onclick="addProductToBooking('${bookingId}','${p.id}')"><div class="addon-btn-name">${p.favourite?'⭐ ':''}${thumb?`<img src="${thumb}" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px;margin-right:2px">`:catEmoji(p.category)+' '}${p.name}</div><div class="addon-btn-price">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`}).join('');}
 
+// ── PRODUCT CARD COLOUR (stable per-product, no field needed) ──
+const PRODUCT_CARD_COLOURS=['#0F6E56','#185FA5','#993C1D','#534AB7','#B4530E','#0E7A8A'];
+function productCardColour(id){let h=0;for(let i=0;i<id.length;i++){h=(h*31+id.charCodeAt(i))>>>0}return PRODUCT_CARD_COLOURS[h%PRODUCT_CARD_COLOURS.length]}
+
+// ── GAME INFO POPUP ────────────────────────────────
+function openGameInfo(productId){
+  const p=products.find(x=>x.id===productId);if(!p)return;
+  const players=(p.players_min||p.players_max)?`${p.players_min||'?'}–${p.players_max||'?'} players`:'';
+  const age=p.age_recommendation?`Ages ${p.age_recommendation}`:'';
+  document.getElementById('gameInfoSheet').innerHTML=`
+    <div class="game-info-header">
+      <div><div class="game-info-title">${p.name}</div>${p.sub_name?`<div class="game-info-sub">${p.sub_name}</div>`:''}</div>
+      <button class="drawer-close" onclick="closeGameInfo()">✕</button>
+    </div>
+    ${players||age?`<div class="game-info-row">${[players,age].filter(Boolean).join(' · ')}</div>`:''}
+    <div class="game-info-row"><div class="game-info-label">About</div>${p.description||'No details added yet.'}</div>
+  `;
+  document.getElementById('gameInfoOverlay').classList.add('open');
+}
+function closeGameInfo(){document.getElementById('gameInfoOverlay').classList.remove('open')}
+
 // ── PRODUCT SALE (category tile flow) ─────────────
 function showProductCat(catId){
   const cat=posCategories.find(c=>c.id===catId)||posCategories[0];currentPOSCat=cat;
@@ -1858,7 +1896,12 @@ function renderProdSaleGrid(){
   const filtered=products.filter(p=>p.active&&(prodSaleCat==='All'||p.category===prodSaleCat)&&(!q||p.name.toLowerCase().includes(q)));
   if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}
   const btnColor=currentPOSCat?.color||'#07b4c5';const rgb=hexToRgb(btnColor);
-grid.innerHTML=filtered.map(p=>{const thumb=gameThumb(p);return`<button onclick="addToProdSaleCart('${p.id}')" style="background:${btnColor};color:#fff;border:none;border-radius:14px;padding:18px 10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(${rgb},0.3);min-height:90px;justify-content:center;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">${thumb?`<img src="${thumb}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.5)">`:''}<div style="font-size:14px;font-weight:700;text-align:center;line-height:1.3">${p.favourite?'⭐ ':''}${p.name}</div>${p.notes?`<div style="font-size:11px;opacity:.8;text-align:center">${p.notes}</div>`:''}<div style="font-size:16px;font-weight:700;opacity:.9">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`}).join('');}
+grid.innerHTML=filtered.map(p=>{
+  const isBoardgame=p.category==='Boardgame';
+  const color=isBoardgame?productCardColour(p.id):btnColor;
+  const leftBits=[];if(p.cost_new_range)leftBits.push('New: '+p.cost_new_range);if(p.notes)leftBits.push(p.notes);
+  const leftHtml=leftBits.length?`<div style="font-size:10px;color:#9ca3af;line-height:1.35">${leftBits.join('<br>')}</div>`:'<div></div>';
+  return`<div onclick="addToProdSaleCart('${p.id}')" style="border:3px solid ${color};border-radius:12px;overflow:hidden;cursor:pointer;background:#fff;display:flex;flex-direction:column;min-height:90px;position:relative">${isBoardgame?`<button onclick="event.stopPropagation();openGameInfo('${p.id}')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:13px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">ⓘ</button>`:''}<div style="background:${color};padding:10px 30px 8px 12px"><div style="font-size:14px;font-weight:700;color:#fff;line-height:1.25">${p.favourite?'⭐ ':''}${p.name}</div>${p.sub_name?`<div style="font-size:11px;color:#fff;opacity:.85;margin-top:1px">${p.sub_name}</div>`:''}</div><div style="padding:8px 12px 10px;display:flex;justify-content:space-between;align-items:flex-end;gap:6px;flex:1">${leftHtml}<div style="font-size:16px;font-weight:700;color:#111827;white-space:nowrap">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div></div>`}).join('');}
 function addToProdSaleCart(productId){const p=products.find(x=>x.id===productId);if(!p)return;const ex=prodSaleCart.find(x=>x.id===productId);if(ex)ex.qty++;else prodSaleCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderProdSaleCart()}
 function removeFromProdSaleCart(productId){const idx=prodSaleCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(prodSaleCart[idx].qty>1)prodSaleCart[idx].qty--;else prodSaleCart.splice(idx,1);renderProdSaleCart()}
 function clearProdSaleCart(){prodSaleCart=[];renderProdSaleCart()}
@@ -1887,7 +1930,12 @@ async function completeProdSale(){
 function openQuickSale(){qsCart=[];qsMethod='';qsCat='All';document.getElementById('qsOverlay').classList.add('open');document.getElementById('qsSearch').value='';renderQSProducts();renderQSCart()}
 function closeQuickSale(){document.getElementById('qsOverlay').classList.remove('open')}
 function setQSCat(cat,btn){qsCat=cat;document.querySelectorAll('#qsCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderQSProducts()}
-function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||p.category===qsCat)&&(!q||p.name.toLowerCase().includes(q)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>`<button onclick="addToQSCart('${p.id}')" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s" onmouseover="this.style.borderColor='#07b4c5';this.style.background='#f0fafb'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#f9fafb'"><div style="font-size:13px;font-weight:600;color:#374151;line-height:1.3">${catEmoji(p.category)} ${p.name}</div>${p.notes?`<div style="font-size:11px;color:#9ca3af;margin-top:2px">${p.notes}</div>`:''}<div style="font-size:14px;font-weight:700;color:#07b4c5;margin-top:4px">$${parseFloat(p.sell_price||0).toFixed(2)}</div></button>`).join('')}
+function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||p.category===qsCat)&&(!q||p.name.toLowerCase().includes(q)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>{
+  const isBoardgame=p.category==='Boardgame';
+  const color=isBoardgame?productCardColour(p.id):'#6b7280';
+  const leftBits=[];if(p.cost_new_range)leftBits.push('New: '+p.cost_new_range);if(p.notes)leftBits.push(p.notes);
+  const leftHtml=leftBits.length?`<div style="font-size:10px;color:#9ca3af;line-height:1.35">${leftBits.join('<br>')}</div>`:'<div></div>';
+  return`<div onclick="addToQSCart('${p.id}')" style="border:2px solid ${color};border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;display:flex;flex-direction:column;position:relative">${isBoardgame?`<button onclick="event.stopPropagation();openGameInfo('${p.id}')" style="position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:12px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">ⓘ</button>`:''}<div style="background:${color};padding:7px 24px 6px 9px"><div style="font-size:12px;font-weight:700;color:#fff;line-height:1.25">${catEmoji(p.category)} ${p.name}</div>${p.sub_name?`<div style="font-size:10px;color:#fff;opacity:.85">${p.sub_name}</div>`:''}</div><div style="padding:6px 9px 8px;display:flex;justify-content:space-between;align-items:flex-end;gap:6px">${leftHtml}<div style="font-size:13px;font-weight:700;color:#111827;white-space:nowrap">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div></div>`}).join('')}
 function addToQSCart(productId){const p=products.find(x=>x.id===productId);if(!p)return;const existing=qsCart.find(x=>x.id===productId);if(existing)existing.qty++;else qsCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderQSCart()}
 function removeFromQSCart(productId){const idx=qsCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(qsCart[idx].qty>1)qsCart[idx].qty--;else qsCart.splice(idx,1);renderQSCart()}
 function clearQSCart(){qsCart=[];renderQSCart()}
