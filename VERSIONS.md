@@ -7,6 +7,13 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-08-16 — New trigger `trg_sync_client_status_on_booking_complete` (function
+  `sync_client_status_on_booking_complete`, SECURITY DEFINER) on `game_bookings`: when a booking's
+  `status` changes to `completed` for the first time (fires from either btb_app.html's calendar
+  toggle or control_room.html's "Save & Complete Session" — both write to the same column), the
+  linked client's `clients.status` is auto-set to `complete`. If the booking is later toggled back
+  off `completed`, the client's status reverts to `incomplete_booking`. Bookings with no linked
+  client (`client_id` is null) are skipped. Tested end-to-end both directions on live data.
 - 2026-08-15 — Closed 6 tables that were fully open to the public anon key (no login required):
   `products`, `quick_sales`, `staff_shifts`, `staff_recurring_availability`, `waivers`, and 10
   task-hub tables (`daily_task_categories`, `daily_task_instances`, `general_task_instances`,
