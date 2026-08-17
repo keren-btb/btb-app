@@ -526,6 +526,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn-primary" onclick="saveMyRecurringAvailability(document.getElementById('availMsg'))"><i class="ti ti-device-floppy"></i> Save default pattern</button>
     </div>
     <div class="msg" id="availMsg"></div>
+
+    <!-- Calendar-mode staff only: recurring events found on their synced calendar,
+         waiting on a yes/no about whether they count as unavailable for GM shifts -->
+    <div id="calendarReviewSection" style="display:none">
+      <div class="divider"></div>
+      <div class="sec-title">📅 New events found on your calendar</div>
+      <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Your availability is linked to your personal calendar. When a new repeating event shows up, tell us whether it means you're unavailable for GM shifts — we'll remember your answer.</p>
+      <div id="calendarReviewBulkRow" style="display:none;margin-bottom:10px">
+        <button class="btn-secondary btn-sm" onclick="bulkIgnoreCalendarReview()"><i class="ti ti-x"></i> Ignore all pending</button>
+      </div>
+      <div id="calendarReviewList"></div>
+    </div>
   </div><!-- /tabAvail section -->
   <!-- ══ SPECIFIC TIME OFF TAB ══ -->
   <div id="tabSpecificTimeoff" class="section">
@@ -1068,7 +1080,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.18'; // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.9.19'; // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
+// v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
 // subscription, tied to their staff_id). iPhone users are shown an "Add to Home
@@ -1190,6 +1203,7 @@ function renderTimeOffTypeOptions() {
 // STATE
 // ============================================================
 let currentUser   = null;
+let myRecurringReview = []; // pending staff_recurring_event_review rows for the logged-in staff member
 let allStaff      = [];
 let myStaffRecord = null;
 let games         = [];
@@ -1708,6 +1722,8 @@ async function initApp() {
   renderWeekAvailSummary();
   renderMyTraining();
   renderMyTimesheets();
+  await loadMyCalendarReview();
+  renderMyCalendarReview();
   loadTodayBookings();
   loadProfile();
   initPushNotifications();
@@ -4085,7 +4101,7 @@ function refreshTabData(id) {
     if (id === 'tabStaff') { renderAdminStaffList(); renderStaffCelebrations(); }
     if (id === 'tabStaffTraining') renderStaffTrainingGrid();
     if (id === 'tabTraining') renderMyTraining();
-    if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); }
+    if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); loadMyCalendarReview().then(renderMyCalendarReview); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
     if (id === 'tabRoster') loadRosterOverview();
 }
@@ -4208,6 +4224,74 @@ async function resolveHoursRequest(id, decision) {
   } catch(e) { alert('Failed: '+e.message); }
 }
     
+// ============================================================
+// CALENDAR-MODE: recurring event review queue
+// ============================================================
+async function loadMyCalendarReview() {
+  if (!myStaffRecord) return;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/staff_recurring_event_review?staff_id=eq.${myStaffRecord.id}&status=eq.pending&order=created_at`,
+      {headers:H()}
+    );
+    myRecurringReview = await r.json();
+    if (!Array.isArray(myRecurringReview)) myRecurringReview = [];
+  } catch(e) { console.error('Calendar review load:', e); myRecurringReview = []; }
+}
+
+function renderMyCalendarReview() {
+  const section = document.getElementById('calendarReviewSection');
+  const list = document.getElementById('calendarReviewList');
+  const bulkRow = document.getElementById('calendarReviewBulkRow');
+  if (!section || !list || !bulkRow) return;
+
+  const isCalendarMode = myStaffRecord && myStaffRecord.availability_mode === 'calendar';
+  section.style.display = isCalendarMode ? '' : 'none';
+  if (!isCalendarMode) return;
+
+  if (!myRecurringReview.length) {
+    list.innerHTML = '<div class="empty-state"><i class="ti ti-check"></i>No new events to review right now.</div>';
+    bulkRow.style.display = 'none';
+    return;
+  }
+  bulkRow.style.display = '';
+  list.innerHTML = myRecurringReview.map(r => `<div class="shift-card">
+    <div class="shift-staff-name">${escapeHtml(r.summary || '(no title)')}</div>
+    <div class="shift-notes" style="margin-top:2px">${escapeHtml(r.pattern_label || r.rrule_text || '')}</div>
+    <div class="shift-actions" style="margin-top:8px">
+      <button class="btn-primary btn-sm" onclick="answerCalendarReview('${r.id}','approved')"><i class="ti ti-check"></i> Count as busy</button>
+      <button class="btn-secondary btn-sm" onclick="answerCalendarReview('${r.id}','ignored')"><i class="ti ti-x"></i> Ignore</button>
+    </div>
+  </div>`).join('');
+}
+
+async function answerCalendarReview(id, decision) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_recurring_event_review?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status: decision, decided_by:'staff', decided_at: new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    myRecurringReview = myRecurringReview.filter(x => x.id !== id);
+    renderMyCalendarReview();
+  } catch(e) { alert('Failed to save your answer: ' + e.message); }
+}
+
+async function bulkIgnoreCalendarReview() {
+  if (!myRecurringReview.length) return;
+  if (!confirm('Ignore all pending events? New events will still show up here for review as your calendar changes — this only clears what\'s currently waiting.')) return;
+  const ids = myRecurringReview.map(r => r.id);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_recurring_event_review?id=in.(${ids.join(',')})`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status:'ignored', decided_by:'staff', decided_at: new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    myRecurringReview = [];
+    renderMyCalendarReview();
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
 async function loadShifts() {
   const today = nzToday();
   const future = nzNow(); future.setDate(future.getDate() + 56);

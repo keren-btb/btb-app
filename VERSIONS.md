@@ -7,6 +7,27 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-08-17 — Investigated "is Joolz's calendar availability working correctly" and found it wasn't:
+  `staff_calendar_busy` had zero rows for her, ever, even though the sync ran successfully every 20
+  minutes. Root cause: her real schedule is almost entirely recurring calendar events (Escape Room
+  shifts, swim teaching, Sunday school, "Youth Joolz away"), and the sync function only ever handled
+  one-off events — recurring (RRULE) events were detected and silently skipped by design. New table
+  `staff_recurring_event_review` (staff_id, event_uid, fingerprint, summary, pattern_label,
+  rrule_text, status pending/approved/ignored, decided_by, decided_at) added — RLS matches
+  staff_availability (own rows, or admin/manager via is_admin_or_manager()). The
+  `sync-calendar-availability` edge function was rewritten to actually expand RRULE patterns
+  (DAILY/WEEKLY/MONTHLY/YEARLY, INTERVAL, BYDAY, BYMONTHDAY, UNTIL, COUNT, EXDATE, RECURRENCE-ID
+  overrides for moved/cancelled single occurrences) into real dates — but only for patterns a human
+  has approved via the new review table; unseen patterns are logged as pending and skipped until
+  answered. Stale review rows are cleaned up automatically when an event disappears from the feed.
+  Caught and fixed a DST bug during build: the NZ offset must be re-derived per individual occurrence
+  date, not reused from the first one, or events would land an hour wrong after a daylight-saving
+  change (NZDT starts 27 Sept 2026, inside the 60-day sync window right now). Confirmed working
+  against Joolz's real feed — her ~25 recurring events came through correctly with clean plain-
+  language descriptions (e.g. "Weekly on Wednesday, 9:30 am"). Staff-side review UI shipped in
+  staff_portal.html v1.9.19; admin-side review/override UI in btb_app.html still to come.
+  NOTE: the edge function currently has verbose `[sync-debug]` console.log lines left in
+  deliberately for ongoing verification — remove once confirmed solid over a few real sync cycles.
 - 2026-08-16 — Verification only, no schema change: re-checked live RLS policies, column grants,
   and triggers against `btb_security_review.md` Finding 12 and the "revised severity ranking"
   (Findings 0-4). Confirmed all of it is already closed — `user_roles` deny-all, `hours_requests`/
@@ -71,6 +92,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.19 — 2026-08-17 — New: calendar-mode staff (currently Joolz) now see a "New events found on your calendar" panel on the Availability tab. Part of the new recurring-calendar-event review system (see Database section below) — recurring events synced from their personal calendar need a one-time yes/no (does this pattern mean they're unavailable for GM shifts?), answered here and remembered. Includes a bulk "Ignore all pending" button since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real work-relevant ones.
 - v1.9.17 — 2026-08-08 — Swapped in a new VAPID_PUBLIC_KEY. The previous one had no matching private key saved anywhere (confirmed — no secret existed), so push notifications could never have actually worked despite the subscribe UI/code being in place. Existing push_subscriptions rows (signed under the old, orphaned key) were cleared — staff need to re-toggle "Alerts" on once the new VAPID secrets are added in Supabase, to get a valid subscription under the new key.
 - v1.9.16 — 2026-08-07 — Bug fix: clock in/out edit fields (timesheet detail popup, Clock tab grid, and "Log Missed Shift" form) were displaying and saving times using raw UTC digits / the device's own timezone instead of NZ time, causing edited times to be off by hours or a whole date. Added isoToNzDatetimeLocal()/nzDatetimeLocalToIso() helpers so every editable clock field reliably shows and saves Pacific/Auckland time regardless of device timezone; fmtDatetime() read-only display also now explicitly pins to Pacific/Auckland
 - v1.9.15 — 2026-08-07 — Bug fix: timesheet detail popup's "Manual Hours" field now auto-recalculates whenever Clock in or Clock out is edited, so a stale hours value can no longer be saved unchanged after adjusting the times (was producing wildly wrong totals like "104.86h")
