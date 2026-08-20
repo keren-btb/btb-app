@@ -616,7 +616,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.6.1'; // v1.6.1: Product Sale and Quick Sale grids now auto-adjust column count based on available screen width (auto-fill/minmax) instead of a fixed 2 columns — stays at 2 on narrow/touchscreen widths, grows to 3-4 on wider desktop windows, capped via a max-width on Product Sale so it doesn't sprawl on very wide monitors.
+const BUILD_VERSION = '1.6.2'; // v1.6.2: "Use voucher" checkout panel now supports searching by buyer or recipient name (not just exact code) — type 2+ characters and matching active vouchers appear below with code/value/who-for, tap one to apply it directly. Search failures now show a visible error instead of failing silently. (Re-applied — this was originally shipped as v1.6.1 but got overwritten by a concurrent push of the grid-column-count change before I re-pulled.)
+// v1.6.1: Product Sale and Quick Sale grids now auto-adjust column count based on available screen width (auto-fill/minmax) instead of a fixed 2 columns — stays at 2 on narrow/touchscreen widths, grows to 3-4 on wider desktop windows, capped via a max-width on Product Sale so it doesn't sprawl on very wide monitors.
 // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
 // v1.3.3: Fixed login screen briefly flashing on load when already logged in — now hidden synchronously as soon as a cached session is found, before the page paints.
@@ -1199,9 +1200,10 @@ function buildSectionHTML(b,sect){
     return backBar('Use voucher')+`
     <div class="action-panel-scroll" style="padding:14px 16px">
       <div class="voucher-row">
-        <input type="text" id="voucher-${b.id}" class="voucher-input" placeholder="VOUCHER CODE" oninput="this.value=this.value.toUpperCase()">
+        <input type="text" id="voucher-${b.id}" class="voucher-input" placeholder="Code, buyer or recipient name…" oninput="onVoucherInput('${b.id}',this.value)">
         <button class="voucher-apply-btn" onclick="applyVoucher('${b.id}')">Apply</button>
       </div>
+      <div id="voucher-results-${b.id}" style="display:none;margin-top:8px;max-height:240px;overflow-y:auto"></div>
       <div id="voucher-msg-${b.id}" style="font-size:11px;min-height:16px"></div>
     </div>`;
   }
@@ -1681,6 +1683,53 @@ async function recordSplitPaymentNew(id){
     b.splitMode=false;
   }
   refreshPanel();
+}
+
+// ── VOUCHER LOOKUP BY NAME (checkout panel) ────────
+let voucherSearchTimers={};
+function onVoucherInput(bookingId,val){
+  clearTimeout(voucherSearchTimers[bookingId]);
+  const resultsEl=document.getElementById('voucher-results-'+bookingId);
+  if(!resultsEl)return;
+  const q=val.trim();
+  if(q.length<2){resultsEl.innerHTML='';resultsEl.style.display='none';return}
+  voucherSearchTimers[bookingId]=setTimeout(()=>searchVoucherForApply(bookingId,q),300);
+}
+async function searchVoucherForApply(bookingId,q){
+  const resultsEl=document.getElementById('voucher-results-'+bookingId);
+  if(!resultsEl)return;
+  resultsEl.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:6px 2px">Searching…</div>';
+  resultsEl.style.display='';
+  try{
+    const enc=encodeURIComponent(`*${q}*`);
+    const url=`${SB_URL}/rest/v1/vouchers?status=eq.active&select=id,code,value,type,players,game_name,purchased_by,recipient&or=(code.ilike.${enc},purchased_by.ilike.${enc},recipient.ilike.${enc})&limit=8`;
+    const r=await fetch(url,{headers:H()});
+    if(!r.ok)throw new Error('Search request failed ('+r.status+')');
+    const rows=await r.json();
+    if(!rows.length){
+      resultsEl.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:6px 2px">No matching active vouchers.</div>';
+      return;
+    }
+    resultsEl.innerHTML=rows.map(v=>{
+      const amt=v.type==='players'?`${v.players}p${v.game_name?' — '+v.game_name:''}`:`$${parseFloat(v.value||0).toFixed(0)}`;
+      const who=[v.recipient?`for ${v.recipient}`:null,v.purchased_by?`from ${v.purchased_by}`:null].filter(Boolean).join(' · ');
+      return `<div onclick="applyVoucherDirect('${bookingId}','${v.code}')" style="padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer;background:#fff">
+        <div style="font-family:monospace;font-weight:700;font-size:13px;color:#07b4c5">${escapeHtml(v.code)}</div>
+        <div style="font-size:12px;color:#374151">${escapeHtml(amt)}</div>
+        ${who?`<div style="font-size:11px;color:#9ca3af">${escapeHtml(who)}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('voucher search failed',e);
+    resultsEl.innerHTML='<div style="font-size:12px;color:#dc2626;padding:6px 2px">⚠️ Search failed — check your connection and try again, or type the exact code and tap Apply.</div>';
+  }
+}
+function applyVoucherDirect(bookingId,code){
+  const input=document.getElementById('voucher-'+bookingId);
+  if(input)input.value=code;
+  const resultsEl=document.getElementById('voucher-results-'+bookingId);
+  if(resultsEl){resultsEl.innerHTML='';resultsEl.style.display='none'}
+  applyVoucher(bookingId);
 }
 
 // ── VOUCHER APPLICATION ────────────────────────────
