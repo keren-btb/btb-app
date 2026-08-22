@@ -295,6 +295,14 @@
         let todaysRoomBookings = [];    // All bookings (any room) for the picked date
         let timerInterval = null;       // Local interval for live countdown display
 let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the picker screen
+
+// Deep-link support: btb_app.html's booking ⋯ menu links here with
+// ?date=YYYY-MM-DD&booking=<id> so a booking opens straight up instead of
+// making staff hunt through the room/date picker. Read once on page load;
+// cleared after first use so navigating dates afterwards behaves normally.
+const _deepLinkParams = new URLSearchParams(window.location.search);
+let deepLinkDate = _deepLinkParams.get('date') || null;
+let deepLinkBookingId = _deepLinkParams.get('booking') || null;
         let controlRoomPin = null;      // Loaded from settings (btb_control_room_pin)
         let staff = [];                 // Loaded once logged in — used to resolve assigned_staff_ids to names
 
@@ -349,7 +357,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 14; // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
+        const BUILD_VERSION = 15; // v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
+        // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
         // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
         // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
         // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
@@ -613,7 +622,7 @@ let allRunningTimers = [];
             return new Intl.DateTimeFormat('en-CA', { timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         }
         function initDatePicker() {
-            pickerDate = todayStr();
+            pickerDate = deepLinkDate || todayStr();
             document.getElementById('picker-date').value = pickerDate;
             checkActiveBooking();
         }
@@ -679,6 +688,15 @@ async function checkActiveBooking() {
                 document.getElementById("loading-game-screen").classList.add("hidden");
                 document.getElementById("room-selection-screen").classList.remove("hidden");
                 renderBookingListForDate(todaysRoomBookings);
+
+                // Deep link from btb_app.html: jump straight into this booking's
+                // dashboard instead of leaving staff on the picker list.
+                if (deepLinkBookingId) {
+                    const idx = todaysRoomBookings.findIndex(b => b.id === deepLinkBookingId);
+                    deepLinkBookingId = null; // only auto-select once
+                    if (idx > -1) selectBookingFromList(idx);
+                    else console.warn('Deep-linked booking not found for this date — showing the picker instead.');
+                }
 
             } catch (err) {
                 console.error("Database initialization fault:", err.message);
