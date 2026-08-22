@@ -833,8 +833,30 @@ function showApp(){
   document.getElementById('mainApp').style.display='flex';
   document.getElementById('authName').textContent=currentUser.name;
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
-  showPOSHome();
+  const urlBookingId=new URLSearchParams(location.search).get('booking');
+  if(urlBookingId)jumpToBookingFromURL(urlBookingId);
+  else showPOSHome();
 }
+// Opens straight into the Bookings view with a specific booking pre-selected,
+// used when arriving here via a "Go to POS" link from btb_app.html's booking menu.
+// Reads ?booking=<id> (required) and ?date=<yyyy-mm-dd> (optional — needed so the
+// booking list range covers that date if it's in the past, since the normal
+// Bookings view only loads from today forward by default).
+function jumpToBookingFromURL(bookingId){
+  selectedBookingId=bookingId;
+  document.getElementById('posHome').style.display='none';
+  document.getElementById('posSection').style.display='flex';
+  document.getElementById('posProdSection').style.display='none';
+  document.getElementById('posVoucherSection').style.display='none';
+  document.getElementById('headerSub').innerHTML='<span onclick="showPOSHome()" style="cursor:pointer;color:#07b4c5">← Home</span> · Bookings';
+  const totals=document.getElementById('posTotals');
+  if(totals)totals.style.display=currentUser?.role==='admin'?'':'none';
+  const dateParam=new URLSearchParams(location.search).get('date');
+  posRangeStart=dateParam?new Date(dateParam+'T00:00:00'):nzNow();
+  posRangeStart.setHours(0,0,0,0);
+  renderPOS();
+}
+  
 
 // ── HOME SCREEN ────────────────────────────────────
 function renderPOSHome(){
