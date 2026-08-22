@@ -108,19 +108,22 @@
         <section id="gm-dashboard" class="hidden w-full grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <div class="lg:col-span-2 space-y-6">
-                <div class="p-5 rounded-2xl bg-[#231647] border border-purple-900/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
-                    <div>
-                        <div class="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1" id="game-slot-display">Slot: --:--</div>
-                        <h3 class="text-2xl font-black flex items-center gap-2">
-                            <span id="game-team-name">Loading Team...</span>
-                            <span id="birthday-flag" class="hidden text-xl" title="Birthday Party Celebration!">🎂</span>
-                        </h3>
-                        <p class="text-sm text-gray-400 mt-1" id="game-meta-details">Booked: 0 players • Booking Source: --</p>
-                    </div>
-                    <button id="help-btn" onclick="triggerHelpAlert()" class="w-full md:w-auto px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3">
-                        <span class="text-xl">🚨</span> ASK FOR HELP
-                    </button>
+                <div class="p-5 rounded-2xl bg-[#231647] border border-purple-900/60 shadow-md">
+                    <h3 class="text-2xl font-black flex items-center gap-2">
+                        <span id="game-team-name">Loading Team...</span>
+                        <span id="birthday-flag" class="hidden text-xl" title="Birthday Party Celebration!">🎂</span>
+                    </h3>
+                    <p class="text-sm text-gray-400 mt-1" id="game-meta-details">Booked: 0 players</p>
                 </div>
+
+                <div id="booking-notes-box" class="hidden p-5 rounded-xl bg-purple-950/40 border border-purple-900/40">
+                    <h4 class="text-xs font-bold uppercase text-[#07b4c5] tracking-wider mb-2">Front Desk & Intake Booking Notes:</h4>
+                    <p class="text-sm text-purple-200 italic" id="booking-notes-content">None</p>
+                </div>
+
+                <button id="help-btn" onclick="triggerHelpAlert()" class="w-full px-6 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-center tracking-wider rounded-xl shadow-lg transition flex items-center justify-center gap-3">
+                    <span class="text-xl">🚨</span> ASK FOR HELP
+                </button>
 
                 <div class="p-5 rounded-2xl bg-[#1d123d] border border-purple-950 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
@@ -131,42 +134,32 @@
                         </div>
                     </div>
 <div class="flex gap-2 w-full sm:w-auto">
-                        <button onclick="adjustTimer(-1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">-1 min</button>
-                        <button onclick="adjustTimer(1)" class="px-4 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+1 min</button>
+                        <div class="flex flex-col rounded-xl overflow-hidden border border-purple-700 text-xs shrink-0">
+                            <button onclick="adjustTimer(1)" class="px-3 py-1.5 font-bold bg-purple-900 hover:bg-purple-800 transition border-b border-purple-700">+1</button>
+                            <button onclick="adjustTimer(-1)" class="px-3 py-1.5 font-bold bg-purple-900 hover:bg-purple-800 transition">−1</button>
+                        </div>
                         <button id="timer-toggle-btn" onclick="toggleTimer()" class="flex-grow sm:flex-grow-0 px-5 py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 transition">▶ Start</button>
                         <button onclick="endGame()" class="px-5 py-3 rounded-xl font-bold text-sm bg-blue-600 hover:bg-blue-700 transition">🏁 End Game</button>
                         <button onclick="resetTimer()" class="px-5 py-3 rounded-xl font-bold text-sm bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">↺ Reset</button>
                     </div>
                 </div>
 
-                <div id="booking-notes-box" class="hidden p-5 rounded-xl bg-purple-950/40 border border-purple-900/40">
-                    <h4 class="text-xs font-bold uppercase text-[#07b4c5] tracking-wider mb-2">Front Desk & Intake Booking Notes:</h4>
-                    <p class="text-sm text-purple-200 italic" id="booking-notes-content">None</p>
-                </div>
-
                 <div class="p-6 rounded-2xl bg-[#1d123d] border border-purple-950 p-6 shadow-md space-y-6">
-                    <div class="border-b border-purple-900/40 pb-3 flex justify-between items-center">
-                        <h3 class="text-lg font-bold text-gray-200 flex items-center gap-2">📝 Session Logging Details</h3>
-                        <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-medium border border-amber-500/30">In-Room Entry</span>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Clues Given</label>
+                        <div class="flex items-center gap-2 max-w-xs">
+                            <button type="button" onclick="adjustClues(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                            <input type="number" id="input-clues" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0" value="0">
+                            <button type="button" onclick="adjustClues(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Gamemaster Log & Room Reset Notes</label>
+                        <textarea id="input-gm-notes" rows="3" placeholder="How did it go? Notable highlights, puzzle hitches, or maintenance details..." class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none text-sm"></textarea>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Actual Players in Room</label>
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="adjustPlayers(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
-                                <input type="number" id="input-players" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0">
-                                <button type="button" onclick="adjustPlayers(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Clues Given</label>
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="adjustClues(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
-                                <input type="number" id="input-clues" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0" value="0">
-                                <button type="button" onclick="adjustClues(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
-                            </div>
-                        </div>
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Group Name for Photo (optional)</label>
                             <input type="text" id="input-photo-group-name" placeholder="e.g. The Codebreakers" class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl px-4 py-3 text-white font-semibold placeholder-gray-600 focus:outline-none">
@@ -182,16 +175,20 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Gamemaster Log & Room Reset Notes</label>
-                        <textarea id="input-gm-notes" rows="3" placeholder="How did it go? Notable highlights, puzzle hitches, or maintenance details..." class="w-full bg-[#110a24] border border-purple-900/60 focus:border-accent rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none text-sm"></textarea>
-                    </div>
-
-                    <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Review Status</label>
                         <div class="flex gap-2">
                             <button type="button" id="btn-review" onclick="toggleReviewFlag()" class="flex-grow py-3 px-4 rounded-xl border font-bold text-sm transition text-center flex items-center justify-center gap-2 bg-purple-950/40 border-purple-800 text-purple-300">
                                 ⭐ Prompt Review Sequence
                             </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Actual Players in Room</label>
+                        <div class="flex items-center gap-2 max-w-xs">
+                            <button type="button" onclick="adjustPlayers(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                            <input type="number" id="input-players" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0">
+                            <button type="button" onclick="adjustPlayers(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
                         </div>
                     </div>
 
@@ -352,7 +349,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 13; // v13: Fixed silent failure if live game settings can't load: previously fell back to a stale 3-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching the pattern already used in gift_voucher_request.html and the booking widget.
+        const BUILD_VERSION = 14; // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
         // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
         // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
         // v10: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
@@ -741,11 +738,7 @@ async function checkActiveBooking() {
 
             document.getElementById("game-team-name").innerText = bookingCustomerName(booking);
 
-            // Format slot presentation output text
-            const timeString = booking.slot_time ? booking.slot_time.substring(0, 5) : "--:--";
-            document.getElementById("game-slot-display").innerText = `Slot: ${timeString}${booking.status==='completed' ? ' · Completed' : ''}`;
-
-            document.getElementById("game-meta-details").innerText = `Booked: ${booking.players_booked || '0'} players • Booking Source: ${booking.source || 'Direct'}`;
+            document.getElementById("game-meta-details").innerText = `Booked: ${booking.players_booked || '0'} players${booking.status==='completed' ? ' · Completed' : ''}`;
 
             // Handle Birthday indicators validation
             if (booking.occasion && booking.occasion.toLowerCase().includes('birth')) {
