@@ -51,6 +51,15 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-item.active{color:#fff;background:rgba(7,180,197,.15);border-left-color:var(--teal)}
 .nav-item i{font-size:16px;flex-shrink:0}
+.sidebar{transition:width .18s ease}
+.sidebar-toggle{cursor:pointer;color:#8a9bb5;font-size:15px;padding:4px 6px;border-radius:5px;transition:all .15s;margin-left:auto}
+.sidebar-toggle:hover{color:#fff;background:rgba(255,255,255,.08)}
+.sidebar.collapsed{width:60px}
+.sidebar.collapsed .sidebar-sub,.sidebar.collapsed .sidebar-user,.sidebar.collapsed .sidebar-back span,.sidebar.collapsed .sidebar-section,.sidebar.collapsed .nav-label,.sidebar.collapsed .brand-label{display:none}
+.sidebar.collapsed .sidebar-logo{display:flex;flex-direction:column;align-items:center;gap:6px}
+.sidebar.collapsed .sidebar-brand{justify-content:center}
+.sidebar.collapsed .nav-item{justify-content:center;padding:9px 0}
+.sidebar.collapsed .sidebar-back{justify-content:center;padding:8px 0}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
@@ -159,40 +168,40 @@ tr:hover td{background:#fafafa}
 <div class="app-wrap" id="appWrap" style="display:none">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="sidebar-brand"><i class="ti ti-box"></i> Beyond the Box</div>
+      <div class="sidebar-brand"><i class="ti ti-box"></i><span class="brand-label"> Beyond the Box</span><i class="ti ti-chevron-left sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse menu"></i></div>
       <div class="sidebar-sub">Reports <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5;letter-spacing:0.5px;vertical-align:middle"></span></div>
     </div>
     <div class="sidebar-user">
       <span id="sidebarUser">—</span>
       <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
     </div>
-    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i><span> BtB App</span></a>
 
     <div class="sidebar-section">Revenue</div>
-    <div class="nav-item active" onclick="showReport('revenue',this)"><i class="ti ti-currency-dollar"></i> Revenue Overview</div>
-    <div class="nav-item" onclick="showReport('outstanding',this)"><i class="ti ti-clock-dollar"></i> Outstanding Balances</div>
-    <div class="nav-item" onclick="showReport('payments',this)"><i class="ti ti-credit-card"></i> Payment Methods</div>
+    <div class="nav-item active" onclick="showReport('revenue',this)"><i class="ti ti-currency-dollar"></i><span class="nav-label"> Revenue Overview</span></div>
+    <div class="nav-item" onclick="showReport('outstanding',this)"><i class="ti ti-clock-dollar"></i><span class="nav-label"> Outstanding Balances</span></div>
+    <div class="nav-item" onclick="showReport('payments',this)"><i class="ti ti-credit-card"></i><span class="nav-label"> Payment Methods</span></div>
 
     <div class="sidebar-section">Bookings</div>
-    <div class="nav-item" onclick="showReport('bookings',this)"><i class="ti ti-calendar"></i> Bookings List</div>
-    <div class="nav-item" onclick="showReport('byDay',this)"><i class="ti ti-chart-bar"></i> By Day of Week</div>
-    <div class="nav-item" onclick="showReport('bySlot',this)"><i class="ti ti-clock"></i> By Time Slot</div>
-    <div class="nav-item" onclick="showReport('occasions',this)"><i class="ti ti-confetti"></i> Occasions</div>
-    <div class="nav-item" onclick="showReport('noShows',this)"><i class="ti ti-user-off"></i> No-Shows</div>
+    <div class="nav-item" onclick="showReport('bookings',this)"><i class="ti ti-calendar"></i><span class="nav-label"> Bookings List</span></div>
+    <div class="nav-item" onclick="showReport('byDay',this)"><i class="ti ti-chart-bar"></i><span class="nav-label"> By Day of Week</span></div>
+    <div class="nav-item" onclick="showReport('bySlot',this)"><i class="ti ti-clock"></i><span class="nav-label"> By Time Slot</span></div>
+    <div class="nav-item" onclick="showReport('occasions',this)"><i class="ti ti-confetti"></i><span class="nav-label"> Occasions</span></div>
+    <div class="nav-item" onclick="showReport('noShows',this)"><i class="ti ti-user-off"></i><span class="nav-label"> No-Shows</span></div>
 
     <div class="sidebar-section">Customers</div>
-    <div class="nav-item" onclick="showReport('customers',this)"><i class="ti ti-users"></i> Customer List</div>
-    <div class="nav-item" onclick="showReport('sources',this)"><i class="ti ti-antenna"></i> Booking Sources</div>
+    <div class="nav-item" onclick="showReport('customers',this)"><i class="ti ti-users"></i><span class="nav-label"> Customer List</span></div>
+    <div class="nav-item" onclick="showReport('sources',this)"><i class="ti ti-antenna"></i><span class="nav-label"> Booking Sources</span></div>
 
     <div class="sidebar-section">Staff</div>
-    <div class="nav-item" onclick="showReport('staffBookings',this)"><i class="ti ti-id-badge"></i> Bookings per GM</div>
+    <div class="nav-item" onclick="showReport('staffBookings',this)"><i class="ti ti-id-badge"></i><span class="nav-label"> Bookings per GM</span></div>
 
     <div class="sidebar-section">Vouchers</div>
-    <div class="nav-item" onclick="showReport('vouchers',this)"><i class="ti ti-ticket"></i> Voucher Summary</div>
+    <div class="nav-item" onclick="showReport('vouchers',this)"><i class="ti ti-ticket"></i><span class="nav-label"> Voucher Summary</span></div>
 
     <div class="sidebar-section">Quick Sales</div>
-    <div class="nav-item" onclick="showReport('quickSales',this)"><i class="ti ti-shopping-cart"></i> Sales Summary</div>
-    <div class="nav-item" onclick="showReport('products',this)"><i class="ti ti-package"></i> Products Sold</div>
+    <div class="nav-item" onclick="showReport('quickSales',this)"><i class="ti ti-shopping-cart"></i><span class="nav-label"> Sales Summary</span></div>
+    <div class="nav-item" onclick="showReport('products',this)"><i class="ti ti-package"></i><span class="nav-label"> Products Sold</span></div>
   </aside>
 
   <div class="main">
@@ -413,7 +422,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.8'; // v1.0.8: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.0.9'; // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
 // v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
 // v1.0.3: Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
@@ -1234,7 +1243,17 @@ function exportCurrentCSV(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const collapsed=sb.classList.toggle('collapsed');
+  localStorage.setItem('btb_reports_sidebar_collapsed',collapsed?'1':'0');
+  document.getElementById('sidebarToggle').className=collapsed?'ti ti-chevron-right sidebar-toggle':'ti ti-chevron-left sidebar-toggle';
+}
 window.addEventListener('DOMContentLoaded',async()=>{
+  if(localStorage.getItem('btb_reports_sidebar_collapsed')==='1'){
+    document.querySelector('.sidebar').classList.add('collapsed');
+    document.getElementById('sidebarToggle').className='ti ti-chevron-right sidebar-toggle';
+  }
   const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
