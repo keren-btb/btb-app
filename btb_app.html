@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.21">
+<link rel="stylesheet" href="btb_app.css?v=16.4.28">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -262,13 +262,9 @@
     <div id="pSurcharge" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pSurcharge')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Card Surcharge</span></div><div class="panel-body"><p class="panel-sub">Applied at checkout in POS for card payments. Stripe can also handle surcharges automatically.</p><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-credit-card" style="color:#07b4c5"></i> Card surcharge</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="number" id="cardSurcharge" class="time-input" style="width:60px" min="0" max="10" step="0.1" value="0"><span style="font-size:12px;color:#374151">% added for card payments (0 = no surcharge)</span></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveSurcharge()"><i class="ti ti-device-floppy"></i> Save</button><div id="surchargeMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
     <div id="pRoles" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pRoles')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Logins & Roles</span></div><div class="panel-body"><p class="panel-sub">Create staff login accounts and control tab access.</p><div id="rolesList"></div><div style="margin-top:14px;border-top:2px solid #f3f4f6;padding-top:14px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Create new login</div><div class="form-row"><div class="form-label">Name</div><input class="add-input" type="text" id="newStaffName" placeholder="e.g. Alex"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Email</div><input class="add-input" type="email" id="newStaffEmail" placeholder="alex@btb.co.nz"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Temporary password</div><input class="add-input" type="text" id="newStaffPass" placeholder="Welcome123"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Role</div><select class="form-select" id="newStaffRole"><option value="gamemaster_own">Gamemaster Own — only their bookings</option><option value="gamemaster">Gamemaster — all calendar</option><option value="manager">Manager — all except Settings</option><option value="admin">Admin — everything</option></select></div><button class="add-btn" style="margin-top:10px;width:100%;justify-content:center" onclick="createLogin()"><i class="ti ti-plus"></i> Create login</button><div id="loginMsg" style="font-size:12px;margin-top:6px"></div></div></div></div>
     <div id="pProducts" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pProducts')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Products</span></div><div class="panel-body">
-      <p class="panel-sub">Items available for sale. Boardgames track purchase &amp; retail price too.</p>
-      <!-- Category filter tabs -->
-      <div class="avail-tabs" id="prodCatTabs" style="margin-bottom:12px"></div>
-      <!-- Product list -->
-      <div id="prodList"></div>
+      <p class="panel-sub">Items available for sale. Boardgames track purchase &amp; retail price too. Tap a product to see its full details.</p>
       <!-- Add product form -->
-      <div style="border-top:2px solid #f3f4f6;padding-top:12px;margin-top:4px">
+      <div style="border-bottom:2px solid #f3f4f6;padding-bottom:12px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px">Add product</div>
         <div class="add-row" style="flex-wrap:wrap;gap:7px;margin-bottom:6px">
           <input class="add-input" type="text" id="newProdName" placeholder="Product name…" style="flex:2;min-width:140px">
@@ -297,16 +293,27 @@
         <div id="prodAddMsg" style="font-size:12px;margin-top:6px"></div>
       </div>
       <!-- CSV import/export -->
-      <div style="border-top:2px solid #f3f4f6;padding-top:12px;margin-top:12px">
+      <div style="border-bottom:2px solid #f3f4f6;padding-bottom:12px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-file-text" style="color:#07b4c5"></i> Import / Export CSV</div>
-        <p class="hint" style="margin-bottom:10px">CSV columns: <strong>name, category, sell_price, purchase_price, rrp, stock_qty, notes, active</strong><br>Category options: Food/Drink · Escape Room · Boardgame · Book · VR · Other</p>
+        <p class="hint" style="margin-bottom:10px">CSV columns: <strong>id, name, category, sell_price, purchase_price, rrp, stock_qty, notes, active, favourite, game_id, sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url</strong><br>Category options: Food/Drink · Escape Room · Boardgame · Book · VR · Other<br><span style="color:#9ca3af">Note: the "id" column is exported for reference only — importing a CSV always creates new products, it never updates existing ones by id.</span></p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="add-btn" style="background:#1d9e75" onclick="exportProductsCSV()"><i class="ti ti-download"></i> Export CSV</button>
           <label class="add-btn" style="background:#6b7280;cursor:pointer"><i class="ti ti-upload"></i> Import CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importProductsCSV(this)"></label>
         </div>
         <div id="csvMsg" style="font-size:12px;margin-top:8px"></div>
       </div>
+      <!-- Category filter tabs -->
+      <div class="avail-tabs" id="prodCatTabs" style="margin-bottom:12px"></div>
+      <!-- Product list -->
+      <div id="prodList"></div>
     </div></div>
+    <!-- Product detail popup -->
+    <div class="prod-detail-overlay" id="prodDetailOverlay" onclick="if(event.target===this)closeProdDetail()">
+      <div class="prod-detail-card">
+        <button class="prod-detail-close" onclick="closeProdDetail()"><i class="ti ti-x"></i></button>
+        <div id="prodDetailBody"></div>
+      </div>
+    </div>
     <div id="pPOSCat" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPOSCat')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">POS Categories</span></div><div class="panel-body">
       <p class="panel-sub">The home screen buttons in the POS app. Drag to reorder, tap to edit.</p>
       <div id="posCatList"></div>
@@ -2109,7 +2116,7 @@ function renderProdList() {
   }
   el.innerHTML = filtered.map(p => {
     const isBG = p.category === 'Boardgame';
-    return `<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    return `<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer" onclick="openProdDetail('${p.id}')">
       <div style="display:flex;align-items:center;gap:8px;width:100%">
         <div style="width:28px;height:28px;border-radius:8px;background:#f0fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${catEmoji(p.category)}</div>
         <div style="flex:1;min-width:0">
@@ -2120,13 +2127,49 @@ function renderProdList() {
           <div style="font-size:13px;font-weight:700;color:#07b4c5">$${parseFloat(p.sell_price||0).toFixed(2)}</div>
           ${isBG&&p.purchase_price?`<div style="font-size:10px;color:#9ca3af">Cost $${parseFloat(p.purchase_price).toFixed(2)}</div>`:''}
         </div>
-        <button class="avail-toggle ${p.active?'on':'off'}" style="margin-left:6px" onclick="toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
-        <button class="icon-btn danger" onclick="deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
+        <button class="avail-toggle ${p.active?'on':'off'}" style="margin-left:6px" onclick="event.stopPropagation();toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
+        <button class="icon-btn danger" onclick="event.stopPropagation();deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
       </div>
       ${isBG&&(p.rrp||p.purchase_price)?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">RRP $${parseFloat(p.rrp||0).toFixed(2)} · Cost $${parseFloat(p.purchase_price||0).toFixed(2)} · Margin $${(parseFloat(p.sell_price||0)-parseFloat(p.purchase_price||0)).toFixed(2)}</div>`:''}
       ${p.notes?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">📝 ${p.notes}</div>`:''}
     </div>`;
   }).join('');
+}
+
+// PRODUCT DETAIL POPUP
+function openProdDetail(id) {
+  const p = products.find(x=>x.id===id); if(!p) return;
+  const row = (label,val,mono) => (val===null||val===undefined||val==='') ? '' :
+    `<div style="display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #f3f4f6"><span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0">${label}</span><span style="font-size:13px;color:#374151;text-align:right;${mono?'font-family:monospace;font-size:10px;word-break:break-all':''}">${val}</span></div>`;
+  const money = v => (v!==null&&v!==undefined) ? '$'+parseFloat(v).toFixed(2) : '';
+  const players = (p.players_min!=null||p.players_max!=null) ? `${p.players_min??'?'}–${p.players_max??'?'}` : '';
+  let html = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-right:26px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#f0fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${catEmoji(p.category)}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;color:#1a1035">${p.name}</div><div style="font-size:11px;color:#9ca3af">${p.category}${p.sub_name?' · '+p.sub_name:''}</div></div>
+    </div>`;
+  if(p.image_url) html += `<img src="${p.image_url}" style="width:100%;border-radius:10px;margin-bottom:10px;max-height:180px;object-fit:cover" onerror="this.style.display='none'">`;
+  html += row('Sell price', money(p.sell_price));
+  html += row('Purchase price', money(p.purchase_price));
+  html += row('RRP', money(p.rrp));
+  html += row('Cost new (range)', p.cost_new_range);
+  html += row('Stock qty', p.stock_qty);
+  html += row('Active', p.active?'✅ Yes':'❌ No');
+  html += row('Favourite', p.favourite?'⭐ Yes':'No');
+  html += row('Players', players);
+  html += row('Age recommendation', p.age_recommendation);
+  html += row('Linked game ID', p.game_id);
+  html += row('Description', p.description);
+  html += row('Notes', p.notes);
+  html += row('Image URL', p.image_url, true);
+  html += row('Created', p.created_at ? new Date(p.created_at).toLocaleDateString() : '');
+  html += row('Updated', p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '');
+  html += row('Product ID', p.id, true);
+  document.getElementById('prodDetailBody').innerHTML = html;
+  document.getElementById('prodDetailOverlay').classList.add('open');
+}
+
+function closeProdDetail() {
+  document.getElementById('prodDetailOverlay').classList.remove('open');
 }
 
 function catEmoji(cat) {
@@ -2198,13 +2241,13 @@ async function toggleProdActive(id) {
 
 // CSV EXPORT
 function exportProductsCSV() {
-  const headers = ['name','category','sell_price','purchase_price','rrp','stock_qty','notes','active'];
-  const rows = products.map(p =>
-    headers.map(h => {
-      const val = p[h] ?? '';
-      return typeof val==='string' && val.includes(',') ? `"${val}"` : val;
-    }).join(',')
-  );
+  const headers = ['id','name','category','sell_price','purchase_price','rrp','stock_qty','notes','active','favourite','game_id','sub_name','cost_new_range','description','players_min','players_max','age_recommendation','image_url'];
+  const esc = v => {
+    if (v===null||v===undefined) return '';
+    const s = String(v);
+    return /["\n,]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  const rows = products.map(p => headers.map(h => esc(p[h])).join(','));
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
@@ -2246,6 +2289,9 @@ async function importProductsCSV(input) {
     const get = h => { const j=idx(h); return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''; };
     const name = get('name'); if(!name) continue;
     const activeVal = get('active').toUpperCase();
+    const favVal = get('favourite').toUpperCase();
+    // Note: "id" is intentionally not read here — import always creates new rows,
+    // so reusing an id from an exported CSV would clash with the existing product's id.
     toImport.push({
       name,
       category: normCat(get('category')),
@@ -2255,6 +2301,15 @@ async function importProductsCSV(input) {
       stock_qty: get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,
       notes: get('notes')||null,
       active: activeVal==='FALSE'||activeVal==='0' ? false : true,
+      favourite: favVal==='TRUE'||favVal==='1',
+      game_id: get('game_id')||null,
+      sub_name: get('sub_name')||null,
+      cost_new_range: get('cost_new_range')||null,
+      description: get('description')||null,
+      players_min: get('players_min')!==''?parseInt(get('players_min'))||null:null,
+      players_max: get('players_max')!==''?parseInt(get('players_max'))||null:null,
+      age_recommendation: get('age_recommendation')||null,
+      image_url: get('image_url')||null,
     });
   }
   if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return;}
@@ -2366,7 +2421,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.27'; // v16.4.27: Added "Go to POS" to each booking card's ⋯ menu — deep-links to pos.html?date=...&booking=..., landing straight on the Bookings view there with that booking pre-selected, ready to take payment (pos.html was updated first to support this).// v16.4.25: Fixed payment badge not showing at all (not even "owing") on bookings whose total_amount had never been saved to the row — e.g. cal.com syncs and quick walk-in adds. getPaymentStatus now falls back to calculating the price from the game + player count (same formula pos.html already uses) when total_amount is missing, instead of returning null. loadBookings now also maps players_booked onto the local booking object so this fallback has what it needs.
+const BUILD_VERSION = '16.4.28'; // v16.4.28: Products panel (trade-show prep): CSV export/import now cover all 18 relevant product columns (previously only 8) — added favourite, game_id, sub_name, cost_new_range, description, players_min/max, age_recommendation, image_url; id is exported for reference but never imported back (import always inserts new rows). Moved "Add product" + CSV import/export above the product list. Tapping a product now opens a popup with every stored field for that product.// v16.4.27: Added "Go to POS" to each booking card's ⋯ menu — deep-links to pos.html?date=...&booking=..., landing straight on the Bookings view there with that booking pre-selected, ready to take payment (pos.html was updated first to support this).// v16.4.25: Fixed payment badge not showing at all (not even "owing") on bookings whose total_amount had never been saved to the row — e.g. cal.com syncs and quick walk-in adds. getPaymentStatus now falls back to calculating the price from the game + player count (same formula pos.html already uses) when total_amount is missing, instead of returning null. loadBookings now also maps players_booked onto the local booking object so this fallback has what it needs.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
 // v16.4.4: Finding 13 fix — deleteProduct, toggleProdActive, triggerHelp and dismissHelp no longer silently ignore failed database saves; optimistic UI changes revert and show an alert if the save fails — increment this each shipped update — check browser console to confirm you're on the latest build
