@@ -485,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
       <button class="nav-btn"        data-tab="tabTraining" onclick="showTab('tabTraining',this)"><i class="ti ti-certificate"></i>My Training</button>
 <button class="nav-btn" data-tab="tabShifts" onclick="showTab('tabShifts',this)"><i class="ti ti-calendar-event"></i>Shifts</button>
+<button class="nav-btn" data-tab="tabWishlist" onclick="showTab('tabWishlist',this)"><i class="ti ti-heart"></i>Game Wishlist</button>
       <button class="nav-btn admin-only" data-tab="tabRoster" onclick="showTab('tabRoster',this)" style="display:none"><i class="ti ti-table"></i>Roster</button>
         <!-- Admin-only tabs, hidden for staff -->
       <div class="nav-divider"></div>
@@ -612,6 +613,21 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- Spreadsheet Style Weekly Timesheet Card (Reflecting image_1d4c77.jpg) -->
     <div id="weeklyTimesheetReplica"></div>
     <div class="msg" id="tsSignMsg" style="text-align:center;margin-top:10px"></div>
+  </div>
+
+  <!-- ══ GAME WISHLIST TAB ══ -->
+  <div id="tabWishlist" class="section">
+    <div class="sec-title" style="font-size:14px">Customers watching for a game</div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:12px">Check this list whenever new secondhand stock comes in — if a game here matches, mark it Found and follow up with the customer.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="wishlistFilterRow">
+      <button class="btn-secondary btn-sm" style="border-color:#07b4c5;color:#07b4c5" onclick="setWishlistFilter('watching',this)">Watching</button>
+      <button class="btn-secondary btn-sm" onclick="setWishlistFilter('found',this)">Found</button>
+      <button class="btn-secondary btn-sm" onclick="setWishlistFilter('purchased',this)">Purchased</button>
+      <button class="btn-secondary btn-sm" onclick="setWishlistFilter('cancelled',this)">Cancelled</button>
+      <button class="btn-secondary btn-sm" onclick="setWishlistFilter('all',this)">All</button>
+    </div>
+    <input class="field-input" type="text" id="wishlistSearch" placeholder="Search by game name…" oninput="renderWishlist()" style="margin-bottom:12px;max-width:320px">
+    <div id="wishlistList"></div>
   </div>
 
   <!-- ══ MY PROFILE TAB ══ -->
@@ -1080,7 +1096,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.19'; // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
+const BUILD_VERSION = '1.9.20'; // v1.9.20: Added "Game Wishlist" tab (visible to all staff, not admin-only) — lists customers watching for a specific secondhand game (from game_wishlist table, joined with clients for contact info), filterable by status (watching/found/purchased/cancelled) and searchable by game name, with buttons to progress an entry's status.
+// v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
 // phone alerts from the My Profile tab (registers a service worker + push
@@ -4104,6 +4121,7 @@ function refreshTabData(id) {
     if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); loadMyCalendarReview().then(renderMyCalendarReview); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
     if (id === 'tabRoster') loadRosterOverview();
+    if (id === 'tabWishlist') loadWishlist().then(renderWishlist);
 }
 
 // Auto-refresh: if the app is backgrounded (phone locked, switched apps/tabs)
@@ -4224,6 +4242,79 @@ async function resolveHoursRequest(id, decision) {
   } catch(e) { alert('Failed: '+e.message); }
 }
     
+// ============================================================
+// GAME WISHLIST
+// ============================================================
+let allWishlist = [];
+let wishlistFilter = 'watching';
+
+async function loadWishlist() {
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/game_wishlist?select=*,clients(first_name,last_name,email,phone)&order=created_at.desc`,
+      {headers:H()}
+    );
+    allWishlist = await r.json();
+    if (!Array.isArray(allWishlist)) allWishlist = [];
+  } catch(e) { console.error('Wishlist load:', e); allWishlist = []; }
+}
+
+function setWishlistFilter(status, btn) {
+  wishlistFilter = status;
+  document.querySelectorAll('#wishlistFilterRow .btn-secondary').forEach(b => {
+    b.style.borderColor = ''; b.style.color = '';
+  });
+  if (btn) { btn.style.borderColor = '#07b4c5'; btn.style.color = '#07b4c5'; }
+  renderWishlist();
+}
+
+function renderWishlist() {
+  const el = document.getElementById('wishlistList'); if (!el) return;
+  const search = (document.getElementById('wishlistSearch')?.value || '').trim().toLowerCase();
+  let rows = wishlistFilter === 'all' ? allWishlist : allWishlist.filter(w => w.status === wishlistFilter);
+  if (search) rows = rows.filter(w => (w.game_name || '').toLowerCase().includes(search));
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><i class="ti ti-heart"></i>No wishlist entries here.</div>'; return; }
+
+  const statusLabels = {watching:'Watching', found:'Found', purchased:'Purchased', cancelled:'Cancelled'};
+  const statusColors = {watching:'#d97706', found:'#07b4c5', purchased:'#15803d', cancelled:'#9ca3af'};
+
+  el.innerHTML = rows.map(w => {
+    const c = w.clients || {};
+    const clientName = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Unknown';
+    const contactBits = [c.phone, c.email].filter(Boolean).join(' · ');
+    return `<div class="shift-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1f2937">${escapeHtml(w.game_name)}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px"><i class="ti ti-user" style="font-size:11px"></i> ${escapeHtml(clientName)}${contactBits ? ' · ' + escapeHtml(contactBits) : ''}</div>
+        </div>
+        <span class="shift-status-badge" style="background:${statusColors[w.status]}1a;color:${statusColors[w.status]};white-space:nowrap">${statusLabels[w.status]||w.status}</span>
+      </div>
+      ${w.max_price != null ? `<div style="font-size:12px;color:#374151;margin-top:6px">Max price: $${w.max_price}</div>` : ''}
+      ${w.notes ? `<div class="shift-notes" style="margin-top:4px">${escapeHtml(w.notes)}</div>` : ''}
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px">Added ${new Date(w.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+      ${w.status !== 'cancelled' && w.status !== 'purchased' ? `<div class="shift-actions">
+        ${w.status === 'watching' ? `<button class="btn-primary btn-sm" onclick="updateWishlistStatus('${w.id}','found')"><i class="ti ti-check"></i> Mark Found</button>` : ''}
+        ${w.status === 'found' ? `<button class="btn-primary btn-sm" onclick="updateWishlistStatus('${w.id}','purchased')"><i class="ti ti-shopping-cart"></i> Mark Purchased</button>` : ''}
+        <button class="btn-secondary btn-sm" onclick="updateWishlistStatus('${w.id}','cancelled')"><i class="ti ti-x"></i> Cancel</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function updateWishlistStatus(id, newStatus) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/game_wishlist?id=eq.${id}`, {
+      method:'PATCH', headers:H(),
+      body: JSON.stringify({status: newStatus})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const w = allWishlist.find(x => x.id === id);
+    if (w) w.status = newStatus;
+    renderWishlist();
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
 // ============================================================
 // CALENDAR-MODE: recurring event review queue
 // ============================================================
