@@ -166,16 +166,16 @@ body{
     <div class="sec-label">Your details</div>
     <div class="field">
       <div class="field-label">Your name <span class="req">*</span></div>
-      <input class="field-input" type="text" id="cName" placeholder="Sarah Robinson">
+      <input class="field-input" type="text" id="cName" placeholder="Full name">
     </div>
     <div class="field-row" style="margin-bottom:16px">
       <div class="field">
         <div class="field-label">Phone <span class="req">*</span></div>
-        <input class="field-input" type="tel" id="cPhone" placeholder="021 123 4567">
+        <input class="field-input" type="tel" id="cPhone" placeholder="Phone number">
       </div>
       <div class="field">
         <div class="field-label">Email <span class="req">*</span></div>
-        <input class="field-input" type="email" id="cEmail" placeholder="sarah@example.com">
+        <input class="field-input" type="email" id="cEmail" placeholder="Email address">
       </div>
     </div>
     <div class="field">
@@ -201,7 +201,8 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.6'; // v1.1.6: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.1.7'; // v1.1.7: Replaced realistic-looking placeholder text in the contact fields (a real name/phone/email pattern) with generic placeholders, matching the same fix applied to game_wishlist_form.html.
+// v1.1.6 — Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.1.4 — Added phone number to the "having trouble loading" error screen
 //          so a customer has a fallback way to reach us if the page can't
 //          load current games/pricing.
