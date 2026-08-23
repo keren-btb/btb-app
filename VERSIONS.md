@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-08-23 — btb-admin edge function (send_enquiry_template_email): fixed thread logging bug — client_interactions rows were only storing the template label in `content`, with `subject` and `from_email` left blank, so real reply text sent from clients.html/clients_mobile.html never showed in the thread view. Now stores the real subject, plain-text body, and from address. Deployed as edge function version 22.
 - 2026-08-17 — Investigated "is Joolz's calendar availability working correctly" and found it wasn't:
   `staff_calendar_busy` had zero rows for her, ever, even though the sync ran successfully every 20
   minutes. Root cause: her real schedule is almost entirely recurring calendar events (Escape Room
@@ -174,6 +175,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.5 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
 - v1.5.4 — 2026-08-10 — Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
 - v1.5.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.5.1 before this — ahead of what was last logged here; gap not reconciled.)
 - v1.4.3 — 2026-08-02 — Removed the Enquiries nav link and the enquiry-badge's link out to enquiries.html (being retired, functionality already folded in here) — badge now just shows status, click opens the client panel like the rest of the row
@@ -181,6 +183,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.2 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
 - v1.3.1 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.3.0 before this — ahead of what was last logged here; gap not reconciled.)
 - v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in

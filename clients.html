@@ -484,7 +484,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.4'; // v1.5.4: Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
+const BUILD_VERSION = '1.5.5'; // v1.5.5: Sent replies now also pass the plain-text body to send_enquiry_template_email, so the thread log can store what was actually sent (was only saving the template label). // v1.5.4: Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -1002,7 +1002,7 @@ async function sendReply(){
   try{
     const htmlBody=escapeHtml(replyState.body).replace(/\n/g,'<br>');
     const sendResult=await callEdgeFunction('send_enquiry_template_email',{
-      to:g.client.email,subject:replyState.subject,htmlBody,
+      to:g.client.email,subject:replyState.subject,htmlBody,plainBody:replyState.body,
       fromEmail:tpl?.from_email,fromName:tpl?.from_name,
       templateName:tpl?.name||replyState.subject,
       clientId:activeClientId,staffId:currentUser.staffId,
