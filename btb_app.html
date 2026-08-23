@@ -279,8 +279,15 @@
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px">
           <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Selling price $</div><input class="add-input" type="number" id="newProdSell" placeholder="0.00" min="0" step="0.01"></div>
-          <div id="newProdStockWrap"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Stock qty</div><input class="add-input" type="number" id="newProdStock" placeholder="0" min="0"></div>
+          <div id="newProdStockWrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Stock qty</span>
+              <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:#6b7280;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" id="newProdTrackStock" checked onchange="toggleNewProdStockField()" style="accent-color:#07b4c5;width:13px;height:13px"> Track</label>
+            </div>
+            <input class="add-input" type="number" id="newProdStock" placeholder="0" min="0">
+          </div>
         </div>
+        <p class="hint" style="margin:-2px 0 6px">Untick "Track" for things like escape rooms or VR that don't have physical stock — no stock count will be shown or reduced by sales.</p>
         <div id="newProdBoardgameFields" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:6px">
           <div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:7px">Boardgame pricing</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
@@ -2172,7 +2179,17 @@ function openProdDetail(id) {
   html += row('Purchase price', money(p.purchase_price));
   html += row('RRP', money(p.rrp));
   html += row('Cost new (range)', p.cost_new_range);
-  html += row('Stock qty', p.stock_qty);
+  html += `<div style="padding:9px 0;border-bottom:1px solid #f3f4f6">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px">Stock</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#6b7280;cursor:pointer"><input type="checkbox" id="detailTrackStock" ${p.stock_qty!=null?'checked':''} onchange="toggleDetailStockField()" style="accent-color:#07b4c5;width:13px;height:13px"> Track stock</label>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input class="add-input" type="number" id="detailStockQty" min="0" value="${p.stock_qty??''}" placeholder="Not tracked" style="flex:1;${p.stock_qty==null?'opacity:.4':''}" ${p.stock_qty==null?'disabled':''}>
+        <button class="add-btn" style="padding:7px 12px;flex-shrink:0" onclick="saveProdStock('${p.id}')">Save</button>
+      </div>
+      <div id="detailStockMsg" style="font-size:11px;margin-top:5px"></div>
+    </div>`;
   html += row('Active', p.active?'✅ Yes':'❌ No');
   html += row('Favourite', p.favourite?'⭐ Yes':'No');
   html += row('Players', players);
@@ -2192,6 +2209,35 @@ function closeProdDetail() {
   document.getElementById('prodDetailOverlay').classList.remove('open');
 }
 
+function toggleDetailStockField() {
+  const tracked = document.getElementById('detailTrackStock')?.checked;
+  const input = document.getElementById('detailStockQty');
+  if(!input) return;
+  input.disabled = !tracked;
+  input.style.opacity = tracked ? '1' : '.4';
+  if(tracked && input.value==='') input.value = 0;
+}
+
+async function saveProdStock(id) {
+  const p = products.find(x=>x.id===id); if(!p) return;
+  const tracked = document.getElementById('detailTrackStock').checked;
+  const newVal = tracked ? (parseInt(document.getElementById('detailStockQty').value)||0) : null;
+  const msgEl = document.getElementById('detailStockMsg');
+  const prevVal = p.stock_qty;
+  msgEl.style.color='#6b7280'; msgEl.textContent='Saving…';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`, {method:'PATCH', headers:H(), body:JSON.stringify({stock_qty:newVal})});
+    if(!r.ok) throw new Error(await r.text());
+    p.stock_qty = newVal;
+    msgEl.style.color='#15803d'; msgEl.textContent='✓ Saved';
+    setTimeout(()=>{msgEl.textContent=''},1500);
+    renderProdList();
+  } catch(e) {
+    p.stock_qty = prevVal;
+    msgEl.style.color='#dc2626'; msgEl.textContent='Error: '+e.message;
+  }
+}
+
 function catEmoji(cat) {
   return {Food:' 🍔','Food/Drink':'🍔','Escape Room':'🔐','Boardgame':'🎲','Book':'📚','VR':'🥽','Other':'📦'}[cat]||'📦';
 }
@@ -2202,11 +2248,21 @@ function toggleProdBoardgameFields() {
   if(el) el.style.display = cat==='Boardgame' ? '' : 'none';
 }
 
+function toggleNewProdStockField() {
+  const tracked = document.getElementById('newProdTrackStock')?.checked;
+  const input = document.getElementById('newProdStock');
+  if(!input) return;
+  input.disabled = !tracked;
+  input.style.opacity = tracked ? '1' : '.4';
+  if(!tracked) input.value = '';
+}
+
 async function addProduct() {
   const name = document.getElementById('newProdName').value.trim();
   const cat  = document.getElementById('newProdCat').value;
   const sell = parseFloat(document.getElementById('newProdSell').value)||0;
-  const stock= parseInt(document.getElementById('newProdStock').value)||null;
+  const trackStock = document.getElementById('newProdTrackStock').checked;
+  const stock= trackStock ? (parseInt(document.getElementById('newProdStock').value)||0) : null;
   const notes= document.getElementById('newProdNotes').value.trim();
   const purchase = cat==='Boardgame' ? parseFloat(document.getElementById('newProdPurchase').value)||null : null;
   const rrp      = cat==='Boardgame' ? parseFloat(document.getElementById('newProdRRP').value)||null : null;
@@ -2222,6 +2278,8 @@ async function addProduct() {
     const rows = await r.json();
     if(rows[0]) products.push(rows[0]);
     ['newProdName','newProdSell','newProdStock','newProdNotes','newProdPurchase','newProdRRP'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('newProdTrackStock').checked = true;
+    toggleNewProdStockField();
     msgEl.style.color='#15803d'; msgEl.textContent='✓ Added!';
     setTimeout(()=>{msgEl.textContent=''},2000);
     renderProdList();
@@ -2500,7 +2558,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.30'; // v16.4.30: Added "Add to game wishlist" to each booking card's ⋯ menu — opens game_wishlist_form.html in a new tab, prefilled with the customer's name/phone/email from that booking.
+const BUILD_VERSION = '16.4.31'; // v16.4.31: Products panel — added "Track stock" control for items like escape rooms & VR that don't have physical stock (previously these could only be left "not tracked" by knowing to leave the stock field blank, and several existing products had drifted to stock_qty=0 which displayed as "Stock: 0", reading as out-of-stock). Add Product form now has a "Track" checkbox (on by default) next to Stock qty — unticking it saves stock as not-tracked instead of 0. The product detail popup also got a matching Track stock checkbox + qty field + Save button, so any existing product can be switched between tracked/not-tracked (or have its count corrected) without needing SQL or a CSV re-import.// v16.4.30: Added "Add to game wishlist" to each booking card's ⋯ menu — opens game_wishlist_form.html in a new tab, prefilled with the customer's name/phone/email from that booking.
 // v16.4.29: Products CSV panel now has two clearly separated import options: "Import CSV (add only)" (unchanged — adds rows, never deletes) and new "Replace entire inventory" for when the file is your full product list — inserts all new rows first, and only deletes the products that existed before the run if that insert fully succeeds (matched by created_at cutoff, not id lists, so it scales to any table size). Includes a confirm dialog showing old vs new counts before anything is deleted, and never deletes if the insert fails.// v16.4.28: Products panel (trade-show prep): CSV export/import now cover all 18 relevant product columns (previously only 8) — added favourite, game_id, sub_name, cost_new_range, description, players_min/max, age_recommendation, image_url; id is exported for reference but never imported back (import always inserts new rows). Moved "Add product" + CSV import/export above the product list. Tapping a product now opens a popup with every stored field for that product.// v16.4.27: Added "Go to POS" to each booking card's ⋯ menu — deep-links to pos.html?date=...&booking=..., landing straight on the Bookings view there with that booking pre-selected, ready to take payment (pos.html was updated first to support this).// v16.4.25: Fixed payment badge not showing at all (not even "owing") on bookings whose total_amount had never been saved to the row — e.g. cal.com syncs and quick walk-in adds. getPaymentStatus now falls back to calculating the price from the game + player count (same formula pos.html already uses) when total_amount is missing, instead of returning null. loadBookings now also maps players_booked onto the local booking object so this fallback has what it needs.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
