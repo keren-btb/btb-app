@@ -619,7 +619,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.6.6'; // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
+const BUILD_VERSION = '1.6.7'; // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
+// v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
 // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
   // v1.6.1: Product Sale and Quick Sale grids now auto-adjust column count based on available screen width (auto-fill/minmax) instead of a fixed 2 columns — stays at 2 on narrow/touchscreen widths, grows to 3-4 on wider desktop windows, capped via a max-width on Product Sale so it doesn't sprawl on very wide monitors.
 // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -667,6 +668,7 @@ let bookingConfig={
 };
 let staff=[],staffTraining=[],bookings=[],vouchers=[];
 let products=[];
+const CATEGORY_COLORS={'VR':'#8b5cf6','Book':'#f59e0b','Other':'#6b7280','Food/Drink':'#f97316','Escape Room':'#ef4444','Boardgame':'#1d9e75'};
 let posCategories=[
   {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
   {id:'trade_show',label:'Trade Show',icon:'ti-tag',color:'#eab308',type:'products',filter:'__trade_show__'},
@@ -1983,7 +1985,7 @@ function renderProdSaleGrid(){
   const btnColor=currentPOSCat?.color||'#07b4c5';const rgb=hexToRgb(btnColor);
 grid.innerHTML=filtered.map(p=>{
   const isBoardgame=p.category==='Boardgame';
-  const color=isBoardgame?productCardColour(p.id):btnColor;
+  const color=isBoardgame?productCardColour(p.id):(prodSaleCat==='__trade_show__'?(CATEGORY_COLORS[p.category]||btnColor):btnColor);
   const soldOut=isSoldOut(p);
   const leftBits=[];if(p.cost_new_range)leftBits.push('New: '+p.cost_new_range);if(p.notes)leftBits.push(p.notes);
   const leftHtml=leftBits.length?`<div style="font-size:10px;color:#9ca3af;line-height:1.35">${leftBits.join('<br>')}</div>`:'<div></div>';
@@ -2018,7 +2020,7 @@ function closeQuickSale(){document.getElementById('qsOverlay').classList.remove(
 function setQSCat(cat,btn){qsCat=cat;document.querySelectorAll('#qsCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderQSProducts()}
 function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const hideSoldOut=document.getElementById('qsHideSoldOut')?.checked;const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||(qsCat==='__trade_show__'?p.trade_show:p.category===qsCat))&&(!q||p.name.toLowerCase().includes(q))&&(!hideSoldOut||!isSoldOut(p)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>{
   const isBoardgame=p.category==='Boardgame';
-  const color=isBoardgame?productCardColour(p.id):'#6b7280';
+  const color=isBoardgame?productCardColour(p.id):(qsCat==='__trade_show__'?(CATEGORY_COLORS[p.category]||'#6b7280'):'#6b7280');
   const soldOut=isSoldOut(p);
   const leftBits=[];if(p.cost_new_range)leftBits.push('New: '+p.cost_new_range);if(p.notes)leftBits.push(p.notes);
   const leftHtml=leftBits.length?`<div style="font-size:10px;color:#9ca3af;line-height:1.35">${leftBits.join('<br>')}</div>`:'<div></div>';
