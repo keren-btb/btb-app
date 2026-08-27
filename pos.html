@@ -561,6 +561,7 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280;cursor:pointer;margin-bottom:8px;width:fit-content"><input type="checkbox" id="qsHideSoldOut" onchange="renderQSProducts()" style="accent-color:#07b4c5;width:14px;height:14px"> Hide sold out</label>
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="qsCatTabs">
       <button class="avail-slot on" style="font-size:11px;padding:3px 9px" onclick="setQSCat('All',this)">All</button>
+      <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('__trade_show__',this)">🎪 Trade Show</button>
       <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Food/Drink',this)">Food/Drink</button>
       <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Escape Room',this)">Escape Room</button>
       <button class="avail-slot" style="font-size:11px;padding:3px 9px" onclick="setQSCat('Boardgame',this)">Boardgame</button>
@@ -618,7 +619,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.6.5'; // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
+const BUILD_VERSION = '1.6.6'; // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
+// v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
   // v1.6.1: Product Sale and Quick Sale grids now auto-adjust column count based on available screen width (auto-fill/minmax) instead of a fixed 2 columns — stays at 2 on narrow/touchscreen widths, grows to 3-4 on wider desktop windows, capped via a max-width on Product Sale so it doesn't sprawl on very wide monitors.
 // v1.4.2: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.3.5: Finding 13 fix — deleteProduct, toggleProdActive, toggleProdFavourite, addProductToBooking, completeProdSale and completeQuickSale stock updates no longer silently ignore failed database saves; optimistic UI changes now revert and show an alert (or a warning note appended to the sale message) if the save fails.
@@ -667,6 +669,7 @@ let staff=[],staffTraining=[],bookings=[],vouchers=[];
 let products=[];
 let posCategories=[
   {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
+  {id:'trade_show',label:'Trade Show',icon:'ti-tag',color:'#eab308',type:'products',filter:'__trade_show__'},
   {id:'vr_casual',label:'VR Casual',icon:'ti-vr',color:'#8b5cf6',type:'products',filter:'VR'},
   {id:'escape',label:'Escape Room',icon:'ti-door',color:'#ef4444',type:'products',filter:'Escape Room'},
   {id:'vr_hour',label:'VR Hour',icon:'ti-headset',color:'#0ea5e9',type:'products',filter:'VR'},
@@ -1849,6 +1852,7 @@ function renderProdList(){
       <div style="flex:1;min-width:0"><div class="row-label" style="${!p.active?'color:#9ca3af;text-decoration:line-through':''}">${p.name}</div><div class="row-sub">${p.category}${p.stock_qty!=null?' · Stock: '+p.stock_qty:''}</div></div>
       <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:#07b4c5">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div>
       <button class="avail-toggle ${p.favourite?'on':'off'}" onclick="toggleProdFavourite('${p.id}')" title="Favourite">${p.favourite?'⭐':'☆'}</button>
+      <button class="avail-toggle ${p.trade_show?'on':'off'}" onclick="toggleProdTradeShow('${p.id}')" title="Trade Show item">🎪</button>
       <button class="avail-toggle ${p.active?'on':'off'}" onclick="toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
       <button class="icon-btn danger" onclick="deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
     </div>
@@ -1870,6 +1874,7 @@ async function addProduct(){
 async function deleteProduct(id){if(!confirm('Delete this product?'))return;const idx=products.findIndex(p=>p.id===id);const removed=idx>=0?products[idx]:null;if(idx>=0)products.splice(idx,1);renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()});if(!r.ok)throw new Error(await r.text())}catch(e){if(removed){products.splice(idx,0,removed);renderProdList()}alert('Could not delete product: '+e.message)}}
 async function toggleProdActive(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.active;p.active=!p.active;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})});if(!r.ok)throw new Error(await r.text())}catch(e){p.active=prev;renderProdList();alert('Could not update active status: '+e.message)}}
 async function toggleProdFavourite(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.favourite;p.favourite=!p.favourite;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({favourite:p.favourite})});if(!r.ok)throw new Error(await r.text())}catch(e){p.favourite=prev;renderProdList();alert('Could not update favourite status: '+e.message)}}
+async function toggleProdTradeShow(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.trade_show;p.trade_show=!p.trade_show;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({trade_show:p.trade_show})});if(!r.ok)throw new Error(await r.text())}catch(e){p.trade_show=prev;renderProdList();alert('Could not update trade show status: '+e.message)}}
 function exportProductsCSV(){const headers=['name','category','sell_price','purchase_price','rrp','stock_qty','notes','active','favourite'];const rows=products.map(p=>headers.map(h=>{const val=p[h]??'';return typeof val==='string'&&val.includes(',')?`"${val}"`:val}).join(','));const csv=[headers.join(','),...rows].join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='btb_products_'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
 async function importProductsCSV(input){const file=input.files[0];if(!file)return;const msgEl=document.getElementById('csvMsg');msgEl.style.color='#6b7280';msgEl.textContent='Reading file…';const text=await file.text();const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);if(lines.length<2){msgEl.style.color='#dc2626';msgEl.textContent='CSV appears empty.';return}const headerRow=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/['"]/g,''));const idx=h=>headerRow.indexOf(h);const parseRow=line=>{const cols=[];let cur='',inQ=false;for(const ch of line){if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){cols.push(cur.trim());cur=''}else cur+=ch}cols.push(cur.trim());return cols};const normCat=raw=>{const s=(raw||'').trim().toLowerCase();if(s==='boardgame'||s==='board game'||s==='boardgames')return'Boardgame';if(s==='food/drink'||s==='food & drink'||s==='food'||s==='drink')return'Food/Drink';if(s==='escape room'||s==='escaperoom')return'Escape Room';if(s==='book'||s==='books')return'Book';if(s==='vr')return'VR';return'Other'};const toImport=[];for(let i=1;i<lines.length;i++){const cols=parseRow(lines[i]);const get=h=>{const j=idx(h);return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''};const name=get('name');if(!name)continue;const activeVal=get('active').toUpperCase();const favVal=get('favourite').toUpperCase();toImport.push({name,category:normCat(get('category')),sell_price:parseFloat(get('sell_price'))||0,purchase_price:parseFloat(get('purchase_price'))||null,rrp:parseFloat(get('rrp'))||null,stock_qty:get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,notes:get('notes')||null,active:activeVal==='FALSE'||activeVal==='0'?false:true,favourite:favVal==='TRUE'||favVal==='1'?true:false})}if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return}msgEl.textContent=`Importing ${toImport.length} products…`;try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(toImport)});if(!r.ok)throw new Error(await r.text());const saved=await r.json();saved.forEach(p=>{if(!products.find(x=>x.id===p.id))products.push(p)});msgEl.style.color='#15803d';msgEl.textContent=`✓ Imported ${saved.length} products!`;renderProdList()}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Import failed: '+e.message}input.value=''}
 
@@ -1964,8 +1969,8 @@ function showProductCat(catId){
   document.getElementById('posVoucherSection').style.display='none';
   document.getElementById('headerSub').innerHTML=`<span onclick="showPOSHome()" style="cursor:pointer;color:#07b4c5">← Home</span> · ${cat.label}`;
   const tabs=document.getElementById('posProdCatTabs');
-  const allCats=['All','Food/Drink','Escape Room','Boardgame','Book','VR','Other'];
-  tabs.innerHTML=allCats.map(c=>`<button class="avail-slot${c===prodSaleCat?' on':''}" style="font-size:11px;padding:3px 9px" onclick="setProdSaleCat('${c}',this)">${c}</button>`).join('');
+  const allCats=[['__trade_show__','🎪 Trade Show'],['All','All'],['Food/Drink','Food/Drink'],['Escape Room','Escape Room'],['Boardgame','Boardgame'],['Book','Book'],['VR','VR'],['Other','Other']];
+  tabs.innerHTML=allCats.map(([c,label])=>`<button class="avail-slot${c===prodSaleCat?' on':''}" style="font-size:11px;padding:3px 9px" onclick="setProdSaleCat('${c}',this)">${label}</button>`).join('');
   renderProdSaleGrid();renderProdSaleCart();
 }
 function setProdSaleCat(cat,btn){prodSaleCat=cat;document.querySelectorAll('#posProdCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderProdSaleGrid()}
@@ -1973,7 +1978,7 @@ function renderProdSaleGrid(){
   const q=(document.getElementById('prodSaleSearch')?.value||'').toLowerCase().trim();
   const hideSoldOut=document.getElementById('prodSaleHideSoldOut')?.checked;
   const grid=document.getElementById('prodSaleGrid');if(!grid)return;
-  const filtered=products.filter(p=>p.active&&(prodSaleCat==='All'||p.category===prodSaleCat)&&(!q||p.name.toLowerCase().includes(q))&&(!hideSoldOut||!isSoldOut(p)));
+  const filtered=products.filter(p=>p.active&&(prodSaleCat==='All'||(prodSaleCat==='__trade_show__'?p.trade_show:p.category===prodSaleCat))&&(!q||p.name.toLowerCase().includes(q))&&(!hideSoldOut||!isSoldOut(p)));
   if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}
   const btnColor=currentPOSCat?.color||'#07b4c5';const rgb=hexToRgb(btnColor);
 grid.innerHTML=filtered.map(p=>{
@@ -2011,7 +2016,7 @@ async function completeProdSale(){
 function openQuickSale(){qsCart=[];qsMethod='';qsCat='All';document.getElementById('qsOverlay').classList.add('open');document.getElementById('qsSearch').value='';renderQSProducts();renderQSCart()}
 function closeQuickSale(){document.getElementById('qsOverlay').classList.remove('open')}
 function setQSCat(cat,btn){qsCat=cat;document.querySelectorAll('#qsCatTabs button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');renderQSProducts()}
-function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const hideSoldOut=document.getElementById('qsHideSoldOut')?.checked;const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||p.category===qsCat)&&(!q||p.name.toLowerCase().includes(q))&&(!hideSoldOut||!isSoldOut(p)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>{
+function renderQSProducts(){const q=(document.getElementById('qsSearch')?.value||'').toLowerCase().trim();const hideSoldOut=document.getElementById('qsHideSoldOut')?.checked;const grid=document.getElementById('qsProdGrid');if(!grid)return;const filtered=products.filter(p=>p.active&&(qsCat==='All'||(qsCat==='__trade_show__'?p.trade_show:p.category===qsCat))&&(!q||p.name.toLowerCase().includes(q))&&(!hideSoldOut||!isSoldOut(p)));if(!filtered.length){grid.innerHTML='<div style="font-size:12px;color:#9ca3af;grid-column:1/-1;padding:12px;text-align:center">No products found.</div>';return}grid.innerHTML=filtered.map(p=>{
   const isBoardgame=p.category==='Boardgame';
   const color=isBoardgame?productCardColour(p.id):'#6b7280';
   const soldOut=isSoldOut(p);
