@@ -181,6 +181,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item active" onclick="showReport('revenue',this)"><i class="ti ti-currency-dollar"></i><span class="nav-label"> Revenue Overview</span></div>
     <div class="nav-item" onclick="showReport('outstanding',this)"><i class="ti ti-clock-dollar"></i><span class="nav-label"> Outstanding Balances</span></div>
     <div class="nav-item" onclick="showReport('payments',this)"><i class="ti ti-credit-card"></i><span class="nav-label"> Payment Methods</span></div>
+    <div class="nav-item" onclick="showReport('products',this)"><i class="ti ti-package"></i><span class="nav-label"> Products Sold</span></div>
 
     <div class="sidebar-section">Bookings</div>
     <div class="nav-item" onclick="showReport('bookings',this)"><i class="ti ti-calendar"></i><span class="nav-label"> Bookings List</span></div>
@@ -199,9 +200,6 @@ tr:hover td{background:#fafafa}
     <div class="sidebar-section">Vouchers</div>
     <div class="nav-item" onclick="showReport('vouchers',this)"><i class="ti ti-ticket"></i><span class="nav-label"> Voucher Summary</span></div>
 
-    <div class="sidebar-section">Quick Sales</div>
-    <div class="nav-item" onclick="showReport('quickSales',this)"><i class="ti ti-shopping-cart"></i><span class="nav-label"> Sales Summary</span></div>
-    <div class="nav-item" onclick="showReport('products',this)"><i class="ti ti-package"></i><span class="nav-label"> Products Sold</span></div>
   </aside>
 
   <div class="main">
@@ -232,6 +230,11 @@ tr:hover td{background:#fafafa}
         <div class="chart-row">
           <div class="chart-card"><div class="chart-title">Revenue by game</div><div class="chart-wrap"><canvas id="revGameChart"></canvas></div></div>
           <div class="chart-card"><div class="chart-title">Payment methods</div><div class="chart-wrap"><canvas id="revMethodChart"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Bookings vs Shop sales</div><div class="chart-wrap"><canvas id="revSourceChart"></canvas></div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">All transactions</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Details</th><th>Method</th><th>Total</th><th>Status</th></tr></thead><tbody id="rev-tbody"></tbody></table></div>
         </div>
       </div>
 
@@ -376,19 +379,6 @@ tr:hover td{background:#fafafa}
         </div>
       </div>
 
-      <!-- QUICK SALES SUMMARY -->
-      <div class="report-panel" id="panel-quickSales">
-        <div class="stat-row" id="qs-stats"></div>
-        <div class="chart-row">
-          <div class="chart-card"><div class="chart-title">Sales by payment method</div><div class="chart-wrap"><canvas id="qsMethodChart"></canvas></div></div>
-          <div class="chart-card"><div class="chart-title">Sales over time</div><div class="chart-wrap"><canvas id="qsTimeChart"></canvas></div></div>
-        </div>
-        <div class="table-card">
-          <div class="table-header"><span class="table-title">Quick sales transactions</span></div>
-          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Method</th><th>Total</th><th>Sold by</th><th>Status</th></tr></thead><tbody id="qs-tbody"></tbody></table></div>
-        </div>
-      </div>
-
       <!-- PRODUCTS SOLD -->
       <div class="report-panel" id="panel-products">
         <div class="stat-row" id="prod-stats"></div>
@@ -422,7 +412,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.10'; // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
+const BUILD_VERSION = '1.0.11'; // v1.0.11: Merged Quick Sales into Revenue Overview (combined stat cards, weekly/payment-method charts, new Bookings-vs-Shop-sales chart, combined transactions table). Removed standalone "Quick Sales/Sales Summary" nav section. Moved "Products Sold" up into the Revenue nav group (kept as its own report).
+// v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
 // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
 // v1.0.4: Security fix — escaped game name, customer name, occasion, client email/phone, and voucher buyer name before inserting into innerHTML across the outstanding-balances, bookings, no-shows, customers, and vouchers report tables, closing a stored-XSS risk
@@ -459,6 +450,18 @@ function nzLocalToUtcISO(dateStr, timeStr) {
   const wallClockAsUtcMs = Date.UTC(y, m - 1, d, hh, mm, ss);
   const realUtcMs = wallClockAsUtcMs - offsetHours * 60 * 60 * 1000;
   return new Date(realUtcMs).toISOString();
+}
+
+// Converts a UTC timestamp (e.g. quick_sales.sold_at) into its NZ local
+// calendar date "YYYY-MM-DD", for grouping/display alongside booking_date
+// (which is already a plain NZ-local date column, no conversion needed).
+function toNzDateStr(isoTs) {
+  if (!isoTs) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date(isoTs));
+  const o = {}; parts.forEach(p => o[p.type] = p.value);
+  return `${o.year}-${o.month}-${o.day}`;
 }
 
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -654,7 +657,7 @@ function showReport(id,el){
   document.getElementById('panel-'+id)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
-  const titles={revenue:'Revenue Overview',outstanding:'Outstanding Balances',payments:'Payment Methods',bookings:'Bookings List',byDay:'Bookings by Day of Week',bySlot:'Bookings by Time Slot',occasions:'Occasions',noShows:'No-Shows & Cancellations',customers:'Customer List',sources:'Booking Sources',staffBookings:'Bookings per Gamemaster',vouchers:'Voucher Summary',quickSales:'Quick Sales Summary',products:'Products Sold'};
+  const titles={revenue:'Revenue Overview',outstanding:'Outstanding Balances',payments:'Payment Methods',bookings:'Bookings List',byDay:'Bookings by Day of Week',bySlot:'Bookings by Time Slot',occasions:'Occasions',noShows:'No-Shows & Cancellations',customers:'Customer List',sources:'Booking Sources',staffBookings:'Bookings per Gamemaster',vouchers:'Voucher Summary',products:'Products Sold'};
   document.getElementById('reportTitle').textContent=titles[id]||id;
   renderReport(id);
 }
@@ -672,55 +675,86 @@ function renderReport(id){
   else if(id==='sources')renderSources();
   else if(id==='staffBookings')renderStaffBookings();
   else if(id==='vouchers')renderVouchers();
-  else if(id==='quickSales')renderQuickSales();
   else if(id==='products')renderProducts();
 }
 
 // ── REVENUE ───────────────────────────────────────────────────
 function renderRevenue(){
   const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='abandoned');
-  const totalRevenue=confirmed.reduce((s,b)=>s+(parseFloat(b.total_amount)||0),0);
-  const totalCollected=confirmed.reduce((s,b)=>s+calcCollected(b),0);
-  const outstanding=Math.max(0,totalRevenue-totalCollected);
+  const bookingRevenue=confirmed.reduce((s,b)=>s+(parseFloat(b.total_amount)||0),0);
+  const bookingCollected=confirmed.reduce((s,b)=>s+calcCollected(b),0);
   const bookingCount=confirmed.filter(b=>b.status!=='no_show').length;
-  const avgValue=bookingCount?totalRevenue/bookingCount:0;
+  const bookingOwingCount=confirmed.filter(b=>{const c=calcCollected(b);const t=parseFloat(b.total_amount)||0;return t>0&&c<t}).length;
+
+  const qs=allQuickSales;
+  const qsRevenue=qs.reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0);
+  const qsCollected=qs.filter(q=>q.status==='paid').reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0);
+  const qsOwing=qs.filter(q=>q.status!=='paid');
+  const qsOwingCount=qsOwing.length;
+
+  const totalRevenue=bookingRevenue+qsRevenue;
+  const totalCollected=bookingCollected+qsCollected;
+  const outstanding=Math.max(0,bookingRevenue-bookingCollected)+Math.max(0,qsRevenue-qsCollected);
+  const txnCount=bookingCount+qs.length;
+  const avgValue=txnCount?totalRevenue/txnCount:0;
 
   document.getElementById('rev-stats').innerHTML=`
-    <div class="stat-card teal"><div class="stat-label">Total revenue</div><div class="stat-value">${fmtMoney(totalRevenue)}</div><div class="stat-sub">${bookingCount} bookings</div></div>
+    <div class="stat-card teal"><div class="stat-label">Total revenue</div><div class="stat-value">${fmtMoney(totalRevenue)}</div><div class="stat-sub">${bookingCount} bookings + ${qs.length} sales</div></div>
     <div class="stat-card green"><div class="stat-label">Collected</div><div class="stat-value">${fmtMoney(totalCollected)}</div><div class="stat-sub">${totalRevenue?Math.round(totalCollected/totalRevenue*100):0}% of total</div></div>
-    <div class="stat-card amber"><div class="stat-label">Outstanding</div><div class="stat-value">${fmtMoney(outstanding)}</div><div class="stat-sub">across ${confirmed.filter(b=>{const c=calcCollected(b);const t=parseFloat(b.total_amount)||0;return t>0&&c<t}).length} bookings</div></div>
-    <div class="stat-card"><div class="stat-label">Avg booking value</div><div class="stat-value">${fmtMoney(avgValue)}</div><div class="stat-sub">per confirmed booking</div></div>
+    <div class="stat-card amber"><div class="stat-label">Outstanding</div><div class="stat-value">${fmtMoney(outstanding)}</div><div class="stat-sub">across ${bookingOwingCount+qsOwingCount} transactions</div></div>
+    <div class="stat-card"><div class="stat-label">Avg transaction value</div><div class="stat-value">${fmtMoney(avgValue)}</div><div class="stat-sub">per booking/sale</div></div>
   `;
 
-  // Weekly revenue chart
+  // Weekly revenue chart — bookings (booking_date) + quick sales (sold_at, converted to NZ local date)
   const byWeek={};
-  confirmed.forEach(b=>{
-    const d=new Date(b.booking_date+'T12:00');
+  const weekKeyFor=(dateStr)=>{
+    const d=new Date(dateStr+'T12:00');
     const dow=(d.getDay()+6)%7;
     const mon=new Date(d);mon.setDate(d.getDate()-dow);
-    const k=toStr(mon);
-    byWeek[k]=(byWeek[k]||0)+(parseFloat(b.total_amount)||0);
-  });
+    return toStr(mon);
+  };
+  confirmed.forEach(b=>{const k=weekKeyFor(b.booking_date);byWeek[k]=(byWeek[k]||0)+(parseFloat(b.total_amount)||0)});
+  qs.forEach(q=>{const nzDate=toNzDateStr(q.sold_at);if(!nzDate)return;const k=weekKeyFor(nzDate);byWeek[k]=(byWeek[k]||0)+(parseFloat(q.total_amount)||0)});
   const wks=Object.keys(byWeek).sort();
   makeChart('revWeekChart','bar',wks.map(k=>{const d=new Date(k+'T12:00');return d.getDate()+' '+MONTHS[d.getMonth()]}),[{label:'Revenue',data:wks.map(k=>byWeek[k]),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
 
-  // By game
+  // By game (bookings only — doesn't apply to shop sales)
   const byGame={};
   confirmed.forEach(b=>{const n=b.game_name||'Unknown';byGame[n]=(byGame[n]||0)+(parseFloat(b.total_amount)||0)});
   const gs=Object.entries(byGame).sort((a,b)=>b[1]-a[1]);
   makeChart('revGameChart','bar',gs.map(g=>g[0]),[{data:gs.map(g=>g[1]),backgroundColor:['#07b4c5','#1d9e75','#7c3aed','#ef9f27','#dc2626','#1d4ed8'].slice(0,gs.length),borderRadius:4}]);
 
-  // By method
+  // By method — bookings + quick sales combined
   const byMethod={};
   confirmed.forEach(b=>{
     const payments=safeJSON(b.payments)||[];
     if(b.deposit_paid&&b.deposit_amount){const m=b.deposit_method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(b.deposit_amount)||0)}
     payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).forEach(p=>{byMethod[p.method]=(byMethod[p.method]||0)+(parseFloat(p.amount)||0)});
   });
+  qs.forEach(q=>{const m=q.method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(q.total_amount)||0)});
   const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
   makeChart('revMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
 
-  lastCSVData=confirmed.map(b=>({Date:b.booking_date,Game:b.game_name,Customer:customerName(b),Players:b.players_booked,Total:parseFloat(b.total_amount)||0,Collected:calcCollected(b).toFixed(2),Outstanding:Math.max(0,(parseFloat(b.total_amount)||0)-calcCollected(b)).toFixed(2),Status:b.status}));
+  // Bookings vs Shop sales split
+  makeChart('revSourceChart','doughnut',['Bookings','Shop sales'],[{data:[bookingRevenue,qsRevenue],backgroundColor:['#07b4c5','#7c3aed']}],{legend:true});
+
+  // Combined transactions table
+  const txns=[
+    ...confirmed.map(b=>({date:b.booking_date,type:'Booking',customer:customerName(b),details:b.game_name||'—',method:(safeJSON(b.payments)||[])[0]?.method||(b.deposit_method||'—'),total:parseFloat(b.total_amount)||0,status:b.status})),
+    ...qs.map(q=>{const items=safeJSON(q.items)||[];const itemStr=items.map(i=>`${i.name}${i.qty>1?' ×'+i.qty:''}`).join(', ');return{date:toNzDateStr(q.sold_at),type:'Sale',customer:q.customer_name||'—',details:itemStr||'—',method:q.method||'—',total:parseFloat(q.total_amount)||0,status:q.status}}),
+  ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  document.getElementById('rev-tbody').innerHTML=txns.length?txns.map(t=>`<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td><span class="badge ${t.type==='Booking'?'badge-green':'badge-amber'}">${t.type}</span></td>
+      <td>${escapeHtml(t.customer)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(t.details)}">${escapeHtml(t.details)}</td>
+      <td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
+      <td>${fmtMoney(t.total)}</td>
+      <td><span class="badge ${t.status==='paid'||t.status==='confirmed'||t.status==='completed'?'badge-green':'badge-amber'}">${t.status}</span></td>
+    </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No transactions in this period.</td></tr>';
+
+  lastCSVData=txns.map(t=>({Date:t.date,Type:t.type,Customer:t.customer,Details:t.details,Method:t.method,Total:t.total.toFixed(2),Status:t.status}));
   lastCSVFilename='revenue_'+dateFrom+'_'+dateTo;
 }
 
@@ -1150,51 +1184,6 @@ function renderVouchersTable(){
 
   lastCSVData=rows.map(v=>({Code:v.code,Type:v.type,Value:(parseFloat(v.value)||0).toFixed(2),PaidAmount:(parseFloat(v.paid_amount)||0).toFixed(2),Status:v.status,Issued:v.issued_at?.slice(0,10)||'',Used:v.used_at?.slice(0,10)||'',PurchasedBy:v.purchased_by||'',Game:v.game_name||''}));
   lastCSVFilename='vouchers_'+dateFrom+'_'+dateTo;
-}
-
-// ── QUICK SALES ───────────────────────────────────────────────
-function renderQuickSales(){
-  const total=allQuickSales.reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0);
-  const paid=allQuickSales.filter(q=>q.status==='paid');
-  const inv=allQuickSales.filter(q=>q.status==='invoice_pending');
-
-  document.getElementById('qs-stats').innerHTML=`
-    <div class="stat-card teal"><div class="stat-label">Total sales revenue</div><div class="stat-value">${fmtMoney(total)}</div></div>
-    <div class="stat-card green"><div class="stat-label">Paid transactions</div><div class="stat-value">${paid.length}</div></div>
-    <div class="stat-card amber"><div class="stat-label">Invoices pending</div><div class="stat-value">${inv.length}</div><div class="stat-sub">${fmtMoney(inv.reduce((s,q)=>s+(parseFloat(q.total_amount)||0),0))}</div></div>
-    <div class="stat-card"><div class="stat-label">Avg sale value</div><div class="stat-value">${allQuickSales.length?fmtMoney(total/allQuickSales.length):'—'}</div></div>
-  `;
-
-  const byMethod={};
-  allQuickSales.forEach(q=>{const m=q.method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(q.total_amount)||0)});
-  const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
-  makeChart('qsMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
-
-  // Over time
-  const byDay2={};
-  allQuickSales.forEach(q=>{const d=(q.sold_at||'').slice(0,10);byDay2[d]=(byDay2[d]||0)+(parseFloat(q.total_amount)||0)});
-  const days=Object.keys(byDay2).sort();
-  makeChart('qsTimeChart','line',days.map(d=>fmtDate(d)),[{data:days.map(d=>byDay2[d]),borderColor:'#1d9e75',backgroundColor:'rgba(29,158,117,0.1)',tension:0.3,fill:true}]);
-
-  document.getElementById('qs-tbody').innerHTML=allQuickSales.length?allQuickSales.map(q=>{
-    const items=safeJSON(q.items)||[];
-    const itemStr=items.map(i=>`${i.name}${i.qty>1?' ×'+i.qty:''}`).join(', ');
-    return`<tr>
-      <td>${fmtDate((q.sold_at||'').slice(0,10))}</td>
-<td>${escapeHtml(q.customer_name)||'—'}</td>
-<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(itemStr)}">${escapeHtml(itemStr)||'—'}</td>
-<td><span class="method-pill mp-${q.method}">${METHOD_LABELS[q.method]||q.method||'—'}</span></td>
-      <td>${fmtMoney(q.total_amount)}</td>
-      <td>${q.sold_by||'—'}</td>
-      <td><span class="badge ${q.status==='paid'?'badge-green':'badge-amber'}">${q.status}</span></td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px">No quick sales in this period.</td></tr>';
-
-  lastCSVData=allQuickSales.map(q=>{
-    const items=safeJSON(q.items)||[];
-    return{Date:(q.sold_at||'').slice(0,10),Customer:q.customer_name||'',Items:items.map(i=>`${i.name}x${i.qty||1}`).join('|'),Method:q.method||'',Total:(parseFloat(q.total_amount)||0).toFixed(2),SoldBy:q.sold_by||'',Status:q.status};
-  });
-  lastCSVFilename='quick_sales_'+dateFrom+'_'+dateTo;
 }
 
 // ── PRODUCTS SOLD ─────────────────────────────────────────────
