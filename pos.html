@@ -261,6 +261,12 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .game-info-row{font-size:13px;color:#374151;margin-top:10px}
 .game-info-label{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
 
+/* ── GAME WISHLIST QR POPUP ─────────────────────── */
+.wishlist-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:950;align-items:center;justify-content:center;padding:20px}
+.wishlist-overlay.open{display:flex}
+.wishlist-sheet{background:#fff;border-radius:16px;padding:24px 22px;width:100%;max-width:340px;text-align:center}
+.wishlist-qr-img{width:220px;height:220px;border-radius:10px;border:1px solid #e5e7eb;margin:14px auto}
+
 /* ── Shared utils ───────────────────────────────── */
 .avail-slot{font-size:11px;padding:3px 9px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
 .avail-slot.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
@@ -562,6 +568,17 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   </div>
 </div>
 
+<!-- Game Wishlist QR popup -->
+<div class="wishlist-overlay" id="wishlistOverlay" onclick="if(event.target===this)closeWishlistPanel()">
+  <div class="wishlist-sheet">
+    <div style="font-size:17px;font-weight:700;color:#111827">🎮 Game Wishlist</div>
+    <div style="font-size:13px;color:#6b7280;margin-top:4px">Scan to add a game request on your own phone</div>
+    <img class="wishlist-qr-img" id="wishlistQrImg" alt="QR code for the game wishlist form" src="">
+    <button onclick="openWishlistForm()" style="width:100%;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">Open form on this device →</button>
+    <button onclick="closeWishlistPanel()" style="width:100%;background:none;color:#6b7280;border:none;padding:6px;font-size:13px;cursor:pointer;font-family:inherit">Close</button>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════
      QUICK SALE OVERLAY
 ════════════════════════════════════════════════ -->
@@ -636,7 +653,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.7.0'; // v1.7.0: Product Sale screen redesign. Product grid is now a fixed 3 columns (was auto-fill 2-4 depending on screen width). The always-on cart+payment footer is replaced with a compact "Ready to pay →" bar; tapping it opens a full-screen payment view matching the booking-payment look — a colour-tinted cart card listing items/vouchers/discounts with amounts, then colour-coded payment method buttons (Cash/Eftpos/Stripe/Bank/Invoice), same as booking payment. Added brand-new "Use voucher" and "Take money off" tiles to Product Sale (previously only available on booking payments) — voucher search/apply and reason+amount discount both work the same way as bookings, and both simply add a negative-amount line to the cart (no schema changes). Unlike the booking flow, an applied voucher is only marked "used" once the sale actually completes, not the moment it's applied — so backing out of a sale never leaves a good voucher stuck as used. Quick Sale popup and the booking-payment product picker are unchanged (Quick Sale currently has no button pointing to it anywhere in the app — flagged for Keren, not touched here).
+const BUILD_VERSION = '1.7.1'; // v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
 // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
@@ -916,8 +933,19 @@ function renderPOSHome(){
     </button>
     <button class="home-tile" onclick="openWaiver()" style="background:#7c3aed;box-shadow:0 3px 12px rgba(124,58,237,0.3)">
       <span class="tile-icon">📋</span><span>Waivers</span>
+    </button>
+    <button class="home-tile" onclick="openWishlistPanel()" style="background:#db2777;box-shadow:0 3px 12px rgba(219,39,119,0.3)">
+      <span class="tile-icon">🎮</span><span>Game Wishlist</span>
     </button>`;
 }
+function openWishlistPanel(){
+  const url=new URL('game_wishlist_form.html',window.location.href).href;
+  const qrImg=document.getElementById('wishlistQrImg');
+  if(qrImg)qrImg.src=`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(url)}`;
+  document.getElementById('wishlistOverlay').classList.add('open');
+}
+function closeWishlistPanel(){document.getElementById('wishlistOverlay').classList.remove('open')}
+function openWishlistForm(){window.open('game_wishlist_form.html','_blank')}
 function openWaiver(bookingId){const url=bookingId?`waiver.html?booking_id=${bookingId}`:'waiver.html';window.open(url,'_blank')}
 function showPOSHome(){
   document.getElementById('posHome').style.display='';
