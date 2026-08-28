@@ -30,19 +30,19 @@ body{
 .hdr-eyebrow{font-family:var(--head);font-weight:700;font-size:11px;letter-spacing:4px;color:var(--teal);margin-bottom:12px}
 .hdr-title{font-family:var(--head);font-weight:700;font-size:32px;line-height:1.05;color:#fff;margin-bottom:10px;letter-spacing:0.5px}
 .hdr-title span{color:var(--teal)}
-.hdr-sub{font-size:13px;color:var(--muted);letter-spacing:0.3px;line-height:1.6}
+.hdr-sub{font-size:13px;color:#fff;letter-spacing:0.3px;line-height:1.6}
 
 .sec-label{font-family:var(--head);font-weight:700;font-size:13px;letter-spacing:2px;color:var(--teal);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
 
 .field{margin-bottom:16px}
-.field-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px}
+.field-label{font-size:11px;font-weight:600;color:#fff;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px}
 .field-label .req{color:var(--red)}
 .field-input{width:100%;background:var(--dark3);border:1.5px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--body);font-size:14px;color:var(--text);transition:border-color .2s;-webkit-appearance:none}
 .field-input:focus{outline:none;border-color:var(--teal)}
 .field-input::placeholder{color:var(--muted)}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
+.field-hint{font-size:11px;color:#fff;margin-top:5px;line-height:1.5}
 
 .btn{width:100%;padding:15px;border-radius:11px;font-family:var(--head);font-weight:700;font-size:18px;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s}
 .btn-primary{background:var(--teal);color:#fff}
@@ -85,31 +85,31 @@ body{
     <div class="sec-label">The game</div>
     <div class="field">
       <div class="field-label">Game name <span class="req">*</span></div>
-      <input class="field-input" type="text" id="wGame" placeholder="e.g. Ticket to Ride">
+      <input class="field-input" type="text" id="wGame">
     </div>
     <div class="field">
       <div class="field-label">Max price you'd pay (optional)</div>
-      <input class="field-input" type="number" id="wMaxPrice" placeholder="e.g. 40" min="0">
+      <input class="field-input" type="number" id="wMaxPrice" min="0">
       <div class="field-hint">Leave blank if you're flexible — we'll still let you know what we've got.</div>
     </div>
     <div class="field">
       <div class="field-label">Anything else? (optional)</div>
-      <input class="field-input" type="text" id="wNotes" placeholder="e.g. must be complete with all pieces">
+      <input class="field-input" type="text" id="wNotes">
     </div>
 
     <div class="sec-label">Your details</div>
     <div class="field">
       <div class="field-label">Your name <span class="req">*</span></div>
-      <input class="field-input" type="text" id="cName" placeholder="Full name">
+      <input class="field-input" type="text" id="cName">
     </div>
     <div class="field-row" style="margin-bottom:16px">
       <div class="field">
         <div class="field-label">Phone</div>
-        <input class="field-input" type="tel" id="cPhone" placeholder="Phone number">
+        <input class="field-input" type="tel" id="cPhone">
       </div>
       <div class="field">
         <div class="field-label">Email <span class="req">*</span></div>
-        <input class="field-input" type="email" id="cEmail" placeholder="Email address">
+        <input class="field-input" type="email" id="cEmail">
       </div>
     </div>
 
@@ -130,7 +130,8 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.0.1'; // v1.0.1: Replaced realistic-looking placeholder text (a real name/phone/email pattern) with generic placeholders.
+const BUILD_VERSION = '1.1.0'; // v1.1.0: Section titles, field labels, and field hints changed from muted grey to white for better readability outdoors (trade show use). Removed "e.g." example placeholder text from all inputs since field labels already state what's needed.
+// v1.0.1: Replaced realistic-looking placeholder text (a real name/phone/email pattern) with generic placeholders.
 // v1.0.0: Initial release — customer-facing form to request a secondhand game and be notified when it comes into stock.
 console.log(`%cGame Wishlist Request — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
