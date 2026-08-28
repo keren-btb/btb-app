@@ -65,6 +65,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
 
 ## game_wishlist_form.html
+- v1.1.0 — 2026-08-29 — Intro text, field labels, and field hints changed from muted grey to white for better readability outdoors (trade show use). Section titles ("The game" / "Your details") were left as-is (still teal). Removed "e.g." example placeholder text from all inputs since the field labels already say what's needed.
 - v1.0.1 — 2026-08-24 — Replaced realistic-looking placeholder text ("Sarah Robinson" / "021 123 4567" / "sarah@example.com") with generic placeholders.
 - v1.0.0 — 2026-08-24 — Initial release: new standalone customer-facing form (same visual pattern as gift_voucher_request.html) where a customer names a secondhand game they want, an optional max price, and their contact details. Submits via the new public_submit_wishlist RPC, which finds-or-creates their client record and inserts a game_wishlist row. Supports optional ?name=&phone=&email= URL prefill, used by the new "Add to game wishlist" link on booking cards in btb_app.html.
 
