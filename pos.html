@@ -653,7 +653,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.7.1'; // v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
+const BUILD_VERSION = '1.7.2'; // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
 // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
@@ -1891,54 +1891,10 @@ function updatePOSTotals(dayBookings){
 }
 
 // ── PRODUCTS ───────────────────────────────────────
-let prodCatFilter='All';
-const PROD_CATS=['All','Food/Drink','Escape Room','Boardgame','Book','VR','Other'];
-
 async function loadProducts(){
   try{const r=await fetch(`${SB_URL}/rest/v1/products?order=favourite.desc,category,name`,{headers:H()});if(!r.ok)return;const rows=await r.json();if(Array.isArray(rows))products=rows}
   catch(e){console.error('Products load:',e)}
 }
-
-function renderProdCatTabs(){
-  const el=document.getElementById('prodCatTabs');if(!el)return;
-  el.innerHTML=PROD_CATS.map(c=>`<button class="avail-tab ${c===prodCatFilter?'active':''}" onclick="setProdFilter('${c}')">${c}</button>`).join('');
-}
-function setProdFilter(cat){prodCatFilter=cat;renderProdCatTabs();renderProdList()}
-function renderProdList(){
-  const el=document.getElementById('prodList');if(!el)return;
-  const filtered=prodCatFilter==='All'?products:products.filter(p=>p.category===prodCatFilter);
-  if(!filtered.length){el.innerHTML='<div class="empty-state">No products.</div>';return}
-  el.innerHTML=filtered.map(p=>`<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:4px">
-    <div style="display:flex;align-items:center;gap:8px;width:100%">
-      <div style="width:28px;height:28px;border-radius:8px;background:#f0fafb;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${catEmoji(p.category)}</div>
-      <div style="flex:1;min-width:0"><div class="row-label" style="${!p.active?'color:#9ca3af;text-decoration:line-through':''}">${p.name}</div><div class="row-sub">${p.category}${p.stock_qty!=null?' · Stock: '+p.stock_qty:''}</div></div>
-      <div style="text-align:right;flex-shrink:0"><div style="font-size:13px;font-weight:700;color:#07b4c5">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div>
-      <button class="avail-toggle ${p.favourite?'on':'off'}" onclick="toggleProdFavourite('${p.id}')" title="Favourite">${p.favourite?'⭐':'☆'}</button>
-      <button class="avail-toggle ${p.trade_show?'on':'off'}" onclick="toggleProdTradeShow('${p.id}')" title="Trade Show item">🎪</button>
-      <button class="avail-toggle ${p.active?'on':'off'}" onclick="toggleProdActive('${p.id}')">${p.active?'On':'Off'}</button>
-      <button class="icon-btn danger" onclick="deleteProduct('${p.id}')"><i class="ti ti-trash"></i></button>
-    </div>
-    ${p.notes?`<div style="font-size:11px;color:#9ca3af;padding-left:36px">📝 ${p.notes}</div>`:''}
-  </div>`).join('');
-}
-async function addProduct(){
-  const name=document.getElementById('newProdName').value.trim();const cat=document.getElementById('newProdCat').value;
-  const sell=parseFloat(document.getElementById('newProdSell').value)||0;const stock=parseInt(document.getElementById('newProdStock').value)||null;
-  const notes=document.getElementById('newProdNotes').value.trim();const msgEl=document.getElementById('prodAddMsg');
-  if(!name){msgEl.style.color='#dc2626';msgEl.textContent='Please enter a product name.';return}
-  msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
-  try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,category:cat,sell_price:sell,stock_qty:stock,notes:notes||null,active:true,favourite:false})});
-  if(!r.ok)throw new Error(await r.text());const rows=await r.json();if(rows[0])products.push(rows[0]);
-  ['newProdName','newProdSell','newProdStock','newProdNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-  msgEl.style.color='#15803d';msgEl.textContent='✓ Added!';setTimeout(()=>{msgEl.textContent=''},2000);renderProdList()}
-  catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}
-}
-async function deleteProduct(id){if(!confirm('Delete this product?'))return;const idx=products.findIndex(p=>p.id===id);const removed=idx>=0?products[idx]:null;if(idx>=0)products.splice(idx,1);renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'DELETE',headers:H()});if(!r.ok)throw new Error(await r.text())}catch(e){if(removed){products.splice(idx,0,removed);renderProdList()}alert('Could not delete product: '+e.message)}}
-async function toggleProdActive(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.active;p.active=!p.active;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:p.active})});if(!r.ok)throw new Error(await r.text())}catch(e){p.active=prev;renderProdList();alert('Could not update active status: '+e.message)}}
-async function toggleProdFavourite(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.favourite;p.favourite=!p.favourite;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({favourite:p.favourite})});if(!r.ok)throw new Error(await r.text())}catch(e){p.favourite=prev;renderProdList();alert('Could not update favourite status: '+e.message)}}
-async function toggleProdTradeShow(id){const p=products.find(x=>x.id===id);if(!p)return;const prev=p.trade_show;p.trade_show=!p.trade_show;renderProdList();try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({trade_show:p.trade_show})});if(!r.ok)throw new Error(await r.text())}catch(e){p.trade_show=prev;renderProdList();alert('Could not update trade show status: '+e.message)}}
-function exportProductsCSV(){const headers=['name','category','sell_price','purchase_price','rrp','stock_qty','notes','active','favourite'];const rows=products.map(p=>headers.map(h=>{const val=p[h]??'';return typeof val==='string'&&val.includes(',')?`"${val}"`:val}).join(','));const csv=[headers.join(','),...rows].join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='btb_products_'+new Date().toISOString().slice(0,10)+'.csv';a.click()}
-async function importProductsCSV(input){const file=input.files[0];if(!file)return;const msgEl=document.getElementById('csvMsg');msgEl.style.color='#6b7280';msgEl.textContent='Reading file…';const text=await file.text();const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);if(lines.length<2){msgEl.style.color='#dc2626';msgEl.textContent='CSV appears empty.';return}const headerRow=lines[0].toLowerCase().split(',').map(h=>h.trim().replace(/['"]/g,''));const idx=h=>headerRow.indexOf(h);const parseRow=line=>{const cols=[];let cur='',inQ=false;for(const ch of line){if(ch==='"'){inQ=!inQ}else if(ch===','&&!inQ){cols.push(cur.trim());cur=''}else cur+=ch}cols.push(cur.trim());return cols};const normCat=raw=>{const s=(raw||'').trim().toLowerCase();if(s==='boardgame'||s==='board game'||s==='boardgames')return'Boardgame';if(s==='food/drink'||s==='food & drink'||s==='food'||s==='drink')return'Food/Drink';if(s==='escape room'||s==='escaperoom')return'Escape Room';if(s==='book'||s==='books')return'Book';if(s==='vr')return'VR';return'Other'};const toImport=[];for(let i=1;i<lines.length;i++){const cols=parseRow(lines[i]);const get=h=>{const j=idx(h);return j>=0?(cols[j]||'').replace(/^"|"$/g,'').trim():''};const name=get('name');if(!name)continue;const activeVal=get('active').toUpperCase();const favVal=get('favourite').toUpperCase();toImport.push({name,category:normCat(get('category')),sell_price:parseFloat(get('sell_price'))||0,purchase_price:parseFloat(get('purchase_price'))||null,rrp:parseFloat(get('rrp'))||null,stock_qty:get('stock_qty')!==''?parseInt(get('stock_qty'))||0:null,notes:get('notes')||null,active:activeVal==='FALSE'||activeVal==='0'?false:true,favourite:favVal==='TRUE'||favVal==='1'?true:false})}if(!toImport.length){msgEl.style.color='#dc2626';msgEl.textContent='No valid rows found.';return}msgEl.textContent=`Importing ${toImport.length} products…`;try{const r=await fetch(`${SB_URL}/rest/v1/products`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(toImport)});if(!r.ok)throw new Error(await r.text());const saved=await r.json();saved.forEach(p=>{if(!products.find(x=>x.id===p.id))products.push(p)});msgEl.style.color='#15803d';msgEl.textContent=`✓ Imported ${saved.length} products!`;renderProdList()}catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Import failed: '+e.message}input.value=''}
 
 // ── PRODUCT GRIDS ──────────────────────────────────
 function experiencesForBooking(bookingId){
