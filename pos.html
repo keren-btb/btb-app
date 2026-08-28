@@ -52,6 +52,23 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 #posProdSection{display:none;flex-direction:column;flex:1;overflow:hidden}
 .prod-sale-scroll{overflow-y:auto;flex:1;padding:12px 14px}
 .prod-sale-footer{border-top:2px solid #f3f4f6;padding:12px 14px;background:#fff;flex-shrink:0}
+.prod-sale-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 auto 14px;max-width:760px}
+@media(max-width:480px){.prod-sale-grid{grid-template-columns:repeat(2,1fr);gap:8px}}
+
+/* Ready-to-pay bar (footer of the product grid screen) */
+.ps-ready-bar{display:flex;align-items:center;gap:12px}
+.ps-ready-info{flex:1;min-width:0}
+.ps-ready-count{font-size:12px;color:#6b7280}
+.ps-ready-total{font-size:19px;font-weight:700;color:#111827}
+.ps-ready-btn{background:#1d9e75;color:#fff;border:none;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(29,158,117,.3);white-space:nowrap;flex-shrink:0;transition:opacity .15s}
+.ps-ready-btn:disabled{background:#d1d5db;box-shadow:none;cursor:not-allowed;opacity:.7}
+
+/* Full-screen colour-coded payment overlay */
+.ps-pay-overlay{display:none;position:fixed;inset:0;z-index:600;background:#f8fafc;flex-direction:column}
+.ps-pay-overlay.open{display:flex}
+.ps-cart-card{background:linear-gradient(135deg,#e6f9fb,#f4fdfe);border:1px solid #a8e6ec;border-radius:14px;padding:10px 16px;margin-bottom:14px}
+.ps-pay-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.ps-method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 
 /* ── BOOKINGS VIEW — split layout ───────────────── */
 #posSection{display:none;flex:1;overflow:hidden}
@@ -401,31 +418,31 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
         <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px"></i>
       </div>
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280;cursor:pointer;margin-bottom:10px;width:fit-content"><input type="checkbox" id="prodSaleHideSoldOut" onchange="renderProdSaleGrid()" style="accent-color:#07b4c5;width:14px;height:14px"> Hide sold out</label>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:0 auto 14px;max-width:760px" id="prodSaleGrid"></div>
+      <div class="prod-sale-grid" id="prodSaleGrid"></div>
     </div>
     <div class="prod-sale-footer">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:13px;font-weight:700;color:#374151">Cart <span id="prodSaleCartCount" style="color:#9ca3af"></span></div>
         <button onclick="clearProdSaleCart()" style="font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer">Clear</button>
       </div>
-      <div id="prodSaleCart" style="margin-bottom:8px;max-height:120px;overflow-y:auto"></div>
-      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:#111827;margin-bottom:8px">
-        <span>Total</span><span style="color:#07b4c5" id="prodSaleTotal">$0.00</span>
+      <div id="prodSaleCart" style="margin-bottom:10px;max-height:120px;overflow-y:auto"></div>
+      <div class="ps-ready-bar">
+        <div class="ps-ready-info">
+          <div class="ps-ready-count">Total</div>
+          <div class="ps-ready-total" id="prodSaleTotal">$0.00</div>
+        </div>
+        <button class="ps-ready-btn" id="posProdReadyBtn" disabled onclick="openProdSalePay()">💳 Ready to pay →</button>
       </div>
-      <input type="text" id="prodSaleCustomer" placeholder="Customer name (optional)" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb;margin-bottom:8px">
-      <div class="method-grid" id="prodSaleMethodBtns">
-        <button class="method-btn" onclick="setProdSaleMethod('cash',this)">Cash</button>
-        <button class="method-btn" onclick="setProdSaleMethod('eftpos',this)">Eftpos</button>
-        <button class="method-btn" onclick="setProdSaleMethod('stripe',this)">Stripe</button>
-        <button class="method-btn" onclick="setProdSaleMethod('bank_transfer',this)">Bank</button>
-        <button class="method-btn" onclick="setProdSaleMethod('invoice',this)">Invoice</button>
-      </div>
-      <div id="prodSaleInvoiceWrap" style="display:none;margin-bottom:8px">
-        <input type="email" id="prodSaleInvoiceEmail" placeholder="Email for invoice…" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#f9fafb">
-      </div>
-      <button onclick="completeProdSale()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Complete sale →</button>
-      <div id="prodSaleMsg" style="font-size:12px;margin-top:6px;text-align:center"></div>
     </div>
+  </div>
+
+  <!-- ── PRODUCT SALE — PAYMENT OVERLAY ──────────── -->
+  <div class="ps-pay-overlay" id="posProdPayOverlay">
+    <div class="pos-section-back">
+      <button class="pos-section-back-btn" onclick="prodSalePayBack()">← Back</button>
+      <span class="pos-section-title" id="posProdPaySectTitle">Ready to pay</span>
+    </div>
+    <div class="action-panel-scroll" id="posProdPayBody"></div>
   </div>
 
   <!-- ── VOUCHERS VIEW ──────────────────────────── -->
@@ -619,7 +636,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.6.8'; // v1.6.8: Fixed session getting stuck expired on tablets/phones — backgrounding the browser (screen lock, switching apps) suspends the scheduled token-refresh timer, so the token could be dead by the time you came back, causing errors until a manual logout/login. Now checks and refreshes immediately whenever the tab regains visibility/focus.
+const BUILD_VERSION = '1.7.0'; // v1.7.0: Product Sale screen redesign. Product grid is now a fixed 3 columns (was auto-fill 2-4 depending on screen width). The always-on cart+payment footer is replaced with a compact "Ready to pay →" bar; tapping it opens a full-screen payment view matching the booking-payment look — a colour-tinted cart card listing items/vouchers/discounts with amounts, then colour-coded payment method buttons (Cash/Eftpos/Stripe/Bank/Invoice), same as booking payment. Added brand-new "Use voucher" and "Take money off" tiles to Product Sale (previously only available on booking payments) — voucher search/apply and reason+amount discount both work the same way as bookings, and both simply add a negative-amount line to the cart (no schema changes). Unlike the booking flow, an applied voucher is only marked "used" once the sale actually completes, not the moment it's applied — so backing out of a sale never leaves a good voucher stuck as used. Quick Sale popup and the booking-payment product picker are unchanged (Quick Sale currently has no button pointing to it anywhere in the app — flagged for Keren, not touched here).
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
 // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
@@ -1980,6 +1997,8 @@ function closeGameInfo(){document.getElementById('gameInfoOverlay').classList.re
 function showProductCat(catId){
   const cat=posCategories.find(c=>c.id===catId)||posCategories[0];currentPOSCat=cat;
   prodSaleCart=[];prodSaleMethod='';prodSaleCat=cat.filter||'All';
+  prodSalePaySect=null;prodSaleCustomerVal='';prodSaleInvoiceEmailVal='';
+  document.getElementById('posProdPayOverlay')?.classList.remove('open');
   document.getElementById('posHome').style.display='none';
   document.getElementById('posSection').style.display='none';
   document.getElementById('posProdSection').style.display='flex';
@@ -2010,23 +2029,238 @@ function removeFromProdSaleCart(productId){const idx=prodSaleCart.findIndex(x=>x
 function clearProdSaleCart(){prodSaleCart=[];renderProdSaleCart()}
 function renderProdSaleCart(){
   const total=prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0);
+  const realItems=prodSaleCart.filter(i=>!i.extra);
   const el=document.getElementById('prodSaleCart');const totalEl=document.getElementById('prodSaleTotal');const countEl=document.getElementById('prodSaleCartCount');
-  if(totalEl)totalEl.textContent='$'+total.toFixed(2);if(countEl)countEl.textContent=prodSaleCart.length?`(${prodSaleCart.reduce((s,i)=>s+i.qty,0)} items)`:'';
-  if(!el)return;if(!prodSaleCart.length){el.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:4px 0">Empty</div>';return}
-  el.innerHTML=prodSaleCart.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px"><span style="flex:1;color:#374151">${item.name}</span><button onclick="removeFromProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#6b7280">−</button><span style="font-size:13px;font-weight:600;color:#374151;min-width:16px;text-align:center">${item.qty}</span><button onclick="addToProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#07b4c5">+</button><span style="font-size:13px;font-weight:700;color:#07b4c5;min-width:48px;text-align:right">$${(item.price*item.qty).toFixed(2)}</span></div>`).join('');
+  if(totalEl)totalEl.textContent='$'+total.toFixed(2);if(countEl)countEl.textContent=realItems.length?`(${realItems.reduce((s,i)=>s+i.qty,0)} items)`:'';
+  const readyBtn=document.getElementById('posProdReadyBtn');if(readyBtn)readyBtn.disabled=!prodSaleCart.length;
+  if(el){
+    if(!realItems.length){el.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:4px 0">Empty</div>';}
+    else{el.innerHTML=realItems.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px"><span style="flex:1;color:#374151">${item.name}</span><button onclick="removeFromProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#6b7280">−</button><span style="font-size:13px;font-weight:600;color:#374151;min-width:16px;text-align:center">${item.qty}</span><button onclick="addToProdSaleCart('${item.id}')" style="width:22px;height:22px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:14px;color:#07b4c5">+</button><span style="font-size:13px;font-weight:700;color:#07b4c5;min-width:48px;text-align:right">$${(item.price*item.qty).toFixed(2)}</span></div>`).join('');}
+  }
+  // Keep the payment overlay's cart card in sync if it's open on the main (non-subsection) view
+  if(document.getElementById('posProdPayOverlay')?.classList.contains('open')&&!prodSalePaySect){
+    renderProdSalePayBody();
+  }
 }
-function setProdSaleMethod(method,btn){prodSaleMethod=method;document.querySelectorAll('#prodSaleMethodBtns .method-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('prodSaleInvoiceWrap').style.display=method==='invoice'?'':'none'}
+function removeProdSaleExtra(idx){prodSaleCart.splice(idx,1);renderProdSaleCart()}
+// ── PRODUCT SALE — payment overlay (Ready to pay / Use voucher / Take money off) ──
+let prodSalePaySect=null; // null | 'voucher' | 'discount'
+let prodSaleCustomerVal='',prodSaleInvoiceEmailVal='';
+const PROD_SALE_METHODS=[['cash','Cash','#374151','#f8fafc','#cbd5e1'],['eftpos','Eftpos','#0369a1','#f0f9ff','#bae6fd'],['stripe','Stripe','#6d28d9','#f5f3ff','#ddd6fe'],['bank_transfer','Bank','#15803d','#f0fdf4','#bbf7d0'],['invoice','Invoice','#be185d','#fdf2f8','#fbcfe8']];
+
+function openProdSalePay(){
+  if(!prodSaleCart.length)return;
+  prodSalePaySect=null;
+  document.getElementById('posProdPayOverlay').classList.add('open');
+  renderProdSalePayBody();
+}
+function closeProdSalePay(){document.getElementById('posProdPayOverlay').classList.remove('open')}
+function openProdSalePaySect(sect){prodSalePaySect=sect;renderProdSalePayBody()}
+function closeProdSalePaySect(){prodSalePaySect=null;renderProdSalePayBody()}
+function prodSalePayBack(){if(prodSalePaySect)closeProdSalePaySect();else closeProdSalePay()}
+
+function setProdSaleMethodV2(method){
+  prodSaleMethod=method;
+  renderProdSalePayBody();
+}
+
+function buildProdSaleCartCardHTML(){
+  const total=prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0);
+  const rows=prodSaleCart.map((item,idx)=>`<div class="receipt-row">
+      <span class="receipt-label">${item.qty>1?`<strong style="color:#07b4c5;margin-right:4px">${item.qty}×</strong>`:''}${escapeHtml(item.name)}</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span class="receipt-amount${item.price<0?' negative':''}">$${(item.price*item.qty).toFixed(2)}</span>
+        ${item.extra?`<button onclick="removeProdSaleExtra(${idx})" class="addon-chip-remove" title="Remove">×</button>`:''}
+      </div>
+    </div>`).join('');
+  return `<div class="ps-cart-card">
+    ${rows}
+    <div class="receipt-total-row"><span>Total</span><span style="color:#07b4c5">$${total.toFixed(2)}</span></div>
+  </div>`;
+}
+
+function buildProdSalePayMainHTML(){
+  const methodBtns=`<div class="ps-method-grid" id="posProdPayMethodBtns">
+    ${PROD_SALE_METHODS.map(([m,label,color,bg,border])=>`<button data-method="${m}" onclick="setProdSaleMethodV2('${m}')"
+      style="font-size:12px;padding:9px 4px;border:2px solid ${prodSaleMethod===m?color:border};border-radius:8px;background:${prodSaleMethod===m?color:bg};color:${prodSaleMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">${label}</button>`).join('')}
+  </div>`;
+  return `${buildProdSaleCartCardHTML()}
+  <div class="ps-pay-tiles">
+    <button class="pos-action-tile" style="background:#d97706;box-shadow:0 2px 8px rgba(217,119,6,.3)" onclick="openProdSalePaySect('voucher')">
+      <span class="tile-icon">🎟️</span><span>Use voucher</span>
+    </button>
+    <button class="pos-action-tile" style="background:#dc2626;box-shadow:0 2px 8px rgba(220,38,38,.3)" onclick="openProdSalePaySect('discount')">
+      <span class="tile-icon">💸</span><span>Take money off</span>
+    </button>
+  </div>
+  <input type="text" id="posProdPayCustomer" placeholder="Customer name (optional)" value="${escapeHtml(prodSaleCustomerVal)}" oninput="prodSaleCustomerVal=this.value" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#f9fafb;margin-bottom:10px">
+  ${methodBtns}
+  <div id="posProdPayInvoiceWrap" style="display:${prodSaleMethod==='invoice'?'':'none'};margin-bottom:10px">
+    <input type="email" id="posProdPayInvoiceEmail" placeholder="Email for invoice…" value="${escapeHtml(prodSaleInvoiceEmailVal)}" oninput="prodSaleInvoiceEmailVal=this.value" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #fbbf24;border-radius:8px;padding:7px 10px;background:#fffbeb">
+  </div>
+  <button onclick="completeProdSale()" style="width:100%;padding:12px;font-size:15px;background:#1d9e75;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit">Complete sale →</button>
+  <div id="prodSaleMsg" style="font-size:12px;margin-top:8px;text-align:center;font-weight:500"></div>`;
+}
+
+function buildProdSaleVoucherSectHTML(){
+  return `<div class="voucher-row">
+    <input type="text" id="posProdPayVoucherInput" class="voucher-input" placeholder="Code, buyer or recipient name…" oninput="onProdSaleVoucherInput(this.value)">
+    <button class="voucher-apply-btn" onclick="applyProdSaleVoucher()">Apply</button>
+  </div>
+  <div id="posProdPayVoucherResults" style="display:none;margin-top:8px;max-height:240px;overflow-y:auto"></div>
+  <div id="posProdPayVoucherMsg" style="font-size:11px;min-height:16px"></div>`;
+}
+function buildProdSaleDiscountSectHTML(){
+  return `<div style="font-size:12px;color:#6b7280;margin-bottom:12px">Reduce this sale's total — e.g. a price match or goodwill gesture. This is saved with your reason.</div>
+  <div style="margin-bottom:10px">
+    <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Reason</label>
+    <input type="text" id="posProdPayDiscReason" placeholder="e.g. Price match" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#f9fafb">
+  </div>
+  <div style="margin-bottom:12px">
+    <label style="font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to take off ($)</label>
+    <input type="number" id="posProdPayDiscAmt" min="0" step="0.01" placeholder="0"
+      style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #dc2626;border-radius:8px;font-weight:700;background:#fef2f2;color:#b91c1c;outline:none;">
+  </div>
+  <button onclick="applyProdSaleDiscount()" style="width:100%;padding:11px;font-size:15px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Apply discount →</button>
+  <div id="posProdPayDiscMsg" style="font-size:12px;margin-top:6px;text-align:center;font-weight:500"></div>`;
+}
+
+function renderProdSalePayBody(){
+  const body=document.getElementById('posProdPayBody');if(!body)return;
+  const titleEl=document.getElementById('posProdPaySectTitle');
+  if(prodSalePaySect==='voucher'){
+    if(titleEl)titleEl.textContent='Use voucher';
+    body.innerHTML=buildProdSaleVoucherSectHTML();
+  }else if(prodSalePaySect==='discount'){
+    if(titleEl)titleEl.textContent='Take money off';
+    body.innerHTML=buildProdSaleDiscountSectHTML();
+  }else{
+    if(titleEl)titleEl.textContent='Ready to pay';
+    body.innerHTML=buildProdSalePayMainHTML();
+  }
+}
+
+// ── Voucher search/apply for Product Sale ──────────
+let prodSaleVoucherSearchTimer=null;
+function onProdSaleVoucherInput(val){
+  clearTimeout(prodSaleVoucherSearchTimer);
+  const resultsEl=document.getElementById('posProdPayVoucherResults');if(!resultsEl)return;
+  const q=val.trim();
+  if(q.length<2){resultsEl.innerHTML='';resultsEl.style.display='none';return}
+  prodSaleVoucherSearchTimer=setTimeout(()=>searchProdSaleVoucherForApply(q),300);
+}
+async function searchProdSaleVoucherForApply(q){
+  const resultsEl=document.getElementById('posProdPayVoucherResults');if(!resultsEl)return;
+  resultsEl.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:6px 2px">Searching…</div>';
+  resultsEl.style.display='';
+  try{
+    const enc=encodeURIComponent(`*${q}*`);
+    const url=`${SB_URL}/rest/v1/vouchers?status=eq.active&select=id,code,value,type,players,game_name,purchased_by,recipient&or=(code.ilike.${enc},purchased_by.ilike.${enc},recipient.ilike.${enc})&limit=8`;
+    const r=await fetch(url,{headers:H()});
+    if(!r.ok)throw new Error('Search request failed ('+r.status+')');
+    const rows=await r.json();
+    if(!rows.length){resultsEl.innerHTML='<div style="font-size:12px;color:#9ca3af;padding:6px 2px">No matching active vouchers.</div>';return}
+    resultsEl.innerHTML=rows.map(v=>{
+      const amt=v.type==='players'?`${v.players}p${v.game_name?' — '+v.game_name:''}`:`$${parseFloat(v.value||0).toFixed(0)}`;
+      const who=[v.recipient?`for ${v.recipient}`:null,v.purchased_by?`from ${v.purchased_by}`:null].filter(Boolean).join(' · ');
+      return `<div onclick="applyProdSaleVoucherDirect('${v.code}')" style="padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer;background:#fff">
+        <div style="font-family:monospace;font-weight:700;font-size:13px;color:#07b4c5">${escapeHtml(v.code)}</div>
+        <div style="font-size:12px;color:#374151">${escapeHtml(amt)}</div>
+        ${who?`<div style="font-size:11px;color:#9ca3af">${escapeHtml(who)}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('voucher search failed',e);
+    resultsEl.innerHTML='<div style="font-size:12px;color:#dc2626;padding:6px 2px">⚠️ Search failed — check your connection and try again, or type the exact code and tap Apply.</div>';
+  }
+}
+function applyProdSaleVoucherDirect(code){
+  const input=document.getElementById('posProdPayVoucherInput');if(input)input.value=code;
+  const resultsEl=document.getElementById('posProdPayVoucherResults');if(resultsEl){resultsEl.innerHTML='';resultsEl.style.display='none'}
+  applyProdSaleVoucher();
+}
+async function applyProdSaleVoucher(){
+  const input=document.getElementById('posProdPayVoucherInput');
+  const msgEl=document.getElementById('posProdPayVoucherMsg');
+  const code=input?.value.trim().toUpperCase();
+  if(!code){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter a voucher code.'}return}
+  if(prodSaleCart.find(x=>x.voucherCode===code)){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already applied.'}return}
+  if(msgEl){msgEl.style.color='#6b7280';msgEl.textContent='Looking up…'}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/vouchers?code=eq.${code}&select=*`,{headers:H()});
+    const rows=await r.json();
+    if(!rows.length){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Code not found.'}return}
+    const v=rows[0];
+    if(v.status==='used'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already used.'}return}
+    if(v.status==='expired'||v.status==='cancelled'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Voucher is '+v.status+'.'}return}
+    let discount=0,label='';
+    if(v.type==='amount'){discount=parseFloat(v.value)||0;label=`Voucher ${code} ($${discount} off)`}
+    else{const pl=parseInt(v.players)||1;discount=parseFloat(v.value)||calcPrice(v.game_id,pl)||0;label=`Voucher ${code} (${pl}p${v.game_name?' — '+v.game_name:''})`}
+    if(discount<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Could not calculate value.'}return}
+    // Note: unlike bookings, the voucher isn't marked "used" here — that only
+    // happens once the sale actually completes (see completeProdSale), so an
+    // abandoned/back-buttoned sale never leaves a good voucher stuck as used.
+    prodSaleCart.push({id:'voucher_'+v.id,name:label,price:-discount,qty:1,extra:true,voucherId:v.id,voucherCode:code});
+    if(input)input.value='';
+    if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ ${label} applied`}
+    renderProdSaleCart();
+    setTimeout(()=>closeProdSalePaySect(),500);
+  }catch(e){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}console.error(e)}
+}
+
+// ── Discount ("take money off") for Product Sale ───
+function applyProdSaleDiscount(){
+  const reasonEl=document.getElementById('posProdPayDiscReason');
+  const amtEl=document.getElementById('posProdPayDiscAmt');
+  const msgEl=document.getElementById('posProdPayDiscMsg');
+  const reason=reasonEl?.value.trim();
+  const amt=parseFloat(amtEl?.value)||0;
+  if(!reason){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Please enter a reason.'}return}
+  if(!amt||amt<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an amount greater than $0.'}return}
+  prodSaleCart.push({id:'discount_'+Date.now(),name:`Discount: ${reason}`,price:-Math.abs(amt),qty:1,extra:true,discountReason:reason});
+  renderProdSaleCart();
+  if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ $${amt.toFixed(2)} taken off`}
+  setTimeout(()=>closeProdSalePaySect(),600);
+}
+
 async function completeProdSale(){
-  const msgEl=document.getElementById('prodSaleMsg');if(!prodSaleCart.length){msgEl.style.color='#dc2626';msgEl.textContent='Cart is empty.';return}if(!prodSaleMethod){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.';return}
-  let invoiceEmail=null;if(prodSaleMethod==='invoice'){invoiceEmail=document.getElementById('prodSaleInvoiceEmail')?.value.trim();if(!invoiceEmail){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address.';return}}
-  const total=prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0);const customer=document.getElementById('prodSaleCustomer')?.value.trim()||null;msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
-  try{const r=await fetch(`${SB_URL}/rest/v1/quick_sales`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify({items:JSON.stringify(prodSaleCart),total_amount:total,method:prodSaleMethod,invoice_email:invoiceEmail,customer_name:customer,status:prodSaleMethod==='invoice'?'invoice_pending':'paid',sold_at:new Date().toISOString(),sold_by:currentUser?.name||null})});if(!r.ok)throw new Error(await r.text());
-  const stockFailures=[];
-  for(const item of prodSaleCart){const p=products.find(x=>x.id===item.id);if(p&&p.stock_qty!=null&&p.stock_qty>0){const newQty=Math.max(0,p.stock_qty-item.qty);try{const sr=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:newQty})});if(!sr.ok)throw new Error(await sr.text());p.stock_qty=newQty}catch(e){stockFailures.push(p.name)}}}
-  msgEl.style.color=stockFailures.length?'#d97706':'#1d9e75';
-  msgEl.textContent=(prodSaleMethod==='invoice'?`✓ Invoice recorded — $${total.toFixed(2)} awaiting payment`:`✓ Sale complete — $${total.toFixed(2)}`)+(stockFailures.length?` (stock count not updated for: ${stockFailures.join(', ')})`:'');
-  prodSaleCart=[];renderProdSaleCart();if(document.getElementById('prodSaleCustomer'))document.getElementById('prodSaleCustomer').value='';setTimeout(()=>{msgEl.textContent=''},3000)}
-  catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}
+  const msgEl=document.getElementById('prodSaleMsg');if(!msgEl)return;
+  if(!prodSaleCart.length){msgEl.style.color='#dc2626';msgEl.textContent='Cart is empty.';return}
+  if(!prodSaleMethod){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.';return}
+  let invoiceEmail=null;
+  if(prodSaleMethod==='invoice'){
+    invoiceEmail=(document.getElementById('posProdPayInvoiceEmail')?.value||'').trim();
+    if(!invoiceEmail){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address.';return}
+  }
+  const total=Math.max(0,prodSaleCart.reduce((s,i)=>s+(i.price*i.qty),0));
+  const customer=(document.getElementById('posProdPayCustomer')?.value||'').trim()||null;
+  const voucherLines=prodSaleCart.filter(i=>i.voucherId);
+  const discountLines=prodSaleCart.filter(i=>i.discountReason);
+  const notesParts=[...voucherLines.map(i=>`Voucher used: ${i.voucherCode}`),...discountLines.map(i=>`Discount: ${i.discountReason} (-$${Math.abs(i.price).toFixed(2)})`)];
+  msgEl.style.color='#6b7280';msgEl.textContent='Saving…';
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/quick_sales`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify({items:JSON.stringify(prodSaleCart),total_amount:total,method:prodSaleMethod,invoice_email:invoiceEmail,customer_name:customer,status:prodSaleMethod==='invoice'?'invoice_pending':'paid',sold_at:new Date().toISOString(),sold_by:currentUser?.name||null,notes:notesParts.length?notesParts.join(' · '):null})});
+    if(!r.ok)throw new Error(await r.text());
+    const stockFailures=[];
+    for(const item of prodSaleCart){
+      const p=products.find(x=>x.id===item.id);
+      if(p&&p.stock_qty!=null&&p.stock_qty>0){
+        const newQty=Math.max(0,p.stock_qty-item.qty);
+        try{const sr=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:newQty})});if(!sr.ok)throw new Error(await sr.text());p.stock_qty=newQty}catch(e){stockFailures.push(p.name)}
+      }
+    }
+    const voucherFailures=[];
+    for(const item of voucherLines){
+      try{const vr=await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${item.voucherId}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'used',used_at:new Date().toISOString()})});if(!vr.ok)throw new Error(await vr.text())}catch(e){voucherFailures.push(item.voucherCode)}
+    }
+    msgEl.style.color=(stockFailures.length||voucherFailures.length)?'#d97706':'#1d9e75';
+    msgEl.textContent=(prodSaleMethod==='invoice'?`✓ Invoice recorded — $${total.toFixed(2)} awaiting payment`:`✓ Sale complete — $${total.toFixed(2)}`)
+      +(stockFailures.length?` (stock not updated for: ${stockFailures.join(', ')})`:'')
+      +(voucherFailures.length?` (voucher not marked used: ${voucherFailures.join(', ')})`:'');
+    prodSaleCart=[];prodSaleMethod='';prodSaleCustomerVal='';prodSaleInvoiceEmailVal='';
+    renderProdSaleCart();
+    setTimeout(()=>{closeProdSalePay()},2200);
+  }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}
 }
 
 // ── QUICK SALE ─────────────────────────────────────
