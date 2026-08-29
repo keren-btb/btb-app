@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.3 — 2026-08-30 — "Take money off" and "Add money" amount fields on the Product Sale payment screen now have +/- $1 stepper buttons either side of the amount, same style as the v1.9.2 variable-price popup (fixed-width input so the buttons don't get pushed off-screen).
 - v1.9.2 — 2026-08-30 — Fixed the variable-price stepper popup (v1.9.1) — the price input had no fixed width, so on narrow phone screens it grew wide enough to push the +/- buttons off the edge of the popup. Input is now a fixed 86px wide and the buttons are visible.
 - v1.9.1 — 2026-08-30 — Variable-price product entry (added in v1.9.0) now uses a proper popup with +/- 10c stepper buttons and a direct price field, instead of a plain browser prompt() — easier to nudge the price up/down on a tablet.
 - v1.9.0 — 2026-08-30 — Product Sale — tapping a product with the new "Variable price" flag (set in Settings → Products) now prompts for a price each time (pre-filled with its saved sell_price, editable) instead of using a fixed price — for items like single board game pieces. Also added an "➕ Add money" tile next to "Take money off" on the payment screen — same reason+amount pattern, but adds a positive line to the cart instead of subtracting. Backed by new products.variable_price column (boolean, default false).
