@@ -728,7 +728,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.3'; // v1.9.3: "Take money off" and "Add money" amount fields on the Product Sale payment screen now have +/- $1 stepper buttons either side of the amount, same style as the v1.9.2 variable-price popup (fixed-width input so the buttons don't get pushed off-screen).
+const BUILD_VERSION = '1.9.4'; // v1.9.4: Product Sale search box now clears itself as soon as you tap a product tile (fixed-price or variable-price), so the full grid is back and ready for the next search.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
@@ -2199,11 +2199,19 @@ grid.innerHTML=filtered.map(p=>{
   return`<div onclick="addToProdSaleCart('${p.id}')" style="border:3px solid ${color};border-radius:12px;overflow:hidden;cursor:pointer;background:#fff;display:flex;flex-direction:column;min-height:90px;position:relative;${soldOut?'filter:grayscale(.8);opacity:.6':''}">${isBoardgame?`<button onclick="event.stopPropagation();openGameInfo('${p.id}')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:13px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">ⓘ</button>`:''}<div style="background:${color};padding:10px 30px 8px 12px"><div style="font-size:14px;font-weight:700;color:#fff;line-height:1.25">${p.favourite?'⭐ ':''}${p.name}</div>${p.sub_name?`<div style="font-size:11px;color:#fff;opacity:.85;margin-top:1px">${p.sub_name}</div>`:''}</div>${soldOut?`<div style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 12px;text-align:center">SOLD OUT</div>`:''}<div style="padding:8px 12px 10px;display:flex;justify-content:space-between;align-items:flex-end;gap:6px;flex:1">${leftHtml}<div style="font-size:16px;font-weight:700;color:#111827;white-space:nowrap">$${parseFloat(p.sell_price||0).toFixed(2)}</div></div></div>`}).join('');}
 function addToProdSaleCart(productId){
   const p=products.find(x=>x.id===productId);if(!p)return;if(!stockGuardOK(p))return;
+  clearProdSaleSearch();
   if(p.variable_price){
     openVariablePricePrompt(productId);
     return;
   }
   const ex=prodSaleCart.find(x=>x.id===productId);if(ex)ex.qty++;else prodSaleCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderProdSaleCart()}
+
+// Clears the Product Sale search box and re-renders the full grid — called
+// whenever a product tile is tapped, so the next search starts fresh.
+function clearProdSaleSearch(){
+  const searchEl=document.getElementById('prodSaleSearch');
+  if(searchEl&&searchEl.value){searchEl.value='';renderProdSaleGrid()}
+}
 
 // ── Variable-price entry popup (One Piece singles etc) ──
 // Always asks for the price at sale time rather than using a fixed sell_price
