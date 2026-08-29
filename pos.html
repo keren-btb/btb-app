@@ -44,6 +44,7 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 /* ── HOME SCREEN ──────────────────────────────── */
 #posHome{padding:16px;overflow-y:auto;flex:1}
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:900px){.home-grid{grid-template-columns:repeat(4,1fr)}}
 .home-tile{border:none;border-radius:14px;padding:24px 12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:110px;justify-content:center;color:#fff;transition:opacity .15s}
 .home-tile:hover{opacity:.88}
 .home-tile i,.home-tile .tile-icon{font-size:28px}
@@ -267,6 +268,20 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .wishlist-sheet{background:#fff;border-radius:16px;padding:24px 22px;width:100%;max-width:340px;text-align:center}
 .wishlist-qr-img{width:220px;height:220px;border-radius:10px;border:1px solid #e5e7eb;margin:14px auto}
 
+/* ── SALES SNAPSHOT POPUP (header clock) ────────── */
+.snap-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:960;align-items:center;justify-content:center;padding:20px}
+.snap-overlay.open{display:flex}
+.snap-sheet{background:#fff;border-radius:16px;padding:20px 20px 16px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto}
+.snap-range-btn{font-size:12px;padding:6px 12px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit}
+.snap-range-btn.active{background:#07b4c5;color:#fff;border-color:#07b4c5;font-weight:600}
+.snap-total-card{background:#1a1035;border-radius:12px;padding:16px;text-align:center;margin:12px 0}
+.snap-total-value{font-size:30px;font-weight:800;color:#fff;line-height:1.1}
+.snap-total-label{font-size:12px;color:#c4b5fd;margin-top:2px}
+.snap-cat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f3f4f6;font-size:13px}
+.snap-cat-row:last-child{border-bottom:none}
+.snap-cat-name{color:#374151}
+.snap-cat-value{font-weight:700;color:#111827}
+
 /* ── Shared utils ───────────────────────────────── */
 .avail-slot{font-size:11px;padding:3px 9px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer}
 .avail-slot.on{background:#dcfce7;color:#15803d;border-color:#4ade80;font-weight:600}
@@ -374,6 +389,7 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
     <span class="logo"><i class="ti ti-box"></i> BtB <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5;letter-spacing:0.5px;vertical-align:middle"></span></span>
     <span class="header-center" id="headerSub">POS</span>
     <div style="display:flex;align-items:center;gap:10px">
+      <span id="posClock" onclick="openSalesSnapshot()" title="Tap for a sales snapshot" style="cursor:pointer;font-size:13px;font-weight:600;color:#e5e7eb;background:rgba(255,255,255,0.08);padding:5px 11px;border-radius:8px;letter-spacing:0.3px;white-space:nowrap">--:--</span>
       <a href="btb_app.html" class="back-app-link">← App</a>
       <span class="auth-badge" onclick="doLogout()"><i class="ti ti-user-circle"></i> <span id="authName"></span></span>
     </div>
@@ -579,6 +595,35 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   </div>
 </div>
 
+<!-- Sales Snapshot popup (tap the header clock) -->
+<div class="snap-overlay" id="snapOverlay" onclick="if(event.target===this)closeSalesSnapshot()">
+  <div class="snap-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:16px;font-weight:700;color:#111827">📊 Sales Snapshot</div>
+      <button onclick="closeSalesSnapshot()" style="background:none;border:none;font-size:20px;color:#9ca3af;cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="snapRangeBtns">
+      <button class="snap-range-btn active" onclick="setSnapRange('today',this)">Today</button>
+      <button class="snap-range-btn" onclick="setSnapRange('week',this)">This Week</button>
+      <button class="snap-range-btn" onclick="setSnapRange('month',this)">This Month</button>
+      <button class="snap-range-btn" onclick="setSnapRange('custom',this)">Custom…</button>
+    </div>
+    <div id="snapCustomRange" style="display:none;gap:8px;margin-bottom:8px">
+      <input type="date" id="snapFrom" onchange="loadSalesSnapshot()" style="flex:1;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px">
+      <input type="date" id="snapTo" onchange="loadSalesSnapshot()" style="flex:1;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:7px 8px">
+    </div>
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#6b7280;cursor:pointer;width:fit-content;margin-top:4px">
+      <input type="checkbox" id="snapIncludeBookings" checked onchange="loadSalesSnapshot()" style="accent-color:#07b4c5;width:14px;height:14px"> Include escape room bookings
+    </label>
+    <div class="snap-total-card">
+      <div class="snap-total-value" id="snapTotalValue">$0</div>
+      <div class="snap-total-label" id="snapTotalLabel">Today</div>
+    </div>
+    <div id="snapCatBreakdown"></div>
+    <div id="snapMsg" style="font-size:12px;color:#9ca3af;text-align:center;margin-top:6px"></div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════
      QUICK SALE OVERLAY
 ════════════════════════════════════════════════ -->
@@ -653,7 +698,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.7.2'; // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
+const BUILD_VERSION = '1.8.0'; // v1.8.0: Added a tappable clock in the header — opens a "Sales Snapshot" popup showing a running total (Today / This Week [Mon-start] / This Month / custom range) with a subtotal per product category, plus an optional "Include escape room bookings" checkbox. POS home tile grid now shows 4 columns on wider screens (≥900px) instead of always 2.
+// v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
 // v1.6.5: Sold-out badge moved from an overlay on top of the product name to its own strip directly below the name/sub_name, so the name is never covered. Added a "Hide sold out" checkbox under the search box on both the Product Sale grid and Quick Sale — ticking it filters sold-out products out of the list entirely (booking add-on picker unchanged, still shows them greyed out with "Sold out" as the price since that view has less room).
@@ -946,6 +992,119 @@ function openWishlistPanel(){
 }
 function closeWishlistPanel(){document.getElementById('wishlistOverlay').classList.remove('open')}
 function openWishlistForm(){window.open('game_wishlist_form.html','_blank')}
+
+// ============================================================
+// SALES SNAPSHOT (header clock popup) — NZ timezone helpers
+// ============================================================
+function nzNow(){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
+  const o={};parts.forEach(p=>o[p.type]=p.value);
+  if(o.hour==='24')o.hour='00';
+  return new Date(`${o.year}-${o.month}-${o.day}T${o.hour}:${o.minute}:${o.second}`);
+}
+function nzDateStr(d){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+  const o={};parts.forEach(p=>o[p.type]=p.value);
+  return `${o.year}-${o.month}-${o.day}`;
+}
+function nzLocalToUtcISO(dateStr,timeStr){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const [hh,mm,ss]=timeStr.split(':').map(Number);
+  const anchor=new Date(Date.UTC(y,m-1,d,0,0,0));
+  const offsetPart=new Intl.DateTimeFormat('en-US',{timeZone:'Pacific/Auckland',timeZoneName:'shortOffset'}).formatToParts(anchor).find(p=>p.type==='timeZoneName').value;
+  const offsetHours=parseInt(offsetPart.replace('GMT',''),10)||12;
+  const wallClockAsUtcMs=Date.UTC(y,m-1,d,hh,mm,ss);
+  return new Date(wallClockAsUtcMs-offsetHours*60*60*1000).toISOString();
+}
+function updatePosClock(){
+  const el=document.getElementById('posClock');
+  if(!el)return;
+  el.textContent=new Intl.DateTimeFormat('en-NZ',{timeZone:'Pacific/Auckland',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date());
+}
+let snapRange='today';
+function openSalesSnapshot(){
+  document.getElementById('snapOverlay').classList.add('open');
+  loadSalesSnapshot();
+}
+function closeSalesSnapshot(){document.getElementById('snapOverlay').classList.remove('open')}
+function setSnapRange(range,btn){
+  snapRange=range;
+  document.querySelectorAll('#snapRangeBtns .snap-range-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const customEl=document.getElementById('snapCustomRange');
+  if(range==='custom'){
+    customEl.style.display='flex';
+    const today=nzDateStr(nzNow());
+    if(!document.getElementById('snapFrom').value)document.getElementById('snapFrom').value=today;
+    if(!document.getElementById('snapTo').value)document.getElementById('snapTo').value=today;
+  }else{
+    customEl.style.display='none';
+    loadSalesSnapshot();
+  }
+}
+function snapDateRange(){
+  const now=nzNow();
+  const todayStr=nzDateStr(now);
+  if(snapRange==='today')return{from:todayStr,to:todayStr,label:'Today'};
+  if(snapRange==='week'){
+    const dow=now.getDay(); // 0=Sun..6=Sat
+    const sinceMonday=(dow+6)%7; // Monday-start week
+    const monday=new Date(now);monday.setDate(now.getDate()-sinceMonday);
+    return{from:nzDateStr(monday),to:todayStr,label:'This Week'};
+  }
+  if(snapRange==='month'){
+    const first=new Date(now.getFullYear(),now.getMonth(),1);
+    return{from:nzDateStr(first),to:todayStr,label:'This Month'};
+  }
+  // custom
+  const from=document.getElementById('snapFrom').value||todayStr;
+  const to=document.getElementById('snapTo').value||todayStr;
+  return{from,to,label:from===to?from:`${from} → ${to}`};
+}
+async function loadSalesSnapshot(){
+  const msgEl=document.getElementById('snapMsg');
+  msgEl.textContent='Loading…';
+  const {from,to,label}=snapDateRange();
+  document.getElementById('snapTotalLabel').textContent=label;
+  const includeBookings=document.getElementById('snapIncludeBookings').checked;
+  try{
+    const qsRes=await fetch(`${SB_URL}/rest/v1/quick_sales?sold_at=gte.${nzLocalToUtcISO(from,'00:00:00')}&sold_at=lte.${nzLocalToUtcISO(to,'23:59:59')}&status=neq.invoice_pending&select=items,total_amount`,{headers:H()});
+    const qs=qsRes.ok?await qsRes.json():[];
+    const catTotals={};
+    let grandTotal=0;
+    qs.forEach(sale=>{
+      let items=[];
+      try{items=typeof sale.items==='string'?JSON.parse(sale.items):(sale.items||[])}catch(e){items=[]}
+      items.forEach(it=>{
+        const amt=(parseFloat(it.price)||0)*(it.qty||1);
+        grandTotal+=amt;
+        const cat=it.extra?'Discounts/Vouchers':(it.category||'Other');
+        catTotals[cat]=(catTotals[cat]||0)+amt;
+      });
+    });
+    if(includeBookings){
+      const bRes=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${from}&booking_date=lte.${to}&select=payments,deposit_paid,deposit_amount`,{headers:H()});
+      const bookings=bRes.ok?await bRes.json():[];
+      let bookingTotal=0;
+      bookings.forEach(b=>{
+        let payments=[];
+        try{payments=typeof b.payments==='string'?JSON.parse(b.payments||'[]'):(b.payments||[])}catch(e){payments=[]}
+        const dep=b.deposit_paid?(parseFloat(b.deposit_amount)||0):0;
+        const payTotal=payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+        bookingTotal+=dep+payTotal;
+      });
+      if(bookingTotal>0){catTotals['Escape Room Bookings']=(catTotals['Escape Room Bookings']||0)+bookingTotal;grandTotal+=bookingTotal}
+    }
+    document.getElementById('snapTotalValue').textContent='$'+grandTotal.toFixed(2);
+    const sorted=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('snapCatBreakdown').innerHTML=sorted.length?sorted.map(([cat,val])=>`<div class="snap-cat-row"><span class="snap-cat-name">${cat}</span><span class="snap-cat-value">$${val.toFixed(2)}</span></div>`).join(''):'<div style="font-size:12px;color:#9ca3af;text-align:center;padding:10px 0">No sales in this range</div>';
+    msgEl.textContent='';
+  }catch(e){
+    msgEl.style.color='#dc2626';
+    msgEl.textContent='Error loading: '+e.message;
+    console.error(e);
+  }
+}
 function openWaiver(bookingId){const url=bookingId?`waiver.html?booking_id=${bookingId}`:'waiver.html';window.open(url,'_blank')}
 function showPOSHome(){
   document.getElementById('posHome').style.display='';
@@ -2418,6 +2577,8 @@ async function reinstateVoucher(id){await fetch(`${SB_URL}/rest/v1/vouchers?id=e
 
 // ── INIT ───────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',async()=>{
+  updatePosClock();
+  setInterval(updatePosClock,30000);
   const saved=localStorage.getItem('btb_staff_session');
   if(saved){
     try{
