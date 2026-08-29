@@ -274,11 +274,13 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .vp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:970;align-items:center;justify-content:center;padding:20px}
 .vp-overlay.open{display:flex}
 .vp-sheet{background:#fff;border-radius:16px;padding:24px 22px;width:100%;max-width:320px;text-align:center}
-.vp-stepper{display:flex;align-items:center;justify-content:center;gap:14px;margin:18px 0}
+.vp-stepper{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0}
 .vp-step-btn{width:44px;height:44px;border-radius:50%;border:2px solid #07b4c5;background:#f0fafb;color:#07b4c5;font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0}
 .vp-step-btn:active{background:#07b4c5;color:#fff}
-.vp-amount{font-size:28px;font-weight:700;color:#111827;min-width:110px;background:none;border:none;text-align:center;font-family:inherit}
+.vp-amount{font-size:28px;font-weight:700;color:#111827;width:86px;background:none;border:none;text-align:center;font-family:inherit}
 .vp-amount:focus{outline:none}
+.vp-amount::-webkit-outer-spin-button,.vp-amount::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.vp-amount{-moz-appearance:textfield}
 .snap-sheet{background:#fff;border-radius:16px;padding:20px 20px 16px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto}
 .snap-range-btn{font-size:12px;padding:6px 12px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit}
 .snap-range-btn.active{background:#07b4c5;color:#fff;border-color:#07b4c5;font-weight:600}
@@ -724,7 +726,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.1'; // v1.9.1: Variable-price product entry (added in v1.9.0) now uses a proper popup with +/- 10c stepper buttons and a direct price field, instead of a plain browser prompt() — easier to nudge the price up/down on a tablet.
+const BUILD_VERSION = '1.9.2'; // v1.9.2: Fixed the variable-price stepper popup (v1.9.1) — the price input had no fixed width, so on narrow phone screens it grew wide enough to push the +/- buttons off the edge of the popup. Input is now a fixed 86px wide and the buttons are visible.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
