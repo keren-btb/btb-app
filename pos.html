@@ -271,6 +271,14 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 /* ── SALES SNAPSHOT POPUP (header clock) ────────── */
 .snap-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:960;align-items:center;justify-content:center;padding:20px}
 .snap-overlay.open{display:flex}
+.vp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:970;align-items:center;justify-content:center;padding:20px}
+.vp-overlay.open{display:flex}
+.vp-sheet{background:#fff;border-radius:16px;padding:24px 22px;width:100%;max-width:320px;text-align:center}
+.vp-stepper{display:flex;align-items:center;justify-content:center;gap:14px;margin:18px 0}
+.vp-step-btn{width:44px;height:44px;border-radius:50%;border:2px solid #07b4c5;background:#f0fafb;color:#07b4c5;font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0}
+.vp-step-btn:active{background:#07b4c5;color:#fff}
+.vp-amount{font-size:28px;font-weight:700;color:#111827;min-width:110px;background:none;border:none;text-align:center;font-family:inherit}
+.vp-amount:focus{outline:none}
 .snap-sheet{background:#fff;border-radius:16px;padding:20px 20px 16px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto}
 .snap-range-btn{font-size:12px;padding:6px 12px;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit}
 .snap-range-btn.active{background:#07b4c5;color:#fff;border-color:#07b4c5;font-weight:600}
@@ -595,6 +603,24 @@ body{background:#e5e7eb;min-height:100vh;font-family:-apple-system,BlinkMacSyste
   </div>
 </div>
 
+<!-- Variable-price entry popup (One Piece singles etc — set the price at sale time) -->
+<div class="vp-overlay" id="vpOverlay" onclick="if(event.target===this)closeVariablePricePrompt()">
+  <div class="vp-sheet">
+    <div style="font-size:15px;font-weight:700;color:#111827" id="vpProductName"></div>
+    <div style="font-size:12px;color:#6b7280;margin-top:2px">Set the price for this sale</div>
+    <div class="vp-stepper">
+      <button class="vp-step-btn" onclick="stepVariablePrice(-0.10)">−</button>
+      <div style="display:flex;align-items:baseline;gap:2px">
+        <span style="font-size:20px;font-weight:700;color:#111827">$</span>
+        <input class="vp-amount" type="number" step="0.10" min="0" id="vpAmountInput" oninput="renderVpAmount()">
+      </div>
+      <button class="vp-step-btn" onclick="stepVariablePrice(0.10)">+</button>
+    </div>
+    <button onclick="confirmVariablePrice()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px">Add to cart →</button>
+    <button onclick="closeVariablePricePrompt()" style="width:100%;background:none;color:#6b7280;border:none;padding:6px;font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+  </div>
+</div>
+
 <!-- Sales Snapshot popup (tap the header clock) -->
 <div class="snap-overlay" id="snapOverlay" onclick="if(event.target===this)closeSalesSnapshot()">
   <div class="snap-sheet">
@@ -698,7 +724,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.0'; // v1.9.0: Product Sale — tapping a product with the new "Variable price" flag (set in Settings → Products) now prompts for a price each time (pre-filled with its saved sell_price, editable) instead of using a fixed price — for items like single board game pieces. Also added an "➕ Add money" tile next to "Take money off" on the payment screen — same reason+amount pattern, but adds a positive line to the cart instead of subtracting.
+const BUILD_VERSION = '1.9.1'; // v1.9.1: Variable-price product entry (added in v1.9.0) now uses a proper popup with +/- 10c stepper buttons and a direct price field, instead of a plain browser prompt() — easier to nudge the price up/down on a tablet.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
@@ -2170,18 +2196,39 @@ grid.innerHTML=filtered.map(p=>{
 function addToProdSaleCart(productId){
   const p=products.find(x=>x.id===productId);if(!p)return;if(!stockGuardOK(p))return;
   if(p.variable_price){
-    // Variable-price item (e.g. single board game pieces) — always ask for the
-    // price at sale time rather than using a fixed sell_price. Pre-filled with
-    // the saved sell_price so staff can just confirm if it's the usual amount.
-    const input=prompt(`Price for "${p.name}" ($):`,parseFloat(p.sell_price||0).toFixed(2));
-    if(input===null)return; // cancelled
-    const price=parseFloat(input);
-    if(isNaN(price)||price<0){alert('Enter a valid price.');return}
-    prodSaleCart.push({id:productId+'_'+Date.now(),name:p.name,price,qty:1,category:p.category,variablePriceProductId:productId});
-    renderProdSaleCart();
+    openVariablePricePrompt(productId);
     return;
   }
   const ex=prodSaleCart.find(x=>x.id===productId);if(ex)ex.qty++;else prodSaleCart.push({id:productId,name:p.name,price:parseFloat(p.sell_price||0),qty:1,category:p.category});renderProdSaleCart()}
+
+// ── Variable-price entry popup (One Piece singles etc) ──
+// Always asks for the price at sale time rather than using a fixed sell_price
+// — pre-filled with the saved sell_price so staff can just confirm if it's the
+// usual amount, with +/- 10c stepper buttons for quick adjustment.
+let vpProductId=null;
+function openVariablePricePrompt(productId){
+  const p=products.find(x=>x.id===productId);if(!p)return;
+  vpProductId=productId;
+  document.getElementById('vpProductName').textContent=p.name;
+  document.getElementById('vpAmountInput').value=parseFloat(p.sell_price||0).toFixed(2);
+  document.getElementById('vpOverlay').classList.add('open');
+}
+function closeVariablePricePrompt(){document.getElementById('vpOverlay').classList.remove('open');vpProductId=null}
+function renderVpAmount(){/* input is native, nothing extra to sync */}
+function stepVariablePrice(delta){
+  const input=document.getElementById('vpAmountInput');
+  const cur=parseFloat(input.value)||0;
+  const next=Math.max(0,Math.round((cur+delta)*100)/100);
+  input.value=next.toFixed(2);
+}
+function confirmVariablePrice(){
+  const p=products.find(x=>x.id===vpProductId);if(!p)return;
+  const price=parseFloat(document.getElementById('vpAmountInput').value);
+  if(isNaN(price)||price<0){alert('Enter a valid price.');return}
+  prodSaleCart.push({id:vpProductId+'_'+Date.now(),name:p.name,price,qty:1,category:p.category,variablePriceProductId:vpProductId});
+  renderProdSaleCart();
+  closeVariablePricePrompt();
+}
 function removeFromProdSaleCart(productId){const idx=prodSaleCart.findIndex(x=>x.id===productId);if(idx===-1)return;if(prodSaleCart[idx].qty>1)prodSaleCart[idx].qty--;else prodSaleCart.splice(idx,1);renderProdSaleCart()}
 function clearProdSaleCart(){prodSaleCart=[];renderProdSaleCart()}
 function renderProdSaleCart(){
