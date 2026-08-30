@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.5 — 2026-08-30 — Timezone consistency fix: voucher list Issued/Used dates now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
 - v1.9.4 — 2026-08-30 — Product Sale search box now clears itself as soon as you tap a product tile (fixed-price or variable-price), so the full grid is back and ready for the next search.
 - v1.9.3 — 2026-08-30 — "Take money off" and "Add money" amount fields on the Product Sale payment screen now have +/- $1 stepper buttons either side of the amount, same style as the v1.9.2 variable-price popup (fixed-width input so the buttons don't get pushed off-screen).
 - v1.9.2 — 2026-08-30 — Fixed the variable-price stepper popup (v1.9.1) — the price input had no fixed width, so on narrow phone screens it grew wide enough to push the +/- buttons off the edge of the popup. Input is now a fixed 86px wide and the buttons are visible.
@@ -85,6 +86,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.39 — 2026-08-30 — Timezone consistency fixes: product Created/Updated dates and the products CSV export filename now use NZ-anchored dates (Pacific/Auckland) instead of the device's local timezone/UTC, matching the pattern used elsewhere in the app.
 - v16.4.38 — 2026-08-30 — Settings → Products detail editor gained a "💲 Variable price (ask each time)" checkbox, backed by new products.variable_price column. Used by pos.html's Product Sale grid to prompt for a price at sale time instead of using the saved sell_price (for items like single-piece board game pieces).
 - v16.4.37 — 2026-08-29 — Settings → Links now has a "Game Wishlist" card (opens game_wishlist_form.html in a new tab), matching the existing Booking Widget/Gift Voucher/Reports cards.
 - v16.4.36 — 2026-08-28 — Products panel: trade_show added to CSV export and both import paths (Import add-only and Replace entire inventory, which share the same parser code) — the Trade Show flag now round-trips through CSV like every other product column. Note: CSVs exported before this version won't have a trade_show column; re-importing those older files will just default the flag to off for those rows, the same way any other missing column would.
@@ -125,6 +127,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.21 — 2026-08-30 — Timezone consistency fix: "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
 - v1.9.20 — 2026-08-24 — Added a "Game Wishlist" tab (visible to all staff, not admin-only): lists customers watching for a specific secondhand game, pulled from game_wishlist joined with clients for contact info. Filterable by status (Watching/Found/Purchased/Cancelled) and searchable by game name, with Mark Found/Mark Purchased/Cancel buttons to progress each entry. Companion to the new game_wishlist_form.html and the "Add to game wishlist" link added to btb_app.html's booking card menu.
 - v1.9.19 — 2026-08-17 — New: calendar-mode staff (currently Joolz) now see a "New events found on your calendar" panel on the Availability tab. Part of the new recurring-calendar-event review system (see Database section below) — recurring events synced from their personal calendar need a one-time yes/no (does this pattern mean they're unavailable for GM shifts?), answered here and remembered. Includes a bulk "Ignore all pending" button since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real work-relevant ones.
 - v1.9.17 — 2026-08-08 — Swapped in a new VAPID_PUBLIC_KEY. The previous one had no matching private key saved anywhere (confirmed — no secret existed), so push notifications could never have actually worked despite the subscribe UI/code being in place. Existing push_subscriptions rows (signed under the old, orphaned key) were cleared — staff need to re-toggle "Alerts" on once the new VAPID secrets are added in Supabase, to get a valid subscription under the new key.
@@ -157,6 +160,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.12 — 2026-08-30 — Fixed timezone bug in Vouchers report: Issued/Used dates (table + CSV export) were sliced straight off the raw UTC timestamp instead of converting to NZ local date, so vouchers issued/used during NZ mornings could show the previous day. Now uses the existing toNzDateStr() helper.
 - v1.0.11 — 2026-08-28 — Merged Quick Sales into Revenue Overview: combined stat cards (total/collected/outstanding/avg across bookings + quick sales), weekly and payment-method charts now include quick sales, new "Bookings vs Shop sales" split chart, new combined transactions table. Removed standalone Quick Sales/Sales Summary nav item and panel. Moved Products Sold nav item up into the Revenue group.
 - v1.0.10 — 2026-08-28 — Fixed timezone bug: quick_sales report query compared NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made during NZ morning hours from "today"/date-range reports. Added nzLocalToUtcISO() helper (DST-aware) to convert local NZ date boundaries to correct UTC instants before querying.
 - v1.0.9 — 2026-08-22 — Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage). Also backfilled 13 pre-existing bookings in Supabase that had a null total_amount (from before cal.com/walk-in bookings reliably saved a price).
@@ -228,6 +232,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.7.2 — 2026-08-30 — Fixed timezone bug: todayStr() was using the device's local clock/timezone instead of being NZ-anchored, so daily task generation/loading (ensureDailyInstancesForToday, loadDailyInstances) could pick the wrong date if a device's clock or timezone was off. Now uses Pacific/Auckland via Intl.DateTimeFormat, matching the pattern used in the other apps.
 - v1.7.1 — 2026-08-10 — Daily Tasks list now groups templated tasks under expandable category headers (Opening/Shutdown/Tech/etc, with a done-count badge), instead of one flat list. Tasks with no category fall into "Uncategorized". One-off tasks still show separately below, ungrouped.
 - v1.7.0 — 2026-08-10 — Added Daily Categories admin screen (new daily_task_categories table, same add/rename/activate pattern as Checklist Types) so Opening/Shutdown/Tech-style categories can be managed in-app. Grouped/expandable display on the Daily Tasks tab itself is a follow-up step, not yet done.
 - v1.6.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.

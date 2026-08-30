@@ -1096,7 +1096,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.20'; // v1.9.20: Added "Game Wishlist" tab (visible to all staff, not admin-only) — lists customers watching for a specific secondhand game (from game_wishlist table, joined with clients for contact info), filterable by status (watching/found/purchased/cancelled) and searchable by game name, with buttons to progress an entry's status.
+const BUILD_VERSION = '1.9.21'; // v1.9.21: Timezone consistency fix — "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone, matching the rest of the app.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
@@ -4208,7 +4208,7 @@ function renderMyHoursRequests() {
     <span class="shift-status-badge" style="background:${statusColors[r.status]}1a;color:${statusColors[r.status]}">${statusLabels[r.status]||r.status}</span>
     <div class="shift-notes" style="margin-top:6px">${escapeHtml(r.message)}</div>
     ${r.admin_note ? `<div class="shift-notes" style="margin-top:4px"><strong>Admin:</strong> ${escapeHtml(r.admin_note)}</div>` : ''}
-    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric',timeZone:'Pacific/Auckland'})}</div>
   </div>`).join('');
 }
 
@@ -4219,7 +4219,7 @@ function renderAdminHoursRequests() {
   el.innerHTML = pending.map(r => `<div class="shift-card">
     <div class="shift-staff-name"><i class="ti ti-user" style="font-size:12px"></i> ${escapeHtml(r.staff_name)||'Unknown'}</div>
     <div class="shift-notes" style="margin-top:4px">${escapeHtml(r.message)}</div>
-    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:4px">Sent ${new Date(r.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric',timeZone:'Pacific/Auckland'})}</div>
     <div class="shift-actions">
       <button class="btn-primary btn-sm" onclick="resolveHoursRequest('${r.id}','approved')"><i class="ti ti-check"></i> Approve</button>
       <button class="btn-secondary btn-sm" onclick="resolveHoursRequest('${r.id}','declined')"><i class="ti ti-x"></i> Decline</button>
@@ -4292,7 +4292,7 @@ function renderWishlist() {
       </div>
       ${w.max_price != null ? `<div style="font-size:12px;color:#374151;margin-top:6px">Max price: $${w.max_price}</div>` : ''}
       ${w.notes ? `<div class="shift-notes" style="margin-top:4px">${escapeHtml(w.notes)}</div>` : ''}
-      <div style="font-size:11px;color:#9ca3af;margin-top:4px">Added ${new Date(w.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'})}</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px">Added ${new Date(w.created_at).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric',timeZone:'Pacific/Auckland'})}</div>
       ${w.status !== 'cancelled' && w.status !== 'purchased' ? `<div class="shift-actions">
         ${w.status === 'watching' ? `<button class="btn-primary btn-sm" onclick="updateWishlistStatus('${w.id}','found')"><i class="ti ti-check"></i> Mark Found</button>` : ''}
         ${w.status === 'found' ? `<button class="btn-primary btn-sm" onclick="updateWishlistStatus('${w.id}','purchased')"><i class="ti ti-shopping-cart"></i> Mark Purchased</button>` : ''}

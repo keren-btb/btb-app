@@ -412,7 +412,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.11'; // v1.0.11: Merged Quick Sales into Revenue Overview (combined stat cards, weekly/payment-method charts, new Bookings-vs-Shop-sales chart, combined transactions table). Removed standalone "Quick Sales/Sales Summary" nav section. Moved "Products Sold" up into the Revenue nav group (kept as its own report).
+const BUILD_VERSION = '1.0.12'; // v1.0.12: Fixed timezone bug in Vouchers report — Issued/Used dates (table + CSV export) were sliced straight off the raw UTC timestamp instead of converting to NZ local date, so vouchers issued/used during NZ mornings could show the previous day. Now uses the existing toNzDateStr() helper.
 // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
 // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
@@ -1177,12 +1177,12 @@ function renderVouchersTable(){
     <td>${fmtMoney(v.value)}${v.type==='players'?` (${v.players}p${v.game_name?' '+escapeHtml(v.game_name):''})`:''}${v.personalised?'<span class="badge badge-purple" style="margin-left:4px">✨ Personal</span>':''}</td>
     <td>${fmtMoney(v.paid_amount)}</td>
     <td><span class="badge ${statusBadge[v.status]||'badge-gray'}">${v.status}</span></td>
-    <td>${v.issued_at?fmtDate(v.issued_at.slice(0,10)):'—'}</td>
-    <td>${v.used_at?fmtDate(v.used_at.slice(0,10)):'—'}</td>
+    <td>${v.issued_at?fmtDate(toNzDateStr(v.issued_at)):'—'}</td>
+    <td>${v.used_at?fmtDate(toNzDateStr(v.used_at)):'—'}</td>
     <td>${escapeHtml(v.purchased_by)||'—'}</td>
   </tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">No vouchers found.</td></tr>';
 
-  lastCSVData=rows.map(v=>({Code:v.code,Type:v.type,Value:(parseFloat(v.value)||0).toFixed(2),PaidAmount:(parseFloat(v.paid_amount)||0).toFixed(2),Status:v.status,Issued:v.issued_at?.slice(0,10)||'',Used:v.used_at?.slice(0,10)||'',PurchasedBy:v.purchased_by||'',Game:v.game_name||''}));
+  lastCSVData=rows.map(v=>({Code:v.code,Type:v.type,Value:(parseFloat(v.value)||0).toFixed(2),PaidAmount:(parseFloat(v.paid_amount)||0).toFixed(2),Status:v.status,Issued:v.issued_at?toNzDateStr(v.issued_at):'',Used:v.used_at?toNzDateStr(v.used_at):'',PurchasedBy:v.purchased_by||'',Game:v.game_name||''}));
   lastCSVFilename='vouchers_'+dateFrom+'_'+dateTo;
 }
 
