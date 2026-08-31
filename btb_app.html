@@ -2071,6 +2071,12 @@ async function doLogin(){
     // fresh login's calendar was always empty until a manual refresh. loadBookings()
     // was already being called on the restored-session path but not here.
     await loadBookings(viewMonth,viewYear);
+    // v16.4.45: same fix — RLS on `products` only lets anon see active=true
+    // rows, so any inactive/archived products were missing from the initial
+    // load (e.g. from Quick Sale or booking payment product pickers) until
+    // the Products settings screen was opened once to re-fetch them.
+    // Reload now with the real token to get the full list.
+    await loadProducts();
     showApp();
     renderActiveView();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
@@ -2862,6 +2868,12 @@ await loadShiftTimes();
         // empty, leaving the calendar blank until a manual refresh. Reload
         // now with the real token to get the actual bookings.
         await loadBookings(viewMonth,viewYear);
+        // v16.4.45: same fix — RLS on `products` only lets anon see active=true
+        // rows, so any inactive/archived products were missing from the initial
+        // load (e.g. from Quick Sale or booking payment product pickers) until
+        // the Products settings screen was opened once to re-fetch them.
+        // Reload now with the real token to get the full list.
+        await loadProducts();
         // Speed fix: show the app right away using the cached role/permissions
         // from last login, instead of waiting on a get_my_role round-trip first.
         // Validate quietly in the background; only sign out if that check fails,
