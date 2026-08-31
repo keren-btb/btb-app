@@ -136,6 +136,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.23 — 2026-08-31 — Bug fix: Shifts tab (admin view) — the sticky "Create shift" card required scrolling through the entire "All shifts" list before its Create shift button became reachable. Card now has a capped height with its own internal scroll instead.
 - v1.9.22 — 2026-08-30 — Suite-wide mobile viewport fix: nav/content-area/slide-in panel heights now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body and staff-detail modal so form fields/buttons aren't hidden under the iPhone home-indicator area.
 - v1.9.21 — 2026-08-30 — Timezone consistency fix: "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
 - v1.9.20 — 2026-08-24 — Added a "Game Wishlist" tab (visible to all staff, not admin-only): lists customers watching for a specific secondhand game, pulled from game_wishlist joined with clients for contact info. Filterable by status (Watching/Found/Purchased/Cancelled) and searchable by game name, with Mark Found/Mark Purchased/Cancel buttons to progress each entry. Companion to the new game_wishlist_form.html and the "Add to game wishlist" link added to btb_app.html's booking card menu.
