@@ -4021,7 +4021,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.26'; // v1.7.26: Fixed "Notify me" being nearly unreadable on Full slots (was inheriting 30% opacity from the whole button — now only the time/status text dims, notify link stays full colour). Also fixed a stuck-blurred-background bug: all three "thanks" confirmation popups (waitlist, enquiry, contact message) had a Done button using this.closest('div[style]').remove(), which matched the wrong nested div and only removed the inner card, leaving the full-screen blur stuck. Now targets the actual overlay directly.
+const BUILD_VERSION = '1.7.27'; // v1.7.27: Fixed the real cause of waitlist entries not appearing on the calendar — none of the waitlist save steps checked whether the request actually succeeded, so a failure was silently ignored and the "You're on the list!" success message showed regardless. All three steps (find/create client, save booking) now throw and show a visible error if the server rejects them. Waitlist saves also now set skip_confirmation_email so a "booking confirmed" email doesn't go out for a waitlist request. Applied the same missing-check fix to the enquiry form's booking save.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5612,7 +5612,7 @@ try {
     }
 
     // Save to game_bookings as an enquiry
-    await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+    const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
       headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
@@ -5630,6 +5630,7 @@ try {
         assigned_staff_ids: JSON.stringify([]),
       })
     });
+    if (!br.ok) throw new Error('Enquiry save failed: ' + await br.text());
 
     // Log as a contact entry so it shows up in the client inbox/overview
     // "Needs reply" queue immediately, not just once someone has replied.
@@ -5707,6 +5708,7 @@ async function submitWaitlist() {
       method: 'POST', headers: SB_H,
       body: JSON.stringify({ p_email: contactEmail || null, p_phone: contactPhone || null })
     });
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
     const foundId = await cr.json();
     if (foundId) { clientId = foundId; }
     else {
@@ -5714,12 +5716,13 @@ async function submitWaitlist() {
         method: 'POST', headers: SB_H,
         body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'waitlist' })
       });
+      if (!nr.ok) throw new Error('Client creation failed: ' + await nr.text());
       clientId = await nr.json();
     }
 
     // Save to game_bookings as a waitlist entry — same slot, same date, so it
     // shows on the calendar for staff to action if that time frees up.
-    await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+    const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
       headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
@@ -5731,12 +5734,14 @@ async function submitWaitlist() {
         players_booked: 1,
         status: 'waitlist',
         source: 'online',
+        skip_confirmation_email: true,
         notes_when_booked: name + ' · ' + noteText,
         tags: JSON.stringify([]),
         staff_notes: JSON.stringify([]),
         assigned_staff_ids: JSON.stringify([]),
       })
     });
+    if (!br.ok) throw new Error('Booking save failed: ' + await br.text());
 
     if (clientId) {
       fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
