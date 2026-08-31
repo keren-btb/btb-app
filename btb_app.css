@@ -1,6 +1,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{background:#e5e7eb;min-height:100vh;display:flex;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
+body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
 .app{width:100%;max-width:480px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.13)}
 .header{background:#1a1035;padding:14px 18px 10px}
 .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
@@ -210,7 +210,7 @@ body{background:#e5e7eb;min-height:100vh;display:flex;justify-content:center;pad
 .icon-btn.danger:hover{color:#dc2626;background:#fee2e2}
 .prod-detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:960;align-items:flex-end;justify-content:center}
 .prod-detail-overlay.open{display:flex}
-.prod-detail-card{position:relative;background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:18px}
+.prod-detail-card{position:relative;background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80vh;max-height:80dvh;overflow-y:auto;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
 .prod-detail-close{position:absolute;top:14px;right:14px;background:none;border:none;color:#9ca3af;font-size:18px;cursor:pointer;padding:4px;border-radius:7px}
 .prod-detail-close:hover{background:#f3f4f6;color:#374151}
 .add-row{display:flex;gap:7px;align-items:center}

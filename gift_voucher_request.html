@@ -20,7 +20,7 @@
   --head:'DM Sans',sans-serif;--body:'DM Sans',sans-serif;
 }
 body{
-  background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;min-height:100vh;
+  background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;min-height:100vh;min-height:100dvh;
   background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(7,180,197,0.08) 0%,transparent 60%),
     linear-gradient(rgba(7,180,197,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(7,180,197,0.02) 1px,transparent 1px);
   background-size:100% 100%,48px 48px,48px 48px;
@@ -201,7 +201,7 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.7'; // v1.1.7: Replaced realistic-looking placeholder text in the contact fields (a real name/phone/email pattern) with generic placeholders, matching the same fix applied to game_wishlist_form.html.
+const BUILD_VERSION = '1.1.8'; // v1.1.8: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 // v1.1.6 — Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.1.4 — Added phone number to the "having trouble loading" error screen
 //          so a customer has a fallback way to reach us if the page can't

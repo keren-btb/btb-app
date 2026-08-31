@@ -30,7 +30,7 @@
   --body:'DM Sans',sans-serif;    /* Crisp, clean sans-serif for reading dense waiver text */
 }
 
-body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--text);min-height:100vh;padding-bottom:40px}
+body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--text);min-height:100vh;min-height:100dvh;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
 
 /* Header Branding Section Styles */
 .hdr{background:var(--navy);padding:20px 24px 18px;text-align:center}
@@ -372,7 +372,7 @@ const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`
 // BUILD VERSION — bump this each time this file is shipped, so you can confirm
 // in the browser console which copy you're looking at. (No header UI tag for
 // this one yet — this file didn't have build version tracking before.)
-const BUILD_VERSION = '1.0.4'; // v1.0.4: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.0.5'; // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 // v1.0.1: Security fix — escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 

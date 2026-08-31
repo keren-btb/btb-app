@@ -12,7 +12,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#1d9e75;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
-body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;min-height:100dvh}
 
 .login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
 .login-screen.active{display:flex}
@@ -106,7 +106,7 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
 </div>
 
 <script>
-const BUILD_VERSION = '1.0.4'; // v1.0.4: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.0.5'; // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 // v1.0.2 — Single sign-on: switched from its own separate sessionStorage
 //          session ('btb_profile_user') to the shared localStorage session
 //          ('btb_staff_session') used by every other staff app, so a staff

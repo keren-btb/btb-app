@@ -18,7 +18,7 @@
   --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;
   --text:#111827;--muted:#6b7280;--light:#f9fafb;
 }
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 
 /* LOGIN */
 .login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
@@ -36,8 +36,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
 
 /* LAYOUT */
-.app-wrap{display:flex;flex:1;min-height:100vh}
-.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.app-wrap{display:flex;flex:1;min-height:100vh;min-height:100dvh}
+.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
 .sidebar-logo{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
 .sidebar-brand{font-size:15px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:7px}
 .sidebar-sub{font-size:11px;color:#8a9bb5;margin-top:3px}
@@ -412,7 +412,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.12'; // v1.0.12: Fixed timezone bug in Vouchers report — Issued/Used dates (table + CSV export) were sliced straight off the raw UTC timestamp instead of converting to NZ local date, so vouchers issued/used during NZ mornings could show the previous day. Now uses the existing toNzDateStr() helper.
+const BUILD_VERSION = '1.0.13'; // v1.0.13: Suite-wide mobile viewport fix — sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
 // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link

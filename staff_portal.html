@@ -10,10 +10,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
+body{background:#f0f2f5;min-height:100vh;min-height:100dvh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}
 
 /* ── APP WRAPPER — sidebar layout ── */
-.app{display:flex;min-height:100vh;flex-direction:column}
+.app{display:flex;min-height:100vh;min-height:100dvh;flex-direction:column}
 
 /* ── HEADER ── */
 .header{background:#522081;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:50}
@@ -27,7 +27,7 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .app-body{display:flex;flex:1;min-height:0}
 
 /* ── NAV (sidebar) ── */
-.nav{width:220px;flex-shrink:0;background:#1a1035;display:flex;flex-direction:column;padding:12px 0;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+.nav{width:220px;flex-shrink:0;background:#1a1035;display:flex;flex-direction:column;padding:12px 0;position:sticky;top:53px;height:calc(100vh - 53px);height:calc(100dvh - 53px);overflow-y:auto}
 .nav-btn{display:flex;flex-direction:row;align-items:center;gap:10px;padding:11px 18px;font-size:13px;color:#a0b0c8;background:none;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;width:100%;text-align:left}
 .nav-btn:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-btn.active{color:#fff;background:rgba(146,64,14,.3);border-left-color:#92400e}
@@ -53,7 +53,7 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 }
 
 /* ── SECTIONS (main content) ── */
-.content-area{flex:1;min-width:0;overflow-y:auto;height:calc(100vh - 53px)}
+.content-area{flex:1;min-width:0;overflow-y:auto;height:calc(100vh - 53px);height:calc(100dvh - 53px)}
 .section{display:none;padding:24px 28px;max-width:1100px}
 .section.active{display:block}
 
@@ -314,18 +314,18 @@ body{background:#f0f2f5;min-height:100vh;font-family:-apple-system,BlinkMacSyste
 .panel.center-modal.open{opacity:1}
 .panel.center-modal .modal-box{background:#fff;border-radius:14px;width:92%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
 .panel.center-modal .panel-header{background:#92400e;flex-shrink:0;border-radius:14px 14px 0 0}
-.panel.center-modal .panel-body{padding:16px}
+.panel.center-modal .panel-body{padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 @media(max-width:600px){
   .panel.center-modal .modal-box{width:96%;max-height:92vh}
 }
 
 /* ── PANEL (slide-in) ── */
-.panel{position:fixed;top:0;left:220px;width:calc(100% - 220px);height:100vh;background:#fff;transition:transform .28s cubic-bezier(.4,0,.2,1);pointer-events:none;display:flex;flex-direction:column;z-index:200;overflow:hidden;transform:translateX(100%)}
+.panel{position:fixed;top:0;left:220px;width:calc(100% - 220px);height:100vh;height:100dvh;background:#fff;transition:transform .28s cubic-bezier(.4,0,.2,1);pointer-events:none;display:flex;flex-direction:column;z-index:200;overflow:hidden;transform:translateX(100%)}
 .panel.open{transform:translateX(0);pointer-events:all}
 .panel-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#92400e;flex-shrink:0}
 .panel-back{background:none;border:none;cursor:pointer;color:#07b4c5;font-size:14px;font-weight:600;display:flex;align-items:center;gap:4px;padding:4px 0;font-family:inherit}
 .panel-title{font-size:15px;font-weight:700;color:#fff}
-.panel-body{padding:14px;overflow-y:auto;flex:1}
+.panel-body{padding:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom));overflow-y:auto;flex:1}
 
 /* ── WEEK NAV ── */
 .week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -1096,7 +1096,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.21'; // v1.9.21: Timezone consistency fix — "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone, matching the rest of the app.
+const BUILD_VERSION = '1.9.22'; // v1.9.22: Suite-wide mobile viewport fix — nav/content-area/slide-in panel heights now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body and staff-detail modal so form fields/buttons aren't hidden under the iPhone home-indicator area.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on

@@ -34,6 +34,7 @@ body {
   font-family: 'Inter', sans-serif;
   font-size: 15px;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-body);
   color: var(--text-primary);
 }
@@ -68,6 +69,7 @@ body {
 .split {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   align-items: stretch;
   justify-content: center;
   padding: 20px;
@@ -3972,7 +3974,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.23'; // v1.7.23: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
+const BUILD_VERSION = '1.7.24'; // v1.7.24: Suite-wide mobile viewport fix — body/.split now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 

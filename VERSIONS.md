@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.6 — 2026-08-30 — Suite-wide mobile viewport fix: app shell and bottom sheets/bars now use 100dvh (with 100vh fallback) instead of 100vh, so the layout doesn't get clipped behind the browser's address bar toolbar on phones. Added safe-area-inset-bottom padding to the home screen, product-sale footer, payment screen, voucher list, booking drawer, and totals bar so nothing sits under the iPhone home-indicator area.
 - v1.9.5 — 2026-08-30 — Timezone consistency fix: voucher list Issued/Used dates now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
 - v1.9.4 — 2026-08-30 — Product Sale search box now clears itself as soon as you tap a product tile (fixed-price or variable-price), so the full grid is back and ready for the next search.
 - v1.9.3 — 2026-08-30 — "Take money off" and "Add money" amount fields on the Product Sale payment screen now have +/- $1 stepper buttons either side of the amount, same style as the v1.9.2 variable-price popup (fixed-width input so the buttons don't get pushed off-screen).
@@ -77,6 +78,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-08-24 — Initial release: new standalone customer-facing form (same visual pattern as gift_voucher_request.html) where a customer names a secondhand game they want, an optional max price, and their contact details. Submits via the new public_submit_wishlist RPC, which finds-or-creates their client record and inserts a game_wishlist row. Supports optional ?name=&phone=&email= URL prefill, used by the new "Add to game wishlist" link on booking cards in btb_app.html.
 
 ## btb_app.css
+- 2026-08-30 — Suite-wide mobile viewport fix: body and the product-detail bottom sheet now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones; product-detail sheet also gets safe-area-inset-bottom padding for the iPhone home-indicator area. (Bumped btb_app.html's cache-busting query string to ?v=16.4.40 in the same commit.)
 - Tracked via the `?v=` cache-busting query string on btb_app.html's stylesheet link, not an internal BUILD_VERSION (plain CSS has nowhere to put one) — bump that query string every time this file changes
 - v16.4.28 — 2026-08-24 — Added `.prod-detail-overlay`/`.prod-detail-card`/`.prod-detail-close` styles for the new product detail popup in the Products settings panel (slides up from the bottom, same pattern as pos.html's quick-sale overlay).
 - v16.4.21 — 2026-08-15 — .pay-badge: removed margin-bottom and added white-space:nowrap now that it sits inline next to the ⋯ button instead of stacked in the left column.
@@ -86,6 +88,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.40 — 2026-08-30 — Suite-wide mobile viewport fix in shared btb_app.css (also used by clients_mobile.html) — body and the product-detail bottom sheet now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones; product-detail sheet also gets safe-area-inset-bottom padding for the iPhone home-indicator area.
 - v16.4.39 — 2026-08-30 — Timezone consistency fixes: product Created/Updated dates and the products CSV export filename now use NZ-anchored dates (Pacific/Auckland) instead of the device's local timezone/UTC, matching the pattern used elsewhere in the app.
 - v16.4.38 — 2026-08-30 — Settings → Products detail editor gained a "💲 Variable price (ask each time)" checkbox, backed by new products.variable_price column. Used by pos.html's Product Sale grid to prompt for a price at sale time instead of using the saved sell_price (for items like single-piece board game pieces).
 - v16.4.37 — 2026-08-29 — Settings → Links now has a "Game Wishlist" card (opens game_wishlist_form.html in a new tab), matching the existing Booking Widget/Gift Voucher/Reports cards.
@@ -127,6 +130,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.22 — 2026-08-30 — Suite-wide mobile viewport fix: nav/content-area/slide-in panel heights now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body and staff-detail modal so form fields/buttons aren't hidden under the iPhone home-indicator area.
 - v1.9.21 — 2026-08-30 — Timezone consistency fix: "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
 - v1.9.20 — 2026-08-24 — Added a "Game Wishlist" tab (visible to all staff, not admin-only): lists customers watching for a specific secondhand game, pulled from game_wishlist joined with clients for contact info. Filterable by status (Watching/Found/Purchased/Cancelled) and searchable by game name, with Mark Found/Mark Purchased/Cancel buttons to progress each entry. Companion to the new game_wishlist_form.html and the "Add to game wishlist" link added to btb_app.html's booking card menu.
 - v1.9.19 — 2026-08-17 — New: calendar-mode staff (currently Joolz) now see a "New events found on your calendar" panel on the Availability tab. Part of the new recurring-calendar-event review system (see Database section below) — recurring events synced from their personal calendar need a one-time yes/no (does this pattern mean they're unavailable for GM shifts?), answered here and remembered. Includes a bulk "Ignore all pending" button since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real work-relevant ones.
@@ -160,6 +164,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.13 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 - v1.0.12 — 2026-08-30 — Fixed timezone bug in Vouchers report: Issued/Used dates (table + CSV export) were sliced straight off the raw UTC timestamp instead of converting to NZ local date, so vouchers issued/used during NZ mornings could show the previous day. Now uses the existing toNzDateStr() helper.
 - v1.0.11 — 2026-08-28 — Merged Quick Sales into Revenue Overview: combined stat cards (total/collected/outstanding/avg across bookings + quick sales), weekly and payment-method charts now include quick sales, new "Bookings vs Shop sales" split chart, new combined transactions table. Removed standalone Quick Sales/Sales Summary nav item and panel. Moved Products Sold nav item up into the Revenue group.
 - v1.0.10 — 2026-08-28 — Fixed timezone bug: quick_sales report query compared NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made during NZ morning hours from "today"/date-range reports. Added nzLocalToUtcISO() helper (DST-aware) to convert local NZ date boundaries to correct UTC instants before querying.
@@ -182,6 +187,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.24 — 2026-08-30 — Suite-wide mobile viewport fix: body/.split now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 - v1.7.22 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
 - v1.7.21 — 2026-08-06 — Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
 - v1.7.20 — 2026-08-06 — Board Game Cafe "How it works" panel is now a freely-orderable list of title/body lines (bookingText.cafeInfo.items) instead of 3 fixed fields — titles are editable and lines can be added/removed/reordered from the Page Text panel. Pricing line stays live-calculated but can be renamed/reordered.
@@ -197,6 +203,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html
+- v1.1.8 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.1.7 — 2026-08-24 — Replaced realistic-looking placeholder text ("Sarah Robinson" / "021 123 4567" / "sarah@example.com") in the contact fields with generic placeholders, matching the same fix applied to the new game_wishlist_form.html.
 - v1.1.6 — (undated, not logged at the time) — Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 - v1.1.5 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
@@ -206,18 +213,21 @@ Newest entry per file goes at the top of that file's list.
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
+- v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Fixed silent failure if live game settings can't load: previously fell back to a stale 4-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching gift_voucher_request.html / booking widget pattern
 - v1.0.1 — 2026-07-29 — Security fix: escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Single sign-on: switched from its own separate sessionStorage session ('btb_profile_user') to the shared localStorage session ('btb_staff_session') used by every other staff app
 - v1.0.1 — (undated, pre-existing) — Updated links to point to the renamed clients.html (was client_overview.html)
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.6 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
 - v1.5.5 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
 - v1.5.4 — 2026-08-10 — Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
 - v1.5.2 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.5.1 before this — ahead of what was last logged here; gap not reconciled.)
@@ -232,6 +242,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.7.3 — 2026-08-30 — Suite-wide mobile viewport fix: app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.7.2 — 2026-08-30 — Fixed timezone bug: todayStr() was using the device's local clock/timezone instead of being NZ-anchored, so daily task generation/loading (ensureDailyInstancesForToday, loadDailyInstances) could pick the wrong date if a device's clock or timezone was off. Now uses Pacific/Auckland via Intl.DateTimeFormat, matching the pattern used in the other apps.
 - v1.7.1 — 2026-08-10 — Daily Tasks list now groups templated tasks under expandable category headers (Opening/Shutdown/Tech/etc, with a done-count badge), instead of one flat list. Tasks with no category fall into "Uncategorized". One-off tasks still show separately below, ungrouped.
 - v1.7.0 — 2026-08-10 — Added Daily Categories admin screen (new daily_task_categories table, same add/rename/activate pattern as Checklist Types) so Opening/Shutdown/Tech-style categories can be managed in-app. Grouped/expandable display on the Daily Tasks tab itself is a follow-up step, not yet done.

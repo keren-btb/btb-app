@@ -17,7 +17,7 @@
   --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;
   --text:#111827;--muted:#6b7280;--light:#f9fafb;
 }
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 
 /* LOGIN */
 .login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
@@ -35,8 +35,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
 
 /* LAYOUT */
-.app-wrap{display:flex;flex:1;min-height:100vh}
-.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.app-wrap{display:flex;flex:1;min-height:100vh;min-height:100dvh}
+.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
 .sidebar-logo{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
 .sidebar-brand{font-size:15px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:7px}
 .sidebar-sub{font-size:11px;color:#8a9bb5;margin-top:3px}
@@ -117,7 +117,7 @@ tr:last-child td{border-bottom:none}
 /* SLIDE-IN PANEL */
 .panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;z-index:900;transition:background .2s}
 .panel-backdrop.open{pointer-events:auto}
-.side-panel{position:fixed;top:0;right:0;height:100vh;width:640px;max-width:95vw;background:#f4fafb;box-shadow:-4px 0 24px rgba(0,0,0,.13);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
+.side-panel{position:fixed;top:0;right:0;height:100vh;height:100dvh;width:640px;max-width:95vw;background:#f4fafb;box-shadow:-4px 0 24px rgba(0,0,0,.13);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
 .side-panel.open{transform:translateX(0)}
 .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .panel-close{background:none;border:1px solid var(--border);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -125,7 +125,7 @@ tr:last-child td{border-bottom:none}
 .panel-name{font-size:16px;font-weight:700;color:var(--text)}
 .panel-meta{font-size:12px;color:var(--muted);margin-top:2px}
 .resolve-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--green);color:var(--green);background:#f0fdf8;cursor:pointer;font-weight:600;font-family:inherit;white-space:nowrap}
-.panel-body{padding:16px 20px;overflow-y:auto;flex:1}
+.panel-body{padding:16px 20px;padding-bottom:calc(16px + env(safe-area-inset-bottom));overflow-y:auto;flex:1}
 
 .thread-msg{border-radius:10px;padding:10px 12px;margin-bottom:8px;max-width:94%}
 .thread-msg.inbound{background:#f0fafb;border-left:3px solid var(--teal);margin-right:auto}
@@ -484,7 +484,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.5'; // v1.5.5: Sent replies now also pass the plain-text body to send_enquiry_template_email, so the thread log can store what was actually sent (was only saving the template label). // v1.5.4: Status filter changed from pill/chip buttons to a dropdown select (matches the Source filter style). Removed now-unused .filter-chip CSS.
+const BUILD_VERSION = '1.5.6'; // v1.5.6: Suite-wide mobile viewport fix — sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
