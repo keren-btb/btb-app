@@ -4021,7 +4021,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.27'; // v1.7.27: Fixed the real cause of waitlist entries not appearing on the calendar — none of the waitlist save steps checked whether the request actually succeeded, so a failure was silently ignored and the "You're on the list!" success message showed regardless. All three steps (find/create client, save booking) now throw and show a visible error if the server rejects them. Waitlist saves also now set skip_confirmation_email so a "booking confirmed" email doesn't go out for a waitlist request. Applied the same missing-check fix to the enquiry form's booking save.
+const BUILD_VERSION = '1.7.28'; // v1.7.28: Enquiries (Casual VR / Table hire / General enquiry / contact message) no longer trigger the "your booking is confirmed" email — they now set skip_confirmation_email like the waitlist save does, since an enquiry isn't a confirmed booking.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5624,6 +5624,7 @@ try {
         players_booked: parseInt(players) || 1,
         status: 'enquiry',
         source: 'online',
+        skip_confirmation_email: true,
         notes_when_booked: name + ' · ' + noteText,
         tags: JSON.stringify([]),
         staff_notes: JSON.stringify([]),
@@ -5828,6 +5829,7 @@ try {
         occasion: occasion || null,
         status: 'enquiry',
         source: 'online',
+        skip_confirmation_email: true,
         notes_when_booked: noteText,
         tags: JSON.stringify(autoTagsForOccasion(occasion)),
         staff_notes: JSON.stringify([]),
