@@ -771,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start">
 
         <!-- Left: Create shift form -->
-        <div class="card" style="position:sticky;top:80px">
+        <div class="card" style="position:sticky;top:80px;max-height:calc(100vh - 173px);max-height:calc(100dvh - 173px);overflow-y:auto">
           <div class="card-title"><i class="ti ti-plus"></i> Create shift</div>
           <div class="field">
             <div class="field-label">Date <span class="req">*</span></div>
@@ -1096,7 +1096,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.22'; // v1.9.22: Suite-wide mobile viewport fix — nav/content-area/slide-in panel heights now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body and staff-detail modal so form fields/buttons aren't hidden under the iPhone home-indicator area.
+const BUILD_VERSION = '1.9.23'; // v1.9.23: Create-shift card (Shifts tab, admin view) now has a capped height with its own internal scroll, so the sticky card no longer requires scrolling through the entire shift list before the Create shift button becomes reachable.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
