@@ -1096,7 +1096,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.23'; // v1.9.23: Create-shift card (Shifts tab, admin view) now has a capped height with its own internal scroll, so the sticky card no longer requires scrolling through the entire shift list before the Create shift button becomes reachable.
+const BUILD_VERSION = '1.9.24'; // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.9.12: New — push notification support for help alerts. Staff can now turn on
@@ -4513,6 +4513,7 @@ ${isUnclaim && s.unclaim_reason ? `<div style="font-size:12px;color:#dc2626;marg
           ${allStaff.filter(x=>x.active!==false).map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}
         </select>
         <button class="btn-secondary btn-sm" onclick="adminAssignShift('${s.id}')"><i class="ti ti-user-plus"></i> Assign</button>` : ''}
+      <button class="btn-secondary btn-sm" onclick="addShiftSlot('${s.id}')" title="Add another staff spot to this shift"><i class="ti ti-plus"></i> Add slot</button>
     </div>
   </div>`;
 }
@@ -4537,7 +4538,10 @@ function buildAdminGroupCard(rows) {
         </div>
         ${s.notes ? `<div class="shift-notes">${s.notes}</div>` : ''}
       </div>
-      ${s.series_id ? `<button onclick="deleteShiftSeries('${s.series_id}','${s.shift_date}')" class="btn-secondary btn-sm" style="font-size:11px;white-space:nowrap" title="Delete this and every future week in this series"><i class="ti ti-repeat-off"></i> Delete series</button>` : ''}
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <button class="btn-secondary btn-sm" onclick="addShiftSlot('${s.id}')" style="font-size:11px;white-space:nowrap" title="Add another staff spot to this shift"><i class="ti ti-plus"></i> Add slot</button>
+        ${s.series_id ? `<button onclick="deleteShiftSeries('${s.series_id}','${s.shift_date}')" class="btn-secondary btn-sm" style="font-size:11px;white-space:nowrap" title="Delete this and every future week in this series"><i class="ti ti-repeat-off"></i> Delete series</button>` : ''}
+      </div>
     </div>
     <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
       ${rows.map(r => `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;position:relative;display:flex;flex-direction:column;gap:5px">
@@ -4733,6 +4737,46 @@ const weekDate = d.toISOString().slice(0,10);
   } catch(e) { msgEl.className='msg err'; msgEl.textContent='Failed: '+e.message; }
 }
     
+async function addShiftSlot(id) {
+  const s = allShifts.find(x => x.id === id);
+  if (!s) return;
+  try {
+    let groupId = s.slot_group_id;
+    if (!groupId) {
+      groupId = crypto.randomUUID();
+      const r0 = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
+        method:'PATCH', headers:H(),
+        body: JSON.stringify({slot_group_id: groupId})
+      });
+      if (!r0.ok) throw new Error(await r0.text());
+      s.slot_group_id = groupId;
+    }
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'return=representation'},
+      body: JSON.stringify([{
+        shift_date: s.shift_date,
+        custom_start_time: s.custom_start_time,
+        custom_end_time: s.custom_end_time,
+        staff_id: null,
+        notes: s.notes,
+        status: 'open',
+        created_by: currentUser?.name || null,
+        shift_type: 'custom',
+        is_standby: s.is_standby,
+        required_role: s.required_role,
+        slot_group_id: groupId,
+        series_id: null
+      }])
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    allShifts.push(...rows);
+    renderAdminShifts();
+    updateShiftBadge();
+  } catch(e) { alert('Failed to add slot: '+e.message); }
+}
+
 function timeRangesOverlap(startA, endA, startB, endB) {
   return startA < endB && startB < endA;
 }
