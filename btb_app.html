@@ -297,6 +297,26 @@
           </div>
         </div>
         <div style="margin-bottom:8px"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Notes (optional)</div><input class="add-input" type="text" id="newProdNotes" placeholder="e.g. 2–6 players, 45min"></div>
+        <div style="margin-bottom:8px">
+          <button type="button" onclick="toggleNewProdMore()" style="background:none;border:none;color:#07b4c5;font-size:12px;font-weight:600;padding:0;cursor:pointer;display:flex;align-items:center;gap:4px"><i class="ti ti-chevron-down" id="newProdMoreChevron"></i> More details (optional)</button>
+        </div>
+        <div id="newProdMoreFields" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin-bottom:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px">
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Sub name</div><input class="add-input" type="text" id="newProdSubName" placeholder="e.g. Base game"></div>
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Cost new range</div><input class="add-input" type="text" id="newProdCostNewRange" placeholder="e.g. $60-80"></div>
+          </div>
+          <div style="margin-bottom:6px"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Description</div><input class="add-input" type="text" id="newProdDescription" placeholder="Short description shown to customers"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px">
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Players min</div><input class="add-input" type="number" id="newProdPlayersMin" placeholder="e.g. 2" min="0"></div>
+            <div><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Players max</div><input class="add-input" type="number" id="newProdPlayersMax" placeholder="e.g. 6" min="0"></div>
+          </div>
+          <div style="margin-bottom:6px"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Age recommendation</div><input class="add-input" type="text" id="newProdAgeRec" placeholder="e.g. 10+"></div>
+          <div style="margin-bottom:6px"><div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Image URL</div><input class="add-input" type="text" id="newProdImageUrl" placeholder="https://…"></div>
+          <div style="display:flex;gap:14px">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;cursor:pointer"><input type="checkbox" id="newProdFavourite" style="accent-color:#07b4c5;width:14px;height:14px"> Favourite</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;cursor:pointer"><input type="checkbox" id="newProdTradeShow" style="accent-color:#07b4c5;width:14px;height:14px"> Trade Show</label>
+          </div>
+        </div>
         <button class="add-btn" onclick="addProduct()"><i class="ti ti-plus"></i> Add product</button>
         <div id="prodAddMsg" style="font-size:12px;margin-top:6px"></div>
       </div>
@@ -2672,7 +2692,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.41'; // v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
+const BUILD_VERSION = '16.4.42'; // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
+// v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
 // v16.4.29: Products CSV panel now has two clearly separated import options: "Import CSV (add only)" (unchanged — adds rows, never deletes) and new "Replace entire inventory" for when the file is your full product list — inserts all new rows first, and only deletes the products that existed before the run if that insert fully succeeds (matched by created_at cutoff, not id lists, so it scales to any table size). Includes a confirm dialog showing old vs new counts before anything is deleted, and never deletes if the insert fails.// v16.4.28: Products panel (trade-show prep): CSV export/import now cover all 18 relevant product columns (previously only 8) — added favourite, game_id, sub_name, cost_new_range, description, players_min/max, age_recommendation, image_url; id is exported for reference but never imported back (import always inserts new rows). Moved "Add product" + CSV import/export above the product list. Tapping a product now opens a popup with every stored field for that product.// v16.4.27: Added "Go to POS" to each booking card's ⋯ menu — deep-links to pos.html?date=...&booking=..., landing straight on the Bookings view there with that booking pre-selected, ready to take payment (pos.html was updated first to support this).// v16.4.25: Fixed payment badge not showing at all (not even "owing") on bookings whose total_amount had never been saved to the row — e.g. cal.com syncs and quick walk-in adds. getPaymentStatus now falls back to calculating the price from the game + player count (same formula pos.html already uses) when total_amount is missing, instead of returning null. loadBookings now also maps players_booked onto the local booking object so this fallback has what it needs.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
   // v16.4.5: Docs only — added a warning comment above saveGames() flagging that the game list is dual-written to the games table and settings.btb_games, and both must be kept in sync by any future code that edits games. No behaviour change.
