@@ -136,6 +136,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.24 — 2026-08-31 — New: admin can now add an extra staff slot to an existing shift after it's been created (single or multi-staff), via an "Add slot" button on the shift card in the Shifts tab. Previously staff count could only be set once, at creation. Adding a slot to a single (non-grouped) shift converts it into a multi-staff group on the fly. New slots don't inherit the repeating series (series_id left null) since it's ambiguous whether an added slot should repeat too.
 - v1.9.23 — 2026-08-31 — Bug fix: Shifts tab (admin view) — the sticky "Create shift" card required scrolling through the entire "All shifts" list before its Create shift button became reachable. Card now has a capped height with its own internal scroll instead.
 - v1.9.22 — 2026-08-30 — Suite-wide mobile viewport fix: nav/content-area/slide-in panel heights now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body and staff-detail modal so form fields/buttons aren't hidden under the iPhone home-indicator area.
 - v1.9.21 — 2026-08-30 — Timezone consistency fix: "Sent"/"Added" date labels (help requests, waivers) now explicitly force Pacific/Auckland instead of relying on the device's local timezone.
