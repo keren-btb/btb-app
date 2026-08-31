@@ -1740,8 +1740,12 @@ body {
 }
 
 .slot-btn.booked {
-  opacity: 0.3;
   cursor: not-allowed;
+}
+
+.slot-btn.booked .slot-time,
+.slot-btn.booked .slot-status {
+  opacity: 0.35;
 }
 
 .slot-notify {
@@ -1751,16 +1755,10 @@ body {
   color: #e8920a;
   margin-top: 4px;
   cursor: pointer;
-  opacity: 0.85;
 }
 
 .slot-notify:hover {
-  opacity: 1;
   text-decoration: underline;
-}
-
-.slot-btn.booked .slot-notify {
-  opacity: 0.6;
 }
 
 .slot-btn.past {
@@ -4023,7 +4021,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.25'; // v1.7.25: Added waitlist — "🔔 Notify me" link on Full/Call us slots opens a name+contact popup, links to clients via same find-or-create pattern as enquiries, saves as game_bookings status:'waitlist'.
+const BUILD_VERSION = '1.7.26'; // v1.7.26: Fixed "Notify me" being nearly unreadable on Full slots (was inheriting 30% opacity from the whole button — now only the time/status text dims, notify link stays full colour). Also fixed a stuck-blurred-background bug: all three "thanks" confirmation popups (waitlist, enquiry, contact message) had a Done button using this.closest('div[style]').remove(), which matched the wrong nested div and only removed the inner card, leaving the full-screen blur stuck. Now targets the actual overlay directly.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5651,9 +5649,10 @@ try {
       <div style="font-size:52px;margin-bottom:14px">🥽</div>
       <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">Enquiry sent!</div>
 Thanks ${escapeHtml(name)}! We'll get back to you at <strong style="color:var(--text-primary)">${escapeHtml(contact)}</strong> as soon as we can to confirm availability.
-<button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
+<button class="btn btn-primary" id="enqThanksDone">Done →</button>
     </div>`;
   document.body.appendChild(thanks);
+  document.getElementById('enqThanksDone').onclick = () => thanks.remove();
 }
 
 let waitlistCtx = null;
@@ -5764,9 +5763,10 @@ async function submitWaitlist() {
       <div style="font-size:52px;margin-bottom:14px">🔔</div>
       <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">You're on the list!</div>
 Thanks ${escapeHtml(name)}! We'll contact you at <strong style="color:var(--text-primary)">${escapeHtml(contact)}</strong> if that time opens up.
-<button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
+<button class="btn btn-primary" id="wlThanksDone">Done →</button>
     </div>`;
   document.body.appendChild(thanks);
+  document.getElementById('wlThanksDone').onclick = () => thanks.remove();
 }
 
 async function submitContactEnquiry() {
@@ -5849,9 +5849,10 @@ try {
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:24px">
           Thanks ${escapeHtml(first)}! We'll be in touch at <strong style="color:var(--text-primary)">${escapeHtml(phone || email)}</strong> as soon as we can.
         </div>
-        <button class="btn btn-primary" onclick="this.closest('div[style]').remove();startOver()">Done →</button>
+        <button class="btn btn-primary" id="msgThanksDone">Done →</button>
       </div>`;
     document.body.appendChild(thanks);
+    document.getElementById('msgThanksDone').onclick = () => { thanks.remove(); startOver(); };
   } catch (e) {
     btn.classList.remove('btn-loading');
     btn.disabled = false;
