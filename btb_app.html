@@ -2374,6 +2374,15 @@ function toggleNewProdStockField() {
   if(!tracked) input.value = '';
 }
 
+function toggleNewProdMore() {
+  const el = document.getElementById('newProdMoreFields');
+  const chevron = document.getElementById('newProdMoreChevron');
+  if(!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : '';
+  if(chevron) chevron.className = isOpen ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
+}
+
 async function addProduct() {
   const name = document.getElementById('newProdName').value.trim();
   const cat  = document.getElementById('newProdCat').value;
@@ -2383,19 +2392,33 @@ async function addProduct() {
   const notes= document.getElementById('newProdNotes').value.trim();
   const purchase = cat==='Boardgame' ? parseFloat(document.getElementById('newProdPurchase').value)||null : null;
   const rrp      = cat==='Boardgame' ? parseFloat(document.getElementById('newProdRRP').value)||null : null;
+  const subName = document.getElementById('newProdSubName').value.trim();
+  const costNewRange = document.getElementById('newProdCostNewRange').value.trim();
+  const description = document.getElementById('newProdDescription').value.trim();
+  const playersMin = parseInt(document.getElementById('newProdPlayersMin').value)||null;
+  const playersMax = parseInt(document.getElementById('newProdPlayersMax').value)||null;
+  const ageRec = document.getElementById('newProdAgeRec').value.trim();
+  const imageUrl = document.getElementById('newProdImageUrl').value.trim();
+  const favourite = document.getElementById('newProdFavourite').checked;
+  const tradeShow = document.getElementById('newProdTradeShow').checked;
   const msgEl = document.getElementById('prodAddMsg');
   if(!name) { msgEl.style.color='#dc2626'; msgEl.textContent='Please enter a product name.'; return; }
   msgEl.style.color='#6b7280'; msgEl.textContent='Saving…';
   try {
     const r = await fetch(`${SB_URL}/rest/v1/products`, {
       method:'POST', headers:{...H(),'Prefer':'return=representation'},
-      body: JSON.stringify({name,category:cat,sell_price:sell,purchase_price:purchase,rrp,stock_qty:stock,notes:notes||null,active:true})
+      body: JSON.stringify({name,category:cat,sell_price:sell,purchase_price:purchase,rrp,stock_qty:stock,notes:notes||null,active:true,
+        sub_name:subName||null,cost_new_range:costNewRange||null,description:description||null,
+        players_min:playersMin,players_max:playersMax,age_recommendation:ageRec||null,
+        image_url:imageUrl||null,favourite,trade_show:tradeShow})
     });
     if(!r.ok) throw new Error(await r.text());
     const rows = await r.json();
     if(rows[0]) products.push(rows[0]);
-    ['newProdName','newProdSell','newProdStock','newProdNotes','newProdPurchase','newProdRRP'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['newProdName','newProdSell','newProdStock','newProdNotes','newProdPurchase','newProdRRP','newProdSubName','newProdCostNewRange','newProdDescription','newProdPlayersMin','newProdPlayersMax','newProdAgeRec','newProdImageUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('newProdTrackStock').checked = true;
+    document.getElementById('newProdFavourite').checked = false;
+    document.getElementById('newProdTradeShow').checked = false;
     toggleNewProdStockField();
     msgEl.style.color='#15803d'; msgEl.textContent='✓ Added!';
     setTimeout(()=>{msgEl.textContent=''},2000);
@@ -2692,7 +2715,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.42'; // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
+const BUILD_VERSION = '16.4.43'; // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
+// v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
 // v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
 // v16.4.29: Products CSV panel now has two clearly separated import options: "Import CSV (add only)" (unchanged — adds rows, never deletes) and new "Replace entire inventory" for when the file is your full product list — inserts all new rows first, and only deletes the products that existed before the run if that insert fully succeeds (matched by created_at cutoff, not id lists, so it scales to any table size). Includes a confirm dialog showing old vs new counts before anything is deleted, and never deletes if the insert fails.// v16.4.28: Products panel (trade-show prep): CSV export/import now cover all 18 relevant product columns (previously only 8) — added favourite, game_id, sub_name, cost_new_range, description, players_min/max, age_recommendation, image_url; id is exported for reference but never imported back (import always inserts new rows). Moved "Add product" + CSV import/export above the product list. Tapping a product now opens a popup with every stored field for that product.// v16.4.27: Added "Go to POS" to each booking card's ⋯ menu — deep-links to pos.html?date=...&booking=..., landing straight on the Bookings view there with that booking pre-selected, ready to take payment (pos.html was updated first to support this).// v16.4.25: Fixed payment badge not showing at all (not even "owing") on bookings whose total_amount had never been saved to the row — e.g. cal.com syncs and quick walk-in adds. getPaymentStatus now falls back to calculating the price from the game + player count (same formula pos.html already uses) when total_amount is missing, instead of returning null. loadBookings now also maps players_booked onto the local booking object so this fallback has what it needs.
 // v16.4.6: Booking list — group same-time bookings under one shared time label with a thicker connecting line on the left, instead of repeating the time on every card.
