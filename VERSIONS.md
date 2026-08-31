@@ -196,6 +196,8 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.26 — 2026-09-01 — Fixed "Notify me" being nearly unreadable on Full slots (was inheriting 30% opacity from the whole button — now only the time/status text dims, notify link stays full colour). Also fixed a stuck-blurred-background bug: all three "thanks" confirmation popups (waitlist, enquiry, contact message) had a Done button using `this.closest('div[style]').remove()`, which matched the wrong nested div and only removed the inner card, leaving the full-screen blur stuck. Now targets the actual overlay directly.
+- v1.7.25 — 2026-09-01 — Added waitlist: "🔔 Notify me" link on Full/Call us slots opens a name+contact popup, links to clients via same find-or-create pattern as enquiries, saves as game_bookings status:'waitlist'.
 - v1.7.24 — 2026-08-30 — Suite-wide mobile viewport fix: body/.split now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 - v1.7.22 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app (used for staff admin preview — customers still reach it normally via the website, this doesn't change that).
 - v1.7.21 — 2026-08-06 — Game card & VR Casual tooltips now open upward from the "i" icon (with a matching pointer arrow), same direction as the Step 1 category circle tooltips, instead of opening downward.
