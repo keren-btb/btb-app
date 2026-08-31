@@ -336,6 +336,12 @@ body {
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.main-sub:hover {
+  color: var(--accent);
 }
 
 .main-details {
@@ -3527,7 +3533,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="main-asterisks">* * * * * *</div>
 
             <!-- ===== SVG PLACEHOLDER: Replace this div with your inline SVG for "ESCAPE ROOMS" ===== -->
-            <div class="main-sub" id="mainSub">ESCAPE ROOMS</div>
+            <div class="main-sub" id="mainSub" onclick="goTo('s1', 1)">ESCAPE ROOMS</div>
 
             <div class="main-asterisks">* * * * * *</div>
 
