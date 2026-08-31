@@ -1744,6 +1744,25 @@ body {
   cursor: not-allowed;
 }
 
+.slot-notify {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #e8920a;
+  margin-top: 4px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.slot-notify:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.slot-btn.booked .slot-notify {
+  opacity: 0.6;
+}
+
 .slot-btn.past {
   opacity: 0.2;
   cursor: not-allowed;
@@ -3976,6 +3995,24 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
   </div>
 </div>
 
+<div class="enq-overlay" id="wlOverlay">
+  <div class="enq-modal">
+    <div class="enq-modal-title">Join the waitlist</div>
+    <div class="enq-modal-sub" id="wlSub">We'll ring or text you if this time opens up.</div>
+    <div class="field">
+      <div class="field-label">Your name <span class="req">*</span></div>
+      <input class="field-input" type="text" id="wlName" placeholder="Full name">
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <div class="field-label">Contact (phone or email) <span class="req">*</span></div>
+      <input class="field-input" type="text" id="wlContact" placeholder="021 123 4567">
+    </div>
+    <div class="err-msg" id="wlErr"></div>
+    <button class="btn btn-primary" id="btnWlSubmit" onclick="submitWaitlist()">Join waitlist →</button>
+    <button class="btn btn-ghost" onclick="closeWaitlist()">Cancel</button>
+  </div>
+</div>
+
 <!-- ============================================================ -->
 <!-- ============================================================ -->
 <!-- ====== SCRIPT ====== -->
@@ -3986,7 +4023,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.24'; // v1.7.24: Suite-wide mobile viewport fix — body/.split now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '1.7.25'; // v1.7.25: Added waitlist — "🔔 Notify me" link on Full/Call us slots opens a name+contact popup, links to clients via same find-or-create pattern as enquiries, saves as game_bookings status:'waitlist'.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4775,9 +4812,13 @@ function renderGameDates() {
       const status = isPast ? 'past' : getSlotStatus(selGame.id, ds, t);
       const statusLabels = { available: 'Available', call: 'Call us', booked: 'Full', past: 'Past' };
       const clickable = status === 'available';
+      const notify = (status === 'call' || status === 'booked')
+        ? '<div class="slot-notify" onclick="event.stopPropagation();openWaitlist(\'' + selGame.id + '\',\'' + ds + '\',\'' + t + '\')">🔔 Notify me</div>'
+        : '';
       html += '<div class="slot-btn ' + status + '"' + (clickable ? ' onclick="selectSlot(\'' + selGame.id + '\',\'' + ds + '\',\'' + t + '\')"' : '') + ' >';
       html += '<div class="slot-time">' + fmt12(t) + '</div>';
       html += '<div class="slot-status">' + (statusLabels[status] || '') + '</div>';
+      html += notify;
       html += '</div>';
     });
     html += '</div></div>';
@@ -4919,10 +4960,14 @@ function slotBtnHtml(gameId, dateStr, slotTime, withGame = false) {
   const labels = { available: 'Available', call: '📞 Call us', booked: 'Full', past: 'Past' };
   const clickable = status === 'available';
   const gname = withGame ? games.find(g => g.id === gameId)?.name || '' : '';
+  const notify = (status === 'call' || status === 'booked')
+    ? `<div class="slot-notify" onclick="event.stopPropagation();openWaitlist('${gameId}','${dateStr}','${slotTime}')">🔔 Notify me</div>`
+    : '';
   return `<div class="slot-btn ${status}"
       ${clickable ? `onclick="selectSlot('${gameId}','${dateStr}','${slotTime}')"` : ''}>
       <div class="slot-time">${fmt12(slotTime)}</div>
       <div class="slot-status">${labels[status] || ''}</div>
+      ${notify}
     </div>`;
 }
 
@@ -5606,6 +5651,119 @@ try {
       <div style="font-size:52px;margin-bottom:14px">🥽</div>
       <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">Enquiry sent!</div>
 Thanks ${escapeHtml(name)}! We'll get back to you at <strong style="color:var(--text-primary)">${escapeHtml(contact)}</strong> as soon as we can to confirm availability.
+<button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
+    </div>`;
+  document.body.appendChild(thanks);
+}
+
+let waitlistCtx = null;
+
+function openWaitlist(gameId, dateStr, slotTime) {
+  const g = games.find(x => x.id === gameId);
+  const d = new Date(dateStr + 'T12:00');
+  waitlistCtx = { gameId, dateStr, slotTime, gameName: g ? g.name : '' };
+  document.getElementById('wlSub').textContent =
+    `We'll ring or text you if ${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} at ${fmt12(slotTime)} for ${g ? g.name : 'this game'} opens up.`;
+  document.getElementById('wlName').value = '';
+  document.getElementById('wlContact').value = '';
+  document.getElementById('wlErr').classList.remove('show');
+  document.getElementById('wlOverlay').classList.add('open');
+}
+
+function closeWaitlist() {
+  document.getElementById('wlOverlay').classList.remove('open');
+  waitlistCtx = null;
+}
+
+async function submitWaitlist() {
+  const name = document.getElementById('wlName').value.trim();
+  const contact = document.getElementById('wlContact').value.trim();
+  const errEl = document.getElementById('wlErr');
+
+  if (!name || !contact) {
+    errEl.textContent = 'Please enter your name and contact details.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!waitlistCtx) { closeWaitlist(); return; }
+
+  const btn = document.getElementById('btnWlSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Joining…';
+
+  const { gameId, dateStr, slotTime, gameName } = waitlistCtx;
+  const noteText = `Waitlist request · Contact: ${contact}`;
+
+  try {
+    // Find or create client — same reasoning as the enquiry submission above.
+    const isEmail = contact.includes('@');
+    const contactEmail = isEmail ? contact.toLowerCase() : '';
+    const contactPhone = isEmail ? '' : contact;
+    const nameParts = name.split(' ');
+    const first = nameParts[0] || name;
+    const last = nameParts.slice(1).join(' ') || null;
+
+    let clientId = null;
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method: 'POST', headers: SB_H,
+      body: JSON.stringify({ p_email: contactEmail || null, p_phone: contactPhone || null })
+    });
+    const foundId = await cr.json();
+    if (foundId) { clientId = foundId; }
+    else {
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'waitlist' })
+      });
+      clientId = await nr.json();
+    }
+
+    // Save to game_bookings as a waitlist entry — same slot, same date, so it
+    // shows on the calendar for staff to action if that time frees up.
+    await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method: 'POST',
+      headers: { ...SB_H, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        client_id: clientId,
+        game_id: gameId,
+        game_name: gameName,
+        booking_date: dateStr,
+        slot_time: slotTime + ':00',
+        players_booked: 1,
+        status: 'waitlist',
+        source: 'online',
+        notes_when_booked: name + ' · ' + noteText,
+        tags: JSON.stringify([]),
+        staff_notes: JSON.stringify([]),
+        assigned_staff_ids: JSON.stringify([]),
+      })
+    });
+
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `Joined waitlist: ${gameName} ${dateStr} ${fmt12(slotTime)}` })
+      }).catch(e => console.error('Waitlist contact logging failed (non-blocking):', e));
+    }
+  } catch (e) {
+    console.error('Waitlist save error:', e);
+    errEl.textContent = 'Something went wrong — please call us instead.';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Join waitlist →';
+    return;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Join waitlist →';
+  closeWaitlist();
+
+  const thanks = document.createElement('div');
+  thanks.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  thanks.innerHTML = `<div style="background:var(--bg-card);border:var(--ticket-border);border-radius:var(--ticket-radius);padding:32px;width:100%;max-width:380px;text-align:center;box-shadow:var(--shadow)">
+      <div style="font-size:52px;margin-bottom:14px">🔔</div>
+      <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">You're on the list!</div>
+Thanks ${escapeHtml(name)}! We'll contact you at <strong style="color:var(--text-primary)">${escapeHtml(contact)}</strong> if that time opens up.
 <button class="btn btn-primary" onclick="this.closest('div[style]').remove()">Done →</button>
     </div>`;
   document.body.appendChild(thanks);
