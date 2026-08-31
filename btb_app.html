@@ -465,8 +465,16 @@ let games=[
   {id:'g4',name:'VR Hour',duration:60,bufferMinutes:30,pricingType:'per_hour_flat',icon:'🥽',bookable:true,category:'vr'},
   {id:'g5',name:'Board Game Cafe',duration:60,bufferMinutes:30,pricingType:'per_person_per_hour',icon:'🎲',bookable:true,category:'cafe'},
 ];
-let tags=[{id:'birthday',label:'Birthday',colorIdx:3},{id:'prepaid',label:'Prepaid',colorIdx:0},{id:'vip',label:'VIP',colorIdx:4},{id:'allergy',label:'Allergy',colorIdx:5}];
-let statuses=[{id:'new',label:'New',emoji:'🔵'},{id:'followup',label:'Follow up',emoji:'🟡'},{id:'hot',label:'Hot',emoji:'🔥'},{id:'converted',label:'Converted',emoji:'✅'}];
+// v16.4.45: these three (tags/statuses/posCategories) used to have hardcoded
+// placeholder defaults here. Removed — they were silently masking a bug where
+// loadSettings() only ran once before login (anon RLS on `settings` can't see
+// these keys), so the app permanently showed these fake placeholders instead
+// of your real saved data. See settingsLoaded flag + reload-after-login fix
+// further down. Now starts empty and renderTagList()/renderStatusList()/
+// renderProdCatTabs() show "Still loading…" until the real data arrives.
+let tags=[];
+let statuses=[];
+let settingsLoaded=false;
 let trainingStatuses=[{id:'trained',label:'Trained',emoji:'✅',qualifies:true},{id:'in_training',label:'In training',emoji:'🟡',qualifies:false},{id:'supervised',label:'Supervised only',emoji:'👁',qualifies:false},{id:'can_supervise',label:'Can supervise',emoji:'⭐',qualifies:true}];
 let bookingConfig={
   openingHours:[{day:0,open:null,label:'Sun'},{day:1,open:null,label:'Mon'},{day:2,open:'10:30',close:'20:30',label:'Tue'},{day:3,open:'10:30',close:'20:30',label:'Wed'},{day:4,open:'10:30',close:'20:30',label:'Thu'},{day:5,open:'10:30',close:'20:30',label:'Fri'},{day:6,open:'10:30',close:'20:30',label:'Sat'}],
@@ -557,6 +565,7 @@ async function loadSettings(){
       }catch(e){}
     });
   }catch(e){console.error('Settings load:',e)}
+  settingsLoaded=true;
 }
 async function saveSetting(key,data){
   await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
@@ -608,19 +617,13 @@ const saveStatuses=()=>saveSetting('btb_statuses',statuses);
 const saveTrainingStatuses=()=>saveSetting('btb_training_statuses',trainingStatuses);
 const saveBookingConfigSetting=()=>saveSetting('btb_booking_config',bookingConfig);
 const savePageText=()=>saveSetting('btb_booking_text',bookingText);
-let posCategories=[
-  {id:'bookings',label:'Bookings',icon:'ti-calendar',color:'#07b4c5',type:'bookings'},
-  {id:'vr_casual',label:'VR Casual',icon:'ti-vr',color:'#8b5cf6',type:'products',filter:'VR'},
-  {id:'escape',label:'Escape Room',icon:'ti-door',color:'#ef4444',type:'products',filter:'Escape Room'},
-  {id:'vr_hour',label:'VR Hour',icon:'ti-headset',color:'#0ea5e9',type:'products',filter:'VR'},
-  {id:'food',label:'General Sale',icon:'ti-coffee',color:'#f97316',type:'products',filter:'Food/Drink'},
-  {id:'boardgame',label:'Boardgame',icon:'ti-puzzle',color:'#1d9e75',type:'products',filter:'Boardgame'},
-];
+// Same v16.4.45 fix as tags/statuses above — was hardcoded, masking real saved data.
+let posCategories=[];
 const savePosCategories=()=>saveSetting('btb_pos_categories',posCategories);
 
 function renderPOSCatList(){
   const el=document.getElementById('posCatList');if(!el)return;
-  if(!posCategories.length){el.innerHTML='<div class="empty-state">No categories yet.</div>';return;}
+  if(!posCategories.length){el.innerHTML=`<div class="empty-state">${settingsLoaded?'No categories yet.':'Still loading…'}</div>`;return;}
   el.innerHTML=posCategories.map((c,i)=>`
     <div class="manage-row" style="align-items:flex-start;gap:8px">
       <div style="width:36px;height:36px;border-radius:10px;background:${c.color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -1628,6 +1631,7 @@ async function deletePerson(id){
 // SETTINGS — TAGS
 function renderTagList(){
   const el=document.getElementById('tagList');if(!el)return;
+  if(!tags.length){el.innerHTML=`<div class="empty-state">${settingsLoaded?'No tags yet.':'Still loading…'}</div>`;return;}
   el.innerHTML=tags.map(t=>{const c=COLORS[t.colorIdx];return`<div class="manage-row" style="flex-direction:column;align-items:flex-start;gap:6px">
     <div style="display:flex;align-items:center;gap:8px;width:100%">
       <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};border:1px solid ${c.border};display:flex;align-items:center;justify-content:center;font-size:9px;color:${c.text};font-weight:700">${t.label.slice(0,2).toUpperCase()}</div>
@@ -1647,7 +1651,7 @@ async function deleteTag(id){tags=await fetchLatestSetting('btb_tags',tags);tags
 function selectColor(idx){selectedColorIdx=idx;renderColorPicker()}
 
 // SETTINGS — STATUSES
-function renderStatusList(){const el=document.getElementById('statusList');if(!el)return;el.innerHTML=statuses.map(s=>`<div class="manage-row"><span style="font-size:18px">${s.emoji}</span><span class="row-label">${s.label}</span><button class="icon-btn danger" onclick="deleteStatus('${s.id}')"><i class="ti ti-trash"></i></button></div>`).join('')}
+function renderStatusList(){const el=document.getElementById('statusList');if(!el)return;if(!statuses.length){el.innerHTML=`<div class="empty-state">${settingsLoaded?'No statuses yet.':'Still loading…'}</div>`;return}el.innerHTML=statuses.map(s=>`<div class="manage-row"><span style="font-size:18px">${s.emoji}</span><span class="row-label">${s.label}</span><button class="icon-btn danger" onclick="deleteStatus('${s.id}')"><i class="ti ti-trash"></i></button></div>`).join('')}
 async function addStatus(){const label=document.getElementById('newStatusLabel').value.trim();if(!label)return;const emoji=document.getElementById('newStatusEmoji').value.trim()||'⚪';statuses=await fetchLatestSetting('btb_statuses',statuses);statuses.push({id:'status_'+Date.now(),label,emoji});document.getElementById('newStatusLabel').value='';document.getElementById('newStatusEmoji').value='';renderStatusList();saveStatuses()}
 async function deleteStatus(id){if(statuses.length<=1){alert('Need at least one status.');return}statuses=await fetchLatestSetting('btb_statuses',statuses);statuses=statuses.filter(s=>s.id!==id);renderStatusList();saveStatuses()}
     
@@ -2048,6 +2052,11 @@ async function doLogin(){
     // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
     // so shiftTimes came back empty. Refresh it before showing the app.
     await loadShiftTimes();
+    // v16.4.45: same fix — RLS on `settings` also blocks anon SELECT for btb_tags,
+    // btb_statuses and btb_pos_categories, so those never loaded from the anon-key
+    // pass either. Reload now with the real token so Booking Tags/Statuses/POS
+    // categories show your actual saved data instead of staying empty.
+    await loadSettings();
     // Same fix as shift times above — RLS on `games` only lets anon see
     // active=true rows, so any inactive games were missing from the initial
     // load. Reload now with the real token to get the full list for admin.
@@ -2749,7 +2758,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.44'; // v16.4.44: Products screen redesigned as a 5-button menu (Add product, Export CSV, Import CSV, Replace entire inventory, Search products) instead of showing everything at once. Export CSV downloads immediately and shows a confirmation message; the other four buttons open their own screen with a Back link to the menu. Panel resets to the menu each time it's opened.
+const BUILD_VERSION = '16.4.45'; // v16.4.45: Fixed Booking Tags/Statuses/POS Categories settings screens showing stale hardcoded placeholder data (e.g. "VIP"/"Allergy" tags that didn't actually exist) instead of your real saved data. Cause: those settings were only ever fetched once, before login, using anon access which isn't allowed to see them — so the app silently fell back to old placeholder defaults baked into the code and never corrected itself. Removed the hardcoded defaults (now show "Still loading…" briefly instead) and settings are now re-fetched with your real login token right after you sign in, same fix already used for Shift Times/Games/Staff.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
 // v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
@@ -2833,6 +2842,11 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
         // SELECT for btb_booking_config/btb_games/btb_training_statuses (not btb_shift_times),
         // so shiftTimes came back empty. Refresh it before showing the app.
 await loadShiftTimes();
+        // v16.4.45: same fix — RLS on `settings` also blocks anon SELECT for btb_tags,
+        // btb_statuses and btb_pos_categories, so those never loaded from the anon-key
+        // pass either. Reload now with the real token so Booking Tags/Statuses/POS
+        // categories show your actual saved data instead of staying empty.
+        await loadSettings();
         // Same fix as shift times above — RLS on `games` only lets anon see
         // active=true rows, so any inactive games were missing from the initial
         // load. Reload now with the real token to get the full list for admin.
