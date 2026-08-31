@@ -465,6 +465,12 @@ body {
   min-width: 70px;
   justify-content: space-between;
   border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.seat-box:hover {
+  background: #e6e6e6;
 }
 
 .seat-box .tbc-small {
@@ -3535,9 +3541,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="barcode-vertical"></div>
 
 <div class="main-seats">
-              <div class="seat-box"><span>DATE <span class="tbc-small" id="ticketDate">– TBC</span></span></div>
-              <div class="seat-box"><span>TIME <span class="tbc-small" id="ticketTime">– TBC</span></span></div>
-              <div class="seat-box"><span>PLAYERS <span class="tbc-small" id="ticketPlayers">– TBC</span></span></div>
+              <div class="seat-box" onclick="ticketBoxClick('date')"><span>DATE <span class="tbc-small" id="ticketDate">– TBC</span></span></div>
+              <div class="seat-box" onclick="ticketBoxClick('date')"><span>TIME <span class="tbc-small" id="ticketTime">– TBC</span></span></div>
+              <div class="seat-box" onclick="ticketBoxClick('players')"><span>PLAYERS <span class="tbc-small" id="ticketPlayers">– TBC</span></span></div>
             </div>
 
             <button type="button" class="ticket-replay-btn" id="btnReplayAnim" onclick="playTicketHighlight()" style="display:none">↻ Replay animation</button>
@@ -5175,6 +5181,17 @@ function goBack() {
   if (selCategory === 'escape') goTo('s2-escape', 2);
   else if (selCategory === 'vr') goTo('s2-vr', 2);
   else goTo('s2-cafe', 2);
+}
+
+function ticketBoxClick(target) {
+  if (target === 'players') {
+    if (selSlot) goTo('s3', 3);
+    else if (selCategory) goBack();
+    else goTo('s1', 1);
+    return;
+  }
+  if (selCategory) goBack();
+  else goTo('s1', 1);
 }
 
 function showReviewScreen() {
