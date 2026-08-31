@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.40">
+<link rel="stylesheet" href="btb_app.css?v=16.4.46">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -754,7 +754,7 @@ async function loadBookings(month,year){
           addons:row.addons||null,
           timerSec:row.timer_sec||0,timerRunning:row.timer_running||false,
           timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
-          timerInterval:null,isEnquiry:row.status==='enquiry',source:row.source||'',
+          timerInterval:null,isEnquiry:row.status==='enquiry',isWaitlist:row.status==='waitlist',source:row.source||'',
           payments:row.payments||null,
           deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,
         });
@@ -771,7 +771,7 @@ async function saveBooking(id){
       body:JSON.stringify({
         tags:JSON.stringify(b.tags||[]),staff_notes:JSON.stringify(b.notes||[]),
         assigned_staff_ids:JSON.stringify(b.gms||[]),
-        status:b.status==='completed'?'completed':b.status==='enquiry'?'enquiry':'confirmed',
+        status:b.status==='completed'?'completed':b.status==='enquiry'?'enquiry':b.status==='waitlist'?'waitlist':'confirmed',
         no_show:b.no_show||false,
         // NOTE: players_actual / clues_given / time_taken / gm_notes / ask_for_review
         // and timer_running / timer_sec / timer_started_at are now owned by control_room.html.
@@ -982,12 +982,12 @@ function buildCard(b,hideTime){
   const gmChipHtml=staff.map(p=>`<button class="gm-chip ${(b.gms||[]).includes(p.id)?'assigned':''}" onclick="toggleGM('${b.id}','${p.id}')">${(b.gms||[]).includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
   const card=document.createElement('div');
   const isDone = b.status==='completed';
-  card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'');
-  card.style.backgroundColor = getGameColor(b.name);
+  card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'')+(b.isWaitlist?' waitlist':'');
+  card.style.backgroundColor = b.isWaitlist?'#fef8ed':getGameColor(b.name);
   card.innerHTML=`
     <div class="booking-top" onclick="togglePanel('${b.id}')">
       <div class="booking-col-left">
-<div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
+<div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span>${b.isWaitlist?' <span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px;vertical-align:middle">🔔 WAITLIST</span>':''}</div>
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
         <div class="booking-meta">${b.meta||''}</div>
 
@@ -1006,7 +1006,12 @@ function buildCard(b,hideTime){
             <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
             <button class="action-menu-item" onclick="openWishlistForm('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-heart" style="font-size:15px;color:#6b7280"></i>Add to game wishlist</button>
             <button class="action-menu-item" onclick="openReschedule('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-time" style="font-size:15px;color:#6b7280"></i>Reschedule</button>
+            ${b.isWaitlist?`
+            <button class="action-menu-item" onclick="confirmWaitlistBooking('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#168a5a;cursor:pointer;font-family:inherit"><i class="ti ti-check" style="font-size:15px;color:#168a5a"></i>Confirm booking</button>
+            <button class="action-menu-item" onclick="removeWaitlist('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-x" style="font-size:15px;color:#dc2626"></i>Remove from waitlist</button>
+            `:`
             <button class="action-menu-item" onclick="openCancel('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-x" style="font-size:15px;color:#dc2626"></i>Cancel booking</button>
+            `}
           </div>
         </div>
         ${b.occasion?`<div style="font-size:11px;color:#6b7280;display:flex;align-items:center;gap:3px">🎉 ${escapeHtml(b.occasion)}${b.name_of_special_person?' — '+escapeHtml(b.name_of_special_person)+(b.age_of_special_person?' ('+escapeHtml(b.age_of_special_person)+')':''):''}${b.occasion==='Hen/Stag do'&&b.name_of_special_person?' 🥂':''}</div>`:''}
@@ -1292,6 +1297,30 @@ async function confirmCancelBooking(id){
     }
   }
   cancelOpenIds.delete(id);
+  bookings=bookings.filter(x=>x.id!==id);
+  renderActiveView();updateHeader();
+}
+
+// WAITLIST ACTIONS
+async function confirmWaitlistBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  closeBookingActions();
+  if(!confirm(`Turn this waitlist request into a confirmed booking for ${b.customer||'this customer'} at ${fmt12(b.time||'00:00')}?`))return;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'confirmed',updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){alert('Could not confirm booking: '+e.message);return}
+  b.status='confirmed';b.isWaitlist=false;
+  renderActiveView();updateHeader();
+}
+async function removeWaitlist(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  closeBookingActions();
+  if(!confirm(`Remove ${b.customer||'this customer'} from the waitlist for ${fmt12(b.time||'00:00')}?`))return;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'cancelled',updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){alert('Could not remove waitlist entry: '+e.message);return}
   bookings=bookings.filter(x=>x.id!==id);
   renderActiveView();updateHeader();
 }
@@ -2764,7 +2793,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.45'; // v16.4.45: Fixed Booking Tags/Statuses/POS Categories settings screens showing stale hardcoded placeholder data (e.g. "VIP"/"Allergy" tags that didn't actually exist) instead of your real saved data. Cause: those settings were only ever fetched once, before login, using anon access which isn't allowed to see them — so the app silently fell back to old placeholder defaults baked into the code and never corrected itself. Removed the hardcoded defaults (now show "Still loading…" briefly instead) and settings are now re-fetched with your real login token right after you sign in, same fix already used for Shift Times/Games/Staff.
+const BUILD_VERSION = '16.4.46'; // v16.4.46: Waitlist requests from booking_widget.html now show on the calendar with an amber dashed border + "WAITLIST" badge instead of being invisible. Actions menu gets "Confirm booking" (converts to a real confirmed booking) and "Remove from waitlist" (soft-deletes, same pattern as Cancel) in place of the normal Reschedule/Cancel options.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
 // v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
