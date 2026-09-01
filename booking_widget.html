@@ -3797,6 +3797,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                 <select class="field-select" id="gRooms">
                   <option value="2">2 rooms</option>
                   <option value="3">3 rooms</option>
+                  <option value="unsure">Not sure — help us choose</option>
                 </select>
               </div>
             </div>
@@ -4235,7 +4236,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.31'; // v1.7.31: Group booking request — "More than 20" players no longer continues into the room-request flow (large groups often need a custom mix of rooms/VR/cafe/other formats, not just N escape rooms — including formats not modelled here yet, e.g. Core Conspiracy). Instead routes straight to the existing Contact Us enquiry screen, prefilled with the date/time/group-size context, so a real person plans it.
+const BUILD_VERSION = '1.7.32'; // v1.7.32: Group booking request — added a "Not sure — help us choose" option to the rooms dropdown alongside 2/3. Availability check gives a general (non-threshold) guide when unsure is picked; submission still creates 2 linked placeholder rows but clearly labels the request as "Not sure — help us choose" in notes/confirmation rather than silently treating it as "2 rooms".
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5804,7 +5805,8 @@ function checkGroupAvailability() {
   errEl.classList.remove('show');
   const date = document.getElementById('gDate').value;
   const time = document.getElementById('gTime').value;
-  const rooms = parseInt(document.getElementById('gRooms').value, 10) || 2;
+  const roomsRaw = document.getElementById('gRooms').value;
+  const rooms = parseInt(roomsRaw, 10) || null; // null when "unsure" is selected
   const banner = document.getElementById('groupAvailBanner');
 
   if (!date || !time) {
@@ -5815,7 +5817,17 @@ function checkGroupAvailability() {
 
   const capacity = estimateGroupCapacity(date, time);
   banner.classList.add('show');
-  if (capacity >= rooms) {
+  if (rooms === null) {
+    // "Not sure — help us choose": no target room count to compare against,
+    // so just give a general sense of how many GMs look free.
+    if (capacity >= 2) {
+      banner.className = 'avail-banner show avail-ok';
+      banner.innerHTML = `✅ Looks like we may have a few Game Masters free around this time.<span class="avail-banner-note">This is just a guide, not a confirmation. We'll help work out the best room split for your group.</span>`;
+    } else {
+      banner.className = 'avail-banner show avail-call';
+      banner.innerHTML = `📞 Game Master availability looks limited around this time.<span class="avail-banner-note">We may still be able to make it work, or suggest a better time — send the request and we'll check properly.</span>`;
+    }
+  } else if (capacity >= rooms) {
     banner.className = 'avail-banner show avail-ok';
     banner.innerHTML = `✅ Looks possible — we may have enough Game Masters free around this time.<span class="avail-banner-note">This is just a guide, not a confirmation. We'll personally confirm your rooms before anything is locked in.</span>`;
   } else {
@@ -5916,7 +5928,10 @@ async function submitGroupRequest() {
   const gPlayersEl = document.getElementById('gPlayers');
   const players = parseInt(gPlayersEl.value, 10) || 8;
   const playersLabel = gPlayersEl.selectedOptions[0]?.text || '';
-  const rooms = parseInt(document.getElementById('gRooms').value, 10) || 2;
+  const roomsRaw = document.getElementById('gRooms').value;
+  const roomsUnsure = roomsRaw === 'unsure';
+  const rooms = roomsUnsure ? 2 : (parseInt(roomsRaw, 10) || 2);
+  const roomsLabel = roomsUnsure ? 'Not sure — help us choose' : `${rooms} rooms`;
   const ref = 'BTB-GRP-' + Date.now().toString(36).toUpperCase();
 
   btn.classList.add('btn-loading');
@@ -5940,7 +5955,7 @@ async function submitGroupRequest() {
       clientId = await nr.json();
     }
 
-    const noteText = `${first} ${last} · ${ref} · Group request: ~${rooms} rooms · Players: ${playersLabel}`
+    const noteText = `${first} ${last} · ${ref} · Group request: ${roomsLabel} · Players: ${playersLabel}`
       + (companyName ? ` · Company: ${companyName}` : '')
       + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : '')
       + (specialName ? ` · Guest of honour: ${specialName}` : '')
@@ -5985,7 +6000,7 @@ async function submitGroupRequest() {
     if (clientId) {
       fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
         method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_client_id: clientId, p_summary: `Group booking request: ~${roomsInt} rooms, ${playersLabel} players, ${date} ${fmt12(time)}` })
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `Group booking request: ${roomsLabel}, ${playersLabel} players, ${date} ${fmt12(time)}` })
       }).catch(e => console.error('Group request contact logging failed (non-blocking):', e));
     }
 
@@ -5995,7 +6010,7 @@ async function submitGroupRequest() {
         <div class="confirm-row"><span>Date</span><span>${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}</span></div>
         <div class="confirm-row"><span>Time</span><span>${fmt12(time)}</span></div>
         <div class="confirm-row"><span>Players</span><span>${playersLabel}</span></div>
-        <div class="confirm-row"><span>Rooms requested</span><span>~${roomsInt}</span></div>
+        <div class="confirm-row"><span>Rooms requested</span><span>${roomsLabel}</span></div>
         <div class="confirm-row"><span>Reference</span><span>${ref}</span></div>`;
 
     goTo('s4-group', 4);
