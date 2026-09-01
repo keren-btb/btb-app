@@ -983,11 +983,12 @@ function buildCard(b,hideTime){
   const card=document.createElement('div');
   const isDone = b.status==='completed';
   card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'')+(b.isWaitlist?' waitlist':'');
-  card.style.backgroundColor = b.isWaitlist?'#fef8ed':getGameColor(b.name);
+  card.style.backgroundColor = b.isWaitlist?'#fde68a':getGameColor(b.name);
   card.innerHTML=`
     <div class="booking-top" onclick="togglePanel('${b.id}')">
       <div class="booking-col-left">
-<div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span>${b.isWaitlist?' <span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px;vertical-align:middle">🔔 WAITLIST</span>':''}</div>
+<div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
+${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
         <div class="booking-meta">${b.meta||''}</div>
 
@@ -2793,7 +2794,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.46'; // v16.4.46: Waitlist requests from booking_widget.html now show on the calendar with an amber dashed border + "WAITLIST" badge instead of being invisible. Actions menu gets "Confirm booking" (converts to a real confirmed booking) and "Remove from waitlist" (soft-deletes, same pattern as Cancel) in place of the normal Reschedule/Cancel options.
+const BUILD_VERSION = '16.4.47'; // v16.4.47: Waitlist cards now have a solid yellow background (was a subtle tint, too close to normal game colours) and the "WAITLIST" badge sits on its own line below the game name instead of running inline and wrapping awkwardly.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
 // v16.4.41: Fixed the profile avatar dropdown (top-right icon) getting clipped/cut off — it was position:absolute inside .app, which has overflow:hidden for the rounded corners. Menu now uses position:fixed with its position calculated from the avatar button's on-screen location when opened, so it always shows in full regardless of scroll position or screen size.
