@@ -3782,16 +3782,20 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             </div>
             <div class="field-row" style="margin-bottom:16px">
               <div class="field">
-                <div class="field-label">Total number of players <span class="req">*</span></div>
-                <input class="field-input" type="number" id="gPlayers" placeholder="e.g. 15" min="2" max="60">
+                <div class="field-label">Roughly how many players? <span class="req">*</span></div>
+                <select class="field-select" id="gPlayers">
+                  <option value="">Choose a range…</option>
+                  <option value="8">Up to 10</option>
+                  <option value="13">11–15</option>
+                  <option value="18">16–20</option>
+                  <option value="25">More than 20</option>
+                </select>
               </div>
               <div class="field">
-                <div class="field-label">Roughly how many rooms? <span class="req">*</span></div>
+                <div class="field-label">How many rooms? <span class="req">*</span></div>
                 <select class="field-select" id="gRooms">
                   <option value="2">2 rooms</option>
                   <option value="3">3 rooms</option>
-                  <option value="4">4 rooms</option>
-                  <option value="5">5+ rooms</option>
                 </select>
               </div>
             </div>
@@ -4230,7 +4234,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.29'; // v1.7.29: Added group booking request flow — "Need more than one room at once?" banner on the escape rooms screen lets customers request multi-room group bookings (e.g. school groups). Writes linked placeholder game_bookings rows (status 'group_request', shared group_booking_id, game_id 'TBD') for staff to review/split/confirm in btb_app.html — never auto-confirms. Shows a rough GM-availability guide (not a guarantee) using the existing getQualifiedStaffPool() logic across all escape games. No payment taken at request time.
+const BUILD_VERSION = '1.7.30'; // v1.7.30: Group booking request tweaks — rooms dropdown limited to 2 or 3 (matches the 3 physical escape rooms that actually exist), and the player count field is now a rough headcount selector (Up to 10 / 11–15 / 16–20 / More than 20) instead of an exact number input, since group requesters often don't know exact numbers yet.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5821,7 +5825,7 @@ function proceedToGroupDetails() {
   const players = document.getElementById('gPlayers').value;
 
   if (!date || !time) { errEl.textContent = 'Please choose a date and time.'; errEl.classList.add('show'); return; }
-  if (!players || parseInt(players, 10) < 2) { errEl.textContent = 'Please enter the total number of players.'; errEl.classList.add('show'); return; }
+  if (!players) { errEl.textContent = 'Please choose a rough player count.'; errEl.classList.add('show'); return; }
 
   document.getElementById('gFirst').value = '';
   document.getElementById('gLast').value = '';
@@ -5882,7 +5886,9 @@ async function submitGroupRequest() {
 
   const date = document.getElementById('gDate').value;
   const time = document.getElementById('gTime').value;
-  const players = parseInt(document.getElementById('gPlayers').value, 10) || 2;
+  const gPlayersEl = document.getElementById('gPlayers');
+  const players = parseInt(gPlayersEl.value, 10) || 8;
+  const playersLabel = gPlayersEl.selectedOptions[0]?.text || '';
   const rooms = parseInt(document.getElementById('gRooms').value, 10) || 2;
   const ref = 'BTB-GRP-' + Date.now().toString(36).toUpperCase();
 
@@ -5907,7 +5913,7 @@ async function submitGroupRequest() {
       clientId = await nr.json();
     }
 
-    const noteText = `${first} ${last} · ${ref} · Group request: ~${rooms} rooms`
+    const noteText = `${first} ${last} · ${ref} · Group request: ~${rooms} rooms · Players: ${playersLabel}`
       + (companyName ? ` · Company: ${companyName}` : '')
       + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : '')
       + (specialName ? ` · Guest of honour: ${specialName}` : '')
@@ -5952,7 +5958,7 @@ async function submitGroupRequest() {
     if (clientId) {
       fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
         method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_client_id: clientId, p_summary: `Group booking request: ~${roomsInt} rooms, ${players} players, ${date} ${fmt12(time)}` })
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `Group booking request: ~${roomsInt} rooms, ${playersLabel} players, ${date} ${fmt12(time)}` })
       }).catch(e => console.error('Group request contact logging failed (non-blocking):', e));
     }
 
@@ -5961,7 +5967,7 @@ async function submitGroupRequest() {
         <div class="confirm-row"><span>Name</span><span>${escapeHtml(first)} ${escapeHtml(last)}</span></div>
         <div class="confirm-row"><span>Date</span><span>${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}</span></div>
         <div class="confirm-row"><span>Time</span><span>${fmt12(time)}</span></div>
-        <div class="confirm-row"><span>Players</span><span>${players}</span></div>
+        <div class="confirm-row"><span>Players</span><span>${playersLabel}</span></div>
         <div class="confirm-row"><span>Rooms requested</span><span>~${roomsInt}</span></div>
         <div class="confirm-row"><span>Reference</span><span>${ref}</span></div>`;
 
