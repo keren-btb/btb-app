@@ -3783,13 +3783,14 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="field-row" style="margin-bottom:16px">
               <div class="field">
                 <div class="field-label">Roughly how many players? <span class="req">*</span></div>
-                <select class="field-select" id="gPlayers">
+                <select class="field-select" id="gPlayers" onchange="onGroupPlayersChange()">
                   <option value="">Choose a range…</option>
                   <option value="8">Up to 10</option>
                   <option value="13">11–15</option>
                   <option value="18">16–20</option>
                   <option value="25">More than 20</option>
                 </select>
+                <div class="field-hint" id="gPlayersHint" style="display:none">Groups this size usually mix rooms with other experiences — we'll take you to a quick message form instead so we can plan it properly.</div>
               </div>
               <div class="field">
                 <div class="field-label">How many rooms? <span class="req">*</span></div>
@@ -4234,7 +4235,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.30'; // v1.7.30: Group booking request tweaks — rooms dropdown limited to 2 or 3 (matches the 3 physical escape rooms that actually exist), and the player count field is now a rough headcount selector (Up to 10 / 11–15 / 16–20 / More than 20) instead of an exact number input, since group requesters often don't know exact numbers yet.
+const BUILD_VERSION = '1.7.31'; // v1.7.31: Group booking request — "More than 20" players no longer continues into the room-request flow (large groups often need a custom mix of rooms/VR/cafe/other formats, not just N escape rooms — including formats not modelled here yet, e.g. Core Conspiracy). Instead routes straight to the existing Contact Us enquiry screen, prefilled with the date/time/group-size context, so a real person plans it.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5769,6 +5770,7 @@ function startGroupRequest() {
   document.getElementById('gTime').value = '';
   document.getElementById('gPlayers').value = '';
   document.getElementById('gRooms').value = '2';
+  document.getElementById('gPlayersHint').style.display = 'none';
   document.getElementById('groupAvailBanner').className = 'avail-banner';
   document.getElementById('groupAvailBanner').innerHTML = '';
   document.getElementById('groupStep1Err').classList.remove('show');
@@ -5790,6 +5792,11 @@ function estimateGroupCapacity(dateStr, slotTime) {
     pool.fullyAvailable.forEach(sid => staffSet.add(sid));
   });
   return staffSet.size;
+}
+
+function onGroupPlayersChange() {
+  const hint = document.getElementById('gPlayersHint');
+  hint.style.display = (document.getElementById('gPlayers').value === '25') ? '' : 'none';
 }
 
 function checkGroupAvailability() {
@@ -5822,10 +5829,30 @@ function proceedToGroupDetails() {
   errEl.classList.remove('show');
   const date = document.getElementById('gDate').value;
   const time = document.getElementById('gTime').value;
-  const players = document.getElementById('gPlayers').value;
+  const gPlayersEl = document.getElementById('gPlayers');
+  const players = gPlayersEl.value;
 
   if (!date || !time) { errEl.textContent = 'Please choose a date and time.'; errEl.classList.add('show'); return; }
   if (!players) { errEl.textContent = 'Please choose a rough player count.'; errEl.classList.add('show'); return; }
+
+  // Groups over 20 aren't a simple "N escape rooms" request — they may need
+  // a mix of rooms/VR/cafe (with a swap-over) or other larger-format
+  // options we don't model here yet. Rather than guess at a plan, route
+  // straight to the existing Contact Us enquiry so a real person can
+  // work out the best fit.
+  if (players === '25') {
+    document.getElementById('cFirst').value = '';
+    document.getElementById('cLast').value = '';
+    document.getElementById('cPhone').value = '';
+    document.getElementById('cEmail').value = '';
+    document.getElementById('cDate').value = date;
+    document.getElementById('cPlayers').value = '20+';
+    document.getElementById('cOccasion').value = '';
+    document.getElementById('cMessage').value = `Group of more than 20 players, preferred time ${fmt12(time)} — please help us plan the best mix of rooms/experiences for this group size.`;
+    document.getElementById('enqFormErr').classList.remove('show');
+    goTo('s2-enquiry', 2);
+    return;
+  }
 
   document.getElementById('gFirst').value = '';
   document.getElementById('gLast').value = '';
