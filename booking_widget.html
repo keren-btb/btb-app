@@ -2142,6 +2142,75 @@ body {
   max-height: 70px;
 }
 
+/* GROUP BOOKING REQUEST — entry banner, availability indicator, badges */
+.group-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 4px 0 20px 0;
+  cursor: pointer;
+  background: rgba(7, 180, 197, 0.06);
+  transition: background 0.15s ease;
+}
+.group-cta:hover {
+  background: rgba(7, 180, 197, 0.12);
+}
+.group-cta-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.group-cta-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.group-cta-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.avail-banner {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 4px 0;
+  display: none;
+}
+.avail-banner.show { display: block; }
+.avail-banner.avail-ok {
+  background: rgba(22, 138, 90, 0.1);
+  color: #168a5a;
+  border: 1px solid rgba(22, 138, 90, 0.3);
+}
+.avail-banner.avail-call {
+  background: rgba(232, 146, 10, 0.1);
+  color: #b3690a;
+  border: 1px solid rgba(232, 146, 10, 0.3);
+}
+.avail-banner-note {
+  display: block;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-size: 12px;
+}
+.pending-badge {
+  display: inline-block;
+  background: rgba(232, 146, 10, 0.12);
+  color: #b3690a;
+  border: 1px solid rgba(232, 146, 10, 0.35);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+}
+
 </style>
 </head>
 <body>
@@ -3648,6 +3717,14 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               </div>
             </div>
 
+            <div class="group-cta" onclick="startGroupRequest()">
+              <div class="group-cta-icon">👥</div>
+              <div>
+                <div class="group-cta-title">Need more than one room at once?</div>
+                <div class="group-cta-sub">Request a multi-room group booking →</div>
+              </div>
+            </div>
+
             <div id="byGame">
               <div class="sec-label">Choose a room</div>
               <div class="game-list" id="escapeGameList"></div>
@@ -3683,6 +3760,138 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                 <div id="dateGamesList"></div>
               </div>
             </div>
+          </div>
+
+          <!-- SCREEN: GROUP BOOKING — step 1 (date/time/size) -->
+          <div class="screen" id="s2-group">
+            <div class="back-link" onclick="goTo('s2-escape',2)">← Back</div>
+            <div class="sec-label">Group Booking Request</div>
+            <div class="sec-title">Tell us about<br>your group</div>
+            <div class="section-sub">We'll check roughly what's possible, then confirm the exact rooms with you personally — this isn't an instant booking.</div>
+            <div class="err-msg" id="groupStep1Err"></div>
+
+            <div class="field-row" style="margin-bottom:16px">
+              <div class="field">
+                <div class="field-label">Preferred date <span class="req">*</span></div>
+                <input class="field-input" type="date" id="gDate">
+              </div>
+              <div class="field">
+                <div class="field-label">Preferred time <span class="req">*</span></div>
+                <input class="field-input" type="time" id="gTime">
+              </div>
+            </div>
+            <div class="field-row" style="margin-bottom:16px">
+              <div class="field">
+                <div class="field-label">Total number of players <span class="req">*</span></div>
+                <input class="field-input" type="number" id="gPlayers" placeholder="e.g. 15" min="2" max="60">
+              </div>
+              <div class="field">
+                <div class="field-label">Roughly how many rooms? <span class="req">*</span></div>
+                <select class="field-select" id="gRooms">
+                  <option value="2">2 rooms</option>
+                  <option value="3">3 rooms</option>
+                  <option value="4">4 rooms</option>
+                  <option value="5">5+ rooms</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn btn-ghost" id="btnCheckAvail" onclick="checkGroupAvailability()">Check availability →</button>
+            <div class="avail-banner" id="groupAvailBanner"></div>
+
+            <button class="btn btn-primary" style="margin-top:16px" onclick="proceedToGroupDetails()">Continue →</button>
+          </div>
+
+          <!-- SCREEN: GROUP BOOKING — step 2 (contact & occasion) -->
+          <div class="screen" id="s3-group">
+            <div class="back-link" onclick="goTo('s2-group',2)">← Back</div>
+            <div class="sec-label">Group Booking Request</div>
+            <div class="sec-title">Your details</div>
+            <div class="err-msg" id="groupStep2Err"></div>
+
+            <div class="field-row" style="margin-bottom:16px">
+              <div class="field">
+                <div class="field-label">First name <span class="req">*</span></div>
+                <input class="field-input" type="text" id="gFirst" placeholder="First name" autocomplete="given-name">
+              </div>
+              <div class="field">
+                <div class="field-label">Last name <span class="req">*</span></div>
+                <input class="field-input" type="text" id="gLast" placeholder="Last name" autocomplete="family-name">
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Email <span class="req">*</span></div>
+              <input class="field-input" type="email" id="gEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field">
+              <div class="field-label">Phone <span class="req">*</span></div>
+              <input class="field-input" type="tel" id="gPhone" placeholder="021 123 4567" autocomplete="tel">
+            </div>
+
+            <div class="field">
+              <div class="field-label">What's the occasion?</div>
+              <select class="field-select" id="gOccasion">
+                <option value="">Just for fun</option>
+                <option value="Birthday">🎂 Birthday celebration</option>
+                <option value="Date night">💑 Date night</option>
+                <option value="Family outing">👨‍👩‍👧 Family outing</option>
+                <option value="School group">🎒 School group</option>
+                <option value="Hen/Stag do">🥂 Hen / Stag do</option>
+                <option value="Company team building">🏢 Company team building</option>
+                <option value="Company fun event">🎉 Company fun event</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="field field-nested" id="gCompanyNameWrap" style="display:none">
+              <div class="field-label">Company name</div>
+              <input class="field-input" type="text" id="gCompanyName" placeholder="e.g. Acme Ltd">
+            </div>
+            <div class="field field-nested" id="gSchoolGroupWrap" style="display:none">
+              <div class="field-label">School name</div>
+              <input class="field-input" type="text" id="gSchoolName" placeholder="e.g. Hastings Primary School">
+              <div style="margin-top:10px">
+                <div class="field-label">Age group</div>
+                <input class="field-input" type="text" id="gSchoolAgeGroup" placeholder="e.g. Year 7-8, or ages 11-13">
+              </div>
+            </div>
+            <div class="field field-nested" id="gSpecialPersonWrap" style="display:none">
+              <div class="field-label" id="gSpecialPersonLabel">Name of the birthday / guest of honour</div>
+              <input class="field-input" type="text" id="gSpecialName" placeholder="e.g. Emma">
+            </div>
+
+            <div class="field">
+              <div class="field-label">Have you played with us before?</div>
+              <div class="radio-group">
+                <div class="radio-opt" id="g-rb-yes" onclick="setGroupPlayedBefore(true)">
+                  <div class="radio-dot"></div>
+                  <span class="radio-label">Yes!</span>
+                </div>
+                <div class="radio-opt" id="g-rb-no" onclick="setGroupPlayedBefore(false)">
+                  <div class="radio-dot"></div>
+                  <span class="radio-label">First time</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Anything else we should know? <span style="color:var(--text-muted);font-weight:400;text-transform:none">(optional)</span></div>
+              <textarea class="field-input" id="gNotes" rows="3" placeholder="e.g. preferred games/rooms, accessibility needs, tournament format…" style="resize:none"></textarea>
+            </div>
+
+            <div class="field-hint" style="margin-bottom:12px">No payment is needed now — we'll be in touch to confirm the rooms and details first.</div>
+
+            <button class="btn btn-primary" id="btnGroupSubmit" onclick="submitGroupRequest()">Send group booking request →</button>
+            <button class="btn btn-ghost" onclick="goTo('s2-group',2)">← Back</button>
+          </div>
+
+          <!-- SCREEN: GROUP BOOKING — confirmation -->
+          <div class="screen" id="s4-group">
+            <div class="pending-badge">⏳ PENDING CONFIRMATION</div>
+            <div class="confirm-icon">👥</div>
+            <div class="confirm-title">Request received!</div>
+            <div class="confirm-sub">This isn't a confirmed booking yet — a member of our team will be in touch shortly to lock in your rooms and go over the details.</div>
+            <div class="confirm-card" id="groupConfirmCard"></div>
+            <button class="btn btn-primary" style="margin-top:24px" onclick="startOver()">Back to start →</button>
           </div>
 
           <!-- SCREEN 2: VR -->
@@ -4021,7 +4230,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.28'; // v1.7.28: Enquiries (Casual VR / Table hire / General enquiry / contact message) no longer trigger the "your booking is confirmed" email — they now set skip_confirmation_email like the waitlist save does, since an enquiry isn't a confirmed booking.
+const BUILD_VERSION = '1.7.29'; // v1.7.29: Added group booking request flow — "Need more than one room at once?" banner on the escape rooms screen lets customers request multi-room group bookings (e.g. school groups). Writes linked placeholder game_bookings rows (status 'group_request', shared group_booking_id, game_id 'TBD') for staff to review/split/confirm in btb_app.html — never auto-confirms. Shows a rough GM-availability guide (not a guarantee) using the existing getQualifiedStaffPool() logic across all escape games. No payment taken at request time.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5542,6 +5751,231 @@ const ENQ_CONFIG = {
   'cafe': { title: 'Table hire enquiry', sub: 'Let us know your group size, preferred date and any questions.' },
   'general': { title: 'Send an enquiry', sub: 'Tell us what you\'re after and we\'ll get back to you.' },
 };
+
+// GROUP BOOKING REQUEST — lets a customer request several escape rooms at
+// once (e.g. a school group needing 3 rooms simultaneously). This is
+// deliberately NOT an instant booking: it always lands as linked
+// game_bookings rows with status 'group_request' for staff to review,
+// split into the actual rooms/games, and confirm manually. See VERSIONS.md
+// for the group booking build notes.
+let groupPlayedBefore = null;
+
+function startGroupRequest() {
+  document.getElementById('gDate').value = '';
+  document.getElementById('gTime').value = '';
+  document.getElementById('gPlayers').value = '';
+  document.getElementById('gRooms').value = '2';
+  document.getElementById('groupAvailBanner').className = 'avail-banner';
+  document.getElementById('groupAvailBanner').innerHTML = '';
+  document.getElementById('groupStep1Err').classList.remove('show');
+  const today = nzToday();
+  document.getElementById('gDate').min = today;
+  goTo('s2-group', 2);
+}
+
+// Rough guide only — counts the distinct qualified/available GMs across
+// every bookable escape room at the requested date/time (reusing the same
+// getQualifiedStaffPool() logic the single-room flow uses), so a GM
+// qualified for multiple games isn't counted twice. Not a guarantee —
+// staff still confirm the real room split by hand.
+function estimateGroupCapacity(dateStr, slotTime) {
+  const escapeGames = games.filter(g => g.category === 'escape' && g.bookable !== false);
+  const staffSet = new Set();
+  escapeGames.forEach(g => {
+    const pool = getQualifiedStaffPool(g.id, dateStr, slotTime);
+    pool.fullyAvailable.forEach(sid => staffSet.add(sid));
+  });
+  return staffSet.size;
+}
+
+function checkGroupAvailability() {
+  const errEl = document.getElementById('groupStep1Err');
+  errEl.classList.remove('show');
+  const date = document.getElementById('gDate').value;
+  const time = document.getElementById('gTime').value;
+  const rooms = parseInt(document.getElementById('gRooms').value, 10) || 2;
+  const banner = document.getElementById('groupAvailBanner');
+
+  if (!date || !time) {
+    errEl.textContent = 'Please choose a date and time first.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const capacity = estimateGroupCapacity(date, time);
+  banner.classList.add('show');
+  if (capacity >= rooms) {
+    banner.className = 'avail-banner show avail-ok';
+    banner.innerHTML = `✅ Looks possible — we may have enough Game Masters free around this time.<span class="avail-banner-note">This is just a guide, not a confirmation. We'll personally confirm your rooms before anything is locked in.</span>`;
+  } else {
+    banner.className = 'avail-banner show avail-call';
+    banner.innerHTML = `📞 This time may be tight — fewer Game Masters look free than rooms requested.<span class="avail-banner-note">We may still be able to make it work, or suggest a better time — send the request and we'll check properly.</span>`;
+  }
+}
+
+function proceedToGroupDetails() {
+  const errEl = document.getElementById('groupStep1Err');
+  errEl.classList.remove('show');
+  const date = document.getElementById('gDate').value;
+  const time = document.getElementById('gTime').value;
+  const players = document.getElementById('gPlayers').value;
+
+  if (!date || !time) { errEl.textContent = 'Please choose a date and time.'; errEl.classList.add('show'); return; }
+  if (!players || parseInt(players, 10) < 2) { errEl.textContent = 'Please enter the total number of players.'; errEl.classList.add('show'); return; }
+
+  document.getElementById('gFirst').value = '';
+  document.getElementById('gLast').value = '';
+  document.getElementById('gEmail').value = '';
+  document.getElementById('gPhone').value = '';
+  document.getElementById('gOccasion').value = '';
+  document.getElementById('gNotes').value = '';
+  document.getElementById('groupStep2Err').classList.remove('show');
+  groupPlayedBefore = null;
+  document.getElementById('g-rb-yes').classList.remove('selected');
+  document.getElementById('g-rb-no').classList.remove('selected');
+  goTo('s3-group', 3);
+}
+
+function setGroupPlayedBefore(val) {
+  groupPlayedBefore = val;
+  document.getElementById('g-rb-yes').classList.toggle('selected', val === true);
+  document.getElementById('g-rb-no').classList.toggle('selected', val === false);
+}
+
+document.getElementById('gOccasion').addEventListener('change', function() {
+  const show = ['Birthday', 'Hen/Stag do'].includes(this.value);
+  document.getElementById('gSpecialPersonWrap').style.display = show ? '' : 'none';
+  const isCompany = ['Company team building', 'Company fun event'].includes(this.value);
+  document.getElementById('gCompanyNameWrap').style.display = isCompany ? '' : 'none';
+  if (!isCompany) document.getElementById('gCompanyName').value = '';
+  const isSchool = this.value === 'School group';
+  document.getElementById('gSchoolGroupWrap').style.display = isSchool ? '' : 'none';
+  if (!isSchool) {
+    document.getElementById('gSchoolName').value = '';
+    document.getElementById('gSchoolAgeGroup').value = '';
+  }
+  const lbl = document.getElementById('gSpecialPersonLabel');
+  if (this.value === 'Birthday') lbl.textContent = 'Name of the birthday person';
+  else if (this.value === 'Hen/Stag do') lbl.textContent = 'Name of the hen / stag';
+  else lbl.textContent = 'Name of the special guest';
+});
+
+async function submitGroupRequest() {
+  const errEl = document.getElementById('groupStep2Err');
+  const btn = document.getElementById('btnGroupSubmit');
+  errEl.classList.remove('show');
+
+  const first = document.getElementById('gFirst').value.trim();
+  const last = document.getElementById('gLast').value.trim();
+  const email = document.getElementById('gEmail').value.trim().toLowerCase();
+  const phone = document.getElementById('gPhone').value.trim();
+  const occasion = document.getElementById('gOccasion').value;
+  const specialName = document.getElementById('gSpecialName')?.value.trim();
+  const companyName = document.getElementById('gCompanyName')?.value.trim();
+  const schoolName = document.getElementById('gSchoolName')?.value.trim();
+  const schoolAgeGroup = document.getElementById('gSchoolAgeGroup')?.value.trim();
+  const notes = document.getElementById('gNotes').value.trim();
+
+  if (!first || !last) { errEl.textContent = 'Please enter your full name.'; errEl.classList.add('show'); return; }
+  if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; errEl.classList.add('show'); return; }
+  if (!phone) { errEl.textContent = 'Please enter a phone number so we can reach you.'; errEl.classList.add('show'); return; }
+
+  const date = document.getElementById('gDate').value;
+  const time = document.getElementById('gTime').value;
+  const players = parseInt(document.getElementById('gPlayers').value, 10) || 2;
+  const rooms = parseInt(document.getElementById('gRooms').value, 10) || 2;
+  const ref = 'BTB-GRP-' + Date.now().toString(36).toUpperCase();
+
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+
+  try {
+    let clientId = null;
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_email: email, p_phone: phone || null })
+    });
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+    const foundId = await cr.json();
+    if (foundId) {
+      clientId = foundId;
+    } else {
+      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source: 'online' })
+      });
+      if (!nr.ok) throw new Error('Client creation failed: ' + await nr.text());
+      clientId = await nr.json();
+    }
+
+    const noteText = `${first} ${last} · ${ref} · Group request: ~${rooms} rooms`
+      + (companyName ? ` · Company: ${companyName}` : '')
+      + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : '')
+      + (specialName ? ` · Guest of honour: ${specialName}` : '')
+      + (notes ? ` · Notes: ${notes}` : '');
+
+    // One placeholder row per requested room, all linked by group_booking_id.
+    // game_id/game_name are left as placeholders — staff assign the real
+    // games when they review and confirm the request in btb_app.html.
+    const groupBookingId = crypto.randomUUID();
+    const roomsInt = Math.max(2, rooms);
+    const perRoomPlayers = Math.round(players / roomsInt);
+    const rowsToInsert = [];
+    for (let i = 0; i < roomsInt; i++) {
+      rowsToInsert.push({
+        client_id: clientId,
+        game_id: 'TBD',
+        game_name: 'To be assigned',
+        booking_date: date,
+        slot_time: time + ':00',
+        players_booked: perRoomPlayers || 1,
+        occasion: occasion || null,
+        name_of_special_person: specialName || null,
+        played_before: groupPlayedBefore === true,
+        status: 'group_request',
+        source: 'online',
+        skip_confirmation_email: true,
+        group_booking_id: groupBookingId,
+        notes_when_booked: noteText,
+        tags: JSON.stringify(autoTagsForOccasion(occasion)),
+        staff_notes: JSON.stringify([]),
+        assigned_staff_ids: JSON.stringify([]),
+      });
+    }
+
+    const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method: 'POST',
+      headers: { ...SB_H, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(rowsToInsert),
+    });
+    if (!br.ok) throw new Error('Group booking request save failed: ' + await br.text());
+
+    if (clientId) {
+      fetch(`${SB_URL}/rest/v1/rpc/public_log_client_contact`, {
+        method: 'POST', headers: SB_H,
+        body: JSON.stringify({ p_client_id: clientId, p_summary: `Group booking request: ~${roomsInt} rooms, ${players} players, ${date} ${fmt12(time)}` })
+      }).catch(e => console.error('Group request contact logging failed (non-blocking):', e));
+    }
+
+    const d = new Date(date + 'T12:00');
+    document.getElementById('groupConfirmCard').innerHTML = `
+        <div class="confirm-row"><span>Name</span><span>${escapeHtml(first)} ${escapeHtml(last)}</span></div>
+        <div class="confirm-row"><span>Date</span><span>${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}</span></div>
+        <div class="confirm-row"><span>Time</span><span>${fmt12(time)}</span></div>
+        <div class="confirm-row"><span>Players</span><span>${players}</span></div>
+        <div class="confirm-row"><span>Rooms requested</span><span>~${roomsInt}</span></div>
+        <div class="confirm-row"><span>Reference</span><span>${ref}</span></div>`;
+
+    goTo('s4-group', 4);
+
+  } catch (e) {
+    errEl.textContent = 'Something went wrong — please try again or call us.';
+    errEl.classList.add('show');
+    console.error('Group booking request error:', e);
+  } finally {
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  }
+}
 
 function openEnquiry(type) {
   enqType = type;
