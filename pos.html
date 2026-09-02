@@ -728,7 +728,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.7'; // v1.9.7: Removed dead tags/statuses code (variable, load/save handling) — loaded and saved on every settings write but never actually rendered or read anywhere in this file; harmless but confusing leftover. No behaviour change.
+const BUILD_VERSION = '1.9.8'; // v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
@@ -852,7 +852,7 @@ let waiverBookingIds=new Set();
 async function loadBookingsForRange(fromDateStr, toDateStr){
   try{
     const [bookR, waiverR] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromDateStr}&booking_date=lte.${toDateStr}&status=neq.cancelled&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromDateStr}&booking_date=lte.${toDateStr}&status=neq.cancelled&status=neq.group_request&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()}),
       fetch(`${SB_URL}/rest/v1/waivers?select=booking_id&booking_id=not.is.null`,{headers:H()})
     ]);
     const rows=await bookR.json();
@@ -864,6 +864,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),
         dateStr:row.booking_date,
         name:row.game_name,game_id:row.game_id,
+        clientId:row.client_id||null,
         customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),
         customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',
         time:(row.slot_time||'').slice(0,5),
@@ -874,6 +875,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,
         deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,
         payments:row.payments||null,addons:row.addons||null,
+        group_booking_id:row.group_booking_id||null,
         isEnquiry:row.status==='enquiry',
         splitMode:false,splitPersons:null,_currentMethod:'',
       };
@@ -1189,11 +1191,11 @@ async function loadEarlier(){
   posRangeStart=newStart;
   // Fetch earlier bookings and prepend
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&status=neq.group_request&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
     const rows=await r.json();
     const earlier=rows.map(row=>{
       const d=new Date(row.booking_date+'T12:00');
-      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
+      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
     });
     bookings=[...earlier,...bookings];
   }catch(e){console.error('Load earlier error:',e);}
@@ -1210,9 +1212,16 @@ async function renderPOS(){
   renderBookingRows(visible);
   updatePOSTotals(visible);
   if(selectedBookingId){
-    const b=bookings.find(x=>x.id===selectedBookingId);
-    if(b)renderActionPanel(b,'desktop');
-    else{selectedBookingId=null;showPanelEmpty();}
+    if(selectedBookingId.startsWith('GROUP:')){
+      const gid=selectedBookingId.slice(6);
+      const gm=bookings.filter(m=>m.group_booking_id===gid);
+      if(gm.length)renderGroupActionPanel(gm,'desktop');
+      else{selectedBookingId=null;showPanelEmpty();}
+    } else {
+      const b=bookings.find(x=>x.id===selectedBookingId);
+      if(b)renderActionPanel(b,'desktop');
+      else{selectedBookingId=null;showPanelEmpty();}
+    }
   }
   // Scroll to today's section
   setTimeout(()=>{
@@ -1221,14 +1230,59 @@ async function renderPOS(){
   },50);
 }
 
+// Collapses bookings sharing a group_booking_id (e.g. Amanda's 3-room
+// booking) into ONE synthetic display row, so a group is paid for as one
+// connected item in the POS list rather than N unrelated rows. The real
+// game_bookings rows are untouched — this is purely a display/selection
+// layer; see renderGroupActionPanel() for the combined payment UI.
+function buildGroupDisplayRow(members){
+  const gid=members[0].group_booking_id;
+  let total=0,collected=0;
+  members.forEach(m=>{
+    const players=m.players_booked||1;
+    const mTotal=m.total_amount??calcPrice(m.game_id,players);
+    const dep=m.deposit_amount??calcDeposit(mTotal);
+    const payments=m.payments?JSON.parse(m.payments):[];
+    const mCollected=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    total+=mTotal;collected+=mCollected;
+  });
+  const balance=Math.max(0,total-collected);
+  const waiverCount=members.filter(m=>waiverBookingIds.has(m.id)).length;
+  const first=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+  const gameNames=members.map(m=>m.name).join(', ');
+  return{
+    id:'GROUP:'+gid,isGroup:true,groupId:gid,memberIds:members.map(m=>m.id),
+    dateStr:first.dateStr,time:first.time,
+    customer:first.customer,
+    name:gameNames,
+    players_booked:members.reduce((s,m)=>s+(m.players_booked||0),0),
+    _groupBalance:balance,
+    waiverCount,waiverTotal:members.length,
+  };
+}
+
 function renderBookingRows(visibleBookings){
   const list=document.getElementById('posList');
   const today=nzNow();today.setHours(0,0,0,0);
   const todayStr=toDateStr(today);
 
+  // Split into standalone bookings and linked-group members, then collapse
+  // each group into one display row.
+  const groupMap={};
+  const displayRows=[];
+  visibleBookings.forEach(b=>{
+    if(b.group_booking_id){
+      if(!groupMap[b.group_booking_id])groupMap[b.group_booking_id]=[];
+      groupMap[b.group_booking_id].push(b);
+    } else {
+      displayRows.push(b);
+    }
+  });
+  Object.values(groupMap).forEach(members=>displayRows.push(buildGroupDisplayRow(members)));
+
   // Group by date
   const byDate={};
-  visibleBookings.forEach(b=>{
+  displayRows.forEach(b=>{
     if(!byDate[b.dateStr])byDate[b.dateStr]=[];
     byDate[b.dateStr].push(b);
   });
@@ -1247,26 +1301,37 @@ function renderBookingRows(visibleBookings){
 const headerClass=isToday?'today':isPast?'past':'future';
 html+=`<div class="brow-date-header ${headerClass}">${isToday?'Today · ':''}${dateLabel}</div>`;
 
-    byDate[dateStr].forEach(b=>{
+    byDate[dateStr].sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(b=>{
       const players=b.players_booked||1;
-      const total=b.total_amount??calcPrice(b.game_id,players);
-      const dep=b.deposit_amount??calcDeposit(total);
-      const payments=b.payments?JSON.parse(b.payments):[];
-      const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
-      const balance=Math.max(0,total-collected);
+      let balance,metaLine,hasWaiver,waiverLabel;
+      if(b.isGroup){
+        balance=b._groupBalance;
+        metaLine=`Group · ${b.memberIds.length} items · ${players}p · ${escapeHtml(b.name)}`;
+        hasWaiver=b.waiverCount===b.waiverTotal;
+        waiverLabel=hasWaiver?'✓ Waiver':`${b.waiverCount}/${b.waiverTotal} waivers`;
+      } else {
+        const total=b.total_amount??calcPrice(b.game_id,players);
+        const dep=b.deposit_amount??calcDeposit(total);
+        const payments=b.payments?JSON.parse(b.payments):[];
+        const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+        balance=Math.max(0,total-collected);
+        metaLine=`${escapeHtml(b.name)} · ${players}p`;
+        hasWaiver=waiverBookingIds.has(b.id);
+        waiverLabel=hasWaiver?'✓ Waiver':'No waiver';
+      }
       const hour=parseInt((b.time||'12:00').split(':')[0]);
       const timeClass=hour<12?'morning':'afternoon';
       const isActive=selectedBookingId===b.id;
-      const hasWaiver=waiverBookingIds.has(b.id);
+      const groupTag=b.isGroup?` <span style="background:#07b4c5;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle">GROUP</span>`:'';
       html+=`<div class="brow ${timeClass}${isActive?' active':''}" data-bid="${b.id}" onclick="selectBooking('${b.id}')">
         <div class="brow-time">${(fmt12(b.time||'00:00')).replace(/(AM|PM)/g, '<span>$1</span>')}</div>
         <div class="brow-mid">
-          <div class="brow-name">${escapeHtml(b.customer)||'—'}</div>
-          <div class="brow-meta">${escapeHtml(b.name)} · ${players}p</div>
+          <div class="brow-name">${escapeHtml(b.customer)||'—'}${groupTag}</div>
+          <div class="brow-meta">${metaLine}</div>
         </div>
         <div class="brow-right">
           <div class="brow-status ${balance===0?'full':'owing'}">${balance===0?'✓ Paid':'$'+balance.toFixed(0)+' owing'}</div>
-          <div class="brow-waiver ${hasWaiver?'done':'missing'}">${hasWaiver?'✓ Waiver':'No waiver'}</div>
+          <div class="brow-waiver ${hasWaiver?'done':'missing'}">${waiverLabel}</div>
         </div>
       </div>`;
     });
@@ -1277,11 +1342,18 @@ html+=`<div class="brow-date-header ${headerClass}">${isToday?'Today · ':''}${d
 
 function selectBooking(id){
   selectedBookingId=id;
-  const b=bookings.find(x=>x.id===id);if(!b)return;
   // Update row highlights
   document.querySelectorAll('.brow').forEach(r=>r.classList.toggle('active',r.dataset.bid===id));
-  // Desktop: fill right panel
   const isDesktop=window.innerWidth>680;
+  if(id.startsWith('GROUP:')){
+    const gid=id.slice(6);
+    const members=bookings.filter(m=>m.group_booking_id===gid);
+    if(!members.length)return;
+    if(isDesktop){renderGroupActionPanel(members,'desktop')}else{openGroupDrawer(members)}
+    return;
+  }
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  // Desktop: fill right panel
   if(isDesktop){
     renderActionPanel(b,'desktop');
   } else {
@@ -1580,6 +1652,7 @@ function closePanelSect(id){
 
 function renderActionPanel(b,target='desktop'){
   const html=buildActionPanelHTML(b);
+  const groupBackLink=b.group_booking_id?`<div style="padding:8px 16px 0"><button onclick="selectBooking('GROUP:${b.group_booking_id}')" style="font-size:11px;color:#07b4c5;font-weight:700;background:none;border:none;cursor:pointer;padding:0">← Back to group booking</button></div>`:'';
   if(target==='desktop'){
     document.getElementById('panelEmpty').style.display='none';
     const pc=document.getElementById('desktopPanelContent');
@@ -1591,9 +1664,10 @@ pc.innerHTML=`
           <div style="font-size:11px;color:#9ca3af">${fmt12(b.time)} · ${escapeHtml(b.name)}</div>
         </div>
       </div>
+      ${groupBackLink}
       ${html}`;
   } else {
-    document.getElementById('drawerContent').innerHTML=html;
+    document.getElementById('drawerContent').innerHTML=`${groupBackLink}${html}`;
   }
 }
 
@@ -1607,6 +1681,340 @@ function openDrawer(b){
 function closeDrawer(){
   document.getElementById('drawerOverlay').classList.remove('open');
   document.getElementById('bookingDrawer').classList.remove('open');
+}
+
+// ── GROUP BOOKING PANEL ─────────────────────────────
+// Combined "one invoice" view for bookings sharing a group_booking_id (e.g.
+// a school group across 3 rooms, or a room + VR + cafe combo). Deliberately
+// built as an ADDITIVE layer on top of the existing single-booking
+// functions (recordPayment, applyDiscount, removeAddon, openWaiver, etc.)
+// rather than modifying them — tapping any line item below opens that
+// room's own full panel (waiver/voucher/products/split-by-person) exactly
+// as before, with a "← Back to group booking" link to return. See
+// VERSIONS.md for the group-invoice build notes.
+let openGroupPanelSection={}; // group_booking_id -> section name ('pay'|'additem')
+let groupPayMethod={}; // group_booking_id -> selected payment method
+
+function openGroupDrawer(members){
+  const first=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+  document.getElementById('drawerTitle').textContent=`${first.customer||'—'} · Group · ${fmt12(first.time)}`;
+  renderGroupActionPanel(members,'drawer');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('bookingDrawer').classList.add('open');
+}
+
+function renderGroupActionPanel(members,target='desktop'){
+  const html=buildGroupActionPanelHTML(members);
+  const first=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+  if(target==='desktop'){
+    document.getElementById('panelEmpty').style.display='none';
+    const pc=document.getElementById('desktopPanelContent');
+    pc.style.display='flex';
+    pc.innerHTML=`
+      <div class="action-panel-header">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#111827">${escapeHtml(first.customer)||'—'} <span style="background:#07b4c5;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle">GROUP</span></div>
+          <div style="font-size:11px;color:#9ca3af">${fmt12(first.time)} · ${members.length} items</div>
+        </div>
+      </div>
+      ${html}`;
+  } else {
+    document.getElementById('drawerContent').innerHTML=html;
+  }
+}
+
+function refreshGroupPanel(gid){
+  const members=bookings.filter(m=>m.group_booking_id===gid);
+  if(!members.length)return;
+  const isDesktop=window.innerWidth>680;
+  renderGroupActionPanel(members,isDesktop?'desktop':'drawer');
+}
+
+function openGroupPanelSect(gid,sect){openGroupPanelSection[gid]=sect;refreshGroupPanel(gid);}
+function closeGroupPanelSect(gid){delete openGroupPanelSection[gid];refreshGroupPanel(gid);}
+
+function buildGroupActionPanelHTML(members){
+  const gid=members[0].group_booking_id;
+  const sect=openGroupPanelSection[gid]||null;
+  const cartHTML=buildGroupCartSummaryHTML(members);
+  if(sect){
+    return cartHTML+buildGroupSectionHTML(members,sect);
+  }
+  return cartHTML+buildGroupActionTilesHTML(gid);
+}
+
+function buildGroupCartSummaryHTML(members){
+  let combinedTotal=0,collected=0;
+  const allPayments=[];
+  const memberRowsHTML=members.map(m=>{
+    const players=m.players_booked||1;
+    const base=calcPrice(m.game_id,players);
+    const total=m.total_amount??base;
+    const dep=m.deposit_amount??calcDeposit(total);
+    const addons=m.addons?JSON.parse(m.addons):[];
+    const payments=m.payments?JSON.parse(m.payments):[];
+    combinedTotal+=total;
+    collected+=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    payments.forEach((p,idx)=>allPayments.push({...p,memberId:m.id,idx}));
+    if(m.deposit_paid){allPayments.push({amount:dep,method:m.deposit_method||'deposit',at:null,memberId:m.id,idx:-1,isDeposit:true})}
+    const addonRows=addons.map((a,ai)=>`
+      <div class="receipt-row" style="padding-left:14px">
+        <span class="receipt-label" style="font-size:12px;color:#6b7280">${escapeHtml(a.label)}</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="receipt-amount ${a.amount<0?'negative':''}" style="font-size:12px">$${Math.abs(parseFloat(a.amount||0)).toFixed(2)}</span>
+          <button onclick="removeAddon('${m.id}',${ai})" class="addon-chip-remove" title="Remove">×</button>
+        </div>
+      </div>`).join('');
+    return `
+      <div class="receipt-row" style="cursor:pointer" onclick="selectBooking('${m.id}')" title="Open this item individually">
+        <span class="receipt-label"><span style="font-weight:600">${escapeHtml(m.name)}</span> <span style="color:#9ca3af;font-size:11px">(${players}p)</span></span>
+        <span class="receipt-amount">$${base.toFixed(2)}</span>
+      </div>${addonRows}`;
+  }).join('');
+  const balance=Math.max(0,combinedTotal-collected);
+  const methodLabels={cash:'Cash',eftpos:'Eftpos',stripe:'Stripe',poli:'PoLi',bank_transfer:'Bank',invoice:'Invoice',deposit:'Deposit'};
+  const fmtDate=ts=>{if(!ts)return'';const d=new Date(ts);return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]};
+  const histHTML=allPayments.length?`<div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
+    ${allPayments.map(p=>{
+      const dateStr=fmtDate(p.at);
+      const undo=p.isDeposit?`toggleDepositPaid('${p.memberId}',false)`:`removePayment('${p.memberId}',${p.idx})`;
+      return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="${undo}" title="Undo">↩</button></div>`;
+    }).join('')}
+  </div>`:'';
+  return `<div class="pos-cart-summary">
+    ${memberRowsHTML}
+    <div class="receipt-total-row" style="display:flex;justify-content:space-between;align-items:flex-start">
+      <span>Combined Total</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <span>$${combinedTotal.toFixed(2)}</span>
+        ${balance===0?`<div style="font-size:12px;color:#1d9e75;font-weight:600;margin-top:2px">✓ Fully paid</div>`:''}
+      </div>
+    </div>
+    ${histHTML}
+    ${balance>0?`<div style="margin-top:8px;padding-top:${allPayments.length?'6px':'0'};border-top:${allPayments.length?'1px solid #f3f4f6':'none'};font-size:12px;color:#ef9f27;font-weight:600">Balance owing: $${balance.toFixed(0)}</div>`:''}
+  </div>`;
+}
+
+function buildGroupActionTilesHTML(gid){
+  return`<div class="pos-action-tiles">
+    <button class="pos-action-tile" style="background:#1d9e75;box-shadow:0 2px 8px rgba(29,158,117,.3);grid-column:1/-1" onclick="openGroupPanelSect('${gid}','pay')">
+      <span class="tile-icon">💳</span><span>Ready to pay (combined)</span>
+    </button>
+    <button class="pos-action-tile" style="background:#07b4c5;box-shadow:0 2px 8px rgba(7,180,197,.3);grid-column:1/-1" onclick="openGroupPanelSect('${gid}','additem')">
+      <span class="tile-icon">➕</span><span>Add item (room / VR / cafe)</span>
+    </button>
+  </div>
+  <div style="padding:10px 16px 4px;font-size:11px;color:#9ca3af">Need a waiver, voucher, product, or a discount on one specific item? Tap that item above to open it individually.</div>`;
+}
+
+function buildGroupSectionHTML(members,sect){
+  const gid=members[0].group_booking_id;
+  const backBar=(label)=>`<div class="pos-section-back">
+    <button class="pos-section-back-btn" onclick="closeGroupPanelSect('${gid}')">← Back</button>
+    <span class="pos-section-title">${label}</span>
+  </div>`;
+
+  if(sect==='additem'){
+    const addable=games.filter(g=>g.bookable!==false&&g.active!==false);
+    return backBar('Add item to group')+`
+    <div class="action-panel-scroll" style="padding:14px 16px">
+      <div style="font-size:12px;color:#6b7280;margin-bottom:12px">Adds another room, VR, or cafe session to this same group — same date/time, one combined total.</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Item</label>
+        <select id="gadd-game-${gid}" style="width:100%;font-size:13px;font-family:inherit;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#f9fafb">
+          ${addable.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Players</label>
+        <input type="number" id="gadd-players-${gid}" min="1" value="1" style="width:60%;font-size:16px;padding:8px 10px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none">
+      </div>
+      <button onclick="addItemToGroup('${gid}')" style="width:100%;padding:11px;font-size:15px;background:#07b4c5;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Add to group →</button>
+      <div id="gadd-msg-${gid}" style="font-size:12px;margin-top:6px;text-align:center;font-weight:500"></div>
+    </div>`;
+  }
+
+  if(sect==='pay'){
+    let combinedTotal=0,collected=0;
+    members.forEach(m=>{
+      const players=m.players_booked||1;
+      const total=m.total_amount??calcPrice(m.game_id,players);
+      const dep=m.deposit_amount??calcDeposit(total);
+      const payments=m.payments?JSON.parse(m.payments):[];
+      combinedTotal+=total;
+      collected+=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    });
+    const balance=Math.max(0,combinedTotal-collected);
+    const currentMethod=groupPayMethod[gid]||'';
+    const payUI=balance>0?`
+      <div style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to record ($)</label>
+        <input type="number" id="gpay-amt-${gid}" value="${balance.toFixed(0)}" min="0"
+          style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none">
+      </div>
+      <div id="gmethod-btns-${gid}" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+        ${[['cash','Cash','#374151','#f8fafc','#cbd5e1'],['eftpos','Eftpos','#0369a1','#f0f9ff','#bae6fd'],['stripe','Stripe','#6d28d9','#f5f3ff','#ddd6fe'],['poli','PoLi','#c2410c','#fff7ed','#fed7aa'],['bank_transfer','Bank','#15803d','#f0fdf4','#bbf7d0'],['invoice','Invoice','#be185d','#fdf2f8','#fbcfe8']].map(([m,label,color,bg,border])=>`
+          <button data-method="${m}" onclick="selectGroupPayMethod('${gid}','${m}')"
+            style="font-size:12px;padding:7px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:7px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
+            ${label}
+          </button>`).join('')}
+      </div>
+      <div id="ginvoice-email-wrap-${gid}" style="display:${currentMethod==='invoice'?'':'none'};margin-bottom:8px">
+        <input type="email" id="ginvoice-email-${gid}" placeholder="Email for invoice..." value="${escapeHtml(members[0].customerEmail)||''}" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #fbbf24;border-radius:8px;padding:7px 10px;background:#fffbeb">
+      </div>
+      <button onclick="recordGroupPayment('${gid}')" style="width:100%;padding:11px;font-size:15px;background:#10b981;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Record →</button>
+      <div id="gpay-msg-${gid}" style="font-size:12px;margin-top:6px;min-height:18px;text-align:center;font-weight:500"></div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:8px">This is split proportionally across the ${members.length} linked items so each game's reporting stays accurate.</div>`:'';
+
+    return backBar('Ready to pay (combined)')+`
+    <div class="action-panel-scroll" style="padding:14px 16px">
+      <div style="font-size:15px;font-weight:700;color:${balance===0?'#1d9e75':'#ef9f27'};margin-bottom:10px">${balance===0?'✓ Fully paid':'$'+balance.toFixed(0)+' owing'}</div>
+      ${payUI}
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f3f4f6">
+        <button onclick="sendGroupReceiptEmail('${gid}')" style="width:100%;font-size:12px;font-weight:600;color:#07b4c5;background:none;border:1px solid #07b4c5;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:inherit">✉️ Email combined receipt</button>
+        <div id="greceipt-msg-${gid}" style="font-size:12px;margin-top:6px;text-align:center"></div>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function selectGroupPayMethod(gid,method){
+  groupPayMethod[gid]=method;
+  const colorMap={cash:['#374151','#f8fafc','#cbd5e1'],eftpos:['#0369a1','#f0f9ff','#bae6fd'],stripe:['#6d28d9','#f5f3ff','#ddd6fe'],poli:['#c2410c','#fff7ed','#fed7aa'],bank_transfer:['#15803d','#f0fdf4','#bbf7d0'],invoice:['#be185d','#fdf2f8','#fbcfe8']};
+  document.querySelectorAll(`#gmethod-btns-${gid} button[data-method]`).forEach(btn=>{
+    const m=btn.dataset.method;const [col,bg,bdr]=colorMap[m]||['#374151','#f9fafb','#e5e7eb'];
+    const active=m===method;
+    btn.style.background=active?col:bg;btn.style.color=active?'#fff':col;btn.style.borderColor=active?col:bdr;
+  });
+  const iw=document.getElementById('ginvoice-email-wrap-'+gid);
+  if(iw)iw.style.display=method==='invoice'?'':'none';
+}
+
+// Records ONE payment against the group and splits it proportionally across
+// each linked game_bookings row by that row's share of the group's
+// remaining balance — so this booking pays as one connected item, while
+// each game's own total_amount/payments (and therefore reports.html's
+// per-game revenue) stays accurate. The last item absorbs any rounding
+// remainder so the split always sums exactly to the recorded amount.
+async function recordGroupPayment(gid){
+  const members=bookings.filter(m=>m.group_booking_id===gid);
+  if(!members.length)return;
+  const amtEl=document.getElementById('gpay-amt-'+gid);
+  const amt=parseFloat(amtEl?.value)||0;
+  const method=groupPayMethod[gid]||'';
+  const msgEl=document.getElementById('gpay-msg-'+gid);
+  if(!amt){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an amount.'}return}
+  if(!method){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.'}return}
+  let invoiceEmail=null;
+  if(method==='invoice'){
+    invoiceEmail=document.getElementById('ginvoice-email-'+gid)?.value.trim();
+    if(!invoiceEmail){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email address for the invoice.'}return}
+  }
+
+  const details=members.map(m=>{
+    const players=m.players_booked||1;
+    const total=m.total_amount??calcPrice(m.game_id,players);
+    const dep=m.deposit_amount??calcDeposit(total);
+    const payments=m.payments?JSON.parse(m.payments):[];
+    const collected=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    const balance=Math.max(0,total-collected);
+    return{m,payments,balance};
+  });
+  const groupBalance=details.reduce((s,d)=>s+d.balance,0);
+  if(groupBalance<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already paid in full.'}return}
+  const toRecord=Math.min(amt,groupBalance);
+
+  let remaining=toRecord;
+  for(let i=0;i<details.length;i++){
+    const d=details[i];
+    const isLast=i===details.length-1;
+    let share=isLast?remaining:Math.round((d.balance/groupBalance)*toRecord*100)/100;
+    share=Math.min(share,d.balance,remaining);
+    remaining=Math.round((remaining-share)*100)/100;
+    if(share>0){
+      const entry={amount:share,method,at:new Date().toISOString()};
+      if(invoiceEmail)entry.invoice_email=invoiceEmail;
+      if(method==='invoice')entry.status='pending';
+      d.payments.push(entry);
+      d.m.payments=JSON.stringify(d.payments);
+      await savePOSData(d.m.id);
+    }
+  }
+  if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
+  await renderPOS();
+}
+
+// Appends another linked room/VR/cafe item to an existing group at the
+// group's own date/time — reuses the exact same games list and price
+// calculation as everywhere else in POS.
+async function addItemToGroup(gid){
+  const members=bookings.filter(m=>m.group_booking_id===gid);
+  if(!members.length)return;
+  const gameId=document.getElementById('gadd-game-'+gid)?.value;
+  const playersVal=parseInt(document.getElementById('gadd-players-'+gid)?.value,10)||1;
+  const msgEl=document.getElementById('gadd-msg-'+gid);
+  if(!gameId){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Choose an item.'}return}
+  const game=games.find(g=>g.id===gameId);
+  if(!game){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Item not found.'}return}
+  const first=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+  const total=calcPrice(gameId,playersVal);
+  const row={
+    client_id:first.clientId||null,
+    game_id:gameId,game_name:game.name,
+    booking_date:first.dateStr,slot_time:(first.time||'00:00')+':00',
+    players_booked:playersVal,total_amount:total,
+    status:'confirmed',source:'staff',
+    group_booking_id:gid,
+  };
+  if(msgEl){msgEl.style.color='#6b7280';msgEl.textContent='Adding…'}
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(row)});
+    if(!r.ok)throw new Error(await r.text());
+    delete openGroupPanelSection[gid];
+    await renderPOS();
+  }catch(e){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}console.error(e)}
+}
+
+async function sendGroupReceiptEmail(gid){
+  const members=bookings.filter(m=>m.group_booking_id===gid);
+  if(!members.length)return;
+  const msgEl=document.getElementById('greceipt-msg-'+gid);
+  const to=members[0].customerEmail;
+  if(!to){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='No email on file — open an item individually to add one.'}return}
+  let combinedTotal=0,collected=0;
+  const rows=[];
+  members.forEach(m=>{
+    const players=m.players_booked||1;
+    const base=calcPrice(m.game_id,players);
+    const total=m.total_amount??base;
+    const dep=m.deposit_amount??calcDeposit(total);
+    const addons=m.addons?JSON.parse(m.addons):[];
+    const payments=m.payments?JSON.parse(m.payments):[];
+    combinedTotal+=total;
+    collected+=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
+    rows.push(`<tr><td style="padding:4px 0">${escapeHtml(m.name)} (${players} player${players!==1?'s':''})</td><td style="padding:4px 0;text-align:right">$${base.toFixed(2)}</td></tr>`);
+    addons.forEach(a=>{
+      rows.push(`<tr><td style="padding:4px 0">${escapeHtml(a.label)}</td><td style="padding:4px 0;text-align:right">$${parseFloat(a.amount||0).toFixed(2)}</td></tr>`);
+    });
+  });
+  const balance=Math.max(0,combinedTotal-collected);
+  const first=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
+  const htmlBody=`<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto">
+    <h2 style="color:#07b4c5;margin-bottom:4px">Beyond the Box</h2>
+    <div style="color:#6b7280;font-size:13px;margin-bottom:16px">Group booking receipt${first.dateStr?' — '+first.dateStr:''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">${rows.join('')}</table>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;border-top:2px solid #e5e7eb;padding-top:8px;margin-top:8px">
+      <span>Total</span><span>$${combinedTotal.toFixed(2)}</span>
+    </div>
+    ${balance>0?`<div style="color:#ef9f27;font-weight:600;font-size:13px;margin-top:6px">Balance owing: $${balance.toFixed(2)}</div>`:`<div style="color:#1d9e75;font-weight:600;font-size:13px;margin-top:6px">✓ Fully paid</div>`}
+    <div style="color:#9ca3af;font-size:12px;margin-top:20px">Thanks for visiting Beyond the Box!</div>
+  </div>`;
+  msgEl.style.color='#6b7280';msgEl.textContent='Sending…';
+  try{
+    await callEdgeFunction('send_pos_receipt_email',{to,subject:'Your Beyond the Box receipt',htmlBody},currentUser?.token);
+    msgEl.style.color='#1d9e75';msgEl.textContent='✓ Sent to '+to;
+  }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}
 }
 
 // ── Booking data mutations ──────────────────────────
