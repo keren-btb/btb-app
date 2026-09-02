@@ -4091,7 +4091,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               <div class="field" id="voucherFieldWrap">
                 <div class="field-label">Got a gift voucher?</div>
                 <div style="display:flex;gap:8px">
-                  <input class="field-input" type="text" id="fVoucherCode" placeholder="Voucher code" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+                  <input class="field-input" type="text" id="fVoucherCode" placeholder="Voucher code" style="text-transform:uppercase;flex:1;min-width:0" oninput="this.value=this.value.toUpperCase()">
                   <button type="button" class="btn btn-ghost" style="flex:0 0 auto;padding:0 18px" onclick="applyVoucherCode()" id="btnApplyVoucher">Apply</button>
                 </div>
                 <div id="voucherMsg" style="font-size:13px;margin-top:6px"></div>
@@ -4245,7 +4245,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.33'; // v1.7.33: Gift voucher redemption at checkout. New "Got a gift voucher?" code field on the details screen — validates via the new public btb-public edge function (validate_voucher/redeem_voucher actions), applies the discount to the displayed total and deposit, records it in the booking's addons as a negative line, and marks the voucher used only once the booking is actually confirmed (not on validate, so an abandoned booking doesn't burn it).
+const BUILD_VERSION = '1.7.34'; // v1.7.34: Fixed voucher code input being squeezed to near-zero width next to the Apply button (missing flex:1) — was unusable on mobile.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
