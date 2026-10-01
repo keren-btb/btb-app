@@ -40,4 +40,11 @@
 **Difficulty:** TBD
 **Notes:** Early idea from Keren; the second idea from the same source is still to be added.
 
-### 4. *(add next idea here)*
+### 4. Line-Up Keys
+**Type:** physical / logic
+**Concept:** Inspired by the same word puzzle game ad. Two key-shaped pieces with notched shafts are slid against each other until they line up, revealing symbols: letters and direction arrows. Players read the aligned symbols to get a letter or a direction code for the next step.
+**Tech / props needed:** TBD. Could be two physical keys or overlay plates with cut-outs that only show the symbols when aligned, or a screen version.
+**Difficulty:** TBD
+**Notes:** Early idea from Keren; the symbols seen were a letter "I" and left, up and right arrows.
+
+### 5. *(add next idea here)*
