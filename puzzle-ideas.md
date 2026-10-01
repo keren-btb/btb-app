@@ -33,4 +33,11 @@
 - Plan for weatherproofing and battery swaps.
 - Setting still to be decided.
 
-### 3. *(add next idea here)*
+### 3. Drag-the-Leaf Letter Clue
+**Type:** logic / physical
+**Concept:** Inspired by a word puzzle game ad. Players move a draggable item (a leaf-shaped piece with a small square tag) so it loops around the letter "B" among scattered letters. The square then reveals 3 dots, which is the clue for the next step.
+**Tech / props needed:** TBD. Could be a physical sliding or tracked piece on a board, or a screen/projection version.
+**Difficulty:** TBD
+**Notes:** Early idea from Keren; the second idea from the same source is still to be added.
+
+### 4. *(add next idea here)*
