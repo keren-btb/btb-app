@@ -2,7 +2,7 @@
 // Handles background push notifications (e.g. 🚨 help alerts).
 // This file itself has no BUILD_VERSION UI tag — deployment updates are picked up
 // automatically by the browser checking for byte changes to this file.
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.0.1'; // v1.0.1: notificationclick now matches against the notification's own target URL (e.g. clients_mobile.html for a client-email alert) instead of always re-focusing an already-open staff_portal.html tab regardless of which notification was tapped.
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -43,7 +43,7 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes('staff_portal.html') && 'focus' in client) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
           return client.focus();
         }
       }
