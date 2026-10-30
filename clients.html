@@ -260,6 +260,7 @@ tr:last-child td{border-bottom:none}
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
       <select class="status-select" id="panelStatusSelect" onchange="updateClientStatus(activeClientId,this.value)"></select>
+      <button class="resolve-btn" id="panelBookBtn" onclick="bookForClient()" style="border-color:#07b4c5;color:#07b4c5;background:#ecfeff"><i class="ti ti-calendar-plus"></i> Book</button>
       <button class="resolve-btn" id="panelProfileBtn" onclick="openProfile()" style="border-color:#7c3aed;color:#7c3aed;background:#f5f3ff"><i class="ti ti-user-edit"></i> Edit profile</button>
       <button class="resolve-btn" id="panelResolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Clear to-dos</button>
       <button class="panel-close" onclick="closePanel()"><i class="ti ti-x"></i></button>
@@ -484,7 +485,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.6'; // v1.5.6: Suite-wide mobile viewport fix — sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
+const BUILD_VERSION = '1.5.7'; // v1.5.7: Added a "Book" button to the client side panel — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.5.6: Suite-wide mobile viewport fix — sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
@@ -894,6 +895,11 @@ function openPanel(clientId){
   document.getElementById('sidePanel').classList.add('open');
   document.getElementById('panelBackdrop').classList.add('open');
   renderPanel();
+}
+// v1.5.7: opens the booking form in btb_app.html for the client currently shown in the panel
+function bookForClient(){
+  if(!activeClientId)return;
+  location.href='btb_app.html?book_client='+encodeURIComponent(activeClientId);
 }
 function openProfile(){
   if(!activeClientId)return;
