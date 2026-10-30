@@ -787,6 +787,7 @@ async function saveBooking(id){
 // WALK-IN FORM
 function toggleWalkin(){
   walkinOpen=!walkinOpen;
+  if(!walkinOpen){walkinClientId=null;walkinClientOrig=null}
   const form=document.getElementById('walkinForm');
   form.style.display=walkinOpen?'':'none';
   if(walkinOpen){
@@ -810,6 +811,33 @@ function quickWalkin(gameId,timeStr){
 }
 function renderWalkinGMChips(){
   document.getElementById('wGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${walkinGMs.includes(p.id)?'assigned':''}" onclick="toggleWGM('${p.id}')">${walkinGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
+}
+// v16.4.52: BOOK FROM CLIENT PROFILE — clients.html / clients_mobile.html link here with ?book_client=<id>
+let walkinClientId=null,walkinClientOrig=null;
+async function checkClientBookDeepLink(){
+  if(!currentUser)return;
+  const params=new URLSearchParams(location.search);
+  const cid=params.get('book_client');
+  if(!cid)return;
+  // Remove it from the address bar straight away so a refresh doesn't reopen the form
+  params.delete('book_client');
+  const qs=params.toString();
+  history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${encodeURIComponent(cid)}&select=id,first_name,last_name,email,phone`,{headers:H()});
+    const rows=await r.json();
+    if(!r.ok||!Array.isArray(rows)||!rows.length){alert('Could not find that client to book.');return}
+    const c=rows[0];
+    setView('cal');
+    if(!walkinOpen)toggleWalkin();
+    walkinClientId=c.id;
+    walkinClientOrig={phone:c.phone||'',email:c.email||''};
+    document.getElementById('wName').value=[c.first_name,c.last_name].filter(Boolean).join(' ');
+    document.getElementById('wPhone').value=c.phone||'';
+    document.getElementById('wEmail').value=c.email||'';
+    document.getElementById('walkinForm').scrollIntoView({behavior:'smooth',block:'start'});
+    document.getElementById('wPlayers').focus();
+  }catch(e){console.error('Book-from-client failed:',e);alert('Could not open the booking form for that client.')}
 }
 function toggleWGM(id){const i=walkinGMs.indexOf(id);if(i===-1)walkinGMs.push(id);else walkinGMs.splice(i,1);renderWalkinGMChips()}
 // Checks whether a proposed walk-in time falls within 90 minutes of an existing booking start for the same game on the selected day
@@ -849,8 +877,8 @@ async function submitWalkin(){
     // Find or create client — same pattern as enquiries.html, so the same
     // person always resolves to the same client record whether they enquire,
     // book online, or get added here manually by staff.
-    let clientId=null;
-    if(email||phone){
+    let clientId=walkinClientId||null;
+    if(!clientId&&(email||phone)){
       const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
       const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
       const ex=await cr.json();
@@ -861,6 +889,20 @@ async function submitWalkin(){
         const last=nameParts.slice(1).join(' ')||null;
         const nr=await fetch(`${SB_URL}/rest/v1/clients`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({first_name:first,last_name:last,email:email||null,phone:phone||null,source:'staff'})});
         const nc=await nr.json();clientId=nc[0]?.id;
+      }
+    }
+    // v16.4.52: booking started from a client profile — if the client had no phone/email
+    // on file and one was typed in, save it to their profile too. Only fills blanks;
+    // never overwrites something already saved on the profile.
+    if(walkinClientId&&walkinClientOrig){
+      const fill={};
+      if(phone&&!walkinClientOrig.phone)fill.phone=phone;
+      if(email&&!walkinClientOrig.email)fill.email=email;
+      if(Object.keys(fill).length){
+        try{
+          const pr=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${encodeURIComponent(walkinClientId)}`,{method:'PATCH',headers:H(),body:JSON.stringify(fill)});
+          if(!pr.ok)throw new Error(await pr.text());
+        }catch(pe){console.error('Client profile update failed:',pe);alert('The booking will still be saved, but the new phone/email could not be saved to the client profile.')}
       }
     }
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{
@@ -883,7 +925,7 @@ async function submitWalkin(){
       bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:game.duration,meta:`${players} player${players!==1?'s':''} · Walk-in`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||''});
     }
   }catch(e){alert('Error: '+e.message);return}
-  walkinGMs=[];walkinOpen=false;document.getElementById('walkinForm').style.display='none';
+  walkinGMs=[];walkinOpen=false;walkinClientId=null;walkinClientOrig=null;document.getElementById('walkinForm').style.display='none';
   ['wPlayers','wName','wPhone','wEmail','wNote','wDeposit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   const wse=document.getElementById('wSkipEmail');if(wse)wse.checked=false;
   const wp=document.getElementById('wHowPaid');if(wp)wp.value='';
@@ -2238,6 +2280,7 @@ async function doLogin(){
     await loadProducts();
     showApp();
     renderActiveView();
+    checkClientBookDeepLink();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
   function parseAllowedTabs(raw){
@@ -2923,7 +2966,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.51'; // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.52'; // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
@@ -3059,6 +3102,7 @@ await loadShiftTimes();
 
   buildCalendar();updateHeader();renderEvents();renderTagFilters();renderTimerBanner();
   setupRealtime();
+  checkClientBookDeepLink();
 });
 </script>
 </body>
