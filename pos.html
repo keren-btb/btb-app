@@ -728,7 +728,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.8'; // v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
+const BUILD_VERSION = '1.9.9'; // v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
@@ -792,6 +792,7 @@ let posCategories=[
   {id:'boardgame',label:'Boardgame',icon:'ti-puzzle',color:'#1d9e75',type:'products',filter:'Boardgame'},
 ];
 let currentUser=null;
+let posRangeEndOverride=null; // v1.9.9: set only by jumpToBookingFromURL so a far-future booking is loaded; null = normal 27-day window
 let posRangeStart=nzNow(); // earliest date loaded (go back by 14 days at a time)
 let selectedBookingId=null;
 // per-booking state keyed by id
@@ -991,6 +992,7 @@ function jumpToBookingFromURL(bookingId){
   const dateParam=new URLSearchParams(location.search).get('date');
   posRangeStart=dateParam?new Date(dateParam+'T00:00:00'):nzNow();
   posRangeStart.setHours(0,0,0,0);
+  posRangeEndOverride=dateParam?new Date(dateParam+'T00:00:00'):null;
   renderPOS();
 }
   
@@ -1175,6 +1177,7 @@ function showBookings(){
   // Reset to today + 14 days forward
   posRangeStart=nzNow();
   posRangeStart.setHours(0,0,0,0);
+  posRangeEndOverride=null; // v1.9.9: normal opening uses the standard window
   renderPOS();
 }
 
@@ -1206,7 +1209,9 @@ async function renderPOS(){
   const today=nzNow();today.setHours(0,0,0,0);
   const fromStr=toDateStr(posRangeStart);
   const futureEnd=new Date(today);futureEnd.setDate(futureEnd.getDate()+27);
-  const toStr=toDateStr(futureEnd);
+  // v1.9.9: if opened via a "Go to POS" link for a far-future booking, extend the end of the range to cover that booking's date
+  const rangeEnd=(posRangeEndOverride&&posRangeEndOverride>futureEnd)?posRangeEndOverride:futureEnd;
+  const toStr=toDateStr(rangeEnd);
   await loadBookingsForRange(fromStr,toStr);
   const visible=bookings.filter(b=>!b.isEnquiry&&b.status!=='cancelled');
   renderBookingRows(visible);
