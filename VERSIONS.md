@@ -250,6 +250,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.6 — 2026-11-03 — Added a "Book" button to the top bar: opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Single sign-on: switched from its own separate sessionStorage session ('btb_profile_user') to the shared localStorage session ('btb_staff_session') used by every other staff app

@@ -97,6 +97,7 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
       <div class="topbar-title">Client Profile <span id="buildVersionTag" style="font-size:9px;font-weight:400;color:#8a9bb5"></span></div>
       <div class="topbar-sub" id="topbarSub"></div>
     </div>
+    <button id="topbarBookBtn" onclick="bookForClient()" style="display:none;background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-calendar-plus"></i> Book</button>
     <span class="signout-link" onclick="doLogout()">Sign out</span>
   </header>
 
@@ -106,7 +107,7 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
 </div>
 
 <script>
-const BUILD_VERSION = '1.0.5'; // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '1.0.6'; // v1.0.6: Added a "Book" button to the top bar — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 // v1.0.2 — Single sign-on: switched from its own separate sessionStorage
 //          session ('btb_profile_user') to the shared localStorage session
 //          ('btb_staff_session') used by every other staff app, so a staff
@@ -146,6 +147,12 @@ function goBack(){
   else location.href='clients.html';
 }
 
+// v1.0.6: opens the booking form in btb_app.html for the client shown on this page
+function bookForClient(){
+  if(!clientId)return;
+  location.href='btb_app.html?book_client='+encodeURIComponent(clientId);
+}
+
 async function loadClient(){
   const content=document.getElementById('mainContent');
   if(!clientId){
@@ -165,6 +172,7 @@ function renderProfile(){
   const c=clientData;
   const name=[c.first_name,c.last_name].filter(Boolean).join(' ')||'Unknown';
   document.getElementById('topbarSub').textContent=name;
+  document.getElementById('topbarBookBtn').style.display='';
   const srcBadge=c.source?`<span class="source-badge source-${c.source}">${escapeHtml(SOURCE_LABELS[c.source]||c.source)}</span>`:'';
 
   document.getElementById('mainContent').innerHTML=`
