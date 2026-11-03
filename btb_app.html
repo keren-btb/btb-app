@@ -237,7 +237,7 @@
 
     </div>
     <!-- PANELS -->
-    <div id="pGames" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pGames')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Games & Activities</span></div><div class="panel-body"><p class="panel-sub">Add or edit activities. Toggle 🌐 Live to show/hide from booking widget.</p><div id="gamesList"></div><div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><div style="font-size:12px;color:#6b7280;font-weight:600;margin-bottom:8px">Add activity</div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input-sm" type="text" id="newGameIcon" placeholder="🚪" style="width:48px"><input class="add-input" type="text" id="newGameName" placeholder="Activity name…" onkeydown="if(event.key==='Enter')addGame()"><input class="add-input-sm" type="number" id="newGameDur" placeholder="min" min="1"></div><div style="margin-top:7px"><select class="form-select" id="newGamePricing"><option value="per_person_tiered">Escape room — per person (tiered)</option><option value="per_hour_flat">Hourly flat rate (e.g. VR Hour)</option><option value="per_person_per_hour">Per person per hour (e.g. Cafe)</option></select></div><div style="margin-top:7px"><select class="form-select" id="newGameCat"><option value="escape">Escape room</option><option value="vr">VR</option><option value="cafe">Cafe</option></select></div><button class="add-btn" style="margin-top:8px" onclick="addGame()"><i class="ti ti-plus"></i> Add</button></div></div></div>
+    <div id="pGames" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pGames')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Games & Activities</span></div><div class="panel-body"><p class="panel-sub">Add or edit activities. Toggle 🌐 Live to show/hide from booking widget.</p><div id="gamesList"></div><div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><div style="font-size:12px;color:#6b7280;font-weight:600;margin-bottom:8px">Add activity <span style="font-weight:400;color:#9ca3af;font-size:11px">(tip: Win + . for emoji)</span></div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input-sm" type="text" id="newGameIcon" placeholder="🚪" style="width:48px"><input class="add-input" type="text" id="newGameName" placeholder="Activity name…" onkeydown="if(event.key==='Enter')addGame()"><input class="add-input-sm" type="number" id="newGameDur" placeholder="min" min="1"></div><div style="margin-top:7px"><select class="form-select" id="newGamePricing"><option value="per_person_tiered">Escape room — per person (tiered)</option><option value="per_hour_flat">Hourly flat rate (e.g. VR Hour)</option><option value="per_person_per_hour">Per person per hour (e.g. Cafe)</option></select></div><div style="margin-top:7px"><select class="form-select" id="newGameCat"><option value="escape">Escape room</option><option value="vr">VR</option><option value="cafe">Cafe</option></select></div><button class="add-btn" style="margin-top:8px" onclick="addGame()"><i class="ti ti-plus"></i> Add</button></div></div></div>
     <div id="pStaff" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pStaff')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Staff</span></div><div class="panel-body"><p class="panel-sub">Tap the certificate icon to set game training for each staff member.</p><div id="personList"></div><div class="add-row" style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><input class="add-input" type="text" id="newPersonInput" placeholder="Staff name…" onkeydown="if(event.key==='Enter')addPerson()"><button class="add-btn" onclick="addPerson()"><i class="ti ti-plus"></i> Add</button></div></div></div>
     <div id="pTags" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pTags')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Booking Tags</span></div><div class="panel-body"><p class="panel-sub">Colour-coded labels for booking cards.</p><div id="tagList"></div><div style="margin-top:12px;border-top:1px solid #f3f4f6;padding-top:12px"><div class="add-row"><input class="add-input" type="text" id="newTagInput" placeholder="e.g. Prepaid, VIP…" onkeydown="if(event.key==='Enter')addTag()"><button class="add-btn" onclick="addTag()"><i class="ti ti-plus"></i> Add</button></div><div class="color-picker-row" id="colorPicker"></div><p class="hint">Pick colour, type name, hit Add.</p></div></div></div>
 <div id="pStatuses" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pStatuses')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Enquiry Statuses</span></div><div class="panel-body"><p class="panel-sub">Status options shown on enquiry cards.</p><div id="statusList"></div><div class="add-row" style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px"><input class="add-input" type="text" id="newStatusLabel" placeholder="e.g. Hot lead…" onkeydown="if(event.key==='Enter')addStatus()"><input class="add-input-sm" type="text" id="newStatusEmoji" placeholder="🔥" style="width:50px"><button class="add-btn" onclick="addStatus()"><i class="ti ti-plus"></i> Add</button></div></div></div>
@@ -1674,7 +1674,7 @@ function renderGamesList(){
       <div style="display:flex;align-items:center;gap:8px">
         <div class="game-swatch">${g.icon||'🚪'}</div>
         <div style="flex:1;min-width:0">
-          <div class="row-label" style="line-height:1.2">${g.name}</div>
+          ${editingGameId===g.id?`<div style="display:flex;gap:4px;align-items:center"><input id="renameGameInput" class="add-input" type="text" value="${escapeHtml(g.name)}" onkeydown="if(event.key==='Enter')saveGameName('${g.id}');if(event.key==='Escape')cancelRenameGame()" style="flex:1;min-width:0;font-size:13px"><button class="icon-btn" onclick="saveGameName('${g.id}')" title="Save name"><i class="ti ti-check"></i></button><button class="icon-btn" onclick="cancelRenameGame()" title="Cancel"><i class="ti ti-x"></i></button></div><div style="font-size:10px;color:#9ca3af;margin-top:2px">tip: Win + . for emoji</div>`:`<div class="row-label" style="line-height:1.2;display:flex;align-items:center;gap:4px">${g.name}<button class="icon-btn" onclick="startRenameGame('${g.id}')" title="Rename"><i class="ti ti-pencil"></i></button></div>`}
           <div class="row-sub">${cats[g.category]||g.category}</div>
         </div>
         <button class="icon-btn danger" onclick="deleteGame('${g.id}')"><i class="ti ti-trash"></i></button>
@@ -1773,6 +1773,34 @@ function addGame(){
   games.push({id:'g_'+Date.now(),name,duration:dur,bufferMinutes:30,icon,pricingType:pricing,pricingPresetId:preset.id,category:cat,bookable:true,showOnQuickBook:cat==='escape'});
   document.getElementById('newGameName').value='';document.getElementById('newGameDur').value='';document.getElementById('newGameIcon').value='';
   renderGamesList();saveGames();saveBookingConfigSetting();
+}
+// v16.4.53: RENAME AN ACTIVITY — pencil button on each activity in Settings > Games & Activities
+let editingGameId=null;
+function startRenameGame(id){
+  editingGameId=id;renderGamesList();
+  const i=document.getElementById('renameGameInput');if(i){i.focus();i.select()}
+}
+function cancelRenameGame(){editingGameId=null;renderGamesList()}
+async function saveGameName(id){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  const inp=document.getElementById('renameGameInput');
+  const newName=(inp?inp.value:'').trim();
+  if(!newName){alert("The activity name can't be blank.");return}
+  if(newName===g.name){cancelRenameGame();return}
+  g.name=newName;editingGameId=null;
+  // Keep bookings already loaded on screen in step with the new name
+  bookings.forEach(b=>{if(b.game_id===id)b.name=newName});
+  renderGamesList();saveGames();saveBookingConfigSetting();
+  if(typeof renderEvents==='function')try{renderEvents()}catch(e){}
+  // Update the name saved on past bookings, vouchers and waivers for this activity
+  const failed=[];
+  for(const t of ['game_bookings','vouchers','waivers']){
+    try{
+      const r=await fetch(`${SB_URL}/rest/v1/${t}?game_id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:H(),body:JSON.stringify({game_name:newName})});
+      if(!r.ok)failed.push(t);
+    }catch(e){console.error('Rename update failed for '+t+':',e);failed.push(t)}
+  }
+  if(failed.length)alert('The activity was renamed, but the name could not be updated on past records in: '+failed.join(', ')+'. Please tell me and we will fix it.');
 }
 function deleteGame(id){
   if(games.length<=1){alert('Need at least one game.');return}
@@ -2966,7 +2994,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.52'; // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.53'; // v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
