@@ -268,6 +268,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.3 — 2026-11-03 — Added a "Book" button to the client thread header (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.3.2 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
 - v1.3.1 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.3.0 before this — ahead of what was last logged here; gap not reconciled.)
 - v1.2.5 — 2026-08-02 — Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)

@@ -120,6 +120,7 @@
           <div class="thread-meta" id="threadMeta"></div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="resolve-btn" style="border-color:#07b4c5;color:#07b4c5;background:#ecfeff" onclick="bookForClient()"><i class="ti ti-calendar-plus"></i> Book</button>
           <button class="resolve-btn" style="border-color:#7c3aed;color:#7c3aed;background:#f5f3ff" onclick="openProfile()"><i class="ti ti-user-edit"></i> Edit profile</button>
           <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
         </div>
@@ -227,7 +228,7 @@ async function callEdgeFunction(action,params={},token=null){
 // resolved" button, matching clients.html's new per-client checklist. No
 // global cross-client To-Dos view here (kept to the desktop hub) and no new
 // client-creation change — this page stays view/reply/log-note only.
-const BUILD_VERSION = '1.3.2'; // v1.3.2: Sent replies now also pass the plain-text body to send_enquiry_template_email, so the thread log can store what was actually sent (was only saving the template label). // v1.3.1: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.// v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
+const BUILD_VERSION = '1.3.3'; // v1.3.3: Added a "Book" button to the client thread header — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.3.2: Sent replies now also pass the plain-text body to send_enquiry_template_email, so the thread log can store what was actually sent (was only saving the template label). // v1.3.1: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.// v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 // v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 // v1.2.0 — Added "Edit profile" button in the thread header, linking to the
 //          new client_profile.html page for editing name/email/phone/company/notes.
@@ -421,6 +422,11 @@ function openThread(clientId){
   document.getElementById('queueSection').classList.remove('active');
   document.getElementById('threadSection').classList.add('active');
   renderThread();
+}
+// v1.3.3: opens the booking form in btb_app.html for the client currently shown in the thread
+function bookForClient(){
+  if(!activeClientId)return;
+  location.href='btb_app.html?book_client='+encodeURIComponent(activeClientId);
 }
 function openProfile(){
   if(!activeClientId)return;
