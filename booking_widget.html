@@ -4248,7 +4248,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.35'; // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
+const BUILD_VERSION = '1.7.36'; // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5781,14 +5781,23 @@ assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
       notes_when_booked: `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : ''),
     };
 
+    // The public page is allowed to add bookings but not read them back, so we
+    // make the booking's ID here and save with return=minimal (asking the database
+    // to send the whole saved row back is refused: "permission denied").
+    const newBookingId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    bookingData.id = newBookingId;
+
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
-      headers: { ...SB_H, 'Prefer': 'return=representation' },
+      headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify(bookingData),
     });
     if (!br.ok) throw new Error('Booking save failed: ' + await br.text());
-    const savedBooking = await br.json();
-    const newBookingId = savedBooking?.[0]?.id;
 
     existingBookings.push({
       game_id: selGame.id,
