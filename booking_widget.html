@@ -4120,7 +4120,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                     <span class="radio-label">💵 Cash in person</span>
                   </div>
                 </div>
-                <div class="field-hint">Just a preference for now — no payment is taken here.</div>
+                <div class="field-hint">No payment is taken on this page.</div>
               </div>
 
               <div class="field" id="voucherFieldWrap">
@@ -4148,6 +4148,10 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
             <div class="err-msg" id="reviewErr"></div>
             <div class="confirm-card" id="reviewCard"></div>
             <div class="price-box" id="reviewPriceBox"></div>
+            <label class="deposit-tick" id="depositTickWrap" style="display:flex;gap:10px;align-items:flex-start;margin:16px 0 4px;cursor:pointer;font-size:14px;line-height:1.4;color:var(--text-primary)">
+              <input type="checkbox" id="depositTick" style="margin-top:2px;width:18px;height:18px;flex:0 0 auto;accent-color:var(--accent)">
+              <span id="depositTickText">I will pay the $35 deposit as soon as I can</span>
+            </label>
             <button class="btn btn-primary" id="btnFinalConfirm" onclick="submitBooking()">Confirm Booking →</button>
             <button class="btn btn-ghost" onclick="goTo('s3',3)">← Edit details</button>
           </div>
@@ -4156,7 +4160,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
           <div class="screen" id="s4">
             <div class="confirm-icon">🎉</div>
             <div class="confirm-title">You're booked in!</div>
-            <div class="confirm-sub">We can't wait to see you. Check your email for confirmation — we'll be in touch shortly about your deposit.</div>
+            <div class="confirm-sub" id="confirmSub">Your booking is made. Please pay your deposit as soon as you can — payment details are in your confirmation email.</div>
             <div class="confirm-card" id="confirmCard"></div>
             <div class="confirm-ref">Reference: <strong id="confirmRef"></strong></div>
             <button class="btn btn-primary" style="margin-top:24px" onclick="startOver()">Book another session →</button>
@@ -4280,7 +4284,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.37'; // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
+const BUILD_VERSION = '1.7.38'; // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5402,6 +5406,18 @@ function setDepositPref(val) {
   updatePriceDisplay();
 }
 
+// Wording shown in the price box and on the thank-you screen. Matches the
+// confirmation email: card and cash ask the customer to call and pop in.
+function depositPayText(pref, dep) {
+  const base = `Your booking is made when you confirm. Please pay your $${dep} deposit as soon as you can.`;
+  const end = ' The remaining balance is due on the day.';
+  if (pref === 'invoice') return `We'll email you an invoice for the deposit — please pay it as soon as you can.${end}`;
+  if (pref === 'stripe') return `${base} Please call us to see when you can pop in and pay by eftpos or credit card (we're always open Saturdays 10am to 2pm).${end}`;
+  if (pref === 'cash') return `${base} Please call us to see when you can pop in and pay (we're always open Saturdays 10am to 2pm).${end}`;
+  if (pref === 'bank_transfer') return `${base} Our bank details are in your confirmation email.${end}`;
+  return `${base} Payment details are in your confirmation email.${end}`;
+}
+
 function updatePriceDisplay() {
   if (!selGame) return;
   const p = calcPrice(selGame.id, playerCount);
@@ -5414,16 +5430,18 @@ function updatePriceDisplay() {
   const dep = calcDeposit(grandTotal);
   const expRowsHtml = expRows.map(e => `<div class="price-row"><span class="price-lbl">${e.label}</span><span class="price-val">+$${e.price}</span></div>`).join('');
   const voucherRowHtml = appliedVoucher ? `<div class="price-row"><span class="price-lbl">Voucher ${appliedVoucher.code}</span><span class="price-val">-$${voucherDiscount}</span></div>` : '';
-  const depositNote = depositPref === 'invoice' ?
-    `We'll email you an invoice for the deposit — please pay it to secure your booking. Remaining balance due on the day.` :
-    `We'll be in touch shortly after you confirm with payment details. Remaining balance due on the day.`;
+  const depositNote = depositPayText(depositPref, dep);
+  const tickText = document.getElementById('depositTickText');
+  if (tickText) tickText.textContent = `I will pay the $${dep} deposit as soon as I can`;
+  const tickWrap = document.getElementById('depositTickWrap');
+  if (tickWrap) tickWrap.style.display = dep > 0 ? 'flex' : 'none';
   document.getElementById('priceBox').innerHTML = `
       <div class="price-row"><span class="price-lbl">${selGame.name}</span><span class="price-val">${p.breakdown}</span></div>
       ${expRowsHtml}
       ${voucherRowHtml}
       <div class="price-divider"></div>
       <div class="price-row"><span class="price-total-lbl">Total</span><span class="price-total-val">$${grandTotal} NZD</span></div>
-      <div class="deposit-note"><strong>💳 Deposit to secure your booking: $${dep}</strong>${depositNote}</div>`;
+      <div class="deposit-note"><strong style="display:block;margin-bottom:4px">💳 Please pay a $${dep} deposit</strong>${depositNote}</div>`;
 }
 
 // ── VOUCHER CODE (checkout) ─────────────────────────
@@ -5836,6 +5854,13 @@ async function submitBooking() {
   if (!email || !email.includes('@')) { showErr('Please enter a valid email address.'); return; }
   if (!phone) { showErr('Please enter a phone number so we can reach you.'); return; }
 
+  const tickWrapEl = document.getElementById('depositTickWrap');
+  const tickEl = document.getElementById('depositTick');
+  if (tickWrapEl && tickWrapEl.style.display !== 'none' && tickEl && !tickEl.checked) {
+    showErr('Please tick the box to say you will pay the deposit as soon as you can.');
+    return;
+  }
+
   const slotCheck = getSlotStatus(selGame.id, selDate, selSlot);
   if (slotCheck === 'past') {
     showErr('This slot has already passed. Please choose another time.');
@@ -6000,6 +6025,18 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
   if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
   document.getElementById('confirmCard').innerHTML = rows.map(([l, v]) => `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`).join('');
   document.getElementById('confirmRef').textContent = ref;
+  const cs = document.getElementById('confirmSub');
+  if (cs) {
+    if (dep > 0) {
+      let t = `Your booking is made. Please pay your $${dep} deposit as soon as you can.`;
+      if (depositPref === 'stripe' || depositPref === 'cash') t += ` Please call us to see when you can pop in and pay (we're always open Saturdays 10am to 2pm).`;
+      else if (depositPref === 'invoice') t += ` We'll email you an invoice for it.`;
+      else t += ` Payment details are in your confirmation email.`;
+      cs.textContent = t;
+    } else {
+      cs.textContent = `Your booking is made. Check your email for confirmation.`;
+    }
+  }
   goTo('s4', 5);
 }
 
@@ -6018,6 +6055,8 @@ function startOver() {
     if (el) el.value = '';
   });
   document.getElementById('fOccasion').value = '';
+  const depTickReset = document.getElementById('depositTick');
+  if (depTickReset) depTickReset.checked = false;
   document.getElementById('companyNameWrap').style.display = 'none';
   document.getElementById('schoolGroupWrap').style.display = 'none';
   const invoiceOptReset = document.getElementById('depositOptInvoice');
