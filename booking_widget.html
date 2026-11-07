@@ -3766,7 +3766,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
               <div id="gameDateWrap" style="display:none">
                 <div class="sec-label">Choose a date</div>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                  <button onclick="gameWeekOffset--;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">‹ Prev</button>
+                  <button id="gameWeekPrev" onclick="if(gameWeekOffset>0){gameWeekOffset--;renderGameDates()}" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">‹ Prev</button>
                   <span id="gameWeekLabel" style="font-size:13px;color:var(--text-muted)"></span>
                   <button onclick="gameWeekOffset++;renderGameDates()" style="background:none;border:1px solid var(--border-color);border-radius:8px;padding:5px 12px;cursor:pointer;color:var(--text-secondary);font-size:14px">Next ›</button>
                 </div>
@@ -4284,7 +4284,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.38'; // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
+const BUILD_VERSION = '1.7.39'; // v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -5078,7 +5078,10 @@ function renderGameDates() {
   const wEnd = new Date(weekStart);
   wEnd.setDate(weekStart.getDate() + 6);
   const lbl = document.getElementById('gameWeekLabel');
-  if (lbl) lbl.textContent = weekStart.getDate() + ' ' + MONTHS[weekStart.getMonth()] + ' - ' + wEnd.getDate() + ' ' + MONTHS[wEnd.getMonth()];
+  const labelStart = weekStart < today ? today : weekStart;   // never show days that have already gone
+  if (lbl) lbl.textContent = labelStart.getDate() + ' ' + MONTHS[labelStart.getMonth()] + ' - ' + wEnd.getDate() + ' ' + MONTHS[wEnd.getMonth()];
+  const prevBtn = document.getElementById('gameWeekPrev');
+  if (prevBtn) { prevBtn.style.opacity = gameWeekOffset > 0 ? '1' : '0.35'; prevBtn.style.cursor = gameWeekOffset > 0 ? 'pointer' : 'default'; }
   const strip = document.getElementById('gameDateStrip');
   document.getElementById('gameSlotsWrap').style.display = 'none';
   let html = '';
@@ -5087,6 +5090,7 @@ function renderGameDates() {
     d.setDate(weekStart.getDate() + i);
     const ds = toDateStr(d);
     const isPast = d < today;
+    if (isPast) continue;   // v1.7.39: don't show days that have already gone
     const slots = getSlotsForGame(selGame.id, d.getDay());
     if (!slots.length) continue;
     const dayName = DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
