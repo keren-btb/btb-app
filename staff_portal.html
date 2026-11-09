@@ -1126,7 +1126,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.28'; // v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
+const BUILD_VERSION = '1.9.29'; // v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -1517,6 +1517,15 @@ function weekBookingDetail(b) {
   return `${b.game_name || 'Game'} — ${fmt12((b.slot_time||'').slice(0,5))} (${len ? len + ' min' : 'length not set'}) — ${b.players_booked || '?'} players — ${gms.length ? 'GM: ' + gms.map(g => g.name).join(', ') : 'No GM yet'}${b.source ? ' — via ' + b.source : ''}${b.status && b.status !== 'confirmed' ? ' — ' + b.status : ''}`;
 }
 
+function weekScrollToDetail() {
+  const out = document.getElementById('weekViewDetail');
+  if (out && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function weekScrollToTop() {
+  const top = document.getElementById('weekViewPeople');
+  if (top && top.scrollIntoView) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function weekShowBooking(bid) {
   const out = document.getElementById('weekViewDetail');
   const b = weekBookingsCache.find(x => x.id === bid);
@@ -1530,7 +1539,8 @@ function weekShowBooking(bid) {
   out.innerHTML = `<div style="margin-bottom:8px">${escapeHtml(weekBookingDetail(b))}</div>`
     + `<div style="font-size:12px;color:#6b7280;margin-bottom:4px">Who is running this? Tap a name to add or remove them.</div>`
     + `<div style="display:flex;gap:6px;flex-wrap:wrap" id="weekGmChips">${chips}</div>`
-    + `<div id="weekGmMsg" style="font-size:12px;color:#b91c1c;margin-top:6px"></div>`;
+    + `<div id="weekGmMsg" style="font-size:12px;color:#b91c1c;margin-top:6px"></div>`
+    + `<div style="margin-top:8px"><button class="btn-secondary btn-sm" onclick="weekScrollToTop()">↑ Back to the week</button></div>`;
 }
 
 async function weekToggleGM(bid, sid) {
@@ -1722,7 +1732,8 @@ async function loadWeekView(silent) {
       const bid = el.getAttribute('data-bid');
       const out = document.getElementById('weekViewDetail');
       if (bid) { weekSelectedBookingId = bid; weekShowBooking(bid); }
-      else { weekSelectedBookingId = null; if (out) out.textContent = el.getAttribute('data-detail'); }
+      else { weekSelectedBookingId = null; if (out) out.innerHTML = escapeHtml(el.getAttribute('data-detail')) + '<div style="margin-top:8px"><button class="btn-secondary btn-sm" onclick="weekScrollToTop()">↑ Back to the week</button></div>'; }
+      weekScrollToDetail();
     });
   });
   if (weekSelectedBookingId && weekBookingsCache.find(x => x.id === weekSelectedBookingId)) weekShowBooking(weekSelectedBookingId);
