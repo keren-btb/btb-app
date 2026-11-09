@@ -147,6 +147,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.30 — 2026-11-09 — My Week tab: the grid now starts at 9am instead of 8am, and the time column on the left is narrower. No other changes.
 - v1.9.29 — 2026-11-09 — My Week tab: tapping a booking or calendar item now scrolls down to its details / GM options (the panel sits below the grid, which was off-screen on a phone), and the panel has a "Back to the week" button. Re-saving a GM does not scroll.
 - v1.9.28 — 2026-11-09 — My Week tab: the time column (and the day/all-day label cells) now stay fixed on the left when scrolling sideways on a phone. NEW: tap a booking to assign or remove GMs — any active staff member, more than one allowed. Saves straight away to the booking's assigned_staff_ids (the same field the main app uses; only that field and updated_at are written). Calendar items are still view-only.
 - v1.9.27 — 2026-11-09 — My Week tab: each day is now clearly divided (alternating column shading and stronger day lines), and Joolz's colour changed to a clearly different blue from Keren's purple. No other changes.

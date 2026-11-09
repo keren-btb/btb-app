@@ -1126,7 +1126,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.29'; // v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
+const BUILD_VERSION = '1.9.30'; // v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -1503,7 +1503,7 @@ function getRosterWeekDates() {
 // ============================================================
 let weekViewOffset = 0;
 let weekViewPersonId = null;
-const WEEK_HOUR_START = 8, WEEK_HOUR_END = 22, WEEK_PX = 30;
+const WEEK_HOUR_START = 9, WEEK_HOUR_END = 22, WEEK_PX = 30;
 const WEEK_NAME_COLOURS = { 'Keren': '#7c3aed', 'Joolz': '#0284c7' };
 const WEEK_FALLBACK_COLOUR = '#0d9488';
 
@@ -1688,16 +1688,16 @@ async function loadWeekView(silent) {
     list.forEach(x => x.lanes = total);
   });
 
-  let html = `<div style="display:grid;grid-template-columns:44px repeat(7,minmax(96px,1fr));min-width:780px;font-size:11px;background:#fff;border:1px solid #e5e7eb;border-radius:10px">`;
+  let html = `<div style="display:grid;grid-template-columns:34px repeat(7,minmax(96px,1fr));min-width:770px;font-size:11px;background:#fff;border:1px solid #e5e7eb;border-radius:10px">`;
   const todayStr = nzToday();
   html += '<div style="position:sticky;left:0;z-index:6;background:#fff"></div>' + dates.map((d, i) => `<div style="text-align:center;font-weight:700;padding:6px 0;font-size:12px;color:${toDateStr(d) === todayStr ? '#07b4c5' : '#1f2937'};border-left:2px solid #d1d5db;background:${i % 2 ? '#eef2f7' : '#fff'}">${dayNames[i]} ${d.getDate()}</div>`).join('');
-  html += '<div style="position:sticky;left:0;z-index:6;background:#fff;color:#9ca3af;padding:4px;font-size:10px">All day</div>' + dates.map((d, i) =>
+  html += '<div style="position:sticky;left:0;z-index:6;background:#fff;color:#9ca3af;padding:4px 2px;font-size:9px;line-height:1.1">All day</div>' + dates.map((d, i) =>
     `<div style="border-left:2px solid #d1d5db;background:${i % 2 ? '#eef2f7' : '#fff'};padding:2px;min-height:24px">${itemsByDay[i].allDay.map(r => `<div data-detail="${escapeHtml((r.title || 'Busy (no title)') + ' — all day')}" title="${escapeHtml((r.title || 'Busy (no title)') + ' — all day')}" style="cursor:pointer;border:1px dashed #d97706;background:#fef3c7;color:#92400e;border-radius:4px;padding:2px 4px;font-size:11px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.title || 'Busy')}</div>`).join('')}</div>`).join('');
 
   // hour labels column
   html += `<div style="position:sticky;left:0;z-index:6;background:#fff;height:${gridH}px">` + Array.from({length: WEEK_HOUR_END - WEEK_HOUR_START}, (_, k) => {
     const h = WEEK_HOUR_START + k;
-    return `<div style="position:absolute;top:${k * WEEK_PX - 6}px;right:4px;color:#9ca3af;font-size:10px">${h % 12 || 12}${h >= 12 ? 'p' : 'a'}</div>`;
+    return `<div style="position:absolute;top:${k * WEEK_PX - 6}px;right:3px;color:#9ca3af;font-size:10px">${h % 12 || 12}${h >= 12 ? 'p' : 'a'}</div>`;
   }).join('') + '</div>';
 
   dates.forEach((d, i) => {
