@@ -147,6 +147,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.31 — 2026-11-09 — My Week tab: NEW free times. Green blocks show when the chosen owner is free. Tap an empty spot or a green block to add, change or remove a free time, for just that date or for every [weekday] (the usual week); a date that has been changed shows "changed" under its heading and can be reset to the usual week. Saved in new tables staff_free_times and staff_free_day_overrides (owners only). Display only — the booking page does not use free times yet (step 4). Past days can't be changed.
 - v1.9.30 — 2026-11-09 — My Week tab: the grid now starts at 9am instead of 8am, and the time column on the left is narrower. No other changes.
 - v1.9.29 — 2026-11-09 — My Week tab: tapping a booking or calendar item now scrolls down to its details / GM options (the panel sits below the grid, which was off-screen on a phone), and the panel has a "Back to the week" button. Re-saving a GM does not scroll.
 - v1.9.28 — 2026-11-09 — My Week tab: the time column (and the day/all-day label cells) now stay fixed on the left when scrolling sideways on a phone. NEW: tap a booking to assign or remove GMs — any active staff member, more than one allowed. Saves straight away to the booking's assigned_staff_ids (the same field the main app uses; only that field and updated_at are written). Calendar items are still view-only.
