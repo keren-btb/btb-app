@@ -4284,7 +4284,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.39'; // v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
+const BUILD_VERSION = '1.7.40'; // v1.7.40: Slots now use My Week free times (owners must be free for the whole game; no free time = not free), game length + reset buffer, and bookings with no GM yet. | v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4408,6 +4408,10 @@ let rosterShifts = [];
 let staffFlags = {};
 let staffMode = {}; // { staff_id: 'roster'|'calendar' }
 let staffCalendarBusy = []; // [{staff_id, busy_start, busy_end}] — synced Google Calendar blocks, calendar-mode staff only
+let staffFreeUsual = [];      // v1.7.40: [{staff_id, day_of_week(1=Mon..7=Sun), start_time, end_time}] — each owner's usual weekly free times (My Week)
+let staffFreeDates = [];      // v1.7.40: [{staff_id, free_date, start_time, end_time}] — free times for one specific date
+let staffFreeOverrides = [];  // v1.7.40: [{staff_id, free_date}] — dates that use their own free times instead of the usual week
+let freeTimesLoaded = false;  // v1.7.40: true only if the free-times views loaded; if not, the old rules are used so slots don't vanish
 let staffRecurringBlocks = []; // [{staff_id, day_of_week, start_time, end_time}] — weekly "always away" blocks, calendar-mode staff only
 let trainingStatuses = [{ id: 'trained', qualifies: true }, { id: 'can_supervise', qualifies: true }];
   let existingBookings = [];
@@ -4621,6 +4625,22 @@ try {
       staffRecurringBlocks = await rb.json();
       if (!Array.isArray(staffRecurringBlocks)) staffRecurringBlocks = [];
     } catch (e) { staffRecurringBlocks = []; }
+
+    // v1.7.40: free times from My Week (public views — only who and when, no details)
+    try {
+      const [ft, fo] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/public_staff_free_times?select=staff_id,scope,day_of_week,free_date,start_time,end_time`, { headers: SB_H }),
+        fetch(`${SB_URL}/rest/v1/public_staff_free_day_overrides?select=staff_id,free_date`, { headers: SB_H })
+      ]);
+      const ftRows = await ft.json();
+      const foRows = await fo.json();
+      if (ft.ok && fo.ok && Array.isArray(ftRows) && Array.isArray(foRows)) {
+        staffFreeUsual = ftRows.filter(r => r.scope === 'usual');
+        staffFreeDates = ftRows.filter(r => r.scope === 'date');
+        staffFreeOverrides = foRows;
+        freeTimesLoaded = true;
+      } else { freeTimesLoaded = false; }
+    } catch (e) { freeTimesLoaded = false; console.error('Free times load:', e); }
   } catch (e) { console.error('Staff data error:', e); }
 }
 
@@ -4685,15 +4705,45 @@ function gamePriceLabel(g) {
   return mn === mx ? `$${mn} per person` : `$${mn}–$${mx} per person`;
 }
 
+// ── v1.7.40 helpers: free times, game length + buffer, overlapping bookings ──
+function hmToMins(t) { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); }
+
+// Is this staff member inside one of their free times for the whole of [startMin, endMin) on this date?
+function isInsideFreeTime(sid, dateStr, startMin, endMin, dow) {
+  const hasOverride = staffFreeOverrides.some(o => o.staff_id === sid && o.free_date === dateStr);
+  const isoDow = dow === 0 ? 7 : dow; // free times use 1=Mon..7=Sun
+  const windows = hasOverride
+    ? staffFreeDates.filter(r => r.staff_id === sid && r.free_date === dateStr)
+    : staffFreeUsual.filter(r => r.staff_id === sid && r.day_of_week === isoDow);
+  return windows.some(r => hmToMins(r.start_time) <= startMin && endMin <= hmToMins(r.end_time));
+}
+
+// Minutes a game takes, and the reset buffer before the room/GM can be used again
+function gameLength(gameId) { const g = games.find(x => x.id === gameId); return (g && g.duration) || 60; }
+function gameBuffer(gameId) { const g = games.find(x => x.id === gameId); return (g && g.bufferMinutes != null) ? g.bufferMinutes : 30; }
+
+// An existing booking occupies its start until its end PLUS its buffer. Does it overlap the slot being checked?
+function bookingOverlapsSlot(b, gameId, dateStr, slotTime) {
+  if (b.booking_date !== dateStr) return false;
+  const bStart = hmToMins((b.slot_time || '').slice(0, 5));
+  const bEnd = bStart + gameLength(b.game_id) + gameBuffer(b.game_id);
+  const sStart = hmToMins(slotTime);
+  const sEnd = sStart + gameLength(gameId) + gameBuffer(gameId);
+  return sStart < bEnd && sEnd > bStart;
+}
+
 function getSlotStatus(gameId, dateStr, slotTime) {
   const d = new Date(dateStr + 'T' + slotTime + ':00');
   const now = nzNow();
   const cut = (bookingConfig.callToBookCutoffHours || 3) * 3600000;
   if (d < now) return 'past';
+  const thisGame = games.find(g => g.id === gameId);
   const alreadyBooked = existingBookings.some(b =>
     b.game_id === gameId &&
     b.booking_date === dateStr &&
-    (b.slot_time || '').slice(0, 5) === slotTime
+    ((b.slot_time || '').slice(0, 5) === slotTime ||
+      // v1.7.40: the same room can't be used while a booking (plus its reset buffer) is still running — not for the shared cafe
+      ((thisGame && thisGame.category) !== 'cafe' && bookingOverlapsSlot(b, gameId, dateStr, slotTime)))
   );
   if (alreadyBooked) return 'booked';
 
@@ -4752,11 +4802,17 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
 
     if (staffMode[sid] === 'calendar') {
       // Weekly recurring "always away" block e.g. a day job
-      const recurBlocked = staffRecurringBlocks.some(b =>
-        b.staff_id === sid && b.day_of_week === dow &&
-        slotTime >= (b.start_time || '').slice(0, 5) && slotTime < (b.end_time || '').slice(0, 5)
-      );
-      if (recurBlocked) return;
+      if (freeTimesLoaded) {
+        // v1.7.40: My Week free times decide — must be free for the whole game. No free time set = not free.
+        const sMin = hmToMins(slotTime);
+        if (!isInsideFreeTime(sid, dateStr, sMin, sMin + durationMin, dow)) return;
+      } else {
+        const recurBlocked = staffRecurringBlocks.some(b =>
+          b.staff_id === sid && b.day_of_week === dow &&
+          slotTime >= (b.start_time || '').slice(0, 5) && slotTime < (b.end_time || '').slice(0, 5)
+        );
+        if (recurBlocked) return;
+      }
 
       // Synced Google Calendar busy blocks — checks for any overlap with the slot
       const calendarBlocked = staffCalendarBusy.some(b => {
@@ -4768,14 +4824,26 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
       if (calendarBlocked) return;
     }
 
+    // v1.7.40: busy if assigned to any booking that overlaps this one (game length + reset buffer), not just the same start time
     const taken = existingBookings.some(b => {
-      const ids = JSON.parse(b.assigned_staff_ids || '[]');
-      return ids.includes(sid) && b.booking_date === dateStr && (b.slot_time || '').slice(0, 5) === slotTime;
+      let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
+      return ids.includes(sid) && bookingOverlapsSlot(b, gameId, dateStr, slotTime);
     });
     if (taken) return;
 
     fullyAvailable.push(sid);
   });
+
+  // v1.7.40: bookings with no GM yet (e.g. from cal.com) still take up one person each while they overlap this slot.
+  // Conservative: they use up trusted openers first.
+  const noGmCount = existingBookings.filter(b => {
+    let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
+    return ids.length === 0 && bookingOverlapsSlot(b, gameId, dateStr, slotTime);
+  }).length;
+  if (noGmCount > 0 && fullyAvailable.length > 0) {
+    fullyAvailable.sort((a, b) => (staffFlags[b] === true ? 1 : 0) - (staffFlags[a] === true ? 1 : 0));
+    fullyAvailable.splice(0, noGmCount);
+  }
 
   return { fullyAvailable, maybeAvailable };
 }
