@@ -478,8 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="app-body">
     <nav class="nav" id="mainNav">
       <button class="nav-btn active" data-tab="tabHome"   onclick="showTab('tabHome',this)"><i class="ti ti-home"></i>Home</button>
-<button class="nav-btn" data-tab="tabAvail" onclick="showTab('tabAvail',this)"><i class="ti ti-calendar-check"></i>Usual Weekly Routine</button>
-<button class="nav-btn" data-tab="tabSpecificTimeoff" onclick="showTab('tabSpecificTimeoff',this)"><i class="ti ti-calendar-x"></i>Request Specific Time Off</button>
+<!-- v1.9.32: hidden (replaced by My Week) — remove style="display:none" to bring back -->
+<button class="nav-btn" style="display:none" data-tab="tabAvail" onclick="showTab('tabAvail',this)"><i class="ti ti-calendar-check"></i>Usual Weekly Routine</button>
+<button class="nav-btn" style="display:none" data-tab="tabSpecificTimeoff" onclick="showTab('tabSpecificTimeoff',this)"><i class="ti ti-calendar-x"></i>Request Specific Time Off</button>
 <button class="nav-btn" data-tab="tabHoursRequest" onclick="showTab('tabHoursRequest',this)"><i class="ti ti-clock-plus"></i>Request More Hours</button>
         <button class="nav-btn"        data-tab="tabTs"     onclick="showTab('tabTs',this)"><i class="ti ti-clock"></i>Timesheets</button>
       <button class="nav-btn"        data-tab="tabProfile" onclick="showTab('tabProfile',this)"><i class="ti ti-user"></i>My Profile</button>
@@ -529,17 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="msg" id="availMsg"></div>
 
-    <!-- Calendar-mode staff only: recurring events found on their synced calendar,
-         waiting on a yes/no about whether they count as unavailable for GM shifts -->
-    <div id="calendarReviewSection" style="display:none">
-      <div class="divider"></div>
-      <div class="sec-title">📅 New events found on your calendar</div>
-      <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Your availability is linked to your personal calendar. When a new repeating event shows up, tell us whether it means you're unavailable for GM shifts — we'll remember your answer.</p>
-      <div id="calendarReviewBulkRow" style="display:none;margin-bottom:10px">
-        <button class="btn-secondary btn-sm" onclick="bulkIgnoreCalendarReview()"><i class="ti ti-x"></i> Ignore all pending</button>
-      </div>
-      <div id="calendarReviewList"></div>
-    </div>
   </div><!-- /tabAvail section -->
   <!-- ══ SPECIFIC TIME OFF TAB ══ -->
   <div id="tabSpecificTimeoff" class="section">
@@ -752,6 +742,18 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="weekViewWrap" style="overflow-x:auto"></div>
     <div id="weekViewDetail" style="margin-top:10px;font-size:13px;color:#374151;min-height:20px">Tap or hover a block for details. Tap a booking to choose who is running it. Tap an empty spot or a green block to change free time.</div>
     <div style="margin-top:6px;font-size:11px;color:#9ca3af">You can assign GMs to bookings here. Nothing else can be changed from this tab yet. Personal calendar items only show from now onwards.</div>
+
+    <!-- Calendar-mode staff only: recurring events found on their synced calendar,
+         waiting on a yes/no about whether they count as unavailable for GM shifts -->
+    <div id="calendarReviewSection" style="display:none">
+      <div class="divider"></div>
+      <div class="sec-title">📅 New events found on your calendar</div>
+      <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Your availability is linked to your personal calendar. When a new repeating event shows up, tell us whether it means you're unavailable for GM shifts — we'll remember your answer.</p>
+      <div id="calendarReviewBulkRow" style="display:none;margin-bottom:10px">
+        <button class="btn-secondary btn-sm" onclick="bulkIgnoreCalendarReview()"><i class="ti ti-x"></i> Ignore all pending</button>
+      </div>
+      <div id="calendarReviewList"></div>
+    </div>
   </div>
 
 <!-- ══ ADMIN: ROSTER OVERVIEW TAB ══ -->
@@ -1126,7 +1128,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.31'; // v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
+const BUILD_VERSION = '1.9.32'; // v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -4599,7 +4601,7 @@ function refreshTabData(id) {
     if (id === 'tabAvail') { loadMyRecurringAvailability().then(renderRecurringPatternGrid); loadMyCalendarReview().then(renderMyCalendarReview); }
     if (id === 'tabSpecificTimeoff') toggleCustomTimeFields();
     if (id === 'tabRoster') loadRosterOverview();
-    if (id === 'tabWeek') loadWeekView();
+    if (id === 'tabWeek') { loadWeekView(); loadMyCalendarReview().then(renderMyCalendarReview); }
     if (id === 'tabWishlist') loadWishlist().then(renderWishlist);
 }
 
