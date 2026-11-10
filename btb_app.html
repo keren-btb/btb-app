@@ -148,7 +148,7 @@
       <!-- GROUP: POS -->
       <div class="settings-group">
         <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
-          <span><span class="sg-icon">🛍️</span>POS</span>
+          <span><span class="sg-icon">🛍️</span><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">POS<span style="font-size:11px;font-weight:500;opacity:.85;letter-spacing:.3px">settings</span></span></span>
           <i class="ti ti-chevron-down sg-chevron"></i>
         </div>
         <div class="settings-group-body">
@@ -163,7 +163,7 @@
 <!-- GROUP: Staff -->
       <div class="settings-group gated-group" data-tab="staff_portal">
         <div class="settings-group-title" onclick="window.open('staff_portal.html','_blank')" style="cursor:pointer">
-          <span><span class="sg-icon">👥</span>Staff Portal</span>
+          <span><span class="sg-icon">👥</span><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">Staff Portal<span style="font-size:11px;font-weight:500;opacity:.85;letter-spacing:.3px">open</span></span></span>
           <i class="ti ti-external-link sg-chevron"></i>
         </div>
       </div>
@@ -171,15 +171,15 @@
       <!-- GROUP: Control Room -->
       <div class="settings-group gated-group" data-tab="control_room">
         <div class="settings-group-title" onclick="window.open('control_room.html','_blank')" style="cursor:pointer">
-          <span><span class="sg-icon">🔮</span>Control Room</span>
+          <span><span class="sg-icon">🔮</span><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">Control Room<span style="font-size:11px;font-weight:500;opacity:.85;letter-spacing:.3px">open</span></span></span>
           <i class="ti ti-external-link sg-chevron"></i>
         </div>
       </div>
 
-      <!-- GROUP: Bookings & Enquiries -->
+      <!-- GROUP: Booking & Enquiry -->
       <div class="settings-group">
         <div class="settings-group-title" onclick="toggleSettingsGroup(this)">
-          <span><span class="sg-icon">📋</span>Bookings & Enquiries</span>
+          <span><span class="sg-icon">📋</span><span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">Booking & Enquiry<span style="font-size:11px;font-weight:500;opacity:.85;letter-spacing:.3px">settings</span></span></span>
           <i class="ti ti-chevron-down sg-chevron"></i>
         </div>
         <div class="settings-group-body">
@@ -2994,7 +2994,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.54'; // v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.55'; // v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
