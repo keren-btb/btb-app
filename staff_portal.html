@@ -262,6 +262,8 @@ body{background:#f0f2f5;min-height:100vh;min-height:100dvh;font-family:-apple-sy
 .tg-cell-btn.train-none{background:#f9fafb;color:#9ca3af}
 .tg-cell-btn.train-qualified{background:#dcfce7;color:#15803d}
 .tg-cell-btn.train-partial{background:#fef3c7;color:#d97706}
+.tg-reset-btn{display:block;width:100%;border:none;border-top:1px dashed #e5e7eb;background:#fff;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;padding:5px 6px;color:#9ca3af}
+.tg-reset-btn.on{background:#e0f2fe;color:#0369a1}
 @media (min-width:900px){
   .tg-staff-head,.tg-game-head{font-size:14px;padding:12px 16px}
   .tg-staff-name{font-size:15px;padding:10px 16px}
@@ -722,7 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ══ ADMIN: STAFF TRAINING GRID TAB ══ -->
   <div id="tabStaffTraining" class="section">
-    <div class="sec-title">Staff training — tap a cell to cycle status</div>
+    <div class="sec-title">Staff training — tap a cell to cycle status; tap "Can reset" to say who can reset that game</div>
     <div style="overflow-x:auto">
       <table class="training-grid-table" id="trainingGridTable"></table>
     </div>
@@ -1128,7 +1130,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.32'; // v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
+const BUILD_VERSION = '1.9.33'; // v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -3899,13 +3901,37 @@ function renderStaffTrainingGrid() {
       const isQualified = status?.qualifies;
       const label = status ? `${status.emoji||''} ${status.label}` : '— Not set';
       const cls = status ? (isQualified ? 'train-qualified' : 'train-partial') : 'train-none';
-      html += `<td class="tg-cell"><button type="button" class="tg-cell-btn ${cls}" onclick="cycleTraining('${s.id}','${g.id}')">${label}</button></td>`;
+      const canReset = !!rec?.can_reset;
+      html += `<td class="tg-cell"><button type="button" class="tg-cell-btn ${cls}" onclick="cycleTraining('${s.id}','${g.id}')">${label}</button>` +
+        `<button type="button" class="tg-reset-btn${canReset ? ' on' : ''}" onclick="toggleCanReset('${s.id}','${g.id}')">${canReset ? '✓ Can reset' : 'Can reset'}</button></td>`;
     });
     html += '</tr>';
   });
 
   html += '</tbody>';
   el.innerHTML = html;
+}
+
+async function toggleCanReset(staffId, gameId) {
+  const rec = staffTraining.find(t => t.staff_id === staffId && t.game_id === gameId);
+  const newVal = !(rec && rec.can_reset);
+  const prev = rec ? rec.can_reset : undefined;
+  if (rec) rec.can_reset = newVal; else staffTraining.push({staff_id:staffId, game_id:gameId, status:'', can_reset:newVal});
+  renderStaffTrainingGrid();
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/staff_game_training?on_conflict=staff_id,game_id`, {
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({staff_id:staffId, game_id:gameId, status:(rec && rec.status) || '', can_reset:newVal, updated_at:new Date().toISOString()})
+    });
+    if (!r.ok) throw new Error('Save failed (' + r.status + ')');
+  } catch(e) {
+    console.error('Can reset save:', e);
+    const cur = staffTraining.find(t => t.staff_id === staffId && t.game_id === gameId);
+    if (cur) cur.can_reset = (prev === undefined ? false : prev);
+    renderStaffTrainingGrid();
+    alert('Could not save "Can reset" — please try again.');
+  }
 }
 
 function cycleTraining(staffId, gameId) {
