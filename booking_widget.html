@@ -4284,7 +4284,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.40'; // v1.7.40: Slots now use My Week free times (owners must be free for the whole game; no free time = not free), game length + reset buffer, and bookings with no GM yet. | v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
+const BUILD_VERSION = '1.7.41'; // v1.7.41: Reset-aware availability. A GM is now only needed for the game itself (not held through the reset buffer) — the reset of a game only has to be done before the next booking of the SAME game, by the GM who ran it or anyone ticked "can reset" for that game who is free (My Week green or on the roster) and not busy elsewhere. If nobody can cover a reset, the slot that would need it isn't offered. Falls back to the v1.7.40 rules if the can-reset list can't be loaded. | v1.7.40: Slots now use My Week free times (owners must be free for the whole game; no free time = not free), game length + reset buffer, and bookings with no GM yet. | v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
@@ -4411,6 +4411,8 @@ let staffCalendarBusy = []; // [{staff_id, busy_start, busy_end}] — synced Goo
 let staffFreeUsual = [];      // v1.7.40: [{staff_id, day_of_week(1=Mon..7=Sun), start_time, end_time}] — each owner's usual weekly free times (My Week)
 let staffFreeDates = [];      // v1.7.40: [{staff_id, free_date, start_time, end_time}] — free times for one specific date
 let staffFreeOverrides = [];  // v1.7.40: [{staff_id, free_date}] — dates that use their own free times instead of the usual week
+let staffCanReset = [];      // v1.7.41: [{staff_id, game_id}] — staff ticked "can reset" for a game (public_staff_can_reset)
+let canResetLoaded = false;  // v1.7.41: true only if that list loaded; if not, the v1.7.40 rules (GM held through the buffer) are used
 let freeTimesLoaded = false;  // v1.7.40: true only if the free-times views loaded; if not, the old rules are used so slots don't vanish
 let staffRecurringBlocks = []; // [{staff_id, day_of_week, start_time, end_time}] — weekly "always away" blocks, calendar-mode staff only
 let trainingStatuses = [{ id: 'trained', qualifies: true }, { id: 'can_supervise', qualifies: true }];
@@ -4641,6 +4643,14 @@ try {
         freeTimesLoaded = true;
       } else { freeTimesLoaded = false; }
     } catch (e) { freeTimesLoaded = false; console.error('Free times load:', e); }
+
+    // v1.7.41: who is ticked "can reset" for which game (public view — only staff + game, yes ticks only)
+    try {
+      const cr = await fetch(`${SB_URL}/rest/v1/public_staff_can_reset?select=staff_id,game_id`, { headers: SB_H });
+      const crRows = await cr.json();
+      if (cr.ok && Array.isArray(crRows)) { staffCanReset = crRows; canResetLoaded = true; }
+      else { staffCanReset = []; canResetLoaded = false; }
+    } catch (e) { staffCanReset = []; canResetLoaded = false; console.error('Can reset load:', e); }
   } catch (e) { console.error('Staff data error:', e); }
 }
 
@@ -4730,6 +4740,106 @@ function bookingOverlapsSlot(b, gameId, dateStr, slotTime) {
   const sStart = hmToMins(slotTime);
   const sEnd = sStart + gameLength(gameId) + gameBuffer(gameId);
   return sStart < bEnd && sEnd > bStart;
+}
+
+// ── v1.7.41 helpers: reset-aware availability ──
+// Does this booking's GAME TIME overlap the slot's game time? (no buffers — a GM is only needed for the game itself)
+function bookingGameOverlap(b, gameId, dateStr, slotTime) {
+  if (b.booking_date !== dateStr) return false;
+  const bStart = hmToMins((b.slot_time || '').slice(0, 5));
+  const bEnd = bStart + gameLength(b.game_id);
+  const sStart = hmToMins(slotTime);
+  const sEnd = sStart + gameLength(gameId);
+  return sStart < bEnd && sEnd > bStart;
+}
+
+function bookingStaffIds(b) {
+  try { const a = JSON.parse(b.assigned_staff_ids || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+
+// Does this game need a reset after each booking? (not the shared cafe, and only if it has a buffer)
+function gameNeedsReset(gameId) {
+  const g = games.find(x => x.id === gameId);
+  if (!g || g.category === 'cafe') return false;
+  return gameBuffer(gameId) > 0;
+}
+
+// Is this person free (free time / on the roster, no calendar clash) for the whole of [sMin, eMin) on this date?
+function personFreeForWindow(sid, dateStr, sMin, eMin) {
+  const [y, mo, da] = dateStr.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, mo - 1, da)).getUTCDay();
+  if (staffMode[sid] === 'calendar') {
+    if (freeTimesLoaded) {
+      if (!isInsideFreeTime(sid, dateStr, sMin, eMin, dow)) return false;
+    } else {
+      const recurBlocked = staffRecurringBlocks.some(b =>
+        b.staff_id === sid && b.day_of_week === dow &&
+        sMin < hmToMins((b.end_time || '').slice(0, 5)) && eMin > hmToMins((b.start_time || '').slice(0, 5)));
+      if (recurBlocked) return false;
+    }
+    const base = new Date(dateStr + 'T00:00:00').getTime();
+    const ws = base + sMin * 60000, we = base + eMin * 60000;
+    const busy = staffCalendarBusy.some(b => b.staff_id === sid &&
+      ws < toNzNaive(b.busy_end).getTime() && we > toNzNaive(b.busy_start).getTime());
+    return !busy;
+  }
+  return rosterShifts.some(r => r.staff_id === sid && r.shift_date === dateStr &&
+    hmToMins((r.custom_start_time || '').slice(0, 5)) <= sMin && eMin <= hmToMins((r.custom_end_time || '').slice(0, 5)));
+}
+
+// Works out whether every reset on this day can be covered. Returns the keys of resets that could NOT be covered.
+// A reset is needed after a booking only if another booking of the SAME game follows later that day; it must fit in the
+// gap between them, done by the GM who ran it or anyone ticked "can reset" for that game, who is free and not busy elsewhere.
+// Bookings with no GM yet are skipped here (they are counted separately as using up one person each).
+function failedResets(dayBookings, dateStr) {
+  const occ = {};
+  const addOcc = (sid, s, e) => { (occ[sid] = occ[sid] || []).push([s, e]); };
+  const isBusy = (sid, s, e) => (occ[sid] || []).some(o => s < o[1] && e > o[0]);
+  dayBookings.forEach(b => b.ids.forEach(sid => addOcc(sid, b.start, b.start + gameLength(b.game_id))));
+
+  const tasks = [];
+  dayBookings.forEach(X => {
+    if (!gameNeedsReset(X.game_id) || X.ids.length === 0) return;
+    const later = dayBookings.filter(Y => Y !== X && Y.game_id === X.game_id && Y.start > X.start);
+    if (later.length === 0) return; // no later booking of this game today — no reset needed to open anything
+    const deadline = Math.min(...later.map(Y => Y.start));
+    const from = X.start + gameLength(X.game_id);
+    const dur = gameBuffer(X.game_id);
+    tasks.push({ X, from, deadline, dur, key: X.game_id + '|' + X.start });
+  });
+  tasks.sort((a, b) => a.deadline - b.deadline);
+
+  const failed = new Set();
+  tasks.forEach(t => {
+    if (t.deadline - t.from < t.dur) { failed.add(t.key); return; }
+    const ticked = staffCanReset.filter(r => r.game_id === t.X.game_id).map(r => r.staff_id);
+    const people = [...new Set([...t.X.ids, ...ticked])];
+    let done = false;
+    for (const sid of people) {
+      for (let st = t.from; st + t.dur <= t.deadline && !done; st += 5) {
+        if (isBusy(sid, st, st + t.dur)) continue;
+        if (!personFreeForWindow(sid, dateStr, st, st + t.dur)) continue;
+        addOcc(sid, st, st + t.dur);
+        done = true;
+      }
+      if (done) break;
+    }
+    if (!done) failed.add(t.key);
+  });
+  return failed;
+}
+
+// With this person running the new slot, can every reset that day still be covered? (Resets that were already
+// uncoverable before this booking don't count against it.)
+function resetsStillCovered(gameId, dateStr, slotTime, candidateId) {
+  const day = existingBookings.filter(b => b.booking_date === dateStr).map(b => ({
+    game_id: b.game_id, start: hmToMins((b.slot_time || '').slice(0, 5)), ids: bookingStaffIds(b)
+  }));
+  const before = failedResets(day, dateStr);
+  const withNew = day.concat([{ game_id: gameId, start: hmToMins(slotTime), ids: [candidateId] }]);
+  const after = failedResets(withNew, dateStr);
+  for (const k of after) { if (!before.has(k)) return false; }
+  return true;
 }
 
 function getSlotStatus(gameId, dateStr, slotTime) {
@@ -4825,11 +4935,16 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
     }
 
     // v1.7.40: busy if assigned to any booking that overlaps this one (game length + reset buffer), not just the same start time
+    // v1.7.41: when the can-reset list is loaded, a GM is only busy for the game itself; resets are checked separately below.
+    const overlaps = canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot;
     const taken = existingBookings.some(b => {
       let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
-      return ids.includes(sid) && bookingOverlapsSlot(b, gameId, dateStr, slotTime);
+      return ids.includes(sid) && overlaps(b, gameId, dateStr, slotTime);
     });
     if (taken) return;
+
+    // v1.7.41: with this person running it, every reset that day must still be coverable (see failedResets)
+    if (canResetLoaded && !resetsStillCovered(gameId, dateStr, slotTime, sid)) return;
 
     fullyAvailable.push(sid);
   });
@@ -4838,7 +4953,7 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   // Conservative: they use up trusted openers first.
   const noGmCount = existingBookings.filter(b => {
     let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
-    return ids.length === 0 && bookingOverlapsSlot(b, gameId, dateStr, slotTime);
+    return ids.length === 0 && (canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot)(b, gameId, dateStr, slotTime);
   }).length;
   if (noGmCount > 0 && fullyAvailable.length > 0) {
     fullyAvailable.sort((a, b) => (staffFlags[b] === true ? 1 : 0) - (staffFlags[a] === true ? 1 : 0));
