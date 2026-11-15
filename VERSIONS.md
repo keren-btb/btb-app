@@ -275,6 +275,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.7 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.0.6 — 2026-11-03 — Added a "Book" button to the top bar: opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
@@ -283,6 +284,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.8 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.5.7 — 2026-10-31 — Added a "Book" button to the client side panel (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.5.6 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
 - v1.5.5 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
@@ -293,6 +295,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.3.3 — 2026-11-03 — Added a "Book" button to the client thread header (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.3.2 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
 - v1.3.1 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app. (Note: code's internal BUILD_VERSION had already reached v1.3.0 before this — ahead of what was last logged here; gap not reconciled.)
@@ -300,6 +303,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.7.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.7.3 — 2026-08-30 — Suite-wide mobile viewport fix: app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.7.2 — 2026-08-30 — Fixed timezone bug: todayStr() was using the device's local clock/timezone instead of being NZ-anchored, so daily task generation/loading (ensureDailyInstancesForToday, loadDailyInstances) could pick the wrong date if a device's clock or timezone was off. Now uses Pacific/Auckland via Intl.DateTimeFormat, matching the pattern used in the other apps.
 - v1.7.1 — 2026-08-10 — Daily Tasks list now groups templated tasks under expandable category headers (Opening/Shutdown/Tech/etc, with a done-count badge), instead of one flat list. Tasks with no category fall into "Uncategorized". One-off tasks still show separately below, ungrouped.
