@@ -78,6 +78,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-30 — New: PWA manifest + service worker + placeholder "BtB" teal icon set. Lets staff_portal.html be "Added to Home Screen" (required on iPhone for background push) and lays the groundwork for phone push notifications on help alerts. No behaviour change yet — staff_portal.html doesn't register for push until the next step.
 
 ## game_wishlist_form.html
+- v1.1.1 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed.
 - v1.1.0 — 2026-08-29 — Intro text, field labels, and field hints changed from muted grey to white for better readability outdoors (trade show use). Section titles ("The game" / "Your details") were left as-is (still teal). Removed "e.g." example placeholder text from all inputs since the field labels already say what's needed.
 - v1.0.1 — 2026-08-24 — Replaced realistic-looking placeholder text ("Sarah Robinson" / "021 123 4567" / "sarah@example.com") with generic placeholders.
 - v1.0.0 — 2026-08-24 — Initial release: new standalone customer-facing form (same visual pattern as gift_voucher_request.html) where a customer names a secondhand game they want, an optional max price, and their contact details. Submits via the new public_submit_wishlist RPC, which finds-or-creates their client record and inserts a game_wishlist row. Supports optional ?name=&phone=&email= URL prefill, used by the new "Add to game wishlist" link on booking cards in btb_app.html.
@@ -258,6 +259,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## gift_voucher_request.html
+- v1.1.9 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed.
 - v1.1.8 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.1.7 — 2026-08-24 — Replaced realistic-looking placeholder text ("Sarah Robinson" / "021 123 4567" / "sarah@example.com") in the contact fields with generic placeholders, matching the same fix applied to the new game_wishlist_form.html.
 - v1.1.6 — (undated, not logged at the time) — Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -268,6 +270,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
+- v1.0.6 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed.
 - v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
 - v1.0.2 — 2026-08-02 — Fixed silent failure if live game settings can't load: previously fell back to a stale 4-game hardcoded list with no indication anything was wrong. Now shows a clear "having trouble loading" screen with a refresh button instead, matching gift_voucher_request.html / booking widget pattern

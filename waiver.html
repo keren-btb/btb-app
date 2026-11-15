@@ -362,6 +362,44 @@ body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--tex
 </div>
 
 <script>
+// BtB error logger v1.0.0 — sends uncaught errors to the Supabase error_logs table (see Settings > Errors).
+// Never throws, ignores browser-extension noise, de-duplicates, and sends at most 20 per page load.
+(function(){
+  var PAGE='waiver.html', EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs', KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0, seen={};
+  function clip(v,n){v=(v==null?'':String(v));return v.length>n?v.slice(0,n):v;}
+  function send(level,source,msg,stack,ctx){
+    try{
+      msg=clip(msg||'(no message)',2000);
+      if(/ResizeObserver loop|^Script error\.?$/i.test(msg))return;
+      var key=source+'|'+msg; if(seen[key]||sent>=20)return; seen[key]=1; sent++;
+      var token=KEY;
+      try{ if(typeof currentUser!=='undefined'&&currentUser&&currentUser.token)token=currentUser.token; }catch(e){}
+      var ver=null; try{ if(typeof BUILD_VERSION!=='undefined')ver=clip(BUILD_VERSION,40); }catch(e){}
+      var c={}; try{ c=ctx||{}; if(JSON.stringify(c).length>6000)c={note:'context too large'}; }catch(e){c={};}
+      var body=JSON.stringify({level:level,source:clip(source,50),message:msg,stack:stack?clip(stack,8000):null,
+        page:PAGE,url:clip(location.origin+location.pathname,500),context:c,user_agent:clip(navigator.userAgent,400),app_version:ver});
+      var post=function(tok){
+        return fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:body,keepalive:true})
+          .then(function(r){ if(!r.ok&&tok!==KEY)return post(KEY); });
+      };
+      post(token).catch(function(){});
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    try{
+      var fn=e.filename||''; if(/^(chrome|moz|safari|webkit)-extension:/.test(fn))return;
+      send('error','window.onerror',e.message,e.error&&e.error.stack,{file:fn.split('/').pop(),line:e.lineno,col:e.colno});
+    }catch(x){}
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    try{ var r=e.reason; send('error','promise',(r&&r.message)||String(r),r&&r.stack); }catch(x){}
+  });
+  // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
+  window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+})();
+</script>
+<script>
 /* ==========================================================================
    2. SUPABASE BACKEND INFRASTRUCTURE CORE SETTINGS
    ========================================================================== */
@@ -372,7 +410,7 @@ const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`
 // BUILD VERSION — bump this each time this file is shipped, so you can confirm
 // in the browser console which copy you're looking at. (No header UI tag for
 // this one yet — this file didn't have build version tracking before.)
-const BUILD_VERSION = '1.0.5'; // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
+const BUILD_VERSION = '1.0.6'; // v1.0.6: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 // v1.0.1: Security fix — escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
