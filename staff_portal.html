@@ -740,6 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="btn-secondary btn-sm" onclick="weekViewOffset=0; loadWeekView()">This week</button>
     </div>
     <div id="weekViewPeople" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap"></div>
+    <div id="weekConfirmBox" style="margin-bottom:10px"></div>
     <div id="weekViewLegend" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:#6b7280;margin-bottom:10px"></div>
     <div id="weekViewWrap" style="overflow-x:auto"></div>
     <div id="weekViewDetail" style="margin-top:10px;font-size:13px;color:#374151;min-height:20px">Tap or hover a block for details. Tap a booking to choose who is running it. Tap an empty spot or a green block to change free time.</div>
@@ -1130,7 +1131,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.33'; // v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
+const BUILD_VERSION = '1.9.34'; // v1.9.34: My Week — owners now see EVERYONE who uses free times (all active calendar-mode staff), not just owners; NEW "Confirm this week" box: each person confirms their own free times for the next two weeks (stage "following" 8–14 days ahead, "next" 1–7 days ahead), status shown for everyone, flips to "changed since confirmed" if that week's free times change. Uses new staff_week_confirmations table. | v1.9.33: v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
 // v1.9.18: Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
@@ -1659,6 +1660,72 @@ async function weekSaveFree(action) {
   }
 }
 
+let weekFreeAll = { usual: [], date: [], overrides: [] };  // free-time rows for EVERYONE the user can see
+let weekConfRows = [];                                        // confirmations for the shown week
+
+// Canonical text of one person's free times for the 7 shown days — saved when they confirm and compared later
+function weekSnapshotFor(pid, dates) {
+  const usual = weekFreeAll.usual.filter(r => r.staff_id === pid);
+  const dated = weekFreeAll.date.filter(r => r.staff_id === pid);
+  const ov = new Set(weekFreeAll.overrides.filter(o => o.staff_id === pid).map(o => o.free_date));
+  return dates.map((ds, i) => {
+    const rows = ov.has(ds) ? dated.filter(r => r.free_date === ds) : usual.filter(r => r.day_of_week === i + 1);
+    const rs = weekMerge(rows.map(r => ({ s: weekMins(r.start_time), e: weekMins(r.end_time) })));
+    return ds + '=' + rs.map(r => weekMinsStr(r.s) + '-' + weekMinsStr(r.e)).join(',');
+  }).join('|');
+}
+
+function weekConfirmWhen(c) {
+  return new Date(c.confirmed_at).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
+// stage: 'following' (8–14 days ahead), 'next' (1–7 days ahead) or null (current/past/too far ahead)
+function weekConfirmState(pid, stage, snap) {
+  const mine = weekConfRows.filter(c => c.staff_id === pid);
+  const early = mine.find(c => c.stage === 'following'), fin = mine.find(c => c.stage === 'next');
+  const earlyOk = !!(early && early.free_snapshot === snap), finOk = !!(fin && fin.free_snapshot === snap);
+  if (finOk) return { ok: true, text: '✓ Confirmed ' + weekConfirmWhen(fin) };
+  if (stage === 'next' && earlyOk && !fin) return { ok: false, text: 'Agreed ' + weekConfirmWhen(early) + ' — please confirm again now it\'s next week' };
+  if (stage === 'following' && earlyOk) return { ok: true, text: '✓ Agreed ' + weekConfirmWhen(early) + ' — you\'ll be asked again when it\'s next week' };
+  if (fin) return { ok: false, text: 'Changed since confirmed ' + weekConfirmWhen(fin) + ' — please confirm again' };
+  if (early) return { ok: false, text: 'Changed since confirmed ' + weekConfirmWhen(early) + ' — please confirm again' };
+  return { ok: false, text: 'Not confirmed yet' };
+}
+
+function weekRenderConfirmBox(people, dates, stage) {
+  const box = document.getElementById('weekConfirmBox');
+  if (!box) return;
+  if (!stage && weekConfRows.length === 0) { box.innerHTML = ''; return; }
+  const stageName = stage === 'next' ? 'next week' : stage === 'following' ? 'the following week' : '';
+  const rows = people.map(pp => {
+    const st = weekConfirmState(pp.id, stage, weekSnapshotFor(pp.id, dates));
+    return `<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:3px 0"><span style="font-weight:600;color:${weekStaffColour(pp)};min-width:60px">${escapeHtml(pp.name)}</span><span style="color:${st.ok ? '#15803d' : '#b45309'}">${escapeHtml(st.text)}</span></div>`;
+  }).join('');
+  const myId = myStaffRecord && myStaffRecord.id;
+  const mineState = weekConfirmState(myId, stage, weekSnapshotFor(myId, dates));
+  const showBtn = !!stage && people.some(pp => pp.id === myId) && !mineState.ok;
+  box.innerHTML = `<div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:10px 12px;font-size:13px">`
+    + `<div style="font-weight:700;margin-bottom:4px">${stage ? 'Confirm your free times for ' + stageName : 'Confirmations for this week'}</div>`
+    + rows
+    + (showBtn ? `<div style="margin-top:8px"><button class="btn-primary btn-sm" onclick="weekConfirmWeek('${stage}')">Confirm my week</button> <span id="weekConfirmMsg" style="font-size:12px;color:#b91c1c"></span></div>` : '')
+    + `</div>`;
+}
+
+async function weekConfirmWeek(stage) {
+  const msg = document.getElementById('weekConfirmMsg');
+  try {
+    if (!myStaffRecord || !weekDatesCache.length) return;
+    const snap = weekSnapshotFor(myStaffRecord.id, weekDatesCache);
+    await weekApi('POST', 'staff_week_confirmations?on_conflict=staff_id,week_start,stage',
+      { staff_id: myStaffRecord.id, week_start: weekDatesCache[0], stage, confirmed_at: new Date().toISOString(), free_snapshot: snap },
+      'resolution=merge-duplicates,return=minimal');
+    await loadWeekView(true);
+  } catch (e) {
+    console.error('Confirm week:', e);
+    if (msg) msg.textContent = 'Could not save that. Please try again.';
+  }
+}
+
 function weekScrollToDetail() {
   const out = document.getElementById('weekViewDetail');
   if (out && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1736,8 +1803,10 @@ async function loadWeekView(silent) {
   if (!wrap) return;
   if (!(myStaffRecord && myStaffRecord.is_owner)) { wrap.innerHTML = '<div class="empty-state">This tab is for owners only.</div>'; return; }
 
-  const owners = allStaff.filter(s => s.is_owner && s.active !== false);
-  if (!weekViewPersonId || !owners.find(o => o.id === weekViewPersonId)) weekViewPersonId = myStaffRecord.id;
+  // Owners see everyone who uses free times (all active calendar-mode staff); fall back to owners if none are set up
+  let owners = allStaff.filter(s => s.availability_mode === 'calendar' && s.active !== false);
+  if (owners.length === 0) owners = allStaff.filter(s => s.is_owner && s.active !== false);
+  if (!weekViewPersonId || !owners.find(o => o.id === weekViewPersonId)) weekViewPersonId = (owners.find(o => o.id === myStaffRecord.id) || owners[0] || myStaffRecord).id;
 
   const now = nzNow();
   const jsDay = now.getDay();
@@ -1756,20 +1825,24 @@ async function loadWeekView(silent) {
     const bufFrom = new Date(Date.UTC(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() - 1)).toISOString();
     const bufTo = new Date(Date.UTC(dates[6].getFullYear(), dates[6].getMonth(), dates[6].getDate() + 2)).toISOString();
     const P = weekViewPersonId;
-    const [br, dr, ur, xr, orr] = await Promise.all([
+    const [br, dr, ur, xr, orr, cr] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&order=slot_time&select=id,game_id,game_name,booking_date,slot_time,players_booked,assigned_staff_ids,source,status`, {headers:H()}),
       fetch(`${SB_URL}/rest/v1/staff_calendar_busy_details?busy_end=gt.${bufFrom}&busy_start=lt.${bufTo}&order=busy_start&select=staff_id,title,busy_start,busy_end`, {headers:H()}),
-      fetch(`${SB_URL}/rest/v1/staff_free_times?staff_id=eq.${P}&scope=eq.usual&select=id,day_of_week,start_time,end_time`, {headers:H()}),
-      fetch(`${SB_URL}/rest/v1/staff_free_times?staff_id=eq.${P}&scope=eq.date&free_date=gte.${fromStr}&free_date=lte.${toStr}&select=id,free_date,start_time,end_time`, {headers:H()}),
-      fetch(`${SB_URL}/rest/v1/staff_free_day_overrides?staff_id=eq.${P}&free_date=gte.${fromStr}&free_date=lte.${toStr}&select=free_date`, {headers:H()})
+      fetch(`${SB_URL}/rest/v1/staff_free_times?scope=eq.usual&select=id,staff_id,day_of_week,start_time,end_time`, {headers:H()}),
+      fetch(`${SB_URL}/rest/v1/staff_free_times?scope=eq.date&free_date=gte.${fromStr}&free_date=lte.${toStr}&select=id,staff_id,free_date,start_time,end_time`, {headers:H()}),
+      fetch(`${SB_URL}/rest/v1/staff_free_day_overrides?free_date=gte.${fromStr}&free_date=lte.${toStr}&select=staff_id,free_date`, {headers:H()}),
+      fetch(`${SB_URL}/rest/v1/staff_week_confirmations?week_start=eq.${fromStr}&select=staff_id,stage,confirmed_at,free_snapshot`, {headers:H()})
     ]);
     const bj = await br.json(); const dj = await dr.json();
-    const uj = await ur.json(); const xj = await xr.json(); const oj = await orr.json();
+    const uj = await ur.json(); const xj = await xr.json(); const oj = await orr.json(); const cj = await cr.json();
     if (!br.ok) throw new Error('bookings: ' + JSON.stringify(bj));
     if (!dr.ok) throw new Error('calendar items: ' + JSON.stringify(dj));
     if (!ur.ok || !xr.ok || !orr.ok) throw new Error('free times: ' + JSON.stringify([uj, xj, oj]));
+    if (!cr.ok) throw new Error('confirmations: ' + JSON.stringify(cj));
     bookings = bj; busy = dj;
-    weekFree = { personId: P, usual: uj, date: xj, overrides: new Set(oj.map(o => o.free_date)) };
+    weekFreeAll = { usual: uj, date: xj, overrides: oj };
+    weekConfRows = cj;
+    weekFree = { personId: P, usual: uj.filter(r => r.staff_id === P), date: xj.filter(r => r.staff_id === P), overrides: new Set(oj.filter(o => o.staff_id === P).map(o => o.free_date)) };
     weekDatesCache = dates.map(d => toDateStr(d));
     weekBookingsCache = bj;
   } catch (e) {
@@ -1793,6 +1866,13 @@ async function loadWeekView(silent) {
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#dcfce7;box-shadow:inset 3px 0 0 #22c55e;vertical-align:-1px"></span> Free</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #6b7280;vertical-align:-1px"></span> No GM yet</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #d97706;background:#fef3c7;vertical-align:-1px"></span> Personal calendar item</span>';
+  }
+
+  {
+    const todayMid = new Date(nzToday() + 'T00:00:00');
+    const daysAhead = Math.round((new Date(fromStr + 'T00:00:00') - todayMid) / 86400000);
+    const stage = (daysAhead >= 1 && daysAhead <= 7) ? 'next' : (daysAhead >= 8 && daysAhead <= 14) ? 'following' : null;
+    weekRenderConfirmBox(owners, dates.map(d => toDateStr(d)), stage);
   }
 
   const dayStarts = dates.map(d => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
