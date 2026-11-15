@@ -227,6 +227,14 @@
         </div>
       </div>
 
+      <!-- GROUP: Errors (admin/manager only) -->
+      <div class="settings-group" id="settingsGroupErrors" style="display:none">
+        <div class="settings-group-title" onclick="openPanel('pErrors')">
+          <span><span class="sg-icon">🐞</span>Errors</span>
+          <i class="ti ti-chevron-right sg-chevron"></i>
+        </div>
+      </div>
+
       <!-- About -->
       <div class="settings-group">
         <div class="settings-group-title" onclick="openPanel('pAbout')" style="color:#9ca3af">
@@ -405,9 +413,48 @@
         <div id="posCatMsg" style="font-size:12px;margin-top:6px"></div>
       </div>
     </div></div>
+    <div id="pErrors" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pErrors')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Errors</span></div><div class="panel-body"><p class="panel-sub">Problems the apps caught in the last 14 days (staff pages and the public booking widget). The same problem is grouped together — tap one for details.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button type="button" onclick="loadErrorLogs()" style="border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer"><i class="ti ti-refresh"></i> Refresh</button><label style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px"><input type="checkbox" id="errShowResolved" onchange="renderErrorLogs()"> Show resolved</label></div><div id="errSummary" style="font-size:12px;color:#6b7280;margin-bottom:8px"></div><div id="errList"></div></div></div>
     <div id="pAbout" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pAbout')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">About</span></div><div class="panel-body"><div style="font-size:13px;color:#6b7280;line-height:2">Beyond the Box · BtB App v1.0<br>Supabase native — new system<br>Escape Rooms · VR · Board Game Cafe<br>Hawkes Bay, New Zealand<br>Built with Claude</div></div></div>
   </div>
 </div>
+<script>
+// BtB error logger v1.0.0 — sends uncaught errors to the Supabase error_logs table (see Settings > Errors).
+// Never throws, ignores browser-extension noise, de-duplicates, and sends at most 20 per page load.
+(function(){
+  var PAGE='btb_app.html', EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs', KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0, seen={};
+  function clip(v,n){v=(v==null?'':String(v));return v.length>n?v.slice(0,n):v;}
+  function send(level,source,msg,stack,ctx){
+    try{
+      msg=clip(msg||'(no message)',2000);
+      if(/ResizeObserver loop|^Script error\.?$/i.test(msg))return;
+      var key=source+'|'+msg; if(seen[key]||sent>=20)return; seen[key]=1; sent++;
+      var token=KEY;
+      try{ if(typeof currentUser!=='undefined'&&currentUser&&currentUser.token)token=currentUser.token; }catch(e){}
+      var ver=null; try{ if(typeof BUILD_VERSION!=='undefined')ver=clip(BUILD_VERSION,40); }catch(e){}
+      var c={}; try{ c=ctx||{}; if(JSON.stringify(c).length>6000)c={note:'context too large'}; }catch(e){c={};}
+      var body=JSON.stringify({level:level,source:clip(source,50),message:msg,stack:stack?clip(stack,8000):null,
+        page:PAGE,url:clip(location.origin+location.pathname,500),context:c,user_agent:clip(navigator.userAgent,400),app_version:ver});
+      var post=function(tok){
+        return fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:body,keepalive:true})
+          .then(function(r){ if(!r.ok&&tok!==KEY)return post(KEY); });
+      };
+      post(token).catch(function(){});
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    try{
+      var fn=e.filename||''; if(/^(chrome|moz|safari|webkit)-extension:/.test(fn))return;
+      send('error','window.onerror',e.message,e.error&&e.error.stack,{file:fn.split('/').pop(),line:e.lineno,col:e.colno});
+    }catch(x){}
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    try{ var r=e.reason; send('error','promise',(r&&r.message)||String(r),r&&r.stack); }catch(x){}
+  });
+  // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
+  window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+})();
+</script>
 <script>
 // ============================================================
 // NZ TIMEZONE HELPERS — always use these instead of new Date() when you mean "today" in NZ
@@ -2196,7 +2243,9 @@ function openPanel(id){
   if(adminOnly.includes(id) && currentUser?.role !== 'admin'){
     console.warn('Access denied to panel:',id);return;
   }
+  if(id==='pErrors' && !['admin','manager'].includes(currentUser?.role)){console.warn('Access denied to panel:',id);return;}
   document.getElementById(id).classList.add('open');
+  if(id==='pErrors')loadErrorLogs();
   if(id==='pGames')renderGamesList();
   if(id==='pStaff')renderPersonList();
   if(id==='pTags'){renderTagList();renderColorPicker()}
@@ -2213,6 +2262,82 @@ function openPanel(id){
   if(id==='pRoles')renderRolesList();
 }
 function closePanel(id){document.getElementById(id).classList.remove('open')}
+
+// ============================================================
+// v16.4.56 — Settings > Errors (reads the error_logs table; admin/manager only, enforced by the database too)
+// ============================================================
+let errRows=[], errGroups=[];
+async function loadErrorLogs(){
+  const box=document.getElementById('errList');if(!box)return;
+  box.innerHTML='<div style="color:#6b7280;font-size:13px">Loading…</div>';
+  try{
+    const since=new Date(Date.now()-14*864e5).toISOString();
+    const r=await fetch(`${SB_URL}/rest/v1/error_logs?select=id,created_at,level,source,message,stack,page,url,user_id,user_agent,app_version,resolved,context&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=500`,{headers:H()});
+    if(!r.ok)throw new Error('Could not load errors (code '+r.status+')');
+    errRows=await r.json();
+    renderErrorLogs();
+  }catch(e){
+    box.innerHTML='<div style="color:#b91c1c;font-size:13px">'+escapeHtml(e.message||'Could not load errors')+'</div>';
+  }
+}
+function errNZ(iso){return new Date(iso).toLocaleString('en-NZ',{timeZone:'Pacific/Auckland',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}
+function renderErrorLogs(){
+  const box=document.getElementById('errList');if(!box)return;
+  const showResolved=!!document.getElementById('errShowResolved')?.checked;
+  const map=new Map();
+  errRows.forEach(row=>{
+    const key=(row.page||'')+'|'+(row.source||'')+'|'+String(row.message||'').slice(0,200);
+    if(!map.has(key))map.set(key,{rows:[]});
+    map.get(key).rows.push(row);
+  });
+  errGroups=[...map.values()].map(g=>{
+    g.open=g.rows.filter(x=>!x.resolved);
+    g.latest=g.rows[0];
+    g.first=g.rows[g.rows.length-1];
+    return g;
+  }).filter(g=>showResolved||g.open.length>0);
+  const unresolved=errRows.filter(x=>!x.resolved).length;
+  const sum=document.getElementById('errSummary');
+  if(sum)sum.textContent=unresolved?`${unresolved} unresolved in ${errGroups.filter(g=>g.open.length).length} problem(s)`:'No unresolved errors 🎉';
+  if(!errGroups.length){box.innerHTML='<div style="color:#6b7280;font-size:13px;padding:14px 0">Nothing to show.</div>';return;}
+  const dot={error:'#dc2626',warn:'#d97706',info:'#2563eb'};
+  box.innerHTML=errGroups.map((g,i)=>{
+    const l=g.latest, n=showResolved?g.rows.length:g.open.length, done=g.open.length===0;
+    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;overflow:hidden;${done?'opacity:.6':''}">
+      <div onclick="toggleErrGroup(${i})" style="padding:10px 12px;cursor:pointer">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="width:9px;height:9px;border-radius:50%;background:${dot[l.level]||'#dc2626'};margin-top:5px;flex:none"></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:13px;font-weight:600;color:#111827;word-break:break-word">${escapeHtml(String(l.message||'').slice(0,160))}</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:3px">${escapeHtml(l.page||'unknown page')} · ${escapeHtml(l.source||'')} · ${n}× · last ${errNZ(l.created_at)}${done?' · resolved':''}</div>
+          </div>
+        </div>
+      </div>
+      <div id="errDetail${i}" style="display:none;border-top:1px solid #f3f4f6;padding:10px 12px;font-size:12px;color:#374151;background:#f9fafb">
+        <div><b>Message:</b> <span style="word-break:break-word">${escapeHtml(l.message||'')}</span></div>
+        <div style="margin-top:4px"><b>First seen:</b> ${errNZ(g.first.created_at)} &nbsp; <b>Last seen:</b> ${errNZ(l.created_at)}</div>
+        <div style="margin-top:4px"><b>App version:</b> ${escapeHtml(l.app_version||'?')} &nbsp; <b>Who:</b> ${l.user_id?'Signed-in staff':'Public / not signed in'}</div>
+        <div style="margin-top:4px"><b>Address:</b> <span style="word-break:break-all">${escapeHtml(l.url||'')}</span></div>
+        <div style="margin-top:4px"><b>Device:</b> <span style="word-break:break-word">${escapeHtml(l.user_agent||'')}</span></div>
+        ${l.context&&Object.keys(l.context).length?`<div style="margin-top:4px"><b>Extra info:</b> <span style="word-break:break-word">${escapeHtml(JSON.stringify(l.context))}</span></div>`:''}
+        ${l.stack?`<div style="margin-top:6px"><b>Technical detail:</b><pre style="white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin:4px 0 0;font-size:11px">${escapeHtml(l.stack)}</pre></div>`:''}
+        ${g.open.length?`<button type="button" onclick="resolveErrGroup(${i})" style="margin-top:10px;background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">✓ Mark resolved (${g.open.length})</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleErrGroup(i){const d=document.getElementById('errDetail'+i);if(d)d.style.display=d.style.display==='none'?'':'none'}
+async function resolveErrGroup(i){
+  const g=errGroups[i];if(!g||!g.open.length)return;
+  const ids=g.open.map(x=>x.id);
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/error_logs?id=in.(${ids.join(',')})`,{method:'PATCH',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify({resolved:true,resolved_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error('Could not mark resolved (code '+r.status+')');
+    const idset=new Set(ids);
+    errRows.forEach(x=>{if(idset.has(x.id))x.resolved=true});
+    renderErrorLogs();
+  }catch(e){alert(e.message||'Could not mark resolved')}
+}
 
 // TABS
 function showTab(id,btn){
@@ -2350,6 +2475,7 @@ function showApp(){
   const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
   const isAdmin=currentUser.role==='admin';
   document.getElementById('settingsGroupSetup').style.display=isAdmin?'':'none';
+  const gErr=document.getElementById('settingsGroupErrors');if(gErr)gErr.style.display=(isAdmin||currentUser.role==='manager')?'':'none';
   document.getElementById('cardConfig').style.display=isAdmin?'':'none';
   document.getElementById('cardRoles').style.display=isAdmin?'':'none';
   document.getElementById('cardPricingPresets').style.display=isAdmin?'':'none';
@@ -2994,7 +3120,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.55'; // v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.56'; // v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
