@@ -2266,7 +2266,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 // ============================================================
 // v16.4.56 — Settings > Errors (reads the error_logs table; admin/manager only, enforced by the database too)
 // ============================================================
-let errRows=[], errGroups=[];
+let errRows=[], errGroups=[], errNames={};
 async function loadErrorLogs(){
   const box=document.getElementById('errList');if(!box)return;
   box.innerHTML='<div style="color:#6b7280;font-size:13px">Loading…</div>';
@@ -2275,6 +2275,15 @@ async function loadErrorLogs(){
     const r=await fetch(`${SB_URL}/rest/v1/error_logs?select=id,created_at,level,source,message,stack,page,url,user_id,user_agent,app_version,resolved,context&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=500`,{headers:H()});
     if(!r.ok)throw new Error('Could not load errors (code '+r.status+')');
     errRows=await r.json();
+    // v16.4.57: look up staff names for the logins that appear in these errors (falls back to "Signed-in staff" if the lookup fails)
+    errNames={};
+    try{
+      const ids=[...new Set(errRows.map(x=>x.user_id).filter(Boolean))];
+      if(ids.length){
+        const sr=await fetch(`${SB_URL}/rest/v1/staff?select=name,user_role_id&user_role_id=in.(${ids.join(',')})`,{headers:H()});
+        if(sr.ok)(await sr.json()).forEach(st=>{if(st.user_role_id)errNames[st.user_role_id]=st.name});
+      }
+    }catch(e){}
     renderErrorLogs();
   }catch(e){
     box.innerHTML='<div style="color:#b91c1c;font-size:13px">'+escapeHtml(e.message||'Could not load errors')+'</div>';
@@ -2316,7 +2325,7 @@ function renderErrorLogs(){
       <div id="errDetail${i}" style="display:none;border-top:1px solid #f3f4f6;padding:10px 12px;font-size:12px;color:#374151;background:#f9fafb">
         <div><b>Message:</b> <span style="word-break:break-word">${escapeHtml(l.message||'')}</span></div>
         <div style="margin-top:4px"><b>First seen:</b> ${errNZ(g.first.created_at)} &nbsp; <b>Last seen:</b> ${errNZ(l.created_at)}</div>
-        <div style="margin-top:4px"><b>App version:</b> ${escapeHtml(l.app_version||'?')} &nbsp; <b>Who:</b> ${l.user_id?'Signed-in staff':'Public / not signed in'}</div>
+        <div style="margin-top:4px"><b>App version:</b> ${escapeHtml(l.app_version||'?')} &nbsp; <b>Who:</b> ${l.user_id?escapeHtml(errNames[l.user_id]||'Signed-in staff'):'Public / not signed in'}</div>
         <div style="margin-top:4px"><b>Address:</b> <span style="word-break:break-all">${escapeHtml(l.url||'')}</span></div>
         <div style="margin-top:4px"><b>Device:</b> <span style="word-break:break-word">${escapeHtml(l.user_agent||'')}</span></div>
         ${l.context&&Object.keys(l.context).length?`<div style="margin-top:4px"><b>Extra info:</b> <span style="word-break:break-word">${escapeHtml(JSON.stringify(l.context))}</span></div>`:''}
@@ -3120,7 +3129,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.56'; // v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.57'; // v16.4.57: Settings > Errors now shows the staff member's name (instead of just "Signed-in staff") on each error's details, looked up from the staff list. If the name can't be found it still says "Signed-in staff". Nothing existing was changed or removed. | v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
