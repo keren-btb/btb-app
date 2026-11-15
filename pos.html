@@ -706,6 +706,44 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;font-family:-apple-sy
 </div>
 
 <script>
+// BtB error logger v1.0.0 — sends uncaught errors to the Supabase error_logs table (see Settings > Errors).
+// Never throws, ignores browser-extension noise, de-duplicates, and sends at most 20 per page load.
+(function(){
+  var PAGE='pos.html', EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs', KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0, seen={};
+  function clip(v,n){v=(v==null?'':String(v));return v.length>n?v.slice(0,n):v;}
+  function send(level,source,msg,stack,ctx){
+    try{
+      msg=clip(msg||'(no message)',2000);
+      if(/ResizeObserver loop|^Script error\.?$/i.test(msg))return;
+      var key=source+'|'+msg; if(seen[key]||sent>=20)return; seen[key]=1; sent++;
+      var token=KEY;
+      try{ if(typeof currentUser!=='undefined'&&currentUser&&currentUser.token)token=currentUser.token; }catch(e){}
+      var ver=null; try{ if(typeof BUILD_VERSION!=='undefined')ver=clip(BUILD_VERSION,40); }catch(e){}
+      var c={}; try{ c=ctx||{}; if(JSON.stringify(c).length>6000)c={note:'context too large'}; }catch(e){c={};}
+      var body=JSON.stringify({level:level,source:clip(source,50),message:msg,stack:stack?clip(stack,8000):null,
+        page:PAGE,url:clip(location.origin+location.pathname,500),context:c,user_agent:clip(navigator.userAgent,400),app_version:ver});
+      var post=function(tok){
+        return fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:body,keepalive:true})
+          .then(function(r){ if(!r.ok&&tok!==KEY)return post(KEY); });
+      };
+      post(token).catch(function(){});
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    try{
+      var fn=e.filename||''; if(/^(chrome|moz|safari|webkit)-extension:/.test(fn))return;
+      send('error','window.onerror',e.message,e.error&&e.error.stack,{file:fn.split('/').pop(),line:e.lineno,col:e.colno});
+    }catch(x){}
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    try{ var r=e.reason; send('error','promise',(r&&r.message)||String(r),r&&r.stack); }catch(x){}
+  });
+  // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
+  window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+})();
+</script>
+<script>
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -728,7 +766,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.9'; // v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
+const BUILD_VERSION = '1.9.10'; // v1.9.10: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
