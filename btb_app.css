@@ -162,11 +162,12 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .pk-name input{accent-color:#07b4c5;width:18px;height:18px;margin:0;flex:none}
 .pk-time{font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;width:100px;flex:none;font-family:inherit}
 .pk-step{display:inline-flex;align-items:center;flex:none;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;background:#fff}
-.pk-step button{border:none;background:#f3f4f6;width:28px;height:30px;font-size:17px;line-height:1;cursor:pointer;color:#374151;padding:0}
-.pk-step input{width:36px;height:30px;border:none;text-align:center;font-size:14px;padding:0;-moz-appearance:textfield;font-family:inherit}
+.pk-step button{border:none;background:#e5e7eb;width:30px;height:32px;font-size:20px;font-weight:800;line-height:1;cursor:pointer;color:#111827;padding:0;font-family:inherit}
+.pk-step button:active{background:#07b4c5;color:#fff}
+.pk-step input{width:3.2em;height:32px;border:none;text-align:center;font-size:15px;font-weight:600;padding:0;-moz-appearance:textfield;font-family:inherit;box-sizing:border-box}
 .pk-step input::-webkit-outer-spin-button,.pk-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .pk-price{display:none;align-items:center;gap:3px;flex:none;white-space:nowrap;font-size:13px;color:#6b7280}
-.pk-price input{width:74px;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-family:inherit}
+.pk-price input{width:6.2em;box-sizing:border-box;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-family:inherit}
 #pkRooms.show-prices .pk-price,.pk-extra .pk-price,#pkGames .pk-price{display:inline-flex}
 .pk-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .pk-cats button{border:1px solid #d1d5db;background:#fff;border-radius:99px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit}
@@ -178,6 +179,19 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .pk-prod-grid button.on{border-color:#07b4c5;background:#ecfeff}
 .pk-prod-grid .pk-q{position:absolute;top:-6px;right:-6px;background:#07b4c5;color:#fff !important;border-radius:99px;font-size:11px;font-weight:700;padding:1px 7px}
 .pk-extra{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pk-type{flex:0 1 auto}
+.pk-row{justify-content:flex-start}
+.pk-name{flex:0 1 auto;min-width:120px}
+.pk-timing{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:10px;padding:8px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:10px}
+.pk-tl{display:flex;flex-direction:column;gap:3px;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.pk-tl select{font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-family:inherit;text-transform:none;letter-spacing:0}
+.pk-mode{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.pk-mode label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.pk-mode input{accent-color:#07b4c5;margin:0}
+.pk-ord{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;border-bottom:1px dashed #e5e7eb}
+.pk-ord-n{background:#07b4c5;color:#fff;border-radius:99px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.pk-ord button{border:1px solid #d1d5db;background:#fff;border-radius:6px;width:26px;height:24px;cursor:pointer;font-weight:700}
+.pk-ord button:disabled{opacity:.35;cursor:default}
 .cal-actions{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .cal-actions .walkin-trigger{margin-bottom:0;flex:1 1 0;width:auto;justify-content:center;white-space:nowrap;padding:8px 10px;min-width:0}
 .cal-actions .cal-refresh{background:none;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:16px;color:#6b7280;cursor:pointer;font-family:inherit;flex:0 0 auto}

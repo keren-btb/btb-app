@@ -9,7 +9,8 @@
 <meta name="theme-color" content="#07b4c5">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="btb_app.css?v=16.4.46">
+<!-- Bump ?v= whenever btb_app.css changes, or browsers keep showing the old styles -->
+<link rel="stylesheet" href="btb_app.css?v=16.4.72">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -165,10 +166,10 @@
         <div class="form-title"><i class="ti ti-package"></i> New package</div>
         <!-- v16.4.70: a package is either games going OUT (hire) or several things here at BtB (rooms, VR, food & drink) -->
         <div class="form-row"><div class="form-label">What kind of package?</div>
-          <input type="hidden" id="pkType" value="hire">
+          <input type="hidden" id="pkType" value="inhouse">
           <div class="pk-type-row">
-            <label class="pk-type"><input type="radio" name="pkTypeR" value="hire" checked onchange="setPkType(this.value)"> 🚚 Games going out (hire)</label>
-            <label class="pk-type"><input type="radio" name="pkTypeR" value="inhouse" onchange="setPkType(this.value)"> 🏠 Here at BtB — rooms, VR, food &amp; drink</label>
+            <label class="pk-type"><input type="radio" name="pkTypeR" value="inhouse" checked onchange="setPkType(this.value)"> 🏠 Book here</label>
+            <label class="pk-type"><input type="radio" name="pkTypeR" value="hire" onchange="setPkType(this.value)"> 🚚 Hire out</label>
           </div></div>
         <div class="form-2col">
           <div><div class="form-label" id="pkDateLabel">Date going out</div><input class="form-input" type="date" id="pkDate"></div>
@@ -176,7 +177,14 @@
         </div>
         <div class="form-row pk-hire"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkTbc" onchange="if(this.checked)document.getElementById('pkTime').value=''"> Time not agreed yet — we'll confirm a time with the customer</label></div>
         <div class="form-row pk-hire"><div class="form-label">Games going out (tick each one, price can be changed)</div><div id="pkGames"></div></div>
-        <div class="form-row pk-inhouse" style="display:none"><div class="form-label">What they're booking — tick each, set the time and players</div><div id="pkRooms"></div>
+        <div class="form-row pk-inhouse" style="display:none"><div class="form-label">What they're booking — tick each and set players</div><div id="pkRooms"></div>
+          <!-- v16.4.72: one start time; games either all at once or one after the other -->
+          <div class="pk-timing">
+            <label class="pk-tl">Start<input type="time" id="pkStart" class="pk-time" oninput="updatePkgTotal()"></label>
+            <div class="pk-mode"><label><input type="radio" name="pkMode" value="same" checked onchange="renderPkgOrder()"> All at the same time</label><label><input type="radio" name="pkMode" value="seq" onchange="renderPkgOrder()"> One after the other</label></div>
+            <label class="pk-tl pk-seq">Between games<select id="pkGap" onchange="renderPkgOrder()"><option value="0">Straight after</option><option value="10">10 min gap</option><option value="15">15 min gap</option><option value="30">30 min gap</option><option value="45">45 min gap</option><option value="60">1 hour gap</option></select></label>
+          </div>
+          <div id="pkOrder"></div>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;margin-top:6px;cursor:pointer"><input type="checkbox" id="pkShowPrices" onchange="document.getElementById('pkRooms').classList.toggle('show-prices',this.checked)"> Show / change prices (normally worked out per person)</label></div>
         <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="pkName" placeholder="Sarah Robinson"></div>
         <div class="form-2col">
@@ -1021,7 +1029,7 @@ function togglePkg(){
   if(pkOpen){
     if(walkinOpen)toggleWalkin();
     document.getElementById('pkDate').value=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
-    ['pkTime','pkName','pkPhone','pkEmail','pkVenue','pkVenuePhone','pkGmFee','pkDropoffTime','pkPickupTime','pkTravel','pkDeposit','pkNote'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
+    ['pkTime','pkStart','pkName','pkPhone','pkEmail','pkVenue','pkVenuePhone','pkGmFee','pkDropoffTime','pkPickupTime','pkTravel','pkDeposit','pkNote'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
     [['pkGmAttends','yes'],['pkDropoff','we_drop_off'],['pkPickup','we_pick_up'],['pkHowPaid','']].forEach(([i,v])=>{const e=document.getElementById(i);if(e)e.value=v});
     const se=document.getElementById('pkSkipEmail');if(se)se.checked=true;
     const tb=document.getElementById('pkTbc');if(tb)tb.checked=false;
@@ -1046,16 +1054,17 @@ function pkTypeChanged(){
   document.querySelectorAll('#pkgForm .pk-hire').forEach(e=>e.style.display=inh?'none':'');
   document.querySelectorAll('#pkgForm .pk-inhouse').forEach(e=>e.style.display=inh?'':'none');
   document.getElementById('pkDateLabel').textContent=inh?'Date':'Date going out';
-  updatePkgTotal();
+  renderPkgOrder();
 }
 function pkInhouseGames(){return games.filter(g=>g.bookable!==false&&g.active!==false&&!String(g.id).startsWith('g_hire_'))}
 function renderPkgRooms(){
   const el=document.getElementById('pkRooms');if(!el)return;
   // v16.4.71: compact rows — name, time, players (− n +), and the price only when "Show / change prices" is ticked.
   // The $ sign is kept in one piece with its box so it never wraps away from it.
+  // v16.4.72: short game names; no time per game (one start time + order below)
+  pkOrder=[];
   el.innerHTML=pkInhouseGames().map(g=>`<div class="pk-row">
-    <label class="pk-name"><input type="checkbox" id="pkRChk_${g.id}" onchange="pkRoomTouched('${g.id}')"> ${g.icon||''} ${escapeHtml(g.name)}</label>
-    <input type="time" class="pk-time" id="pkRTime_${g.id}" oninput="pkRoomTouched('${g.id}')">
+    <label class="pk-name" title="${escapeHtml(g.name)}"><input type="checkbox" id="pkRChk_${g.id}" onchange="pkRoomTouched('${g.id}')"> ${g.icon||''} ${escapeHtml(abbrevGameName(g.name))}</label>
     <span class="pk-step" title="Players"><button type="button" onclick="pkStepPlayers('${g.id}',-1)">−</button><input type="number" id="pkRPl_${g.id}" min="1" inputmode="numeric" placeholder="0" oninput="pkRoomTouched('${g.id}',true)"><button type="button" onclick="pkStepPlayers('${g.id}',1)">+</button></span>
     <span class="pk-price">$<input type="number" id="pkRPrice_${g.id}" min="0" step="0.01" oninput="this.dataset.manual='1';updatePkgTotal()"></span>
   </div>`).join('')||'<div style="font-size:12px;color:#9ca3af">No bookable games.</div>';
@@ -1066,13 +1075,40 @@ function pkStepPlayers(gid,d){
 }
 function pkRoomTouched(gid,playersChanged){
   const chk=document.getElementById('pkRChk_'+gid),pr=document.getElementById('pkRPrice_'+gid),pl=parseInt(document.getElementById('pkRPl_'+gid).value)||0;
-  if(!chk.checked&&(document.getElementById('pkRTime_'+gid).value||pl))chk.checked=true;
+  if(!chk.checked&&playersChanged&&pl)chk.checked=true;
   if(pl&&(!pr.dataset.manual||playersChanged&&!pr.value))pr.value=calcPrice(gid,pl).toFixed(2);
   if(!pl&&!pr.dataset.manual)pr.value='';
+  // play order = the order games were ticked (can be changed with ↑ ↓)
+  if(chk.checked&&!pkOrder.includes(gid))pkOrder.push(gid);
+  if(!chk.checked)pkOrder=pkOrder.filter(x=>x!==gid);
+  renderPkgOrder();
+}
+// v16.4.72: "All at the same time" or "One after the other" (in the order shown, straight after or with a gap)
+let pkOrder=[];
+function pkMode(){return document.querySelector('input[name="pkMode"]:checked')?.value||'same'}
+function pkMinsToHM(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
+function pkTimes(){ // gid -> 'HH:MM'
+  const start=document.getElementById('pkStart')?.value,out={};if(!start)return out;
+  let t=hmMin(start);const gap=parseInt(document.getElementById('pkGap')?.value)||0;
+  pkOrder.forEach(gid=>{out[gid]=pkMinsToHM(t);if(pkMode()==='seq'){const g=games.find(x=>x.id===gid);t+=((g&&g.duration)||60)+gap}});
+  return out;
+}
+function pkMoveOrder(gid,d){const i=pkOrder.indexOf(gid),j=i+d;if(i<0||j<0||j>=pkOrder.length)return;[pkOrder[i],pkOrder[j]]=[pkOrder[j],pkOrder[i]];renderPkgOrder()}
+function renderPkgOrder(){
+  const seq=pkMode()==='seq';
+  document.querySelectorAll('#pkgForm .pk-seq').forEach(e=>e.style.display=seq?'':'none');
+  const el=document.getElementById('pkOrder');
+  if(el){
+    const times=pkTimes();
+    el.innerHTML=pkOrder.length?pkOrder.map((gid,i)=>{const g=games.find(x=>x.id===gid);
+      return`<div class="pk-ord">${seq?`<span class="pk-ord-n">${i+1}</span>`:''}<span style="flex:1">${escapeHtml(abbrevGameName(g?.name||''))}</span><b>${times[gid]?fmt12(times[gid]):'— set start'}</b>
+        ${seq?`<button type="button" onclick="pkMoveOrder('${gid}',-1)" ${i===0?'disabled':''}>↑</button><button type="button" onclick="pkMoveOrder('${gid}',1)" ${i===pkOrder.length-1?'disabled':''}>↓</button>`:''}</div>`}).join(''):'';
+  }
   updatePkgTotal();
 }
 function pkgRoomsSelected(){
-  return pkInhouseGames().filter(g=>document.getElementById('pkRChk_'+g.id)?.checked).map(g=>({game:g,time:document.getElementById('pkRTime_'+g.id).value,
+  const times=pkTimes();
+  return pkOrder.map(id=>pkInhouseGames().find(g=>g.id===id)).filter(g=>g&&document.getElementById('pkRChk_'+g.id)?.checked).map(g=>({game:g,time:times[g.id]||'',
     players:parseInt(document.getElementById('pkRPl_'+g.id).value)||0,price:parseFloat(document.getElementById('pkRPrice_'+g.id).value)||0}));
 }
 // v16.4.71: food & drink picked like POS — category chips + item buttons; tapping an item again adds another.
@@ -1184,7 +1220,7 @@ async function submitInhousePkg(){
   const sel=pkgRoomsSelected();
   if(!date){alert('Please choose the date.');return}
   if(!sel.length){alert('Please tick at least one room / activity.');return}
-  const noTime=sel.find(x=>!x.time);if(noTime){alert(`Please set a time for ${noTime.game.name}.`);return}
+  if(sel.some(x=>!x.time)){alert('Please set the start time.');document.getElementById('pkStart').focus();return}
   const noPl=sel.find(x=>!x.players);if(noPl){alert(`Please enter the number of players for ${noPl.game.name}.`);return}
   if(!name){alert('Please enter the customer name.');document.getElementById('pkName').focus();return}
   const clashes=[];
@@ -4027,7 +4063,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.71'; // v16.4.71: Package form — type chosen with two buttons (radio) instead of a dropdown; at-BtB rows are compact (name, time, players with − / + ), prices hidden unless 'Show / change prices' is ticked, and the dollar sign always stays with its box. Food, drink and extras picked like POS: category buttons and item tiles, tap again for more (e.g. 10 × Fizzy drink), quantity − / + on each line; deals are set up as Products; stock comes off by the quantity. A deposit taken on the walk-in / package form now also records the method, date and who took it.
+const BUILD_VERSION = '16.4.72'; // v16.4.72: Package form — 'Book here' (first, default) / 'Hire out' radio buttons; short game names (e.g. Christmas); no time on each game: one Start time and 'All at the same time' or 'One after the other' (play order = order ticked, ↑ ↓ to change, straight after or a 10/15/30/45/60 min gap) with each game's time shown; smaller players box with bolder − / +; price box sized for 0000.00. Stylesheet link version bumped so browsers load the new styles (it was stuck on ?v=16.4.46).
+
+
+// Previous build: 16.4.71 — // v16.4.71: Package form — type chosen with two buttons (radio) instead of a dropdown; at-BtB rows are compact (name, time, players with − / + ), prices hidden unless 'Show / change prices' is ticked, and the dollar sign always stays with its box. Food, drink and extras picked like POS: category buttons and item tiles, tap again for more (e.g. 10 × Fizzy drink), quantity − / + on each line; deals are set up as Products; stock comes off by the quantity. A deposit taken on the walk-in / package form now also records the method, date and who took it.
 
 
 // Previous build: 16.4.70 — // v16.4.70: Package button now does packages here at BtB too (several rooms / VR / café at their own times + food & drink from Products, one group invoice in POS) as well as hires; hires can be saved with 'time to be confirmed' (orange CONFIRM TIME badge, set the time in Edit). Calendar buttons shorter on one line (Booking / Package / Meeting / refresh icon). Reset chip shows rooms sent back as 'not reset' in Task Hub. Settings: half width on big screens, quick buttons (Reports, Staff Portal, Task Hub, Control Room, Clients, Email templates, Errors with unresolved count). Abandoned online checkouts no longer appear as bookings. ?date=YYYY-MM-DD opens that day. Client email matching ignores capitals.
