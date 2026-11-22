@@ -1836,10 +1836,18 @@ function toggleBookingActions(id,btnEl,e){
   const dd=document.getElementById('actionsDD-'+id);
   if(btnEl&&dd){
     const r=btnEl.getBoundingClientRect();
-    dd.style.top=(r.bottom+4)+'px';
     dd.style.right=(window.innerWidth-r.right)+'px';
     dd.style.left='auto';
+    // v16.4.65: keep the whole menu on screen. Open below the button if it fits, otherwise above it;
+    // if it fits neither way (small phone screen), use whichever side has more room and let the menu scroll.
+    dd.style.maxHeight='';dd.style.overflowY='';dd.style.top='0px';
     dd.style.display='block';
+    const gap=4,edge=8,vh=window.innerHeight,h=dd.scrollHeight;
+    const below=vh-r.bottom-gap-edge,above=r.top-gap-edge;
+    if(h<=below){dd.style.top=(r.bottom+gap)+'px'}
+    else if(h<=above){dd.style.top=(r.top-gap-h)+'px'}
+    else if(below>=above){dd.style.top=(r.bottom+gap)+'px';dd.style.maxHeight=below+'px';dd.style.overflowY='auto'}
+    else{dd.style.top=edge+'px';dd.style.maxHeight=above+'px';dd.style.overflowY='auto'}
   }
   openActionsId=id;
 }
@@ -3602,7 +3610,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.64'; // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
+const BUILD_VERSION = '16.4.65'; // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.
+// Previous build: 16.4.64 — // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
 // Previous build: 16.4.63 — // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
 // Previous build: 16.4.62 — // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
 // Previous build: 16.4.61 — // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
