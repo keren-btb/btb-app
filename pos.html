@@ -766,7 +766,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.11'; // v1.9.11: Hire bookings show "🚚 Hired out · games · venue" instead of player counts in the booking list.
+const BUILD_VERSION = '1.9.12'; // v1.9.12: Hire bookings in POS use the stored hire price, not in-house per-player pricing — hire details box, GM fee / travel / extra charge lines, receipts list them too, no player +/- on a hire.
+// Previous build: 1.9.11 — // v1.9.11: Hire bookings show "🚚 Hired out · games · venue" instead of player counts in the booking list.
 // Previous build: 1.9.10 — // v1.9.10: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
@@ -910,7 +911,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         time:(row.slot_time||'').slice(0,5),
         duration:games.find(g=>g.id===row.game_id)?.duration||60,
         meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,
-        players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',
+        players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),
         status:row.status,source:row.source||'',
         total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,
         deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,
@@ -1237,7 +1238,7 @@ async function loadEarlier(){
     const rows=await r.json();
     const earlier=rows.map(row=>{
       const d=new Date(row.booking_date+'T12:00');
-      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
+      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
     });
     bookings=[...earlier,...bookings];
   }catch(e){console.error('Load earlier error:',e);}
@@ -1415,6 +1416,25 @@ function showPanelEmpty(){
 // Track which section is open per booking: null = tiles view
 let openPanelSection={};
 
+// HIRE helpers — a hired-out booking is priced by what was entered when it was booked (game price + GM fee + travel + extras),
+// never by the in-house per-player pricing.
+function hireExtrasTotal(b){return (b.hire_extras||[]).reduce((q,x)=>q+(parseFloat(x.amount)||0),0)}
+function hireGamePrice(b){return (parseFloat(b.total_amount)||0)-(b.gm_fee||0)-(b.travel_fee||0)-hireExtrasTotal(b)}
+function hireFeeList(b){return [b.gm_fee?['Game master fee',b.gm_fee]:null,b.travel_fee?['Travel',b.travel_fee]:null,...(b.hire_extras||[]).map(x=>[x.label||'Extra',x.amount])].filter(Boolean)}
+function hireFeeRowsHTML(b){
+  return hireFeeList(b).map(([l,v])=>`<div class="receipt-row" style="padding-left:14px"><span class="receipt-label" style="font-size:12px;color:#6b7280">${escapeHtml(l)}</span><span class="receipt-amount" style="font-size:12px">$${(parseFloat(v)||0).toFixed(2)}</span></div>`).join('');
+}
+function buildHireInfoHTML(b){
+  const t=x=>x?' at '+fmt12(x):'';
+  const drop=b.dropoff_method==='we_drop_off'?'We drop off'+t(b.dropoff_time):(b.dropoff_method?'They collect from us'+t(b.dropoff_time):'');
+  const pick=b.pickup_method==='we_pick_up'?'We pick up'+t(b.pickup_time):(b.pickup_method?'They return to us'+t(b.pickup_time):'');
+  const line=(i,x)=>x?`<div style="font-size:12px;color:#374151;margin-top:3px">${i} ${x}</div>`:'';
+  return `<div style="background:#faf5ff;border:1px solid #c4b5fd;border-radius:10px;padding:9px 11px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#7c3aed">🚚 HIRED OUT</div>
+    ${line('📍',escapeHtml(b.venue_address||''))}${line('📞',b.venue_contact_phone?'Venue '+escapeHtml(b.venue_contact_phone):'')}
+    ${line('🎮',b.gm_attends===false?'No GM — they run it themselves':'GM goes with the games')}${line('➡️',drop)}${line('⬅️',pick)}
+  </div>`;
+}
 function buildCartSummaryHTML(b){
   const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
   const addons=b.addons?JSON.parse(b.addons):[];
@@ -1424,7 +1444,8 @@ function buildCartSummaryHTML(b){
   const payments=b.payments?JSON.parse(b.payments):[];
   const collected=(depPaid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
   const balance=Math.max(0,total-collected);
-  const gamePrice=calcPrice(b.game_id,players);
+  const isHire=b.play_location==='hire';
+  const gamePrice=isHire?hireGamePrice(b):calcPrice(b.game_id,players);
   // When splitting between people, the split view below already lists the
   // players/add-ons being paid for — so the itemised breakdown here
   // collapses to just the total and payment history, to avoid duplication.
@@ -1432,17 +1453,19 @@ function buildCartSummaryHTML(b){
   // close split mode first if you need to change the player count.)
   const splitMode=b.splitMode===true;
   const itemRowsHTML = splitMode ? '' : `
+    ${isHire?buildHireInfoHTML(b):''}
     <div class="receipt-row">
       <div class="receipt-label">
         <span style="font-weight:600">${b.name}</span>
-        <div class="player-counter" style="display:inline-flex;margin-left:8px">
+        ${isHire?'':`<div class="player-counter" style="display:inline-flex;margin-left:8px">
           <button onclick="adjustPOSPlayers('${b.id}',-1)">−</button>
           <span id="pos-players-${b.id}">${players}</span>
           <button onclick="adjustPOSPlayers('${b.id}',1)">+</button>
-        </div>
+        </div>`}
       </div>
       <span class="receipt-amount">$${gamePrice.toFixed(2)}</span>
     </div>
+    ${isHire?hireFeeRowsHTML(b):''}
 ${(() => {
   const grouped = [];
   addons.forEach((item, originalIndex) => {
@@ -1517,8 +1540,9 @@ async function sendReceiptEmail(id){
   const dep=b.deposit_amount??calcDeposit(total);
   const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
   const balance=Math.max(0,total-collected);
-  const gamePrice=calcPrice(b.game_id,players);
-  const rows=[`<tr><td style="padding:4px 0">${escapeHtml(b.name)} (${players} player${players!==1?'s':''})</td><td style="padding:4px 0;text-align:right">$${gamePrice.toFixed(2)}</td></tr>`];
+  const gamePrice=b.play_location==='hire'?hireGamePrice(b):calcPrice(b.game_id,players);
+  const rows=[`<tr><td style="padding:4px 0">${escapeHtml(b.name)}${b.play_location==='hire'?' (hire)':` (${players} player${players!==1?'s':''})`}</td><td style="padding:4px 0;text-align:right">$${gamePrice.toFixed(2)}</td></tr>`];
+  if(b.play_location==='hire')hireFeeList(b).forEach(([l,v])=>rows.push(`<tr><td style="padding:4px 0">${escapeHtml(l)}</td><td style="padding:4px 0;text-align:right">$${(parseFloat(v)||0).toFixed(2)}</td></tr>`));
   addons.forEach(a=>{
     rows.push(`<tr><td style="padding:4px 0">${escapeHtml(a.label)}</td><td style="padding:4px 0;text-align:right">$${parseFloat(a.amount||0).toFixed(2)}</td></tr>`);
   });
@@ -1793,7 +1817,7 @@ function buildGroupCartSummaryHTML(members){
   const allPayments=[];
   const memberRowsHTML=members.map(m=>{
     const players=m.players_booked||1;
-    const base=calcPrice(m.game_id,players);
+    const base=m.play_location==='hire'?hireGamePrice(m):calcPrice(m.game_id,players);
     const total=m.total_amount??base;
     const dep=m.deposit_amount??calcDeposit(total);
     const addons=m.addons?JSON.parse(m.addons):[];
@@ -1812,9 +1836,9 @@ function buildGroupCartSummaryHTML(members){
       </div>`).join('');
     return `
       <div class="receipt-row" style="cursor:pointer" onclick="selectBooking('${m.id}')" title="Open this item individually">
-        <span class="receipt-label"><span style="font-weight:600">${escapeHtml(m.name)}</span> <span style="color:#9ca3af;font-size:11px">(${players}p)</span></span>
+        <span class="receipt-label"><span style="font-weight:600">${escapeHtml(m.name)}</span> <span style="color:#9ca3af;font-size:11px">${m.play_location==='hire'?'🚚 hired':`(${players}p)`}</span></span>
         <span class="receipt-amount">$${base.toFixed(2)}</span>
-      </div>${addonRows}`;
+      </div>${m.play_location==='hire'?hireFeeRowsHTML(m):''}${addonRows}`;
   }).join('');
   const balance=Math.max(0,combinedTotal-collected);
   const methodLabels={cash:'Cash',eftpos:'Eftpos',stripe:'Stripe',poli:'PoLi',bank_transfer:'Bank',invoice:'Invoice',deposit:'Deposit'};
@@ -1826,7 +1850,9 @@ function buildGroupCartSummaryHTML(members){
       return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="${undo}" title="Undo">↩</button></div>`;
     }).join('')}
   </div>`:'';
+  const hireFirst=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
   return `<div class="pos-cart-summary">
+    ${members.every(m=>m.play_location==='hire')?buildHireInfoHTML(hireFirst):''}
     ${memberRowsHTML}
     <div class="receipt-total-row" style="display:flex;justify-content:space-between;align-items:flex-start">
       <span>Combined Total</span>
@@ -2031,14 +2057,15 @@ async function sendGroupReceiptEmail(gid){
   const rows=[];
   members.forEach(m=>{
     const players=m.players_booked||1;
-    const base=calcPrice(m.game_id,players);
+    const base=m.play_location==='hire'?hireGamePrice(m):calcPrice(m.game_id,players);
     const total=m.total_amount??base;
     const dep=m.deposit_amount??calcDeposit(total);
     const addons=m.addons?JSON.parse(m.addons):[];
     const payments=m.payments?JSON.parse(m.payments):[];
     combinedTotal+=total;
     collected+=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
-    rows.push(`<tr><td style="padding:4px 0">${escapeHtml(m.name)} (${players} player${players!==1?'s':''})</td><td style="padding:4px 0;text-align:right">$${base.toFixed(2)}</td></tr>`);
+    rows.push(`<tr><td style="padding:4px 0">${escapeHtml(m.name)}${m.play_location==='hire'?' (hire)':` (${players} player${players!==1?'s':''})`}</td><td style="padding:4px 0;text-align:right">$${base.toFixed(2)}</td></tr>`);
+    if(m.play_location==='hire')hireFeeList(m).forEach(([l,v])=>rows.push(`<tr><td style="padding:4px 0">${escapeHtml(l)}</td><td style="padding:4px 0;text-align:right">$${(parseFloat(v)||0).toFixed(2)}</td></tr>`));
     addons.forEach(a=>{
       rows.push(`<tr><td style="padding:4px 0">${escapeHtml(a.label)}</td><td style="padding:4px 0;text-align:right">$${parseFloat(a.amount||0).toFixed(2)}</td></tr>`);
     });
@@ -2110,6 +2137,7 @@ async function removeAddon(bookingId,idx){
 
 async function adjustPOSPlayers(id,delta){
   const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(b.play_location==='hire')return; // hire bookings keep their entered hire price
   const limits=(bookingConfig.gamePlayerLimits||{})[b.game_id]||{min:1,max:20};
   const current=b.players_booked||1;
   const next=Math.max(limits.min||1,Math.min(limits.max||20,current+delta));

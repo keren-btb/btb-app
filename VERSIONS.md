@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.12 — 2026-11-22 — Hire bookings in POS are priced from the stored hire total (game price + GM fee + travel + extra charges), not in-house per-player pricing. Shows a Hired out details box (venue, GM, drop-off/pick-up) and a line for each fee/extra; emailed receipts list them too; no player +/- on a hire so the price can't be overwritten.
 - v1.9.11 — 2026-11-22 — Hire bookings show "🚚 Hired out · games · venue" in the booking list instead of player counts.
 - v1.9.10 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.9.9 — 2026-11-03 — Fixed "Go to POS" (btb_app.html booking 3-dot menu) not finding bookings more than ~4 weeks ahead. The POS Bookings list only loaded up to 27 days from today, so a far-future booking (e.g. 18 Dec seen on 3 Nov) was never loaded and POS showed nothing selected. When POS is opened with ?booking=&date=, it now also extends the load range to that date (new `posRangeEndOverride`, cleared whenever Bookings is opened normally). Normal opening unchanged; nothing removed.
