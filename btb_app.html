@@ -637,7 +637,7 @@ const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
 let activeTagFilter=null,activeEnqStatus=null,calView='cal';
 let selectedColorIdx=0,walkinOpen=false,enqOpen=false,walkinGMs=[];
-let pkOpen=false,pkGMs=[];
+let pkOpen=false,pkGMs=[],pkClientId=null,pkClientOrig=null;
 let selectedSlotDay=2;
 let currentUser=null;
 let qbOpenGameId=null;
@@ -959,6 +959,7 @@ function updateWalkinHireUI(){
 // all sharing a group_booking_id, so POS already shows them as ONE combined item/invoice.
 function togglePkg(){
   pkOpen=!pkOpen;
+  pkClientId=null;pkClientOrig=null;
   const f=document.getElementById('pkgForm');
   f.style.display=pkOpen?'':'none';
   if(pkOpen){
@@ -1024,8 +1025,8 @@ async function submitPkg(){
   const clashes=sel.filter(x=>bookings.some(b=>b.game_id===x.game.id&&b.year===yy&&b.month===mm&&b.date===dd&&b.status!=='cancelled'&&!b.isEnquiry)).map(x=>x.game.name);
   if(clashes.length&&!confirm('Heads up: '+clashes.join(', ')+' already has a booking on that day. Add the package anyway?'))return;
   try{
-    let clientId=null;
-    if(email||phone){
+    let clientId=pkClientId||null;
+    if(!clientId&&(email||phone)){
       const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
       const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
       const ex=await cr.json();
@@ -1034,6 +1035,17 @@ async function submitPkg(){
         const parts=name.split(' ');
         const nr=await fetch(`${SB_URL}/rest/v1/clients`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({first_name:parts[0]||'Guest',last_name:parts.slice(1).join(' ')||null,email:email||null,phone:phone||null,source:'staff'})});
         const nc=await nr.json();clientId=nc[0]?.id;
+      }
+    }
+    if(pkClientId&&pkClientOrig){
+      const fill={};
+      if(phone&&!pkClientOrig.phone)fill.phone=phone;
+      if(email&&!pkClientOrig.email)fill.email=email;
+      if(Object.keys(fill).length){
+        try{
+          const pr=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${encodeURIComponent(pkClientId)}`,{method:'PATCH',headers:H(),body:JSON.stringify(fill)});
+          if(!pr.ok)throw new Error(await pr.text());
+        }catch(pe){console.error('Client profile update failed:',pe);alert('The package will still be saved, but the new phone/email could not be saved to the client profile.')}
       }
     }
     const gid=sel.length>1?(crypto.randomUUID?crypto.randomUUID():null):null;
@@ -1055,7 +1067,7 @@ async function submitPkg(){
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(rows)});
     if(!r.ok)throw new Error(await r.text());
   }catch(e){alert('Error: '+e.message);return}
-  pkOpen=false;pkGMs=[];document.getElementById('pkgForm').style.display='none';
+  pkOpen=false;pkGMs=[];pkClientId=null;pkClientOrig=null;document.getElementById('pkgForm').style.display='none';
   viewYear=yy;viewMonth=mm;selectedDate=dd;
   bookings=bookings.filter(b=>!(b.month===viewMonth&&b.year===viewYear));
   await loadBookings(viewMonth,viewYear);
@@ -1072,7 +1084,8 @@ async function checkClientBookDeepLink(){
   const cid=params.get('book_client');
   if(!cid)return;
   // Remove it from the address bar straight away so a refresh doesn't reopen the form
-  params.delete('book_client');
+  const wantPkg=params.get('package')==='1';
+  params.delete('book_client');params.delete('package');
   const qs=params.toString();
   history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);
   try{
@@ -1080,6 +1093,18 @@ async function checkClientBookDeepLink(){
     const rows=await r.json();
     if(!r.ok||!Array.isArray(rows)||!rows.length){alert('Could not find that client to book.');return}
     const c=rows[0];
+    if(wantPkg){
+      // Hire package for this client (clients pages "Package" button)
+      setView('cal');
+      if(!pkOpen)togglePkg();
+      pkClientId=c.id;
+      pkClientOrig={phone:c.phone||'',email:c.email||''};
+      document.getElementById('pkName').value=[c.first_name,c.last_name].filter(Boolean).join(' ');
+      document.getElementById('pkPhone').value=c.phone||'';
+      document.getElementById('pkEmail').value=c.email||'';
+      document.getElementById('pkgForm').scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
     setView('cal');
     if(!walkinOpen)toggleWalkin();
     walkinClientId=c.id;
@@ -3376,7 +3401,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.60'; // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
+const BUILD_VERSION = '16.4.61'; // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
+// Previous build: 16.4.60 — // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
 // Previous build: 16.4.59 — // v16.4.59: Hire bookings — optional game master fee, drop-off and pick-up options (we do it / customer does it) with optional times; total = hire + GM fee + travel. "Dropped off" wording for no-GM hires renamed to "No GM — they run it themselves".
 // Previous build: 16.4.58 — // v16.4.58: Hire-out games — games can be flagged "Can be hired out" (play-time range, hire price/period) in Settings > Games; new bookings can be Played here or Hired out (venue address/phone, GM goes or drop-off, hire price + travel fee). A GM-attended hire requires an assigned staff member. Needs games.hireable/hire_* and game_bookings.play_location/venue_*/travel_fee/gm_attends columns.
 // Previous build: 16.4.57 — // v16.4.57: Settings > Errors now shows the staff member's name (instead of just "Signed-in staff") on each error's details, looked up from the staff list. If the name can't be found it still says "Signed-in staff". Nothing existing was changed or removed. | v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.

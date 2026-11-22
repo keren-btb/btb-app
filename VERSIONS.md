@@ -94,6 +94,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.61 — 2026-11-22 — Hire package can be started from a client: opened via ?book_client=<id>&package=1 from the clients pages, with the client's name/phone/email pre-filled and the package linked to that client record.
 - v16.4.60 — 2026-11-22 — Hire package builder. New "Hire package" button on the calendar: tick several hireable games, set date, venue, GM and fee, drop-off/pick-up and travel in one form. Saves one booking per game sharing a group_booking_id, so POS shows them as one combined invoice. Travel, GM fee and deposit sit on the first game's row so totals aren't double counted.
 - v16.4.59 — 2026-11-22 — Hire bookings: optional game master fee (when a GM goes), drop-off and pick-up options (we do it / customer does it, with optional times), total = hire price + GM fee + travel fee. No-GM hires are now labelled "No GM — they run it themselves". New game_bookings columns: gm_fee, dropoff_method, dropoff_time, pickup_method, pickup_time.
 - v16.4.58 — 2026-11-22 — Hire-out games. Games can be flagged "Can be hired out" in Settings > Games & Activities, with a play-time range and a default hire price/period. The new-booking form lets staff choose Played here or Hired out (venue address, venue phone, GM goes or drop-off, hire price, travel fee); a hire with a GM going requires an assigned staff member. Hire fields stored on game_bookings (play_location, venue_address, venue_contact_phone, travel_fee, gm_attends, total_amount) and games (hireable, hire_price, hire_period_hours, play_time_min, play_time_max).
@@ -281,6 +282,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.8 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for this client.
 - v1.0.7 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.0.6 — 2026-11-03 — Added a "Book" button to the top bar: opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
@@ -290,6 +292,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.9 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.5.8 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.5.7 — 2026-10-31 — Added a "Book" button to the client side panel (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.5.6 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
@@ -301,6 +304,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.5 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.3.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.3.3 — 2026-11-03 — Added a "Book" button to the client thread header (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
 - v1.3.2 — 2026-08-23 — Fixed reply-by-email thread logging: sent replies now save the actual subject and plain-text body to client_interactions, so the thread view shows what was really sent instead of just the template name. Applies to send_enquiry_template_email (edge function also updated in the same fix).
