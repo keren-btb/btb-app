@@ -248,10 +248,14 @@ table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:t
     try{ var r=e.reason; send('error','promise',(r&&r.message)||String(r),r&&r.stack); }catch(x){}
   });
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
-const BUILD_VERSION = '2.1.0'; // v2.1.0: Phase 2. Issues show as maintenance jobs on Today and have their own steps (tick off, notes, reorder; first step = Being fixed, all done = offer Fixed). Owners tab (owners only): jobs/renewals with due dates, repeats and reminders N days before. Health & safety: incident/accident register (WorkSafe flag), hazard register with review dates, safety checks. Cash-up vs today's POS takings. Battery & readings history chart. Phone notifications via btb-notify (jobs given to you, problems, incidents, owners' reminders). Editor: show N days before due.
+const BUILD_VERSION = '2.2.0'; // v2.2.0: Room board shows every in-house escape room (not just ones with a reset checklist), with 'Add reset checklist' for rooms that have none. 'Not reset' button on a ready room: say what's wrong and who should fix it (they get a notification) — the room goes back to NEEDS RESET. Finished checklists can be reopened to edit answers (Edit answers on the record).
+// Previous build: 2.1.0 — // v2.1.0: Phase 2. Issues show as maintenance jobs on Today and have their own steps (tick off, notes, reorder; first step = Being fixed, all done = offer Fixed). Owners tab (owners only): jobs/renewals with due dates, repeats and reminders N days before. Health & safety: incident/accident register (WorkSafe flag), hazard register with review dates, safety checks. Cash-up vs today's POS takings. Battery & readings history chart. Phone notifications via btb-notify (jobs given to you, problems, incidents, owners' reminders). Editor: show N days before due.
 // Previous build: 2.0.0 — // v2.0.0: Task Hub rebuilt (Phase 1). One kind of checklist for room reset / set-up / opening / closing / maintenance / owners / health & safety, with tick, OK/Not OK, dropdown, number (e.g. battery %), note and photo items, follow-up questions, a Quick reset (short list) for experienced GMs, and every completed checklist kept as a record. Today screen: room board (Needs reset / Ready), Today's jobs open to anyone, jobs assigned to you. History, Issues (raised from Not OK / maintenance needed / low battery answers, or reported directly), checklist editor and Areas settings. New tables cl_*; the old task tables are untouched.
 // Previous build: 1.7.5 — // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -359,7 +363,7 @@ function gameLen(gid){return games.find(g=>g.id===gid)?.duration||60}
 async function loadBase(){
   const [s,g,a,t,cfg]=await Promise.all([
     api('staff?active=eq.true&select=id,name&order=name').catch(()=>[]),
-    api('games?select=id,name,category,duration,active&order=sort_order').catch(()=>[]),
+    api('games?select=id,name,category,duration,active,bookable&order=sort_order').catch(()=>[]),
     api('cl_areas?select=*&order=sort_order,name'),
     api('cl_templates?select=*&order=sort_order,name'),
     api('settings?key=eq.btb_booking_config&select=value').catch(()=>[]),
@@ -481,9 +485,12 @@ function jobHtml(r){
 }
 function renderRoomBoard(){
   const now=nowMins();
-  const rooms=areas.filter(a=>a.active&&a.game_id&&(templates.some(t=>t.active&&t.area_id===a.id&&(t.kind==='reset'||t.kind==='setup'))||bookingsToday.some(b=>b.game_id===a.game_id)));
+  // v2.2.0: every in-house room shows (bookable escape rooms), not only rooms that already have a reset checklist
+  const isRoomGame=gid=>{const g=games.find(x=>x.id===gid);return!!g&&g.active!==false&&g.bookable!==false&&g.category==='escape'};
+  const rooms=areas.filter(a=>a.active&&a.game_id&&(isRoomGame(a.game_id)||templates.some(t=>t.active&&t.area_id===a.id&&(t.kind==='reset'||t.kind==='setup'))||bookingsToday.some(b=>b.game_id===a.game_id)));
   if(!rooms.length)return'';
   const cards=rooms.map(a=>{
+    const resetT=resetTemplateOf(a.id);
     const gb=bookingsToday.filter(b=>b.game_id===a.game_id);
     const next=gb.find(b=>hm(b.slot_time)>now);
     const rr=runs.filter(r=>r.game_id===a.game_id&&r.run_date===todayStr()&&r.kind==='reset');
@@ -493,21 +500,60 @@ function renderRoomBoard(){
     const nextTxt=next?`Next game ${fmt12(next.slot_time)}`:(gb.length?'No more games today':'No games today');
     if(pending.length){
       const r=pending[0];const soon=next&&hm(next.slot_time)-now<=45;
+      const sentBack=!r.booking_id&&/^Sent back/.test(r.note||'');
       return`<div class="room-card need ${soon?'urgent':''}"><div class="room-name">${escapeHtml(a.name)}</div>
         <div class="room-status" style="color:var(--red)">⚠ NEEDS RESET</div><div class="room-sub" style="${soon?'color:var(--red);font-weight:700':''}">${nextTxt}</div>
+        ${sentBack?`<div class="room-sub" style="color:var(--red)">${escapeHtml(r.note)}</div>`:''}
         ${r.assigned_staff_id?`<div class="room-sub">Given to ${escapeHtml(staffName(r.assigned_staff_id))}</div>`:''}
         <div class="room-btns">${hasQuick(r.template_id)?`<button class="btn btn-green btn-sm" onclick="openRun('${r.id}','quick')">Quick reset</button>`:''}<button class="btn btn-primary btn-sm" onclick="openRun('${r.id}','full')">Full checklist</button><button class="btn btn-secondary btn-sm" onclick="handOver('${r.id}')">Give to…</button></div></div>`;
     }
     if(setup)return`<div class="room-card need"><div class="room-name">${escapeHtml(a.name)}</div><div class="room-status" style="color:var(--amber)">Set-up needed</div><div class="room-sub">${nextTxt}</div>
       <div class="room-btns"><button class="btn btn-primary btn-sm" onclick="openRun('${setup.id}')">Set up</button></div></div>`;
+    const btns=resetT?`<div class="room-btns">${lastDone?`<button class="btn btn-secondary btn-sm" onclick="openRecord('${lastDone.id}')">See checklist</button>`:''}<button class="btn btn-secondary btn-sm" style="color:var(--red)" onclick="sendBackRoom('${a.id}')"><i class="ti ti-arrow-back-up"></i> Not reset</button></div>`
+      :canEdit?`<div class="room-btns"><button class="btn btn-secondary btn-sm" onclick="createResetChecklist('${a.id}')"><i class="ti ti-plus"></i> Add reset checklist</button></div>`:'';
     return`<div class="room-card ${lastDone?'ready':''}"><div class="room-name">${escapeHtml(a.name)}</div>
-      <div class="room-status" style="color:${lastDone?'var(--green)':'var(--muted)'}">${lastDone?'✓ Ready':'Ready'}</div>
+      <div class="room-status" style="color:${lastDone?'var(--green)':'var(--muted)'}">${lastDone?'✓ Ready':resetT?'Ready':'No reset checklist yet'}</div>
       <div class="room-sub">${lastDone?`Reset by ${escapeHtml(staffName(lastDone.completed_by))} at ${fmtTime(lastDone.completed_at)}${lastDone.mode==='quick'?' (quick)':''}`:''}</div>
-      <div class="room-sub">${nextTxt}</div></div>`;
+      <div class="room-sub">${nextTxt}</div>${btns}</div>`;
   }).join('');
   return`<div class="section-title"><i class="ti ti-door"></i> Rooms</div><div class="room-grid">${cards}</div>`;
 }
 function hasQuick(tid){return itemsOf(tid).some(i=>i.in_quick)}
+function resetTemplateOf(areaId){return templates.find(t=>t.active&&t.area_id===areaId&&t.kind==='reset'&&itemsOf(t.id).length)}
+
+// v2.2.0: a room someone marked ready isn't — send it back with what's wrong and who should fix it.
+// A new reset job is made (the earlier record stays in History as it was).
+function sendBackRoom(areaId){
+  const a=areas.find(x=>x.id===areaId);
+  const opts=['<option value="">Anyone (shows on the room board)</option>',...staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`)].join('');
+  showOverlay(`${a?.name||'Room'} — not reset`,`<div class="card">
+    <div class="form-row"><label class="form-label">What's wrong? *</label><textarea class="form-textarea" id="sbWhat" placeholder="e.g. skull not back on the books, padlock left open"></textarea></div>
+    <div class="form-row"><label class="form-label">Who should fix it?</label><select class="form-select" id="sbWho">${opts}</select></div>
+    <button class="btn btn-danger btn-big" onclick="confirmSendBack('${areaId}')"><i class="ti ti-arrow-back-up"></i> Mark room as NOT reset</button><div class="msg" id="sbMsg"></div></div>`);
+}
+async function confirmSendBack(areaId){
+  const what=document.getElementById('sbWhat').value.trim(),who=document.getElementById('sbWho').value||null,m=document.getElementById('sbMsg');
+  if(!what){m.className='msg err';m.textContent='Say what is wrong so they know what to fix.';return}
+  const t=resetTemplateOf(areaId),a=areas.find(x=>x.id===areaId);if(!t)return;
+  try{
+    await post('cl_runs',{template_id:t.id,template_name:t.name,kind:'reset',owners_only:false,area_id:areaId,game_id:a?.game_id||null,run_date:todayStr(),auto:false,
+      assigned_staff_id:who,created_by:me(),note:`Sent back by ${staffName(me())||'staff'}: ${what}`});
+    if(who)notify({staffIds:[who]},'Room not reset',`${a?.name}: ${what}`);
+    closeOverlay();
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+// v2.2.0: one tap to give a room a starter reset checklist (maintenance question + details + photo). Add room steps in Checklists.
+async function createResetChecklist(areaId){
+  const a=areas.find(x=>x.id===areaId);if(!a)return;
+  if(!confirm(`Create a reset checklist for ${a.name}? It starts with the maintenance question — add the room's own steps under Checklists.`))return;
+  try{
+    const t=(await post('cl_templates',{name:`${a.name} reset`,kind:'reset',area_id:areaId,assign_mode:'anyone',trigger:'after_booking',description:`Reset ${a.name} after each game.`,active:true,sort_order:0,created_by:me()}))[0];
+    const q=(await post('cl_items',{template_id:t.id,sort_order:90,label:'Anything need maintenance?',item_type:'dropdown',options:['No','Yes'],required:true,in_quick:true,raises_issue_when:'Yes',active:true}))[0];
+    await post('cl_items',[{template_id:t.id,parent_item_id:q.id,show_when:'Yes',sort_order:1,label:'What needs fixing?',item_type:'text',options:[],required:true,in_quick:true,active:true},
+      {template_id:t.id,parent_item_id:q.id,show_when:'Yes',sort_order:2,label:'Photo',item_type:'photo',options:[],required:false,in_quick:true,active:true}]);
+    templates.push(t);await loadItems();await refreshToday();
+  }catch(e){alert('Could not create it: '+e.message)}
+}
 function renderToday(){
   const today=todayStr();
   const allOpen=runs.filter(r=>r.status!=='done'&&r.status!=='skipped'&&r.run_date<=today&&r.kind!=='reset');
@@ -774,9 +820,18 @@ async function openRecord(runId){
       ${r.note?`<div style="margin-top:8px;white-space:pre-wrap">📝 ${escapeHtml(r.note)}</div>`:''}</div>
       <div class="card"><table class="ans">${ans.map(a=>`<tr><td>${escapeHtml(a.item_label)}${a.flagged?' <span class="badge b-red">issue</span>':''}</td><td style="text-align:right">${fmtAns(a)}</td></tr>`).join('')||'<tr><td>No answers recorded.</td></tr>'}</table></div>
       ${iss.length?`<div class="card"><b>Issues raised</b>${iss.map(i=>`<div style="margin-top:6px">${escapeHtml(i.title)} <span class="badge ${i.status==='fixed'?'b-green':'b-red'}">${i.status}</span></div>`).join('')}</div>`:''}
+      ${(isAdmin()||canEdit||r.completed_by===me())?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn btn-secondary btn-sm" onclick="reopenRun('${r.id}')"><i class="ti ti-pencil"></i> Edit answers</button>${r.kind==='reset'&&r.area_id&&r.run_date===todayStr()?`<button class="btn btn-secondary btn-sm" style="color:var(--red)" onclick="sendBackRoom('${r.area_id}')"><i class="ti ti-arrow-back-up"></i> Room not reset</button>`:''}</div>`:''}
       ${isAdmin()?`<div class="card"><label class="form-label">Review comment (owners/managers)</label><textarea class="form-textarea" id="revNote">${escapeHtml(r.review_note||'')}</textarea><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveReview('${r.id}')">Save comment</button><div class="msg" id="revMsg"></div>${r.reviewed_at?`<div class="item-help">Last reviewed by ${escapeHtml(staffName(r.reviewed_by))} ${fmtDT(r.reviewed_at)}</div>`:''}</div>`:''}`);
     for(const el of document.querySelectorAll('[data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);el.innerHTML=u?`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`:'(photo no longer kept)'}}
   }catch(e){alert('Could not open the record: '+e.message)}
+}
+// v2.2.0: reopen a finished checklist to correct it — it goes back to "started" until Finished is pressed again
+async function reopenRun(runId){
+  if(!confirm('Reopen this checklist to change the answers? It will show as not finished until someone presses Finished again.'))return;
+  try{const rows=await patch('cl_runs',`id=eq.${runId}`,{status:'in_progress',completed_by:null,completed_at:null});
+    const i=runs.findIndex(r=>r.id===runId);if(i>-1)runs[i]=rows[0];else runs.push(rows[0]);
+    openRun(runId,rows[0].mode||'full')}
+  catch(e){alert('Could not reopen it: '+e.message)}
 }
 async function saveReview(runId){
   const m=document.getElementById('revMsg');

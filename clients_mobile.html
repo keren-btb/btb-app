@@ -123,7 +123,7 @@
           <button class="resolve-btn" style="border-color:#07b4c5;color:#07b4c5;background:#ecfeff" onclick="bookForClient()"><i class="ti ti-calendar-plus"></i> Book</button>
           <button class="resolve-btn" style="border-color:#0f766e;color:#0f766e;background:#f0fdfa" onclick="bookPackageForClient()"><i class="ti ti-package"></i> Package</button>
           <button class="resolve-btn" style="border-color:#7c3aed;color:#7c3aed;background:#f5f3ff" onclick="openProfile()"><i class="ti ti-user-edit"></i> Edit profile</button>
-          <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Mark resolved</button>
+          <button class="resolve-btn" id="resolveBtn" onclick="markResolved()"><i class="ti ti-check"></i> Clear to-dos</button>
         </div>
       </div>
     </div>
@@ -233,6 +233,9 @@
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -267,7 +270,9 @@ async function callEdgeFunction(action,params={},token=null){
 // resolved" button, matching clients.html's new per-client checklist. No
 // global cross-client To-Dos view here (kept to the desktop hub) and no new
 // client-creation change — this page stays view/reply/log-note only.
-const BUILD_VERSION = '1.3.6'; // v1.3.6: The bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), the same as every other page.
+const BUILD_VERSION = '1.3.7'; // v1.3.7: Same as desktop — 'Clear to-dos' only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
+
+// Previous build: 1.3.6 — // v1.3.6: The bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), the same as every other page.
 // Previous build: 1.3.5 — // v1.3.5: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
 // Previous build: 1.3.4 — // v1.3.4: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.3.3: Added a "Book" button to the client thread header — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.3.2: Sent replies now also pass the plain-text body to send_enquiry_template_email, so the thread log can store what was actually sent (was only saving the template label). // v1.3.1: Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.// v1.2.5: Removed the Enquiries nav link (enquiries.html being retired, functionality already folded into clients.html)
 // v1.2.4: Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
@@ -494,7 +499,8 @@ function renderThread(){
   document.getElementById('threadName').textContent=name;
   const metaParts=[g.client.email,g.client.phone].filter(Boolean);
   document.getElementById('threadMeta').textContent=metaParts.join(' · ')||'No contact details on file';
-  document.getElementById('resolveBtn').style.display=(g.status==='resolved'||g.status==='no_contact')?'none':'';
+  // v1.3.7: same rule as the desktop page — the button only shows when there are open to-dos to clear
+  document.getElementById('resolveBtn').style.display=g.interactions.some(i=>i.to_do&&!i.to_do_done)?'':'none';
   renderThreadTodos(g);
 
   // Reply-by-email panel
@@ -510,13 +516,14 @@ function renderThread(){
   }
 
   // chronological ascending for the thread read
-  const ordered=[...g.interactions].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  // v1.3.7: open to-dos are shown once, in the list at the top — not repeated here
+  const ordered=[...g.interactions].filter(i=>!(i.to_do&&!i.to_do_done)).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
   document.getElementById('threadMessages').innerHTML=ordered.map(i=>{
     const who=i.direction==='inbound'?escapeHtml(name):'Beyond the Box';
-    const typeIcon={email:'✉️',phone:'📞',note:'📝',text:'💬',other:'•'}[i.type]||'•';
+    const typeIcon={email:'✉️',phone:'📞',note:'📝',text:'💬',other:'•',enquiry:'🔍',abandoned_booking:'🚪'}[i.type]||'•';
     return `<div class="thread-msg ${i.direction}">
       <div class="thread-msg-hdr">
-        <div class="thread-msg-who">${typeIcon} ${who}</div>
+        <div class="thread-msg-who">${typeIcon} ${who}${i.to_do?' <span style="font-size:10px;font-weight:700;color:#15803d;background:#dcfce7;border-radius:99px;padding:1px 7px">✓ to-do done</span>':''}</div>
         <div class="thread-msg-time">${fullDateTime(i.created_at)}</div>
       </div>
       ${i.subject?`<div class="thread-msg-subject">${escapeHtml(i.subject)}</div>`:''}
@@ -643,9 +650,10 @@ async function markResolved(){
     await callEdgeFunction('close_open_email_interactions',{clientId:activeClientId},currentUser.token);
     // Also close any open non-email items directly (phone/note/text/other),
     // since the edge function action only targets type='email'.
-    await fetch(`${SB_URL}/rest/v1/client_interactions?client_id=eq.${activeClientId}&to_do=eq.true&to_do_done=eq.false&type=neq.email`,{
+    const pr=await fetch(`${SB_URL}/rest/v1/client_interactions?client_id=eq.${activeClientId}&to_do=eq.true&to_do_done=eq.false&type=neq.email`,{
       method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:true})
     });
+    if(!pr.ok)throw new Error(await pr.text());
     await loadInteractions();buildClientGroups();
     renderFilters();renderQueue();updateHeader();renderThread();
   }catch(e){alert('Error: '+e.message)}

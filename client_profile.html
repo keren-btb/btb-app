@@ -143,10 +143,15 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
-const BUILD_VERSION = '1.0.8'; // v1.0.8: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
+const BUILD_VERSION = '1.0.9'; // v1.0.9: Bookings card — every booking for this client with totals, games played and amount booked; tap one to open that day in BtB App.
+
+// Previous build: 1.0.8 — // v1.0.8: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
 // Previous build: 1.0.7 — // v1.0.7: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.6: Added a "Book" button to the top bar — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 // v1.0.2 — Single sign-on: switched from its own separate sessionStorage
 //          session ('btb_profile_user') to the shared localStorage session
@@ -241,6 +246,11 @@ function renderProfile(){
     </div>
 
     <div class="card">
+      <div class="card-title"><i class="ti ti-calendar"></i> Bookings</div>
+      <div id="bookingList"><div class="empty-note">Loading…</div></div>
+    </div>
+
+    <div class="card">
       <div class="card-title"><i class="ti ti-building"></i> Others at this company</div>
       <div id="companyList"><div class="empty-note">Add a company above to see others in the same group.</div></div>
     </div>
@@ -254,6 +264,29 @@ function renderProfile(){
     </div>
   `;
   loadCompanyMatches();
+  loadClientBookings();
+}
+
+// v1.0.9: every booking for this client (newest first) with totals — read-only; open one in BtB App / POS
+async function loadClientBookings(){
+  const el=document.getElementById('bookingList');if(!el)return;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?client_id=eq.${encodeURIComponent(clientId)}&select=id,booking_date,slot_time,game_name,players_booked,status,total_amount,play_location,no_show&order=booking_date.desc,slot_time.desc&limit=200`,{headers:H()});
+    if(!r.ok)throw new Error(await r.text());
+    const rows=await r.json();
+    if(!rows.length){el.innerHTML='<div class="empty-note">No bookings yet.</div>';return}
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+    const real=rows.filter(b=>['confirmed','completed'].includes(b.status));
+    const spent=real.reduce((a,b)=>a+(parseFloat(b.total_amount)||0),0);
+    const played=real.filter(b=>b.booking_date<=today&&!b.no_show).length;
+    const fmtD=d=>new Date(d+'T12:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const fmtT=t=>{if(!t)return'';const[h,m]=t.split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`};
+    const badge=b=>b.no_show?'<span style="color:#dc2626">no-show</span>':b.status==='cancelled'?'<span style="color:#9ca3af">cancelled</span>':b.booking_date>today?'<span style="color:#07b4c5;font-weight:700">upcoming</span>':b.status;
+    el.innerHTML=`<div style="font-size:13px;color:#374151;margin-bottom:8px"><b>${played}</b> game${played!==1?'s':''} played · <b>$${spent.toFixed(2)}</b> booked in total</div>`+
+      '<ul class="company-list">'+rows.map(b=>`<li class="company-item" onclick="window.open('btb_app.html?date=${b.booking_date}','_blank')" title="Open that day in BtB App">
+        <span class="company-name">${escapeHtml(fmtD(b.booking_date))} ${b.play_location==='hire'?'· hire':fmtT(b.slot_time)} · ${escapeHtml(b.game_name||'')}</span>
+        <span class="company-contact">${b.players_booked?b.players_booked+'p · ':''}${b.total_amount!=null?'$'+(parseFloat(b.total_amount)||0).toFixed(2)+' · ':''}${badge(b)}</span></li>`).join('')+'</ul>';
+  }catch(e){el.innerHTML='<div class="empty-note">Could not load bookings.</div>';console.error('Client bookings:',e)}
 }
 
 async function loadCompanyMatches(){

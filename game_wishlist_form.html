@@ -162,6 +162,9 @@ body{
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>

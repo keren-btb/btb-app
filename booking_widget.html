@@ -4313,6 +4313,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -4322,7 +4325,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.45'; // v1.7.45: Staff going to a BtB meeting count as busy for games that overlap it.
+const BUILD_VERSION = '1.7.46'; // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
+
+// Previous build: 1.7.45 — // v1.7.45: Staff going to a BtB meeting count as busy for games that overlap it.
 // Previous build: 1.7.44 — // v1.7.44: Roster-mode staff now count as available only if their shift covers the whole game (start to finish), not just the start time. Also, the roster is now actually readable here: the database lets the public key see who-is-working/when for taken shifts (2026-11-22) — before, this page always got an empty roster, so only calendar-mode staff were ever offered.
 // Previous build: 1.7.43 — // v1.7.43: Hired-out games are now blocked for the whole hire — from drop-off (or start) to pick-up (or start + hire period) plus the reset — instead of just one game slot, so e.g. Gregg in the Box can't be booked here while it's out at a venue. Self-run hires (no GM goes) no longer use up a staff member, and hires are left out of the reset check. Needs the public_booking_slots view columns play_location, gm_attends, dropoff_time, pickup_time (added 2026-11-22).
 // Previous build: 1.7.42 — // v1.7.42: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.7.41: Reset-aware availability. A GM is now only needed for the game itself (not held through the reset buffer) — the reset of a game only has to be done before the next booking of the SAME game, by the GM who ran it or anyone ticked "can reset" for that game who is free (My Week green or on the roster) and not busy elsewhere. If nobody can cover a reset, the slot that would need it isn't offered. Falls back to the v1.7.40 rules if the can-reset list can't be loaded. | v1.7.40: Slots now use My Week free times (owners must be free for the whole game; no free time = not free), game length + reset buffer, and bookings with no GM yet. | v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
@@ -6240,14 +6245,21 @@ assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
     // Best-effort: if this fails, the booking has still gone through with
     // the discount already applied, so we don't block the customer over it.
     if (appliedVoucher && newBookingId) {
+      // v1.7.46: the answer is now checked — if the code was used elsewhere in the meantime, this booking got a
+      // discount it shouldn't have. The customer isn't blocked, but it's logged (Settings > Errors) with the
+      // booking id so staff can follow it up.
       try {
-        await fetch(`${SB_URL}/functions/v1/btb-public`, {
+        const rr = await fetch(`${SB_URL}/functions/v1/btb-public`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'redeem_voucher', code: appliedVoucher.code, bookingId: newBookingId }),
         });
+        const res = await rr.json().catch(() => ({}));
+        if (!rr.ok || !res.ok) {
+          if (window.btbLogError) btbLogError('voucher-redeem', new Error('Voucher NOT marked used — check this booking: ' + (res.message || res.error || rr.status)), { code: appliedVoucher.code, bookingId: newBookingId, discount: voucherDiscount });
+        }
       } catch (e) {
-        console.error('voucher redeem failed (booking still succeeded)', e);
+        console.error('voucher redeem failed (booking still succeeded) — booking ' + newBookingId + ', code ' + appliedVoucher.code, e);
       }
     }
 

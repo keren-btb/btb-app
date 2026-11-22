@@ -322,6 +322,9 @@
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -417,7 +420,10 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 20; // v20: 'Someone else will reset it' sends that person a phone notification.
+        const BUILD_VERSION = 21; // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+
+
+        // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
         // Previous build: 19 — // v19: Room resets (Task Hub checklists). After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist), "Someone else" (give it to a person or Anyone), or "Later". When you open a game whose room wasn't reset after the previous game, a big red "NOT RESET" warning shows with a button to open the reset checklist. Never blocks the game or the timer.
         // Previous build: 18 — // v18: The link back to the main app now says "BtB App" (was "Btb App"), the same as every other page.
         // Previous build: 17 — // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
@@ -1118,6 +1124,16 @@ async function resetTimer(){
             try {
                 const t = await resetTemplateFor(booking.game_id);
                 if (!t || currentBooking !== booking) return;
+                // v21: a room sent back as "not reset" in Task Hub (something was missed) warns too
+                const sr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&run_date=eq.${booking.booking_date}&booking_id=is.null&auto=eq.false&note=like.Sent%20back*&status=in.(todo,in_progress)&select=id,note&limit=1`, {headers:H()});
+                const sent = sr.ok ? (await sr.json())[0] : null;
+                if (sent && currentBooking === booking) {
+                    document.getElementById('reset-warning-title').textContent = `⚠ ${String(booking.game_name||'ROOM').toUpperCase()} NOT RESET`;
+                    document.getElementById('reset-warning-sub').textContent = sent.note || 'Someone marked this room as not reset.';
+                    document.getElementById('reset-warning-btn').onclick = () => window.open(`task_hub.html?run=${sent.id}`, '_blank');
+                    box.classList.remove('hidden');
+                    return;
+                }
                 const br = await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(booking.game_id)}&booking_date=eq.${booking.booking_date}&slot_time=lt.${booking.slot_time}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,booking_date,slot_time&order=slot_time.desc&limit=1`, {headers:H()});
                 const prev = br.ok ? (await br.json())[0] : null;
                 if (!prev || currentBooking !== booking) return;

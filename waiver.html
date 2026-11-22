@@ -397,6 +397,9 @@ body{background:var(--bg);font-family:var(--body);font-size:15px;color:var(--tex
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -410,7 +413,9 @@ const H = {'Content-Type':'application/json','Authorization':`Bearer ${SB_ANON}`
 // BUILD VERSION — bump this each time this file is shipped, so you can confirm
 // in the browser console which copy you're looking at. (No header UI tag for
 // this one yet — this file didn't have build version tracking before.)
-const BUILD_VERSION = '1.0.6'; // v1.0.6: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
+const BUILD_VERSION = '1.0.7'; // v1.0.7: Pre-fill works when staff open it from BtB App (uses their login); public visitors fill it in by hand.
+
+// Previous build: 1.0.6 — // v1.0.6: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 // v1.0.1: Security fix — escaped roster names and role before inserting into innerHTML on the review screen, closing a same-session reflected-XSS risk on shared front-desk devices
 console.log(`%cWaiver — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
@@ -460,10 +465,21 @@ async function loadGames() {
 /* Populates active customer pre-fill bookings context metadata automatically */
 async function loadBooking() {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${bookingId}&select=*,clients(first_name,last_name,phone,email)`, {headers:H});
+    // 2026-11-23: the old public "select=*" lookup was always refused, so nothing was ever pre-filled.
+    // Staff opening this from BtB App are signed in on this device — use their login to fill the game,
+    // date and organiser's name/email.
+    let staffTok = null;
+    try { const s = JSON.parse(localStorage.getItem('btb_staff_session') || 'null'); if (s && s.token && (s.expiresAt || 0) > Date.now()) staffTok = s.token; } catch(e) {}
+    // Customers can't look bookings up (by design — the database hides booking details from the public),
+    // so without a staff login the waiver is simply filled in by hand; booking_id is still saved with it.
+    if (!staffTok) return;
+    const sel = 'id,game_id,game_name,booking_date,players_booked,clients(first_name,last_name,email)';
+    const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${encodeURIComponent(bookingId)}&select=${sel}`, {headers: {...H, Authorization: 'Bearer ' + staffTok}});
+    if (!r.ok) throw new Error('Booking lookup failed: ' + r.status);
     const rows = await r.json();
     if (!rows[0]) return;
     bookingData = rows[0];
+    if (!bookingData.game_name) bookingData.game_name = (games.find(g => g.id === bookingData.game_id) || {}).name || 'Your booking';
     const d = new Date(bookingData.booking_date + 'T12:00');
     const dateStr = d.toLocaleDateString('en-NZ', {weekday:'short',day:'numeric',month:'short'});
     const game = games.find(g => g.id === bookingData.game_id);
@@ -471,7 +487,7 @@ async function loadBooking() {
     bar.classList.add('show');
     document.getElementById('bbIcon').textContent = game?.icon || '🚪';
     document.getElementById('bbName').textContent = bookingData.game_name;
-    document.getElementById('bbDetail').textContent = `${dateStr} · ${bookingData.players_booked} player${bookingData.players_booked!==1?'s':''}`;
+    document.getElementById('bbDetail').textContent = bookingData.players_booked ? `${dateStr} · ${bookingData.players_booked} player${bookingData.players_booked!==1?'s':''}` : dateStr;
     
     if (bookingData.game_id) {
       document.getElementById('fGame').value = bookingData.game_id;
@@ -483,7 +499,7 @@ async function loadBooking() {
       document.getElementById('orgLast').value  = c.last_name   || '';
       document.getElementById('orgEmail').value = c.email      || '';
     }
-  } catch(e) {}
+  } catch(e) { console.error('Waiver booking pre-fill:', e); }
 }
 
 function bindEvents() {

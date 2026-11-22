@@ -1,6 +1,7 @@
 ---
+# 2026-11-23: only publish the files the website needs. Notes, reviews and documents (*.md, *.pdf)
+# stay in GitHub and are NOT copied to the public site. (Old "deepseek" folder line removed — it doesn't exist.)
 deployment:
   tasks:
     - export DEPLOYPATH=/home3/btbescap/public_html/test/
-    - /bin/cp * $DEPLOYPATH
-    - /bin/cp -r deepseek $DEPLOYPATH
+    - /bin/cp *.html *.css *.js *.json *.png *.svg *.otf $DEPLOYPATH

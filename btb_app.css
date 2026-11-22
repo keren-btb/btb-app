@@ -152,6 +152,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .add-trigger{display:flex;align-items:center;gap:7px;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;width:100%;font-family:inherit}
 .walkin-trigger{display:flex;align-items:center;gap:7px;background:#1a1035;color:#07b4c5;border:1px solid #07b4c5;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;width:100%;font-family:inherit}
 .walkin-trigger:hover{background:#07b4c5;color:#fff}
+.cal-actions{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.cal-actions .walkin-trigger{margin-bottom:0;flex:1 1 0;width:auto;justify-content:center;white-space:nowrap;padding:8px 10px;min-width:0}
+.cal-actions .cal-refresh{background:none;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:16px;color:#6b7280;cursor:pointer;font-family:inherit;flex:0 0 auto}
 .form-wrap{background:#f0fafb;border:1px solid #07b4c5;border-radius:12px;padding:13px;margin-bottom:14px}
 .form-title{font-size:13px;font-weight:600;color:#07b4c5;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .form-row{margin-bottom:8px}
@@ -172,7 +175,12 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .bar-label-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
 .bar-track{height:7px;background:#e5e7eb;border-radius:99px}
 .bar-fill{height:7px;border-radius:99px}
-.settings-menu{height:100%;overflow-y:auto;max-height:72vh}
+.settings-menu{height:100%;overflow-y:auto;max-height:72vh;max-width:620px;margin:0 auto;padding:0 10px;box-sizing:border-box}
+.settings-quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px 0 14px}
+.sq-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#fff;border:1px solid #d1d5db;border-radius:10px;padding:10px 8px;font-size:13px;font-weight:600;color:#1a1035;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sq-btn i{color:#07b4c5;font-size:17px}
+.sq-btn:hover{border-color:#07b4c5;background:#f0fafb}
+#sqErrCount:not(:empty){background:#dc2626;color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;margin-left:2px}
 .settings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 14px 14px}
 .settings-group{border-bottom:1px solid #f3f4f6}
 .settings-group-title{font-size:16px;font-weight:700;color:#fff;padding:16px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:all .2s;border-radius:10px;margin-bottom:6px;min-height:70px}
@@ -182,13 +190,11 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .settings-group-title.open .sg-chevron{transform:rotate(180deg)}
 .settings-group-title:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 /* Different colors for each settings group */
-.settings-group:nth-child(1) .settings-group-title{background:linear-gradient(135deg,#07b4c5 0%,#059aaa 100%)}
-.settings-group:nth-child(2) .settings-group-title{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%)}
+/* v16.4.70: first child is now the quick-buttons row, so groups start at child 2 */
+.settings-group:nth-child(2) .settings-group-title{background:linear-gradient(135deg,#07b4c5 0%,#059aaa 100%)}
 .settings-group:nth-child(3) .settings-group-title{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%)}
 .settings-group:nth-child(4) .settings-group-title{background:linear-gradient(135deg,#10b981 0%,#059669 100%)}
-.settings-group:nth-child(5) .settings-group-title{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%)}
-.settings-group:nth-child(6) .settings-group-title{background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%)}
-.settings-group-body{display:none;padding:0 14px 12px}
+.settings-group:nth-child(5) .settings-group-title{background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%)}.settings-group-body{display:none;padding:0 14px 12px}
 .settings-group-body.open{display:block}
 .settings-group-body .settings-grid{padding:0;margin-top:8px;grid-template-columns:1fr 1fr 1fr}
 .settings-group-body .settings-grid .settings-card{min-width:0;width:100%}

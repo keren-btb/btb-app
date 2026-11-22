@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.14 — 2026-11-23 — Abandoned online checkouts no longer appear as bookings.
 - v1.9.13 — 2026-11-22 — Gift vouchers now record when they were paid (new vouchers.paid_at): set when a voucher is issued paid or marked paid, cleared on Unpay, so reports count voucher sales in the right period. Marking paid / unpaid now shows an error if the save fails. Back link to the main app now says "← BtB App" (was "← App"). Nothing removed.
 - v1.9.12 — 2026-11-22 — Hire bookings in POS are priced from the stored hire total (game price + GM fee + travel + extra charges), not in-house per-player pricing. Shows a Hired out details box (venue, GM, drop-off/pick-up) and a line for each fee/extra; emailed receipts list them too; no player +/- on a hire so the price can't be overwritten.
 - v1.9.11 — 2026-11-22 — Hire bookings show "🚚 Hired out · games · venue" in the booking list instead of player counts.
@@ -27,6 +28,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.0 — 2026-08-28 — Product Sale screen redesign. Product grid is now a fixed 3 columns (was auto-fill, 2-4 depending on screen width). The always-on cart+payment footer is replaced with a compact "Ready to pay →" bar; tapping it opens a full-screen payment view matching the booking-payment look — a colour-tinted cart card listing items/vouchers/discounts with amounts, then colour-coded payment method buttons (Cash/Eftpos/Stripe/Bank/Invoice), same style as booking payment. Added brand-new "Use voucher" and "Take money off" tiles to Product Sale (previously only available on booking payments) — voucher search/apply and reason+amount discount both work the same way as bookings, and both simply add a negative-amount line to the cart (no schema changes, no new columns). Unlike the booking flow, an applied voucher is only marked "used" once the sale actually completes, not the moment it's applied — so backing out of a sale never leaves a good voucher stuck as used. Quick Sale popup and the booking-payment product picker are unchanged — Quick Sale currently has no button anywhere in the app pointing to it (flagged for Keren, not touched in this session).
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-11-23 — Security hardening: public booking page (anon) may now only insert the fields it sends, with status confirmed/group_request/enquiry/waitlist/abandoned, source online, date not in the past, 1–80 players (blocks fake paid/completed bookings). Removed unused anon grants on games (insert/update) and waivers (select/update). Trigger-only functions no longer callable via the API; can_edit_task_config not callable by anon. Fixed search_path on 4 functions. New column game_bookings.time_tbc. Edge function btb-admin v27: every action needs a staff login (user_roles row); client-email push internal-only; email From locked to @mail.btbescaperooms.co.nz; create_staff_login validates role and removes the login if the role row fails. .cpanel.yml now only publishes web files (no .md/.pdf).
 - 2026-11-22 — Migration task_hub_phase2_and_meetings: cl_issue_steps, cl_incidents, cl_hazards, cl_cashups, cal_events (public key sees only meeting date/time/attendees), cl_templates.remind_days, push_subscriptions.notify_tasks, my_staff_id(). Two starter safety checklists. New edge function btb-notify (logged-in staff only); cleanup-task-photos v2.0.0 (checklist photos 90 days, issue photos 1 year after fixed, reference/incident photos kept).
 - 2026-11-22 — Task Hub Phase 1 tables (migration `checklists_phase1`): cl_areas, cl_templates, cl_items, cl_runs, cl_answers, cl_issues. Logged-in staff only (public key has no access); checklists/areas editable by admins/managers or staff ticked "can edit task templates"; owners-only checklists visible to owners only; only admins/managers can delete records. Starting data: 13 areas (every game + Upstairs reception + Conference room), Sherlock reset, Opening, and 3 maintenance jobs from the old General Tasks. task-photos storage bucket now logged-in staff only (was open to the public key). All 16 test timesheets deleted (Keren: "nothing is real for that yet").
 - 2026-11-22 — `assigned_shifts`: the public key can now read ONLY staff_id, shift_date, start/end time and status, and only for taken (not open) shifts from yesterday on (new policy `assigned_shifts_anon_read_roster_times`; anon's table-wide grants removed first so notes/created_by/unclaim reasons stay hidden). Lets booking_widget.html see who is rostered on. Staff access unchanged.
@@ -105,6 +107,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.70 — 2026-11-23 — Package button: choose "Games going out (hire)" or "Here at BtB — rooms, VR, food & drink". At-BtB packages book several rooms/VR/café at their own times and players (price works itself out, can be typed over) plus food/drink picked from Products (stock taken off) or any other charge; one group invoice in POS. Hires can be saved "time not agreed yet" (new game_bookings.time_tbc) — card shows ⏰ CONFIRM TIME WITH CUSTOMER; set the time in Edit details. Calendar buttons shorter and on one line. Reset chip also shows rooms sent back as not reset in Task Hub. Settings: half width on big screens, quick buttons for Reports, Staff Portal, Task Hub, Control Room, Clients, Email templates and Errors (red unresolved count); duplicate Staff Portal / Control Room groups removed. Abandoned online checkouts no longer appear as bookings. btb_app.html?date=YYYY-MM-DD opens that day. Client email matching ignores capitals. Error logger also records handled errors and failure pop-ups.
 - v16.4.69 — 2026-11-22 — Meetings/appointments on the calendar (attendees shown busy for online bookings, notified by phone). Today's booking cards show room reset status (not reset / ready). Nothing removed.
 - v16.4.68 — 2026-11-22 — Clash warnings for a new booking, a reschedule and a hire package now all use one check that looks the day up in the database and compares the real time each booking ties up its game: game + reset for played-here bookings, drop-off to pick-up + reset for hires. Before it only checked "starts within 90 minutes" against bookings in the month on screen (so far-ahead reschedules and packages missed clashes), and the package check only looked for any booking of that game that day. Still a warning, never a block. Nothing removed.
 - v16.4.67 — 2026-11-22 — Choosing Cancel booking or Reschedule from a booking's ⋯ menu now scrolls the page so the confirm box and its buttons are in the middle of the screen, instead of opening out of sight further down the card. Nothing removed.
@@ -176,6 +179,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.39 — 2026-11-23 — Phone layout: ☰ menu opens over the page and closes after choosing; compact header; Shifts admin stacks; timesheet/clock tables scroll sideways.
 - v1.9.38 — 2026-11-22 — My Week shows BtB meetings; "Jobs & problems" notification setting.
 - v1.9.37 — 2026-11-22 — Timesheets: approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button, and staff can put in the real finish time (before it was invisible and couldn't be closed), and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC) and quotes staff names. Nothing removed.
 - v1.9.36 — 2026-11-22 — Hired-out bookings show "🚚 HIRED OUT" with venue and drop-off/pick-up in the week rota and today's list.
@@ -226,6 +230,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.17 — 2026-11-23 — Phone layout: menu is a slim icon bar that opens over the page and closes after choosing.
 - v1.0.16 — 2026-11-22 — New "Today" button at the start of the date buttons: shows today's totals (today's bookings, plus shop sales and gift vouchers paid today, NZ time). "This month" is still the default when the page opens. Nothing removed.
 - v1.0.15 — 2026-11-22 — Revenue Overview now includes gift voucher sales (counted by the date paid, cancelled vouchers left out): in the totals, weekly chart, payment-method chart, a new "Gift vouchers" slice in the split chart, and the transactions list. Payment Methods also lists voucher sales. A deposit ticked paid but with no amount saved now counts as the standard deposit (same rule as POS) instead of $0. Using a voucher on a booking already lowers that booking's total, so voucher money is not counted twice. Nothing removed.
 - v1.0.14 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
@@ -242,6 +247,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v21 — 2026-11-23 — NOT RESET warning also shows for rooms sent back as not reset in Task Hub, with the reason.
 - v20 — 2026-11-22 — Reset hand-over sends a phone notification.
 - v19 — 2026-11-22 — After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist in Task Hub), "Someone else" (a person or Anyone), or "Later". Opening a game whose room wasn't reset after the previous game shows a big red "NOT RESET" warning with a button to open the reset checklist. Never blocks the game or timer.
 - v18 — 2026-11-22 — Back link to the main app now says "← BtB App" (was "Btb App"), same as every other page.
@@ -257,6 +263,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.46 — 2026-11-23 — Voucher redeem result checked; if the code had already been used, it's logged in Settings > Errors with the booking id.
 - v1.7.45 — 2026-11-22 — Staff in a BtB meeting count as busy.
 - v1.7.44 — 2026-11-22 — Roster-mode staff count as available only if their shift covers the whole game, not just its start time. Together with the database change below, the roster now actually reaches this page — before it always got an empty roster, so only calendar-mode staff (Keren, Joolz) were ever offered. Nothing removed.
 - v1.7.43 — 2026-11-22 — Hired-out games are blocked for the whole hire: from drop-off (or the start time) to pick-up (or start + the game's hire period), plus the reset. Before, a hire only blocked one game slot, so Gregg in the Box could be booked here while it was out at a venue. Self-run hires (no GM goes) no longer use up a staff member when working out free GMs, and hires are left out of the reset check. Nothing removed.
@@ -305,6 +312,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.1.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## waiver.html
+- v1.0.7 — 2026-11-23 — Pre-fill works when staff open it from BtB App (their login); public visitors fill in by hand.
 - v1.0.6 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed.
 - v1.0.5 — 2026-08-30 — Suite-wide mobile viewport fix: body now uses 100dvh instead of 100vh, and its bottom padding now adds env(safe-area-inset-bottom) so the signature/submit area isn't hidden under the iPhone home-indicator area.
 - v1.0.3 — 2026-08-08 — Added PWA install tags (manifest/apple-touch-icon/theme-color + service worker registration) so this page is part of the installable staff app.
@@ -313,6 +321,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.0.9 — 2026-11-23 — Bookings card: every booking for the client with games played and total booked; tap to open that day in BtB App.
 - v1.0.8 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for this client.
 - v1.0.7 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.0.6 — 2026-11-03 — Added a "Book" button to the top bar: opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
@@ -323,6 +332,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.11 — 2026-11-23 — "Profile & bookings" opens in a new tab. Open to-dos shown once (top list, with when/how they arrived), not repeated in History; done to-dos marked in History. Saves checked (to-do tick/edit/assign, status, log a call — the box isn't cleared if it didn't save). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
 - v1.5.10 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.
 - v1.5.9 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.5.8 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
@@ -336,6 +346,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.7 — 2026-11-23 — "Clear to-dos" (was Mark resolved) only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
 - v1.3.6 — 2026-11-22 — Bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), same as every other page.
 - v1.3.5 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.3.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
@@ -346,6 +357,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v2.2.0 — 2026-11-23 — Room board shows every in-house escape room; rooms with no reset checklist get "Add reset checklist" (starter list with the maintenance question). "Not reset" on a ready room: what's wrong + who should fix it (notified) → room shows NEEDS RESET with the reason. Finished checklists can be reopened (Edit answers).
 - v2.1.0 — 2026-11-22 — Task Hub Phase 2: issues appear as maintenance jobs on Today with their own tick-off steps; Owners tab (jobs/renewals with reminders); Health & safety (incident register, hazard register, safety checks); Cash-up against POS takings; battery/readings history; phone notifications. Nothing removed.
 - v2.0.0 — 2026-11-22 — Task Hub rebuilt (Phase 1). One kind of checklist for room reset, room set-up, opening, closing, maintenance, owners-only and health & safety. Items can be a tick, OK / Not OK, dropdown, number (e.g. battery %, with a "warn below" level), note, photo or heading, with instructions, a "how it should look" photo, and follow-up questions that only appear for a chosen answer (e.g. Maintenance needed? Yes → What's wrong? + Photo). Reset/set-up lists have a Quick reset (only the items ticked "in quick reset") for GMs who know the room. Each checklist is due by its own rule (after every game in the room, before the first game, every open day, on a schedule, once, or when started) and is given to Anyone, a role or a person. Today screen: room board (NEEDS RESET in red, pulsing when the next game is within 45 min / Ready with who and when), Today's jobs open to anyone, jobs given to you, given to others (managers), coming up, done today. Every finished checklist is kept (who, when, how long, every answer and photo) — History with filters, CSV and review comments. Not OK / maintenance-needed / low readings raise Issues automatically; problems can also be reported directly; Issues list by area with status, who's fixing it, notes and cost. Checklist editor and Settings > Rooms & areas (add, rename, reorder, switch off, link to a game). Built on new tables (cl_*); the old task tables are untouched and no longer used by this page. Existing Sherlock reset, opening tasks and the 3 maintenance jobs were brought across.
 - v1.7.5 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.

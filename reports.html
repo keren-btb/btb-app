@@ -78,6 +78,17 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .btn-csv:hover{background:var(--green);color:#fff}
 
 .content{padding:20px 24px;overflow-y:auto;flex:1}
+/* v1.0.17: phone layout — menu becomes a slim icon bar that opens over the page */
+@media (max-width:760px){
+  .sidebar{position:fixed;left:0;top:0;z-index:50;width:240px;box-shadow:4px 0 18px rgba(0,0,0,.25)}
+  .sidebar.collapsed{width:52px;box-shadow:none}
+  .main{margin-left:52px}
+  .topbar{padding:10px 12px;gap:8px}
+  .topbar-title{font-size:16px;flex-basis:100%}
+  .content{padding:12px}
+  .date-range,.custom-range{flex-wrap:wrap;width:100%}
+  .date-input{max-width:130px}
+}
 
 /* REPORT PANELS */
 .report-panel{display:none}
@@ -432,6 +443,9 @@ tr:hover td{background:#fafafa}
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -451,7 +465,9 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.16'; // v1.0.16: New "Today" date button (first in the row) — shows today's totals: bookings for today, shop sales and gift vouchers paid today (NZ time).
+const BUILD_VERSION = '1.0.17'; // v1.0.17: Phone layout — menu is a slim icon bar that opens over the page.
+
+// Previous build: 1.0.16 — // v1.0.16: New "Today" date button (first in the row) — shows today's totals: bookings for today, shop sales and gift vouchers paid today (NZ time).
 // Previous build: 1.0.15 — // v1.0.15: Revenue Overview and Payment Methods now include gift voucher sales (by the date paid; cancelled vouchers left out). A deposit ticked paid with no amount saved now counts as the standard deposit (same as POS) instead of $0, in revenue, outstanding balances and payment methods.
 // Previous build: 1.0.14 — // v1.0.14: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.13: Suite-wide mobile viewport fix — sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
@@ -1339,8 +1355,11 @@ function toggleSidebar(){
   localStorage.setItem('btb_reports_sidebar_collapsed',collapsed?'1':'0');
   document.getElementById('sidebarToggle').className=collapsed?'ti ti-chevron-right sidebar-toggle':'ti ti-chevron-left sidebar-toggle';
 }
+// v1.0.17: on a phone the menu starts as a slim icon bar and folds away again after picking a report
+const isPhone=()=>window.innerWidth<=760;
+document.addEventListener('click',e=>{if(isPhone()&&e.target.closest('.sidebar .nav-item')){const sb=document.querySelector('.sidebar');if(!sb.classList.contains('collapsed'))toggleSidebar()}});
 window.addEventListener('DOMContentLoaded',async()=>{
-  if(localStorage.getItem('btb_reports_sidebar_collapsed')==='1'){
+  if(localStorage.getItem('btb_reports_sidebar_collapsed')==='1'||isPhone()){
     document.querySelector('.sidebar').classList.add('collapsed');
     document.getElementById('sidebarToggle').className='ti ti-chevron-right sidebar-toggle';
   }

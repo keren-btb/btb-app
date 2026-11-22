@@ -741,6 +741,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;font-family:-apple-sy
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -766,7 +769,9 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.13'; // v1.9.13: Gift vouchers now record when they were paid (new vouchers.paid_at) — set when a voucher is issued paid or marked paid, cleared on Unpay — so reports.html can count voucher sales in the right period. Marking paid / unpaid now also shows an error if the save fails.
+const BUILD_VERSION = '1.9.14'; // v1.9.14: Abandoned online checkouts no longer appear as bookings.
+
+// Previous build: 1.9.13 — // v1.9.13: Gift vouchers now record when they were paid (new vouchers.paid_at) — set when a voucher is issued paid or marked paid, cleared on Unpay — so reports.html can count voucher sales in the right period. Marking paid / unpaid now also shows an error if the save fails.
 // Previous build: 1.9.12 — // v1.9.12: Hire bookings in POS use the stored hire price, not in-house per-player pricing — hire details box, GM fee / travel / extra charge lines, receipts list them too, no player +/- on a hire.
 // Previous build: 1.9.11 — // v1.9.11: Hire bookings show "🚚 Hired out · games · venue" instead of player counts in the booking list.
 // Previous build: 1.9.10 — // v1.9.10: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
@@ -894,7 +899,7 @@ let waiverBookingIds=new Set();
 async function loadBookingsForRange(fromDateStr, toDateStr){
   try{
     const [bookR, waiverR] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromDateStr}&booking_date=lte.${toDateStr}&status=neq.cancelled&status=neq.group_request&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromDateStr}&booking_date=lte.${toDateStr}&status=not.in.(cancelled,abandoned,group_request)&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()}),
       fetch(`${SB_URL}/rest/v1/waivers?select=booking_id&booking_id=not.is.null`,{headers:H()})
     ]);
     const rows=await bookR.json();
@@ -1235,7 +1240,7 @@ async function loadEarlier(){
   posRangeStart=newStart;
   // Fetch earlier bookings and prepend
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&status=neq.group_request&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=not.in.(cancelled,abandoned,group_request)&order=booking_date,slot_time&select=*,clients(first_name,last_name,phone,email)`,{headers:H()});
     const rows=await r.json();
     const earlier=rows.map(row=>{
       const d=new Date(row.booking_date+'T12:00');

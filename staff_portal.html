@@ -52,6 +52,21 @@ body{background:#f0f2f5;min-height:100vh;min-height:100dvh;font-family:-apple-sy
     justify-content: center;
 }
 
+/* v1.9.39: phone layout — menu opens over the page from ☰ and closes after choosing; header and sections compact */
+@media (max-width:760px){
+  .nav{position:fixed;left:0;top:53px;z-index:60;box-shadow:4px 0 18px rgba(0,0,0,.3)}
+  .header{padding:8px 10px}
+  .header-left{gap:8px}
+  .header-title{font-size:14px;letter-spacing:1px}
+  .header-sub{display:none}
+  .auth-badge #authName{display:none}
+  .section{padding:14px 12px}
+  #shiftsAdminView > div{grid-template-columns:1fr !important}
+  #shiftsAdminView .card[style*="sticky"]{position:static !important;max-height:none !important}
+  .panel-header{flex-wrap:wrap}
+  .sheet-table,.clock-table{display:block;overflow-x:auto;max-width:100%}
+}
+
 /* ── SECTIONS (main content) ── */
 .content-area{flex:1;min-width:0;overflow-y:auto;height:calc(100vh - 53px);height:calc(100dvh - 53px)}
 .section{display:none;padding:24px 28px;max-width:1100px}
@@ -456,6 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
         });
+        // v1.9.39: on a phone the menu starts closed and closes again after picking a tab
+        if (window.innerWidth <= 760) sidebar.classList.add('collapsed');
+        sidebar.addEventListener('click', e => { if (window.innerWidth <= 760 && e.target.closest('.nav-btn')) sidebar.classList.add('collapsed'); });
     }
 });
 </script>
@@ -1150,6 +1168,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
+  // v1.1.0: also log problems the page catches itself (console.error) and failure pop-ups (alert), so failed saves show in Settings > Errors
+  try{ var ce=console.error; console.error=function(){ try{ce.apply(console,arguments)}catch(x){} try{ var a=[].slice.call(arguments), er=null, parts=[]; a.forEach(function(x){ if(x&&x.message){er=er||x;parts.push(x.message)} else if(typeof x==='string')parts.push(x) }); if(parts.length)send('error','console.error',parts.join(' '),er&&er.stack); }catch(x){} }; }catch(x){}
+  try{ var al=window.alert; window.alert=function(m){ try{ if(/could not|couldn.t|not saved|error|failed/i.test(String(m)))send('warn','alert',String(m)); }catch(x){} return al.apply(window,arguments); }; }catch(x){}
 })();
 </script>
 <script>
@@ -1173,7 +1194,9 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.38'; // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
+const BUILD_VERSION = '1.9.39'; // v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+
+// Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
 // Previous build: 1.9.36 — // v1.9.36: Hired-out bookings show "🚚 HIRED OUT" with venue and drop-off/pick-up in the week rota and today's list.
 // Previous build: 1.9.35 — // v1.9.35: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.34: My Week — owners now see EVERYONE who uses free times (all active calendar-mode staff), not just owners; NEW "Confirm this week" box: each person confirms their own free times for the next two weeks (stage "following" 8–14 days ahead, "next" 1–7 days ahead), status shown for everyone, flips to "changed since confirmed" if that week's free times change. Uses new staff_week_confirmations table. | v1.9.33: v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
