@@ -105,7 +105,22 @@
           <div><div class="form-label">Time</div><input class="form-input" type="time" id="wTime"></div>
           <div><div class="form-label">Players</div><input class="form-input" type="number" id="wPlayers" placeholder="4" min="1" max="30"></div>
         </div>
-        <div class="form-row"><div class="form-label">Game</div><select class="form-select" id="wGame"></select></div>
+        <div class="form-row"><div class="form-label">Game</div><select class="form-select" id="wGame" onchange="updateWalkinHireUI()"></select></div>
+        <div class="form-row" id="wHireToggleRow" style="display:none"><div class="form-label">Where is it played?</div>
+          <select class="form-select" id="wPlayLocation" onchange="updateWalkinHireUI()"><option value="in_house">Played here</option><option value="hire">Hired out (we take it to them)</option></select>
+        </div>
+        <div id="wHireBlock" style="display:none;background:#f0fdfa;border:1px solid #99e6ee;border-radius:10px;padding:10px;margin-bottom:10px">
+          <div class="form-row"><div class="form-label">Venue address</div><input class="form-input" type="text" id="wVenueAddress" placeholder="Street, suburb"></div>
+          <div class="form-row"><div class="form-label">Contact phone at venue (optional)</div><input class="form-input" type="tel" id="wVenuePhone"></div>
+          <div class="form-row"><div class="form-label">Game master</div>
+            <select class="form-select" id="wGmAttends" onchange="updateWalkinHireUI()"><option value="yes">GM goes with the game (assign staff below)</option><option value="no">Dropped off / they run it themselves</option></select>
+          </div>
+          <div class="form-2col">
+            <div><div class="form-label">Game hire price ($)</div><input class="form-input" type="number" id="wHirePrice" min="0" step="0.01"></div>
+            <div><div class="form-label">Travel fee ($)</div><input class="form-input" type="number" id="wTravelFee" min="0" step="0.01" placeholder="0"></div>
+          </div>
+          <div id="wHireInfo" style="font-size:12px;color:#4b5563"></div>
+        </div>
         <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="wName" placeholder="Sarah Robinson"></div>
         <div class="form-row"><div class="form-label">Phone</div><input class="form-input" type="tel" id="wPhone" placeholder="021 123 4567"></div>
         <div class="form-row"><div class="form-label">Email (optional)</div><input class="form-input" type="email" id="wEmail" placeholder="sarah@example.com"></div>
@@ -619,10 +634,10 @@ async function saveSetting(key,data){
   await fetch(`${SB_URL}/rest/v1/settings`,{method:'POST',headers:{...H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value:JSON.stringify(data),updated_at:new Date().toISOString()})});
 }
 function gameFromRow(r){
-  return {id:r.id,name:r.name,duration:r.duration,bufferMinutes:r.buffer_minutes,icon:r.icon,photoUrl:r.photo_url,thumbnailUrl:r.thumbnail_url,category:r.category,pricingType:r.pricing_type,pricingPresetId:r.pricing_preset_id,maxPlayers:r.max_players,minPlayers:r.min_players,bookable:r.bookable,showOnQuickBook:r.show_on_quick_book,trackPlayers:r.track_players,active:r.active,sortOrder:r.sort_order,tooltip:r.tooltip};
+  return {id:r.id,name:r.name,duration:r.duration,bufferMinutes:r.buffer_minutes,icon:r.icon,photoUrl:r.photo_url,thumbnailUrl:r.thumbnail_url,category:r.category,pricingType:r.pricing_type,pricingPresetId:r.pricing_preset_id,maxPlayers:r.max_players,minPlayers:r.min_players,bookable:r.bookable,showOnQuickBook:r.show_on_quick_book,trackPlayers:r.track_players,active:r.active,sortOrder:r.sort_order,tooltip:r.tooltip,hireable:r.hireable===true,hirePrice:r.hire_price,hirePeriodHours:r.hire_period_hours,playTimeMin:r.play_time_min,playTimeMax:r.play_time_max};
 }
 function rowFromGame(g,idx){
-  return {id:g.id,name:g.name,duration:g.duration,buffer_minutes:g.bufferMinutes,icon:g.icon,photo_url:g.photoUrl||null,thumbnail_url:g.thumbnailUrl||null,category:g.category,pricing_type:g.pricingType,pricing_preset_id:g.pricingPresetId,max_players:g.maxPlayers,min_players:g.minPlayers,bookable:g.bookable,show_on_quick_book:g.showOnQuickBook,track_players:g.trackPlayers,active:g.active!==false,sort_order:idx,tooltip:g.tooltip||null};
+  return {id:g.id,name:g.name,duration:g.duration,buffer_minutes:g.bufferMinutes,icon:g.icon,photo_url:g.photoUrl||null,thumbnail_url:g.thumbnailUrl||null,category:g.category,pricing_type:g.pricingType,pricing_preset_id:g.pricingPresetId,max_players:g.maxPlayers,min_players:g.minPlayers,bookable:g.bookable,show_on_quick_book:g.showOnQuickBook,track_players:g.trackPlayers,active:g.active!==false,sort_order:idx,tooltip:g.tooltip||null,hireable:g.hireable===true,hire_price:(g.hirePrice===''||g.hirePrice==null)?null:g.hirePrice,hire_period_hours:(g.hirePeriodHours===''||g.hirePeriodHours==null)?null:g.hirePeriodHours,play_time_min:g.playTimeMin||null,play_time_max:g.playTimeMax||null};
 }
 async function loadGames(){
   try{
@@ -842,6 +857,9 @@ function toggleWalkin(){
     document.getElementById('wTime').value=`${String(n.getHours()).padStart(2,'0')}:${String(Math.round(n.getMinutes()/5)*5%60).padStart(2,'0')}`;
     document.getElementById('wGame').innerHTML=games.map(g=>`<option value="${g.id}">${g.name} (${g.duration}min)</option>`).join('');
     walkinGMs=[];renderWalkinGMChips();document.getElementById('wNote').value='';
+    ['wVenueAddress','wVenuePhone','wTravelFee','wHirePrice'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
+    const wpl=document.getElementById('wPlayLocation');if(wpl)wpl.value='in_house';
+    updateWalkinHireUI();
     const we=document.getElementById('wEmail');if(we)we.value='';
     const wse=document.getElementById('wSkipEmail');if(wse)wse.checked=false;
     document.getElementById('wName').focus();
@@ -852,9 +870,33 @@ function quickWalkin(gameId,timeStr){
   qbOpenGameId=null;renderQuickBookRow();
   if(!walkinOpen)toggleWalkin();
   document.getElementById('wGame').value=gameId;
+  updateWalkinHireUI();
   document.getElementById('wTime').value=timeStr;
   document.getElementById('wName').focus();
   document.getElementById('walkinForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+// HIRE-OUT: show the "played here / hired out" choice only for games flagged hireable.
+function walkinIsHire(){
+  const g=games.find(x=>x.id===document.getElementById('wGame')?.value);
+  return !!(g&&g.hireable===true&&document.getElementById('wPlayLocation')?.value==='hire');
+}
+function updateWalkinHireUI(){
+  const g=games.find(x=>x.id===document.getElementById('wGame')?.value);
+  const row=document.getElementById('wHireToggleRow'),blk=document.getElementById('wHireBlock');
+  if(!row||!blk)return;
+  const canHire=!!(g&&g.hireable===true);
+  row.style.display=canHire?'':'none';
+  if(!canHire){const pl=document.getElementById('wPlayLocation');if(pl)pl.value='in_house'}
+  const isHire=walkinIsHire();
+  blk.style.display=isHire?'':'none';
+  if(isHire){
+    const hp=document.getElementById('wHirePrice');
+    if(hp&&hp.value===''&&g.hirePrice!=null)hp.value=g.hirePrice;
+    const range=(g.playTimeMin&&g.playTimeMax)?`${g.playTimeMin}–${g.playTimeMax} min play time`:'';
+    const per=g.hirePeriodHours?`hire period ${g.hirePeriodHours} hours`:'';
+    const gm=document.getElementById('wGmAttends')?.value==='yes';
+    document.getElementById('wHireInfo').textContent=[range,per,gm?'A staff member must be assigned below.':'No staff needed.'].filter(Boolean).join(' · ');
+  }
 }
 function renderWalkinGMChips(){
   document.getElementById('wGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${walkinGMs.includes(p.id)?'assigned':''}" onclick="toggleWGM('${p.id}')">${walkinGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
@@ -914,6 +956,16 @@ async function submitWalkin(){
   const deposit=parseFloat(document.getElementById('wDeposit')?.value)||null;
   const howPaid=document.getElementById('wHowPaid')?.value||null;
   const game=games.find(g=>g.id===gameId);if(!game)return;
+  const isHire=walkinIsHire();
+  const gmAttends=isHire?document.getElementById('wGmAttends').value==='yes':null;
+  const venueAddress=isHire?document.getElementById('wVenueAddress').value.trim():'';
+  const venuePhone=isHire?document.getElementById('wVenuePhone').value.trim():'';
+  const hirePrice=isHire?(parseFloat(document.getElementById('wHirePrice').value)||0):0;
+  const travelFee=isHire?(parseFloat(document.getElementById('wTravelFee').value)||0):0;
+  if(isHire){
+    if(!venueAddress){alert('Please enter the venue address for the hire.');document.getElementById('wVenueAddress').focus();return}
+    if(gmAttends&&!walkinGMs.length){alert('A game master is going with this game, so please assign a staff member.');return}
+  }
   const conflict=checkGameTimeConflict(gameId,time);
   if(conflict){
     const proceed=confirm(`Heads up: this overlaps with an existing ${game.name} booking at ${fmt12(conflict.time||'00:00')} (${conflict.customer||'no name'}). Book anyway?`);
@@ -963,19 +1015,21 @@ async function submitWalkin(){
         notes_when_booked:name+(phone?' · '+phone:''),
         deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0),how_paid:howPaid||null,
         timer_running:false,timer_sec:0,
+        ...(isHire?{play_location:'hire',gm_attends:gmAttends,venue_address:venueAddress,venue_contact_phone:venuePhone||null,travel_fee:travelFee,total_amount:hirePrice+travelFee}:{}),
       })
     });
     if(!r.ok)throw new Error(await r.text());
     const saved=(await r.json())[0];
     if(saved){
       const d=new Date(ds+'T12:00');
-      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:game.duration,meta:`${players} player${players!==1?'s':''} · Walk-in`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||''});
+      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:isHire?Math.round((game.hirePeriodHours||game.duration/60)*60):game.duration,meta:`${players} player${players!==1?'s':''} · ${isHire?'Hired out — '+venueAddress+(gmAttends?' · GM goes':' · drop-off'):'Walk-in'}`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||''});
     }
   }catch(e){alert('Error: '+e.message);return}
   walkinGMs=[];walkinOpen=false;walkinClientId=null;walkinClientOrig=null;document.getElementById('walkinForm').style.display='none';
   ['wPlayers','wName','wPhone','wEmail','wNote','wDeposit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   const wse=document.getElementById('wSkipEmail');if(wse)wse.checked=false;
   const wp=document.getElementById('wHowPaid');if(wp)wp.value='';
+  const wpl2=document.getElementById('wPlayLocation');if(wpl2)wpl2.value='in_house';updateWalkinHireUI();
   buildCalendar();renderActiveView();updateHeader();
 }
 
@@ -1767,12 +1821,37 @@ function renderGamesList(){
         <input type="checkbox" ${isQuickBook?'checked':''} onchange="toggleQuickBook('${g.id}')" style="accent-color:#07b4c5;width:15px;height:15px">
         Show in calendar quick-book row
       </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer">
+        <input type="checkbox" ${g.hireable===true?'checked':''} onchange="toggleHireable('${g.id}')" style="accent-color:#07b4c5;width:15px;height:15px">
+        Can be hired out (taken to the customer's venue)
+      </label>
+      ${g.hireable===true?`<div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b7280;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="min-width:62px">Play time</span>
+          <input type="number" min="1" value="${g.playTimeMin||''}" placeholder="60" onchange="setHireField('${g.id}','playTimeMin',parseInt(this.value)||null)" style="width:55px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+          <span>to</span>
+          <input type="number" min="1" value="${g.playTimeMax||''}" placeholder="90" onchange="setHireField('${g.id}','playTimeMax',parseInt(this.value)||null)" style="width:55px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+          <span>min (shown instead of a fixed length)</span></div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="min-width:62px">Hire price</span>
+          <span>$</span><input type="number" min="0" step="0.01" value="${g.hirePrice??''}" onchange="setHireField('${g.id}','hirePrice',this.value===''?null:parseFloat(this.value))" style="width:70px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px">
+          <span>for</span><input type="number" min="0.5" step="0.5" value="${g.hirePeriodHours??''}" onchange="setHireField('${g.id}','hirePeriodHours',this.value===''?null:parseFloat(this.value))" style="width:55px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;padding:2px 6px"><span>hours</span></div>
+        <div style="font-size:11px;color:#9ca3af">Default only — can be changed on each booking. Travel fee is set per booking.</div>
+      </div>`:''}
       <div style="display:flex;flex-direction:column;gap:3px;font-size:12px;color:#6b7280">
         <span>Info tooltip <span style="color:#9ca3af;font-weight:400">(optional — shown on the booking widget card, blank = no icon)</span></span>
         <textarea class="form-select" rows="2" style="width:100%;resize:vertical;font-size:12px" onchange="setGameTooltip('${g.id}',this.value)">${escapeHtml(g.tooltip||'')}</textarea>
       </div>
     </div>`;
   }).join('')}</div>`;
+}
+function toggleHireable(id){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g.hireable=!(g.hireable===true);
+  renderGamesList();saveGames();
+}
+function setHireField(id,field,val){
+  const g=games.find(x=>x.id===id);if(!g)return;
+  g[field]=val;
+  renderGamesList();saveGames();
 }
 function setGameLimit(id,field,val){
   const g=games.find(x=>x.id===id);if(!g)return;
@@ -3129,7 +3208,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.57'; // v16.4.57: Settings > Errors now shows the staff member's name (instead of just "Signed-in staff") on each error's details, looked up from the staff list. If the name can't be found it still says "Signed-in staff". Nothing existing was changed or removed. | v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
+const BUILD_VERSION = '16.4.58'; // v16.4.58: Hire-out games — games can be flagged "Can be hired out" (play-time range, hire price/period) in Settings > Games; new bookings can be Played here or Hired out (venue address/phone, GM goes or drop-off, hire price + travel fee). A GM-attended hire requires an assigned staff member. Needs games.hireable/hire_* and game_bookings.play_location/venue_*/travel_fee/gm_attends columns.
+// Previous build: 16.4.57 — // v16.4.57: Settings > Errors now shows the staff member's name (instead of just "Signed-in staff") on each error's details, looked up from the staff list. If the name can't be found it still says "Signed-in staff". Nothing existing was changed or removed. | v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
 // v16.4.43: Add Product form — the "More details" fields added in v16.4.42 (sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, trade_show) are now actually read and saved by addProduct(), and cleared/collapsed after a successful add. Added toggleNewProdMore() to expand/collapse the panel.
 // v16.4.42: Add Product form — added collapsible "More details" panel (closed by default) with sub_name, cost_new_range, description, players_min, players_max, age_recommendation, image_url, favourite, and trade_show fields. Fields are HTML only in this version — addProduct() does not read or save them yet (next step).
