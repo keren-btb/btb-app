@@ -193,7 +193,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .pk-mode input{accent-color:#07b4c5;margin:0}
 .pk-ord{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;border-bottom:1px dashed #e5e7eb}
 .pk-ord-n{background:#07b4c5;color:#fff;border-radius:99px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
-.pk-ord button{border:1px solid #d1d5db;background:#fff;border-radius:6px;width:26px;height:24px;cursor:pointer;font-weight:700}
+.pk-ord button{border:1px solid #d1d5db;background:#fff;border-radius:6px;width:34px;height:30px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#111827}
+.pk-ord-end{display:inline-flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+.pk-ord button .ti{font-size:20px;stroke-width:2.5}
 .pk-ord button:disabled{opacity:.35;cursor:default}
 .pk-ord b{white-space:nowrap}
 .pk-ord-n{flex:none}

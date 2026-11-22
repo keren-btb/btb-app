@@ -10,7 +10,7 @@
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <!-- Bump ?v= whenever btb_app.css changes, or browsers keep showing the old styles -->
-<link rel="stylesheet" href="btb_app.css?v=16.4.74">
+<link rel="stylesheet" href="btb_app.css?v=16.4.75">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -213,7 +213,8 @@
         </div>
         <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="pkNote"></div>
         <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkSkipEmail" checked> Don't send confirmation email</label></div>
-        <div class="form-row"><div class="form-label">Food, drink &amp; extras — tap an item to add it, tap again for more</div>
+        <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkWantExtras" onchange="pkExtrasToggle()"> Add food, drink or extras</label></div>
+        <div class="form-row" id="pkExtrasBox" style="display:none"><div class="form-label">Food, drink &amp; extras — tap an item to add it, tap again for more</div>
           <div id="pkProdCats" class="pk-cats"></div>
           <div id="pkProdGrid" class="pk-prod-grid"></div>
           <div id="pkExtras" style="margin-top:8px"></div>
@@ -1033,7 +1034,7 @@ function togglePkg(){
     [['pkGmAttends','yes'],['pkDropoff','we_drop_off'],['pkPickup','we_pick_up'],['pkHowPaid','']].forEach(([i,v])=>{const e=document.getElementById(i);if(e)e.value=v});
     const se=document.getElementById('pkSkipEmail');if(se)se.checked=true;
     const tb=document.getElementById('pkTbc');if(tb)tb.checked=false;
-    pkGMs=[];pkExtras=[];renderPkgExtras();renderPkgGames();renderPkgRooms();renderPkgProducts();renderPkgGMChips();pkTypeChanged();
+    pkGMs=[];pkExtras=[];renderPkgExtras();renderPkgGames();renderPkgRooms();renderPkgProducts();renderPkgGMChips();pkTypeChanged();document.getElementById('pkWantExtras').checked=false;document.getElementById('pkExtrasBox').style.display='none';
     document.getElementById('pkName').focus();
     f.scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -1076,6 +1077,16 @@ function pkPriceTyped(el){
   if(el.value===''){delete el.dataset.manual;row.classList.remove('fixed');pkRoomTouched(gid,true);return}
   el.dataset.manual='1';row.classList.add('fixed');
   const chk=document.getElementById('pkRChk_'+gid);if(!chk.checked){chk.checked=true;pkRoomTouched(gid)}else updatePkgTotal();
+}
+// v16.4.75: food/drink/extras only shown when "Add food, drink or extras" is ticked.
+// Unticking with items already added asks first, then removes them.
+function pkExtrasToggle(){
+  const cb=document.getElementById('pkWantExtras');
+  if(!cb.checked&&pkExtras.length){
+    if(!confirm('Remove the food, drink and extras already added?')){cb.checked=true;return}
+    pkExtras=[];renderPkgExtras();renderPkgProducts();updatePkgTotal();
+  }
+  document.getElementById('pkExtrasBox').style.display=cb.checked?'':'none';
 }
 function pkStepPlayers(gid,d){
   const el=document.getElementById('pkRPl_'+gid);const n=Math.max(0,(parseInt(el.value)||0)+d);
@@ -1123,8 +1134,8 @@ function renderPkgOrder(){
       const linked=seq&&i>0&&pkWithAbove.has(gid);
       return`<div class="pk-ord ${linked?'linked':''}">${seq?`<span class="pk-ord-n">${i+1}</span>`:''}<span style="flex:1">${escapeHtml(abbrevGameName(g?.name||''))}</span>
         ${seq&&i>0?`<button type="button" class="pk-with" onclick="pkToggleWithAbove('${gid}')" title="Start at the same time as the game above">${linked?'✓ With above':'With above'}</button>`:''}
-        <b>${times[gid]?fmt12(times[gid]):'— set start'}</b>
-        ${seq?`<button type="button" onclick="pkMoveOrder('${gid}',-1)" ${i===0?'disabled':''}>↑</button><button type="button" onclick="pkMoveOrder('${gid}',1)" ${i===pkOrder.length-1?'disabled':''}>↓</button>`:''}</div>`}).join(''):'';
+        <span class="pk-ord-end"><b>${times[gid]?fmt12(times[gid]):'— set start'}</b>
+        ${seq?`<button type="button" onclick="pkMoveOrder('${gid}',-1)" ${i===0?'disabled':''} title="Move up"><i class="ti ti-arrow-up"></i></button><button type="button" onclick="pkMoveOrder('${gid}',1)" ${i===pkOrder.length-1?'disabled':''} title="Move down"><i class="ti ti-arrow-down"></i></button>`:''}</span></div>`}).join(''):'';
   }
   updatePkgTotal();
 }
@@ -4085,7 +4096,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.74'; // v16.4.74: Package form — a price typed for a game (e.g. Board Game Cafe space hire $50 instead of per person) stays fixed when players change and stays visible with a 'fixed' tag even when prices are hidden; clearing it goes back to the per-person price.
+const BUILD_VERSION = '16.4.75'; // v16.4.75: Package form — food, drink and extras only show after ticking 'Add food, drink or extras' (unticking with items added asks, then removes them); bigger up/down arrows for the play order.
+
+
+// Previous build: 16.4.74 — // v16.4.74: Package form — a price typed for a game (e.g. Board Game Cafe space hire $50 instead of per person) stays fixed when players change and stays visible with a 'fixed' tag even when prices are hidden; clearing it goes back to the per-person price.
 
 
 // Previous build: 16.4.73 — // v16.4.73: Package form — in 'One after the other', any game can be set to 'Same time as above' (e.g. three rooms together, then everyone into the café); the next game starts when the longest game in the group finishes, plus the gap.
