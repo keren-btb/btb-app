@@ -165,14 +165,19 @@
         <div class="form-title"><i class="ti ti-package"></i> New package</div>
         <!-- v16.4.70: a package is either games going OUT (hire) or several things here at BtB (rooms, VR, food & drink) -->
         <div class="form-row"><div class="form-label">What kind of package?</div>
-          <select class="form-select" id="pkType" onchange="pkTypeChanged()"><option value="hire">🚚 Games going out to their venue (hire)</option><option value="inhouse">🏠 Here at BtB — rooms, VR, food &amp; drink</option></select></div>
+          <input type="hidden" id="pkType" value="hire">
+          <div class="pk-type-row">
+            <label class="pk-type"><input type="radio" name="pkTypeR" value="hire" checked onchange="setPkType(this.value)"> 🚚 Games going out (hire)</label>
+            <label class="pk-type"><input type="radio" name="pkTypeR" value="inhouse" onchange="setPkType(this.value)"> 🏠 Here at BtB — rooms, VR, food &amp; drink</label>
+          </div></div>
         <div class="form-2col">
           <div><div class="form-label" id="pkDateLabel">Date going out</div><input class="form-input" type="date" id="pkDate"></div>
           <div class="pk-hire"><div class="form-label">Time out</div><input class="form-input" type="time" id="pkTime" oninput="if(this.value)document.getElementById('pkTbc').checked=false"></div>
         </div>
         <div class="form-row pk-hire"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkTbc" onchange="if(this.checked)document.getElementById('pkTime').value=''"> Time not agreed yet — we'll confirm a time with the customer</label></div>
         <div class="form-row pk-hire"><div class="form-label">Games going out (tick each one, price can be changed)</div><div id="pkGames"></div></div>
-        <div class="form-row pk-inhouse" style="display:none"><div class="form-label">What they're booking (tick each, set the time and players — price works itself out, or type your own)</div><div id="pkRooms"></div></div>
+        <div class="form-row pk-inhouse" style="display:none"><div class="form-label">What they're booking — tick each, set the time and players</div><div id="pkRooms"></div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280;margin-top:6px;cursor:pointer"><input type="checkbox" id="pkShowPrices" onchange="document.getElementById('pkRooms').classList.toggle('show-prices',this.checked)"> Show / change prices (normally worked out per person)</label></div>
         <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="pkName" placeholder="Sarah Robinson"></div>
         <div class="form-2col">
           <div><div class="form-label">Phone</div><input class="form-input" type="tel" id="pkPhone"></div>
@@ -200,12 +205,11 @@
         </div>
         <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="pkNote"></div>
         <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkSkipEmail" checked> Don't send confirmation email</label></div>
-        <div class="form-row"><div class="form-label">Add-ons &amp; extra charges (food, drink, anything you like)</div><div id="pkExtras"></div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <select id="pkProduct" style="flex:1;min-width:150px;font-size:13px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px"></select>
-            <button type="button" onclick="addPkProduct()" style="border:1px solid #0f766e;background:#fff;color:#0f766e;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer">+ Add item</button>
-            <button type="button" onclick="addPkExtra()" style="border:1px dashed #0f766e;background:#fff;color:#0f766e;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer">+ Other charge</button>
-          </div></div>
+        <div class="form-row"><div class="form-label">Food, drink &amp; extras — tap an item to add it, tap again for more</div>
+          <div id="pkProdCats" class="pk-cats"></div>
+          <div id="pkProdGrid" class="pk-prod-grid"></div>
+          <div id="pkExtras" style="margin-top:8px"></div>
+          <button type="button" onclick="addPkExtra()" style="border:1px dashed #0f766e;background:#fff;color:#0f766e;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;margin-top:4px">+ Other charge (one-off)</button></div>
         <div id="pkTotal" style="font-size:14px;font-weight:600;color:#0f766e;margin-bottom:8px"></div>
         <div class="form-btns">
           <button class="form-cancel" onclick="togglePkg()">Cancel</button>
@@ -1035,6 +1039,8 @@ function renderPkgGames(){
 }
 // v16.4.70: "Here at BtB" packages — several rooms / VR / café at their own times, plus food & drink
 function pkIsInhouse(){return document.getElementById('pkType')?.value==='inhouse'}
+// v16.4.71: type picked with two radio buttons instead of a dropdown
+function setPkType(v){document.getElementById('pkType').value=v;document.querySelectorAll('input[name="pkTypeR"]').forEach(r=>r.checked=r.value===v);pkTypeChanged()}
 function pkTypeChanged(){
   const inh=pkIsInhouse();
   document.querySelectorAll('#pkgForm .pk-hire').forEach(e=>e.style.display=inh?'none':'');
@@ -1045,40 +1051,66 @@ function pkTypeChanged(){
 function pkInhouseGames(){return games.filter(g=>g.bookable!==false&&g.active!==false&&!String(g.id).startsWith('g_hire_'))}
 function renderPkgRooms(){
   const el=document.getElementById('pkRooms');if(!el)return;
-  const inp='font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px';
-  el.innerHTML=pkInhouseGames().map(g=>`<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap">
-    <label style="display:flex;align-items:center;gap:8px;flex:1 1 140px;font-size:13px;cursor:pointer"><input type="checkbox" id="pkRChk_${g.id}" onchange="pkRoomTouched('${g.id}')" style="accent-color:#07b4c5;width:16px;height:16px"> ${g.icon||''} ${escapeHtml(g.name)}</label>
-    <input type="time" id="pkRTime_${g.id}" oninput="pkRoomTouched('${g.id}')" style="${inp};width:96px">
-    <input type="number" id="pkRPl_${g.id}" min="1" placeholder="players" oninput="pkRoomTouched('${g.id}',true)" style="${inp};width:70px">
-    <span style="font-size:12px;color:#6b7280">$</span><input type="number" id="pkRPrice_${g.id}" min="0" step="0.01" oninput="this.dataset.manual='1';updatePkgTotal()" style="${inp};width:74px">
+  // v16.4.71: compact rows — name, time, players (− n +), and the price only when "Show / change prices" is ticked.
+  // The $ sign is kept in one piece with its box so it never wraps away from it.
+  el.innerHTML=pkInhouseGames().map(g=>`<div class="pk-row">
+    <label class="pk-name"><input type="checkbox" id="pkRChk_${g.id}" onchange="pkRoomTouched('${g.id}')"> ${g.icon||''} ${escapeHtml(g.name)}</label>
+    <input type="time" class="pk-time" id="pkRTime_${g.id}" oninput="pkRoomTouched('${g.id}')">
+    <span class="pk-step" title="Players"><button type="button" onclick="pkStepPlayers('${g.id}',-1)">−</button><input type="number" id="pkRPl_${g.id}" min="1" inputmode="numeric" placeholder="0" oninput="pkRoomTouched('${g.id}',true)"><button type="button" onclick="pkStepPlayers('${g.id}',1)">+</button></span>
+    <span class="pk-price">$<input type="number" id="pkRPrice_${g.id}" min="0" step="0.01" oninput="this.dataset.manual='1';updatePkgTotal()"></span>
   </div>`).join('')||'<div style="font-size:12px;color:#9ca3af">No bookable games.</div>';
+}
+function pkStepPlayers(gid,d){
+  const el=document.getElementById('pkRPl_'+gid);const n=Math.max(0,(parseInt(el.value)||0)+d);
+  el.value=n||'';pkRoomTouched(gid,true);
 }
 function pkRoomTouched(gid,playersChanged){
   const chk=document.getElementById('pkRChk_'+gid),pr=document.getElementById('pkRPrice_'+gid),pl=parseInt(document.getElementById('pkRPl_'+gid).value)||0;
   if(!chk.checked&&(document.getElementById('pkRTime_'+gid).value||pl))chk.checked=true;
   if(pl&&(!pr.dataset.manual||playersChanged&&!pr.value))pr.value=calcPrice(gid,pl).toFixed(2);
+  if(!pl&&!pr.dataset.manual)pr.value='';
   updatePkgTotal();
 }
 function pkgRoomsSelected(){
   return pkInhouseGames().filter(g=>document.getElementById('pkRChk_'+g.id)?.checked).map(g=>({game:g,time:document.getElementById('pkRTime_'+g.id).value,
     players:parseInt(document.getElementById('pkRPl_'+g.id).value)||0,price:parseFloat(document.getElementById('pkRPrice_'+g.id).value)||0}));
 }
+// v16.4.71: food & drink picked like POS — category chips + item buttons; tapping an item again adds another.
+// Deals (e.g. "Pizza deal", "10 fizzy drinks") are just Products set up in Settings > Products.
+let pkProdCat='';
+function pkProductList(){return (products||[]).filter(p=>p.active!==false)}
 function renderPkgProducts(){
-  const el=document.getElementById('pkProduct');if(!el)return;
-  const list=(products||[]).filter(p=>p.active!==false).sort((a,b)=>(a.category==='Food/Drink'?0:1)-(b.category==='Food/Drink'?0:1)||String(a.name).localeCompare(b.name));
-  el.innerHTML='<option value="">Choose food, drink or a product…</option>'+list.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} — $${(parseFloat(p.sell_price)||0).toFixed(2)}</option>`).join('');
+  const cats=[...new Set(pkProductList().map(p=>p.category||'Other'))].sort((a,b)=>(a==='Food/Drink'?-1:b==='Food/Drink'?1:a.localeCompare(b)));
+  if(!pkProdCat||!cats.includes(pkProdCat))pkProdCat=cats[0]||'';
+  const ce=document.getElementById('pkProdCats'),ge=document.getElementById('pkProdGrid');if(!ce||!ge)return;
+  ce.innerHTML=cats.map(c=>`<button type="button" class="${c===pkProdCat?'on':''}" onclick="pkProdCat=decodeURIComponent('${encodeURIComponent(c)}');renderPkgProducts()">${escapeHtml(c)}</button>`).join('');
+  const list=pkProductList().filter(p=>(p.category||'Other')===pkProdCat).sort((a,b)=>String(a.name).localeCompare(b.name));
+  ge.innerHTML=list.map(p=>{const q=(pkExtras.find(x=>x.productId===p.id)||{}).qty||0;
+    return`<button type="button" onclick="addPkProduct('${p.id}')" class="${q?'on':''}">${q?`<span class="pk-q">${q}</span>`:''}<b>${escapeHtml(p.name)}</b><span>$${(parseFloat(p.sell_price)||0).toFixed(2)}</span></button>`}).join('')
+    ||'<div style="font-size:12px;color:#9ca3af">No products here yet — add them (and deals) in Settings &gt; POS &gt; Products.</div>';
 }
-function addPkProduct(){
-  const id=document.getElementById('pkProduct').value;const p=(products||[]).find(x=>String(x.id)===id);if(!p)return;
-  pkExtras.push({label:p.name,amount:parseFloat(p.sell_price)||0,productId:p.id});
-  document.getElementById('pkProduct').value='';renderPkgExtras();updatePkgTotal();
+function addPkProduct(id){
+  const p=pkProductList().find(x=>String(x.id)===String(id));if(!p)return;
+  const ex=pkExtras.find(x=>x.productId===p.id);
+  if(ex)ex.qty++;else pkExtras.push({label:p.name,amount:parseFloat(p.sell_price)||0,productId:p.id,qty:1});
+  renderPkgExtras();renderPkgProducts();updatePkgTotal();
 }
+function pkStepExtra(i,d){const x=pkExtras[i];x.qty=Math.max(0,(x.qty||1)+d);if(!x.qty)pkExtras.splice(i,1);renderPkgExtras();renderPkgProducts();updatePkgTotal()}
 function renderPkgExtras(){
-  document.getElementById('pkExtras').innerHTML=pkExtras.map((x,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="text" placeholder="e.g. Late return fee" value="${escapeHtml(x.label)}" oninput="pkExtras[${i}].label=this.value" style="flex:1;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;min-width:0"><span>$</span><input type="number" step="0.01" value="${x.amount}" oninput="pkExtras[${i}].amount=this.value;updatePkgTotal()" style="width:80px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px"><button type="button" onclick="removePkExtra(${i})" style="border:none;background:none;color:#dc2626;font-size:18px;cursor:pointer">✕</button></div>`).join('');
+  const box='font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px';
+  document.getElementById('pkExtras').innerHTML=pkExtras.map((x,i)=>x.productId
+    ?`<div class="pk-extra"><span class="pk-step"><button type="button" onclick="pkStepExtra(${i},-1)">−</button><input type="number" min="0" value="${x.qty||1}" oninput="pkExtras[${i}].qty=Math.max(0,parseInt(this.value)||0);updatePkgTotal()"><button type="button" onclick="pkStepExtra(${i},1)">+</button></span>
+       <span style="flex:1;min-width:0;font-size:14px">${escapeHtml(x.label)} <span style="color:#6b7280;font-size:12px">@ $${(parseFloat(x.amount)||0).toFixed(2)}</span></span>
+       <span style="font-weight:600;white-space:nowrap">$${((x.qty||1)*(parseFloat(x.amount)||0)).toFixed(2)}</span>
+       <button type="button" onclick="removePkExtra(${i})" style="border:none;background:none;color:#dc2626;font-size:18px;cursor:pointer">✕</button></div>`
+    :`<div class="pk-extra"><input type="text" placeholder="e.g. Cake fee, decorations" value="${escapeHtml(x.label)}" oninput="pkExtras[${i}].label=this.value" style="flex:1;min-width:0;${box}"><span class="pk-price">$<input type="number" step="0.01" value="${x.amount}" oninput="pkExtras[${i}].amount=this.value;updatePkgTotal()"></span><button type="button" onclick="removePkExtra(${i})" style="border:none;background:none;color:#dc2626;font-size:18px;cursor:pointer">✕</button></div>`).join('');
 }
 function addPkExtra(){pkExtras.push({label:'',amount:''});renderPkgExtras()}
-function removePkExtra(i){pkExtras.splice(i,1);renderPkgExtras();updatePkgTotal()}
-function pkExtrasClean(){return pkExtras.filter(x=>String(x.label||'').trim()||parseFloat(x.amount)).map(x=>({label:String(x.label||'').trim()||'Extra',amount:parseFloat(x.amount)||0,...(x.productId?{productId:x.productId}:{})}))}
+function removePkExtra(i){pkExtras.splice(i,1);renderPkgExtras();renderPkgProducts();updatePkgTotal()}
+// Each line as it's saved: products as "3 × Fizzy drink" with the line total (qty kept for stock), one-offs as typed
+function pkExtrasClean(){return pkExtras.filter(x=>x.productId?(x.qty||0)>0:(String(x.label||'').trim()||parseFloat(x.amount))).map(x=>x.productId
+  ?{label:(x.qty>1?`${x.qty} × `:'')+x.label,amount:Math.round(x.qty*(parseFloat(x.amount)||0)*100)/100,productId:x.productId,qty:x.qty}
+  :{label:String(x.label||'').trim()||'Extra',amount:parseFloat(x.amount)||0})}
 function renderPkgGMChips(){
   document.getElementById('pkGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${pkGMs.includes(p.id)?'assigned':''}" onclick="togglePkGM('${p.id}')">${pkGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
 }
@@ -1135,7 +1167,8 @@ async function pkTakeStock(extras){
   for(const x of extras){
     const p=x.productId&&(products||[]).find(q=>q.id===x.productId);
     if(p&&p.stock_qty!=null&&p.stock_qty>0){
-      try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:p.stock_qty-1})});if(r.ok)p.stock_qty--}catch(e){console.error('Stock update:',e)}
+      const n=Math.max(0,p.stock_qty-(x.qty||1));
+      try{const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:n})});if(r.ok)p.stock_qty=n}catch(e){console.error('Stock update:',e)}
     }
   }
 }
