@@ -1,4 +1,4 @@
-// invoice_render.js v1.0.0 — 2026-11-23
+// invoice_render.js v1.1.0 — 2026-11-23 (v1.1.0: 'Deposit of $X due now' box when the invoice has a deposit_due)
 // Builds a Beyond the Box TAX INVOICE as HTML (same layout as the Xero template). Used by invoices.html
 // (preview, print, email) and invoice_view.html (customer's view / print link). Prices are GST-inclusive.
 (function(){
@@ -22,6 +22,8 @@
     const paid=Number(inv.paid_amount)||0;
     return{lines,total,gst,paid,due:Math.round((total-paid)*100)/100};
   }
+  // v1.1.0: deposit still to pay now (deposit_due less anything already paid), only while the balance is bigger
+  function depNow(inv,t){const dd=Math.max(0,(Number(inv.deposit_due)||0)-t.paid);return dd>0&&t.due>dd?Math.round(dd*100)/100:0}
   // opts.email = true → simpler email-safe layout (no background image)
   function render(inv,opts={}){
     const t=totals(inv),email=!!opts.email;
@@ -64,7 +66,8 @@
         ${t.paid?sumRow('Total Net Payments NZD',n2(t.paid)):''}
         ${sumRow('Amount Due NZD',n2(Math.max(0,t.due)),true)}
       </table>
-      <div style="margin-top:14px;font-size:14px"><b>Due Date: ${d(inv.due_date)}</b></div>
+      ${depNow(inv,t)?`<div style="margin-top:14px;padding:10px 12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:14px"><b>Deposit of $${n2(depNow(inv,t))} due now</b> to secure your booking.<br>Balance of $${n2(Math.max(0,t.due-depNow(inv,t)))} due by ${d(inv.due_date)}.</div>`
+        :`<div style="margin-top:14px;font-size:14px"><b>Due Date: ${d(inv.due_date)}</b></div>`}
       <div style="margin-top:18px;padding:12px 14px;border:1px dashed #07b4c5;border-radius:8px;font-size:13px;line-height:1.5;background:#f0fafb">
         <b>How to pay</b><br>Internet banking to <b>${SELLER.bankName}</b><br>Account number <b>${SELLER.bankAccount}</b><br>
         Please use reference <b>${esc(inv.invoice_number)}</b>${inv.po_number?` or <b>${esc(inv.po_number)}</b>`:''}.</div>

@@ -895,6 +895,7 @@ async function loadBookings(month,year){
           pickupMethod:row.pickup_method||null,pickupTime:(row.pickup_time||'').slice(0,5),
           hireExtras:Array.isArray(row.hire_extras)?row.hire_extras:[],
           timeTbc:row.time_tbc===true,
+          confirmationSentAt:row.confirmation_email_sent_at||null,
           tags:(()=>{
             let t=JSON.parse(row.tags||'[]');
             // Auto-add occasion tag if exists
@@ -1242,6 +1243,41 @@ function pkInvoiceToast(bookingId){
   d.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:3000;background:#1a1035;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;font-size:14px;max-width:92vw';
   d.innerHTML=`✓ Package saved <a href="invoices.html?booking=${encodeURIComponent(bookingId)}" target="_blank" onclick="setTimeout(()=>document.getElementById('pkInvToast')?.remove(),300)" style="background:#07b4c5;color:#fff;border-radius:8px;padding:8px 12px;text-decoration:none;font-weight:700">🧾 Make the invoice</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#9ca3af;font-size:18px;cursor:pointer">✕</button>`;
   document.body.appendChild(d);
+}
+// v16.4.78: ⋯ > Confirmation email — see exactly what the customer gets (packages = one combined email), then Send.
+// Works when "Don't send confirmation email" was ticked, and can re-send. Uses btb-admin 'confirmation_email'.
+async function openConfirmEmail(bookingId){
+  document.getElementById('confEmailOv')?.remove();
+  const ov=document.createElement('div');ov.id='confEmailOv';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:3000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto';
+  ov.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:660px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:16px">✉️ Confirmation email</b><button onclick="document.getElementById('confEmailOv').remove()" style="border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer">✕ Close</button></div>
+    <div id="ceInfo" style="font-size:13px;color:#374151;margin-bottom:8px">Loading preview… (nothing is sent)</div>
+    <iframe id="ceFrame" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:10px;background:#fff"></iframe>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button onclick="document.getElementById('confEmailOv').remove()" style="border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:9px 14px;cursor:pointer;font-family:inherit">Not now</button>
+      <button id="ceSend" disabled onclick="sendConfirmEmail('${bookingId}')" style="border:none;background:#07b4c5;color:#fff;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;font-family:inherit">Send it</button></div>
+    <div id="ceMsg" style="font-size:13px;margin-top:6px"></div></div>`;
+  document.body.appendChild(ov);
+  try{
+    const d=await callEdgeFunction('confirmation_email',{bookingId},currentUser.token);
+    const b=bookings.find(x=>x.id===bookingId);
+    document.getElementById('ceInfo').innerHTML=`<b>To:</b> ${escapeHtml(d.to||'— no email on this booking\'s client')} &nbsp; <b>Subject:</b> ${escapeHtml(d.subject||'')}${b?.confirmationSentAt?`<div style="color:#b45309;margin-top:4px">Already sent ${new Date(b.confirmationSentAt).toLocaleString('en-NZ',{timeZone:'Pacific/Auckland',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})} — sending again re-sends it.</div>`:''}`;
+    document.getElementById('ceFrame').srcdoc=`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:16px;background:#fff">${d.html||''}</body></html>`;
+    const s=document.getElementById('ceSend');
+    if(d.to){s.disabled=false;s.textContent=`Send to ${d.to}`}else{s.textContent='No email address';document.getElementById('ceMsg').innerHTML='<span style="color:#dc2626">Add the customer\'s email (Clients) before sending.</span>'}
+  }catch(e){document.getElementById('ceInfo').innerHTML=`<span style="color:#dc2626">Could not make the preview: ${escapeHtml(e.message)}</span>`}
+}
+async function sendConfirmEmail(bookingId){
+  const s=document.getElementById('ceSend'),m=document.getElementById('ceMsg');
+  if(!confirm('Send this confirmation email to the customer now?'))return;
+  s.disabled=true;s.textContent='Sending…';
+  try{
+    await callEdgeFunction('confirmation_email',{bookingId,send:true},currentUser.token);
+    const now=new Date().toISOString();const b=bookings.find(x=>x.id===bookingId);
+    bookings.filter(x=>x.id===bookingId||(b?.groupId&&x.groupId===b.groupId)).forEach(x=>x.confirmationSentAt=now);
+    m.innerHTML='<span style="color:#15803d;font-weight:700">✓ Sent</span>';s.textContent='Sent';
+    setTimeout(()=>document.getElementById('confEmailOv')?.remove(),1500);
+  }catch(e){s.disabled=false;s.textContent='Try again';m.innerHTML=`<span style="color:#dc2626">Not sent: ${escapeHtml(e.message)}</span>`}
 }
 // Take one off the shelf count for food/drink added to a package (same as POS does)
 async function pkTakeStock(extras){
@@ -1665,6 +1701,7 @@ ${resetChipHtml(b)}
             <button class="action-menu-item" onclick="openInControlRoom('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-device-gamepad-2" style="font-size:15px;color:#6b7280"></i>Open in Control Room</button>
             <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
             <button class="action-menu-item" onclick="closeBookingActions();window.open('invoices.html?booking='+encodeURIComponent('${b.id}'),'_blank')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-file-invoice" style="font-size:15px;color:#6b7280"></i>Invoice</button>
+            <button class="action-menu-item" onclick="closeBookingActions();openConfirmEmail('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail-check" style="font-size:15px;color:#6b7280"></i>Confirmation email</button>
             <button class="action-menu-item" onclick="openWishlistForm('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-heart" style="font-size:15px;color:#6b7280"></i>Add to game wishlist</button>
             <button class="action-menu-item" onclick="openReschedule('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-time" style="font-size:15px;color:#6b7280"></i>Reschedule</button>
             ${b.isWaitlist?`
@@ -1959,6 +1996,7 @@ function buildHireCard(members){
           <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
           <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
             <button class="action-menu-item" onclick="closeBookingActions();window.open('invoices.html?booking='+encodeURIComponent('${b.id}'),'_blank')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-file-invoice" style="font-size:15px;color:#6b7280"></i>Invoice</button>
+            <button class="action-menu-item" onclick="closeBookingActions();openConfirmEmail('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail-check" style="font-size:15px;color:#6b7280"></i>Confirmation email</button>
           <button class="action-menu-item" onclick="startHireEdit('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-pencil" style="font-size:15px;color:#6b7280"></i>Edit details &amp; prices</button>
           <button class="action-menu-item" onclick="cancelHire('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-circle-x" style="font-size:15px"></i>Cancel this hire</button>
         </div>
@@ -4123,7 +4161,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.77'; // v16.4.77: No logged-out first load of staff / bookings / products on startup — they were refused without a login (red 401 errors in the console) and were loaded again after sign-in anyway. Slightly faster start.
+const BUILD_VERSION = '16.4.78'; // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
+
+
+// Previous build: 16.4.77 — // v16.4.77: No logged-out first load of staff / bookings / products on startup — they were refused without a login (red 401 errors in the console) and were loaded again after sign-in anyway. Slightly faster start.
 
 
 // Previous build: 16.4.76 — // v16.4.76: Invoices — 'Invoice' in each booking's ⋯ menu opens invoices.html for that booking / package; Settings has an Invoices button (admin/manager) with a red count of new invoice requests + overdue invoices; package form has 'Pay by invoice' (after saving, a 🧾 Make the invoice button). Package rows get their id up front so the invoice can find them.
