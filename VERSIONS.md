@@ -395,6 +395,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.6.0 — 2026-11-23 — 'Invoice' from a booking that already has one opens it (or lists them with 'Make another'), so duplicates aren't made by accident. (Removed an accidental duplicate draft INV-1176 for Chris Harrison; numbering reset so INV-1176 is next.)
 - v1.5.0 — 2026-11-23 — Invoice request for a booking with an existing unpaid invoice → offer to update that invoice with the customer's details.
 - v1.4.0 — 2026-11-23 — 'Deposit due now' amount (auto $35 × games on full invoices for upcoming bookings) printed as 'Deposit of $X due now… Balance … due by …'.
 - v1.3.0 — 2026-11-23 — '+ Add an item' with games & activities (Booking Config prices: per person by group size or flat), hire games and products; fills name + unit price; whole-number quantities; changing players re-prices per-person games unless the price was typed.
