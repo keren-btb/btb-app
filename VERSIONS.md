@@ -112,6 +112,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.79 — 2026-11-23 — At-BtB packages show as one PACKAGE card (header with customer, total, owing, package ⋯ menu; games inside). CSS ?v=16.4.79.
 - v16.4.78 — 2026-11-23 — ⋯ > Confirmation email: preview + Send (works with 'don't send' ticked; can re-send).
 - v16.4.77 — 2026-11-23 — Removed the logged-out first load (no more red 401 console errors on startup).
 - v16.4.76 — 2026-11-23 — Invoice item in booking ⋯ menu; Settings Invoices button with count; package 'Pay by invoice' → Make the invoice button. CSS ?v=16.4.76.
@@ -394,6 +395,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.5.0 — 2026-11-23 — Invoice request for a booking with an existing unpaid invoice → offer to update that invoice with the customer's details.
 - v1.4.0 — 2026-11-23 — 'Deposit due now' amount (auto $35 × games on full invoices for upcoming bookings) printed as 'Deposit of $X due now… Balance … due by …'.
 - v1.3.0 — 2026-11-23 — '+ Add an item' with games & activities (Booking Config prices: per person by group size or flat), hire games and products; fills name + unit price; whole-number quantities; changing players re-prices per-person games unless the price was typed.
 - v1.2.0 — 2026-11-23 — Status banner (NOT PAID YET / PART PAID / OVERDUE / PAID IN FULL / VOID); payment form hidden behind 'Record a payment received…' with a 'Save payment' button; Edit invoice on sent invoices (Save changes / Save & resend).

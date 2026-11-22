@@ -152,6 +152,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .add-trigger{display:flex;align-items:center;gap:7px;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;width:100%;font-family:inherit}
 .walkin-trigger{display:flex;align-items:center;gap:7px;background:#1a1035;color:#07b4c5;border:1px solid #07b4c5;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;width:100%;font-family:inherit}
 .walkin-trigger:hover{background:#07b4c5;color:#fff}
+/* v16.4.79: games inside a package card — the customer and amount owing are shown once on the package header */
+.pkg-card .booking-card.in-package{margin-bottom:6px;box-shadow:none}
+.pkg-card .in-package .booking-name,.pkg-card .in-package .pay-badge{display:none}
 /* v16.4.71: package form */
 .pk-type-row{display:flex;gap:8px;flex-wrap:wrap}
 .pk-type{display:flex;align-items:center;gap:8px;flex:1 1 220px;border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;background:#fff;font-size:14px;cursor:pointer}

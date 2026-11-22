@@ -10,7 +10,7 @@
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <!-- Bump ?v= whenever btb_app.css changes, or browsers keep showing the old styles -->
-<link rel="stylesheet" href="btb_app.css?v=16.4.76">
+<link rel="stylesheet" href="btb_app.css?v=16.4.79">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -1956,6 +1956,40 @@ function showLinkCopiedToast(msg){
 
 // HIRE CARD — one card per hire (a hire package of several games = ONE card): booking details and total shown once,
 // each game keeps its own colour chip.
+// v16.4.79: PACKAGE CARD (at BtB) — one header with the customer, times, total, amount owing and package actions
+// (Invoice, Confirmation email, POS); each game sits inside with its own players, GMs, notes and ⋯ menu.
+function buildPackageCard(members){
+  const b=members[0];
+  const money=n=>'$'+(n||0).toFixed(2);
+  const total=members.reduce((a,m)=>a+(parseFloat(m.total_amount)||0),0);
+  const owing=members.reduce((a,m)=>{const ps=getPaymentStatus(m);return a+(ps?ps.owing:0)},0);
+  const times=[...new Set(members.map(m=>m.time))];
+  const sameTime=times.length===1;
+  const players=members.reduce((a,m)=>a+(m.players_booked||0),0);
+  const ps=owing>0?`<span class="pay-badge owing"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
+  const mi=(icon,label,fn,color)=>`<button class="action-menu-item" onclick="closeBookingActions();${fn}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:${color||'#374151'};cursor:pointer;font-family:inherit"><i class="ti ${icon}" style="font-size:15px;color:${color||'#6b7280'}"></i>${label}</button>`;
+  const el=document.createElement('div');
+  el.className='pkg-card';
+  el.style.cssText='background:#f0fafb;border:2px solid #07b4c5;border-left-width:8px;border-radius:12px;padding:10px 10px 4px;margin-bottom:10px';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <span style="background:#07b4c5;color:#fff;font-size:11px;font-weight:800;letter-spacing:.6px;padding:3px 9px;border-radius:99px">📦 PACKAGE</span>
+      <span style="font-size:17px;font-weight:700;color:#111827">${sameTime?fmt12(b.time||'00:00'):fmt12(times.sort()[0])+' – '+fmt12(times.sort().at(-1))} · ${members.length} games</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px">${ps}
+        <button class="icon-btn actions-btn" onclick="toggleBookingActions('pkg_${b.id}',this,event)" title="Package actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px;background:#fff"><i class="ti ti-dots-vertical"></i></button>
+        <div id="actionsDD-pkg_${b.id}" style="display:none;position:fixed;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:210px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
+          ${mi('ti-mail-check','Confirmation email',`openConfirmEmail('${b.id}')`)}
+          ${mi('ti-file-invoice','Invoice',`window.open('invoices.html?booking='+encodeURIComponent('${b.id}'),'_blank')`)}
+          ${mi('ti-cash-register','Go to POS',`openInPOS('${b.id}')`)}
+          ${b.customerPhone?mi('ti-phone','Call',`callCustomer('${b.id}')`):''}
+          ${b.customerEmail?mi('ti-mail','Email',`emailCustomer('${b.id}')`):''}
+        </div></span>
+    </div>
+    <div style="font-size:17px;font-weight:700;color:#111827">${escapeHtml(b.customer)||'—'}</div>
+    <div style="font-size:13px;color:#4b5563;margin:2px 0 8px">${players} players · total ${money(total)}${sameTime?' · all at the same time':' · one after the other'}</div>`;
+  members.forEach(m=>{const c=buildCard(m,sameTime);c.classList.add('in-package');el.appendChild(c)});
+  return el;
+}
 function hireMembersOf(b){return b.groupId?bookings.filter(x=>x.groupId===b.groupId&&x.status!=='cancelled'):[b]}
 function buildHireCard(members){
   const b=members[0];
@@ -2139,11 +2173,16 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   // Hire bookings become one card per hire (a package of several games = one card)
   const hireMap={},units=[],inhouse=[];
   dayMeets.forEach(m=>units.push({time:String(m.start_time).slice(0,5),type:'meet',meeting:m})); // v16.4.69 meetings sit in time order with bookings
+  // v16.4.79: an at-BtB package (several games sharing a group id) is ONE card, like a hire package
+  const pkgMap={};
   sorted.forEach(b=>{
     if(b.playLocation==='hire'){
       const k=b.groupId||('single_'+b.id);
       if(!hireMap[k]){hireMap[k]={time:b.time,type:'hire',members:[]};units.push(hireMap[k])}
       hireMap[k].members.push(b);
+    }else if(b.groupId&&sorted.filter(x=>x.groupId===b.groupId&&x.playLocation!=='hire').length>1){
+      if(!pkgMap[b.groupId]){pkgMap[b.groupId]={time:b.time,type:'pkg',members:[]};units.push(pkgMap[b.groupId])}
+      pkgMap[b.groupId].members.push(b);
     }else inhouse.push(b);
   });
   let i=0;
@@ -2157,6 +2196,7 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   units.forEach(u=>{
     if(u.type==='meet'){list.appendChild(buildMeetingCard(u.meeting));return}
     if(u.type==='hire'){list.appendChild((hireDraft&&u.members.some(m=>m.id===hireEditId))?buildHireEditor(u.members):buildHireCard(u.members));return}
+    if(u.type==='pkg'){list.appendChild(buildPackageCard(u.members));return}
     const grp=u.grp;
     if(grp.length>1){
       const wrap=document.createElement('div');
@@ -4161,7 +4201,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.78'; // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
+const BUILD_VERSION = '16.4.79'; // v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+
+
+// Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
 
 
 // Previous build: 16.4.77 — // v16.4.77: No logged-out first load of staff / bookings / products on startup — they were refused without a login (red 401 errors in the console) and were loaded again after sign-in anyway. Slightly faster start.
