@@ -4123,7 +4123,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.76'; // v16.4.76: Invoices — 'Invoice' in each booking's ⋯ menu opens invoices.html for that booking / package; Settings has an Invoices button (admin/manager) with a red count of new invoice requests + overdue invoices; package form has 'Pay by invoice' (after saving, a 🧾 Make the invoice button). Package rows get their id up front so the invoice can find them.
+const BUILD_VERSION = '16.4.77'; // v16.4.77: No logged-out first load of staff / bookings / products on startup — they were refused without a login (red 401 errors in the console) and were loaded again after sign-in anyway. Slightly faster start.
+
+
+// Previous build: 16.4.76 — // v16.4.76: Invoices — 'Invoice' in each booking's ⋯ menu opens invoices.html for that booking / package; Settings has an Invoices button (admin/manager) with a red count of new invoice requests + overdue invoices; package form has 'Pay by invoice' (after saving, a 🧾 Make the invoice button). Package rows get their id up front so the invoice can find them.
 
 
 // Previous build: 16.4.75 — // v16.4.75: Package form — food, drink and extras only show after ticking 'Add food, drink or extras' (unticking with items added asks, then removes them); bigger up/down arrows for the play order.
@@ -4213,7 +4216,9 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
   // v16.4.70: btb_app.html?date=YYYY-MM-DD opens on that day (used by the client profile's booking list)
   try{const dq=new URLSearchParams(location.search).get('date');const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(dq||'');
     if(m){viewYear=+m[1];viewMonth=+m[2];selectedDate=+m[3]}}catch(e){}
-  await Promise.all([loadStaff(), loadBookings(viewMonth,viewYear), loadProducts()]);
+  // v16.4.77: no logged-out first load of staff / bookings / products any more — the database refuses those
+  // without a login (they showed as red 401 errors in the console), and both the signed-in path below and
+  // doLogin() load them with the real login anyway.
 
   // Now restore session or show login
   const saved=localStorage.getItem('btb_staff_session');

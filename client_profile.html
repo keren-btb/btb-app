@@ -149,7 +149,9 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
 })();
 </script>
 <script>
-const BUILD_VERSION = '1.0.9'; // v1.0.9: Bookings card — every booking for this client with totals, games played and amount booked; tap one to open that day in BtB App.
+const BUILD_VERSION = '1.1.0'; // v1.1.0: Invoices card (admin / manager) — this customer's invoices with status, overdue and amount owing; tap one to open it.
+
+// Previous build: 1.0.9 — // v1.0.9: Bookings card — every booking for this client with totals, games played and amount booked; tap one to open that day in BtB App.
 
 // Previous build: 1.0.8 — // v1.0.8: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
 // Previous build: 1.0.7 — // v1.0.7: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.6: Added a "Book" button to the top bar — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.0.5: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
@@ -250,6 +252,11 @@ function renderProfile(){
       <div id="bookingList"><div class="empty-note">Loading…</div></div>
     </div>
 
+    <div class="card" id="invoiceCard" style="display:none">
+      <div class="card-title" style="justify-content:space-between"><span><i class="ti ti-file-invoice"></i> Invoices</span><a class="link-btn" href="invoices.html" target="_blank" style="padding:4px 10px">Invoices page</a></div>
+      <div id="invoiceList"></div>
+    </div>
+
     <div class="card">
       <div class="card-title"><i class="ti ti-building"></i> Others at this company</div>
       <div id="companyList"><div class="empty-note">Add a company above to see others in the same group.</div></div>
@@ -265,6 +272,26 @@ function renderProfile(){
   `;
   loadCompanyMatches();
   loadClientBookings();
+  loadClientInvoices();
+}
+
+// v1.1.0: this client's invoices (admin / manager only — the card stays hidden for anyone else)
+async function loadClientInvoices(){
+  if(!['admin','manager'].includes(currentUser?.role))return;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/invoices?client_id=eq.${encodeURIComponent(clientId)}&select=id,invoice_number,status,kind,issue_date,due_date,total,paid_amount&order=issue_date.desc&limit=100`,{headers:H()});
+    if(!r.ok)return;
+    const rows=await r.json();
+    const card=document.getElementById('invoiceCard');if(!card)return;card.style.display='';
+    const el=document.getElementById('invoiceList');
+    if(!rows.length){el.innerHTML='<div class="empty-note">No invoices yet — make one from a booking (⋯ menu → Invoice).</div>';return}
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+    const fmtD=d=>new Date(d+'T12:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'});
+    const owing=rows.filter(i=>i.status==='sent').reduce((a,i)=>a+(Number(i.total)||0)-(Number(i.paid_amount)||0),0);
+    el.innerHTML=(owing>0?`<div style="font-size:13px;margin-bottom:6px"><b>$${owing.toFixed(2)}</b> owing</div>`:'')+'<ul class="company-list">'+rows.map(i=>{
+      const st=i.status==='sent'&&i.due_date<today?'<span style="color:#dc2626;font-weight:700">overdue</span>':i.status==='paid'?'<span style="color:#15803d">paid</span>':i.status;
+      return`<li class="company-item" onclick="window.open('invoices.html?id=${i.id}','_blank')"><span class="company-name">${escapeHtml(i.invoice_number)} · ${fmtD(i.issue_date)}${i.kind==='deposit'?' · deposit':''}</span><span class="company-contact">$${(Number(i.total)||0).toFixed(2)} · ${st}</span></li>`}).join('')+'</ul>';
+  }catch(e){console.error('Client invoices:',e)}
 }
 
 // v1.0.9: every booking for this client (newest first) with totals — read-only; open one in BtB App / POS

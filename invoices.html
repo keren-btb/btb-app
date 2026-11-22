@@ -212,7 +212,7 @@ function draftFrom(members,kind,req){
   const name=[c.first_name,c.last_name].filter(Boolean).join(' ');
   const {lines,paidAlready}=buildLines(members,kind);
   const issue=req?.invoice_what==='full_after'&&members[0].booking_date>nzToday()?members[0].booking_date:nzToday();
-  return{kind,status:'draft',client_id:members[0].client_id,request_id:req?.id||null,booking_ids:members.map(m=>m.id),group_booking_id:members[0].group_booking_id||null,
+  return{kind,status:'draft',client_id:members[0].client_id,client_name:name||c.company||null,request_id:req?.id||null,booking_ids:members.map(m=>m.id),group_booking_id:members[0].group_booking_id||null,
     issue_date:issue,due_date:addDays(issue,TERMS_DAYS),bill_to:req?.org_name||c.company||name||'',contact_name:req?.contact_name||name||null,
     bill_email:req?.email||c.email||null,bill_phone:req?.phone||c.phone||null,bill_address:req?.billing_address||null,po_number:req?.po_number||null,
     reference:req?.narration||`${[...new Set(members.map(m=>m.game_name))].join(' + ')} — ${fmtD(members[0].booking_date)}`,
@@ -227,16 +227,91 @@ async function fromBooking(bookingId,kind){
   try{const members=await bookingsFor(bookingId);openEditor(draftFrom(members,kind||'full',null),members,null)}
   catch(e){alert('Could not load the booking: '+e.message)}
 }
-function newBlankInvoice(){openEditor({kind:'other',status:'draft',booking_ids:[],issue_date:nzToday(),due_date:addDays(nzToday(),TERMS_DAYS),bill_to:'',lines:[{description:'',qty:1,unit_price:0,amount:0}],paid_amount:0},[],null)}
+// v1.1.0: a new invoice always starts from the customer, then one of their bookings / packages
+// (or "other charges" for that customer). Lines can still be added or changed in the editor.
+function newBlankInvoice(){pickCustomer()}
+let attachMode=false,attachDraft=null;
+function pickCustomer(attach){
+  attachMode=!!attach;if(attach){collectEd();attachDraft={ed,edMembers,edReq}}
+  document.getElementById('ovBox').innerHTML=`
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${attach?'Link this invoice to a customer':'New invoice — who is it for?'}</b><button class="btn" onclick="${attach?'backToDraft()':'closeOv()'}">${attach?'← Back':'✕ Close'}</button></div>
+    <input class="in" id="cs_q" placeholder="Search name, company or email…" oninput="clearTimeout(window._cs);window._cs=setTimeout(searchCustomers,250)" autocomplete="off">
+    <div id="cs_res" style="margin-top:10px"><div class="empty">Type at least 2 letters</div></div>`;
+  document.getElementById('ov').classList.add('show');setTimeout(()=>document.getElementById('cs_q').focus(),50);
+}
+async function searchCustomers(){
+  const q=document.getElementById('cs_q').value.trim().replace(/[,()*%\\]/g,' ').trim(),box=document.getElementById('cs_res');
+  if(q.length<2){box.innerHTML='<div class="empty">Type at least 2 letters</div>';return}
+  try{
+    const e=encodeURIComponent(`*${q}*`);
+    const rows=await api(`clients?or=(first_name.ilike.${e},last_name.ilike.${e},email.ilike.${e},company.ilike.${e})&select=id,first_name,last_name,email,phone,company&order=first_name&limit=25`);
+    window._csRows=rows;
+    box.innerHTML=rows.length?rows.map(c=>`<div class="item" onclick="${attachMode?`attachCustomer('${c.id}')`:`pickBooking('${c.id}')`}"><div class="main"><div class="t">${esc([c.first_name,c.last_name].filter(Boolean).join(' ')||c.email||'—')}${c.company?` · ${esc(c.company)}`:''}</div><div class="m">${esc(c.email||'')}${c.phone?' · '+esc(c.phone):''}</div></div><i class="ti ti-chevron-right"></i></div>`).join(''):'<div class="empty">No customers found — add them in Clients first.</div>';
+  }catch(err){box.innerHTML=`<div class="msg err">${esc(err.message)}</div>`}
+}
+let pickClient=null;
+async function pickBooking(clientId){
+  try{
+    pickClient=(await api(`clients?id=eq.${clientId}&select=id,first_name,last_name,email,phone,company`))[0];
+    const rows=await api(`game_bookings?client_id=eq.${clientId}&status=in.(confirmed,completed)&select=id,game_name,booking_date,slot_time,players_booked,total_amount,group_booking_id,play_location,deposit_paid&order=booking_date.desc,slot_time&limit=80`);
+    const groups=[];const seen={};
+    rows.forEach(b=>{const k=b.group_booking_id||b.id;if(!seen[k]){seen[k]={key:k,first:b,list:[]};groups.push(seen[k])}seen[k].list.push(b)});
+    const today=nzToday();
+    const name=[pickClient.first_name,pickClient.last_name].filter(Boolean).join(' ');
+    document.getElementById('ovBox').innerHTML=`
+      <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${esc(name)}${pickClient.company?' · '+esc(pickClient.company):''}</b><div class="row"><button class="btn" onclick="pickCustomer()">← Other customer</button><button class="btn" onclick="closeOv()">✕</button></div></div>
+      <div style="font-weight:700;margin-bottom:6px">Which booking is the invoice for?</div>
+      ${groups.length?groups.map(g=>{
+        const tot=g.list.reduce((a,b)=>a+(Number(b.total_amount)||0),0);
+        const invs=invoices.filter(i=>i.status!=='void'&&g.list.some(b=>(i.booking_ids||[]).includes(b.id)));
+        return`<div class="card"><div class="row" style="justify-content:space-between"><div><b>${fmtD(g.first.booking_date)}</b>${g.first.booking_date<today?' <span class="badge b-draft">past</span>':''} · ${g.list.map(b=>esc(b.game_name)+' '+(b.play_location==='hire'?'(hire)':fmtT(b.slot_time))).join(' + ')}
+          <div class="m" style="font-size:12px;color:var(--muted)">${money(tot)}${g.list.some(b=>b.deposit_paid)?' · deposit paid':''}${invs.length?' · already invoiced: '+invs.map(i=>esc(i.invoice_number)+(i.kind==='deposit'?' (deposit)':'')).join(', '):''}</div></div>
+          <div class="row"><button class="btn" onclick="fromBooking('${g.first.id}','deposit')">Deposit ($${DEPOSIT_PER_GAME} × ${g.list.length})</button><button class="btn btn-primary" onclick="fromBooking('${g.first.id}','full')">Full amount</button></div></div></div>`}).join(''):'<div class="card empty">No bookings for this customer.</div>'}
+      <button class="btn" style="margin-top:4px" onclick="otherChargesFor()"><i class="ti ti-plus"></i> Not for a booking — other charges for this customer</button>`;
+  }catch(e){alert('Could not load: '+e.message)}
+}
+function backToDraft(){const d=attachDraft;attachMode=false;if(d)openEditor(d.ed,d.edMembers,d.edReq)}
+function attachCustomer(id){
+  const c=(window._csRows||[]).find(x=>x.id===id),d=attachDraft;if(!c||!d)return;
+  const name=[c.first_name,c.last_name].filter(Boolean).join(' ');
+  d.ed.client_id=c.id;d.ed.client_name=name;
+  if(!d.ed.bill_to)d.ed.bill_to=c.company||name;if(!d.ed.contact_name)d.ed.contact_name=name||null;
+  if(!d.ed.bill_email)d.ed.bill_email=c.email||null;if(!d.ed.bill_phone)d.ed.bill_phone=c.phone||null;
+  backToDraft();
+}
+// Products (food, drink, deals…) to add as invoice lines
+let productList=null;
+async function loadProducts(){if(productList)return productList;try{productList=await api('products?select=id,name,sell_price,category&order=category,name')}catch(e){productList=[]}return productList}
+function addProductLine(sel){
+  const p=(productList||[]).find(x=>String(x.id)===sel.value);sel.value='';if(!p)return;
+  const price=Number(p.sell_price)||0;ed.lines.push({description:p.name,qty:1,unit_price:price,amount:price});renderLines();
+}
+function otherChargesFor(){
+  const c=pickClient||{},name=[c.first_name,c.last_name].filter(Boolean).join(' ');
+  openEditor({kind:'other',status:'draft',client_id:c.id||null,client_name:name,booking_ids:[],issue_date:nzToday(),due_date:addDays(nzToday(),TERMS_DAYS),bill_to:c.company||name||'',contact_name:name||null,bill_email:c.email||null,bill_phone:c.phone||null,lines:[{description:'',qty:1,unit_price:0,amount:0}],paid_amount:0},[],null);
+}
 
 // ───────── EDITOR ─────────
 let ed=null,edMembers=[],edReq=null;
-function openInvoice(id){const i=invoices.find(x=>x.id===id);if(!i)return;if(i.status==='draft')openEditor(JSON.parse(JSON.stringify(i)),[],null);else openDetail(i)}
+async function openInvoice(id){
+  const i=invoices.find(x=>x.id===id);if(!i)return;
+  if(i.status!=='draft'){openDetail(i);return}
+  // drafts: reload the linked bookings (so Deposit / Full can be switched) and the customer's name
+  let members=[];const d=JSON.parse(JSON.stringify(i));
+  try{
+    if((i.booking_ids||[]).length)members=await api(`game_bookings?id=in.(${i.booking_ids.join(',')})&select=*,clients(first_name,last_name,email,phone,company)&order=slot_time`);
+    if(i.client_id){const c=(await api(`clients?id=eq.${i.client_id}&select=first_name,last_name,company`))[0];if(c)d.client_name=[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company}
+  }catch(e){console.error('Draft load:',e)}
+  openEditor(d,members,null);
+}
 function openEditor(inv,members,req){
   ed=inv;edMembers=members;edReq=req;
   const v=k=>esc(ed[k]??'');
   document.getElementById('ovBox').innerHTML=`
     <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${ed.invoice_number?esc(ed.invoice_number)+' (draft)':'New invoice'}</b><button class="btn" onclick="closeOv()">✕ Close</button></div>
+    <div class="card row" style="justify-content:space-between;padding:10px 12px">${ed.client_id
+      ?`<span>👤 Customer: <b>${esc(ed.client_name||ed.contact_name||ed.bill_to||'linked')}</b></span><button class="btn" onclick="pickCustomer(true)">Change</button>`
+      :`<span style="color:var(--red);font-weight:600">⚠ Not linked to a customer yet</span><button class="btn btn-primary" onclick="pickCustomer(true)">Choose customer</button>`}</div>
     ${members.length?`<div class="card" style="background:#f0fafb"><div class="row" style="justify-content:space-between"><div>${members.map(m=>`${esc(m.game_name)} ${fmtT(m.slot_time)}`).join(' · ')} — ${fmtD(members[0].booking_date)}</div>
       <div class="row"><span style="font-size:12px;color:var(--muted)">Invoice for:</span><button class="btn ${ed.kind==='deposit'?'btn-primary':''}" onclick="switchKind('deposit')">Deposit ($${DEPOSIT_PER_GAME} × ${members.length})</button><button class="btn ${ed.kind==='full'?'btn-primary':''}" onclick="switchKind('full')">Full amount</button></div></div></div>`:''}
     <div class="grid2">
@@ -252,7 +327,8 @@ function openEditor(inv,members,req){
     </div>
     <div style="margin-top:12px"><label class="f">Lines (prices include GST)</label>
       <table class="lines"><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th></th></tr><tbody id="e_lines"></tbody></table>
-      <button class="btn" style="margin-top:6px" onclick="ed.lines.push({description:'',qty:1,unit_price:0,amount:0});renderLines()"><i class="ti ti-plus"></i> Add line</button></div>
+      <div class="row" style="margin-top:6px"><button class="btn" onclick="ed.lines.push({description:'',qty:1,unit_price:0,amount:0});renderLines()"><i class="ti ti-plus"></i> Add line</button>
+        <select class="in" id="e_prod" style="max-width:280px" onchange="addProductLine(this)"><option value="">+ Add a product (food, drink, deal…)</option></select></div></div>
     <div class="row" style="margin-top:8px"><label class="f" style="margin:0">Already paid (e.g. deposit by bank) $</label><input class="in" style="width:110px" type="number" step="0.01" id="e_paid_amount" value="${Number(ed.paid_amount)||0}" oninput="renderTotals()"></div>
     <div class="tot" id="e_tot"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
@@ -261,6 +337,7 @@ function openEditor(inv,members,req){
       <button class="btn btn-primary" onclick="saveEd(true)"><i class="ti ti-send"></i> Save &amp; email it</button></div>
     <div class="msg" id="e_msg"></div>`;
   renderLines();document.getElementById('ov').classList.add('show');
+  loadProducts().then(list=>{const s=document.getElementById('e_prod');if(s)s.innerHTML='<option value="">+ Add a product (food, drink, deal…)</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)} — ${money(p.sell_price)}</option>`).join('')});
 }
 function switchKind(k){collectEd();const keep={...ed};const d=draftFrom(edMembers,k,edReq);Object.assign(ed,{kind:k,lines:d.lines,paid_amount:d.paid_amount});
   ['bill_to','contact_name','bill_email','po_number','reference','bill_address','issue_date','due_date','notes'].forEach(f=>ed[f]=keep[f]);openEditor(ed,edMembers,edReq)}
@@ -285,6 +362,7 @@ function collectEd(){
 function previewEd(){collectEd();printOrShow({...ed,invoice_number:ed.invoice_number||'INV-(next)'},false)}
 async function saveEd(andSend){
   collectEd();const m=document.getElementById('e_msg');
+  if(!ed.client_id){m.className='msg err';m.textContent='Choose the customer this invoice is for (top of the form).';return}
   if(!ed.bill_to){m.className='msg err';m.textContent='Who is the invoice to?';return}
   if(!ed.lines.length){m.className='msg err';m.textContent='Add at least one line.';return}
   if(andSend&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ed.bill_email||'')){m.className='msg err';m.textContent='Enter the email to send it to.';return}
@@ -317,6 +395,7 @@ function openDetail(i){
   const viewUrl=`${SITE_BASE}invoice_view.html?i=${i.id}&t=${i.public_token}`;
   document.getElementById('ovBox').innerHTML=`
     <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${esc(i.invoice_number)} · ${esc(i.bill_to)}</b><button class="btn" onclick="closeOv()">✕ Close</button></div>
+    ${i.client_id?`<div style="margin-bottom:8px"><a class="btn" href="client_profile.html?id=${i.client_id}" target="_blank"><i class="ti ti-user"></i> Customer profile &amp; bookings</a></div>`:''}
     <div class="card">${i.sent_at?`Sent to ${esc(i.sent_to)} on ${fmtD(i.sent_at)}`:'Not sent'} · Total ${money(t.total)} · Paid ${money(t.paid)} · <b>Due ${money(Math.max(0,t.due))}</b> by ${fmtD(i.due_date)}${i.paid_at?` · last paid ${fmtD(i.paid_at)}${i.paid_ref?' (ref '+esc(i.paid_ref)+')':''}`:''}${i.notes?`<div style="margin-top:6px;color:var(--muted)">📝 ${esc(i.notes)}</div>`:''}</div>
     ${i.status!=='void'&&t.due>0?`<div class="card"><b>Record a payment</b><div class="row" style="margin-top:8px">
       <div><label class="f">Amount $</label><input class="in" style="width:120px" type="number" step="0.01" id="p_amt" value="${t.due.toFixed(2)}"></div>

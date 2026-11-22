@@ -111,6 +111,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.77 — 2026-11-23 — Removed the logged-out first load (no more red 401 console errors on startup).
 - v16.4.76 — 2026-11-23 — Invoice item in booking ⋯ menu; Settings Invoices button with count; package 'Pay by invoice' → Make the invoice button. CSS ?v=16.4.76.
 - v16.4.75 — 2026-11-23 — Package form: food, drink & extras hidden until 'Add food, drink or extras' is ticked (unticking with items asks, then removes them); bigger up/down arrows kept together with the time. CSS ?v=16.4.75.
 - v16.4.74 — 2026-11-23 — Package form: a typed price (e.g. café space hire $50) stays fixed when players change and stays visible with a 'fixed' tag when prices are hidden; clearing it returns to per-person pricing. CSS ?v=16.4.74.
@@ -333,6 +334,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.1.0 — 2026-11-23 — Invoices card (admin/manager) with status, overdue and amount owing.
 - v1.0.9 — 2026-11-23 — Bookings card: every booking for the client with games played and total booked; tap to open that day in BtB App.
 - v1.0.8 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for this client.
 - v1.0.7 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
@@ -390,6 +392,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.1.0 — 2026-11-23 — New invoice: customer search → their bookings/packages → Deposit or Full (or other charges for that customer); invoices must be linked to a customer; add product lines from Products; drafts reopen with their booking; link to customer profile.
 - v1.0.0 — 2026-11-23 — New. Tax invoices made in the app instead of Xero (numbers carry on from Xero: next INV-1175). To do tab: customer invoice requests + drafts; Unpaid (with overdue), Paid, All. Make an invoice from a booking/package (deposit $35 per game, or full amount — games, food/drink/extras, hire fees, less any deposit already invoiced; deposits paid another way show as payments) or a blank one; edit lines (GST-inclusive), dates (14-day terms), PO, 'what it's for', billing address; save draft / save & email (from invoices@mail.btbescaperooms.co.nz, with a view / print / PDF link). Record payments (amount, date, method, bank ref) — also marks the booking deposits paid (deposit invoice) or adds payments to the bookings (full invoice). Void keeps the number. Print / PDF on the BtB letterhead. Admin / manager only.
 
 ## invoice_request.html
