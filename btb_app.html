@@ -93,6 +93,7 @@
     <div id="calListWrap">
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="toggleWalkin()"><i class="ti ti-walk"></i> Add walk-in / phone booking</button>
+        <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="togglePkg()"><i class="ti ti-package"></i> Hire package</button>
         <button id="refreshBtn" onclick="refreshBookings()" style="background:none;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;font-size:13px;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit" title="Refresh bookings">
           <i class="ti ti-refresh"></i> Refresh
         </button>
@@ -159,6 +160,46 @@
         <div class="form-btns">
           <button class="form-cancel" onclick="toggleWalkin()">Cancel</button>
           <button class="form-submit" onclick="submitWalkin()">Add booking</button>
+        </div>
+      </div>
+      <div class="form-wrap" id="pkgForm" style="display:none">
+        <div class="form-title"><i class="ti ti-package"></i> New hire package</div>
+        <div class="form-2col">
+          <div><div class="form-label">Date going out</div><input class="form-input" type="date" id="pkDate"></div>
+          <div><div class="form-label">Time out (optional)</div><input class="form-input" type="time" id="pkTime"></div>
+        </div>
+        <div class="form-row"><div class="form-label">Games in this package (tick each one, price can be changed)</div><div id="pkGames"></div></div>
+        <div class="form-row"><div class="form-label">Customer name</div><input class="form-input" type="text" id="pkName" placeholder="Sarah Robinson"></div>
+        <div class="form-2col">
+          <div><div class="form-label">Phone</div><input class="form-input" type="tel" id="pkPhone"></div>
+          <div><div class="form-label">Email (optional)</div><input class="form-input" type="email" id="pkEmail"></div>
+        </div>
+        <div class="form-row"><div class="form-label">Venue address</div><input class="form-input" type="text" id="pkVenue" placeholder="Street, suburb"></div>
+        <div class="form-row"><div class="form-label">Contact phone at venue (optional)</div><input class="form-input" type="tel" id="pkVenuePhone"></div>
+        <div class="form-row"><div class="form-label">Game master</div>
+          <select class="form-select" id="pkGmAttends" onchange="updatePkgTotal()"><option value="yes">GM goes with the games (assign staff below)</option><option value="no">No GM — they run it themselves</option></select>
+        </div>
+        <div class="form-row" id="pkGmRow"><div class="form-label">Gamemaster(s)</div><div class="gm-chip-row" id="pkGMChips"></div></div>
+        <div class="form-row" id="pkGmFeeRow"><div class="form-label">Game master fee ($) — optional</div><input class="form-input" type="number" id="pkGmFee" min="0" step="0.01" placeholder="0" oninput="updatePkgTotal()"></div>
+        <div class="form-2col">
+          <div><div class="form-label">Getting it to them</div><select class="form-select" id="pkDropoff"><option value="we_drop_off">We drop it off</option><option value="customer_collects">They pick it up from us</option></select></div>
+          <div><div class="form-label">Time (optional)</div><input class="form-input" type="time" id="pkDropoffTime"></div>
+        </div>
+        <div class="form-2col">
+          <div><div class="form-label">Getting it back</div><select class="form-select" id="pkPickup"><option value="we_pick_up">We pick it up</option><option value="customer_returns">They return it to us</option></select></div>
+          <div><div class="form-label">Time (optional)</div><input class="form-input" type="time" id="pkPickupTime"></div>
+        </div>
+        <div class="form-row"><div class="form-label">Travel fee ($)</div><input class="form-input" type="number" id="pkTravel" min="0" step="0.01" placeholder="0" oninput="updatePkgTotal()"></div>
+        <div class="form-2col">
+          <div><div class="form-label">Deposit paid ($)</div><input class="form-input" type="number" id="pkDeposit" min="0" placeholder="0"></div>
+          <div><div class="form-label">How paid</div><select class="form-select" id="pkHowPaid"><option value="">Not paid yet</option><option value="cash">Cash</option><option value="eftpos">Eftpos</option><option value="bank_transfer">Bank transfer</option><option value="stripe">Card (Stripe)</option><option value="invoice">Invoice</option></select></div>
+        </div>
+        <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="pkNote"></div>
+        <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkSkipEmail" checked> Don't send confirmation email</label></div>
+        <div id="pkTotal" style="font-size:14px;font-weight:600;color:#0f766e;margin-bottom:8px"></div>
+        <div class="form-btns">
+          <button class="form-cancel" onclick="togglePkg()">Cancel</button>
+          <button class="form-submit" onclick="submitPkg()">Add hire package</button>
         </div>
       </div>
       <p class="sec-title" id="bookingListTitle"></p>
@@ -596,6 +637,7 @@ const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
 let activeTagFilter=null,activeEnqStatus=null,calView='cal';
 let selectedColorIdx=0,walkinOpen=false,enqOpen=false,walkinGMs=[];
+let pkOpen=false,pkGMs=[];
 let selectedSlotDay=2;
 let currentUser=null;
 let qbOpenGameId=null;
@@ -860,6 +902,7 @@ async function saveBooking(id){
 // WALK-IN FORM
 function toggleWalkin(){
   walkinOpen=!walkinOpen;
+  if(walkinOpen&&pkOpen)togglePkg();
   if(!walkinOpen){walkinClientId=null;walkinClientOrig=null}
   const form=document.getElementById('walkinForm');
   form.style.display=walkinOpen?'':'none';
@@ -911,6 +954,112 @@ function updateWalkinHireUI(){
     const tot=(parseFloat(document.getElementById('wHirePrice').value)||0)+(gm?(parseFloat(document.getElementById('wGmFee')?.value)||0):0)+(parseFloat(document.getElementById('wTravelFee').value)||0);
     document.getElementById('wHireInfo').textContent=[range,per,gm?'A staff member must be assigned below.':'No staff needed.','Total $'+tot.toFixed(2)].filter(Boolean).join(' · ');
   }
+}
+// HIRE PACKAGE BUILDER — one hire going out with several games. Saves one game_bookings row per game,
+// all sharing a group_booking_id, so POS already shows them as ONE combined item/invoice.
+function togglePkg(){
+  pkOpen=!pkOpen;
+  const f=document.getElementById('pkgForm');
+  f.style.display=pkOpen?'':'none';
+  if(pkOpen){
+    if(walkinOpen)toggleWalkin();
+    document.getElementById('pkDate').value=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
+    ['pkTime','pkName','pkPhone','pkEmail','pkVenue','pkVenuePhone','pkGmFee','pkDropoffTime','pkPickupTime','pkTravel','pkDeposit','pkNote'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
+    [['pkGmAttends','yes'],['pkDropoff','we_drop_off'],['pkPickup','we_pick_up'],['pkHowPaid','']].forEach(([i,v])=>{const e=document.getElementById(i);if(e)e.value=v});
+    const se=document.getElementById('pkSkipEmail');if(se)se.checked=true;
+    pkGMs=[];renderPkgGames();renderPkgGMChips();updatePkgTotal();
+    document.getElementById('pkName').focus();
+    f.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+}
+function renderPkgGames(){
+  const hg=games.filter(g=>g.hireable===true&&g.active!==false);
+  document.getElementById('pkGames').innerHTML=hg.length?hg.map(g=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6">
+    <label style="display:flex;align-items:center;gap:8px;flex:1;font-size:13px;cursor:pointer"><input type="checkbox" id="pkChk_${g.id}" onchange="updatePkgTotal()" style="accent-color:#07b4c5;width:16px;height:16px"> ${g.icon||''} ${escapeHtml(g.name)}</label>
+    <span style="font-size:12px;color:#6b7280">$</span><input type="number" id="pkPrice_${g.id}" min="0" step="0.01" value="${g.hirePrice??''}" oninput="updatePkgTotal()" style="width:70px;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px">
+  </div>`).join(''):'<div style="font-size:12px;color:#9ca3af">No games are flagged "Can be hired out" yet (Settings > Games & Activities).</div>';
+}
+function renderPkgGMChips(){
+  document.getElementById('pkGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${pkGMs.includes(p.id)?'assigned':''}" onclick="togglePkGM('${p.id}')">${pkGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
+}
+function togglePkGM(id){const i=pkGMs.indexOf(id);if(i===-1)pkGMs.push(id);else pkGMs.splice(i,1);renderPkgGMChips()}
+function pkgSelected(){
+  return games.filter(g=>g.hireable===true&&document.getElementById('pkChk_'+g.id)?.checked).map(g=>({game:g,price:parseFloat(document.getElementById('pkPrice_'+g.id).value)||0}));
+}
+function updatePkgTotal(){
+  const gm=document.getElementById('pkGmAttends').value==='yes';
+  document.getElementById('pkGmRow').style.display=gm?'':'none';
+  document.getElementById('pkGmFeeRow').style.display=gm?'':'none';
+  const sel=pkgSelected();
+  const gamesTotal=sel.reduce((a,x)=>a+x.price,0);
+  const gmFee=gm?(parseFloat(document.getElementById('pkGmFee').value)||0):0;
+  const travel=parseFloat(document.getElementById('pkTravel').value)||0;
+  document.getElementById('pkTotal').textContent=sel.length?`${sel.length} game${sel.length!==1?'s':''} $${gamesTotal.toFixed(2)}${gmFee?' + GM $'+gmFee.toFixed(2):''}${travel?' + travel $'+travel.toFixed(2):''} = Total $${(gamesTotal+gmFee+travel).toFixed(2)}`:'';
+}
+async function submitPkg(){
+  const date=document.getElementById('pkDate').value;
+  const time=document.getElementById('pkTime').value||'09:00';
+  const name=document.getElementById('pkName').value.trim();
+  const phone=document.getElementById('pkPhone').value.trim();
+  const email=document.getElementById('pkEmail').value.trim();
+  const venue=document.getElementById('pkVenue').value.trim();
+  const venuePhone=document.getElementById('pkVenuePhone').value.trim();
+  const gm=document.getElementById('pkGmAttends').value==='yes';
+  const gmFee=gm?(parseFloat(document.getElementById('pkGmFee').value)||0):0;
+  const travel=parseFloat(document.getElementById('pkTravel').value)||0;
+  const dropMethod=document.getElementById('pkDropoff').value, dropTime=document.getElementById('pkDropoffTime').value||null;
+  const pickMethod=document.getElementById('pkPickup').value, pickTime=document.getElementById('pkPickupTime').value||null;
+  const deposit=parseFloat(document.getElementById('pkDeposit').value)||null;
+  const howPaid=document.getElementById('pkHowPaid').value||null;
+  const note=document.getElementById('pkNote').value.trim();
+  const skipEmail=document.getElementById('pkSkipEmail').checked;
+  const sel=pkgSelected();
+  if(!date){alert('Please choose the date the games go out.');return}
+  if(!sel.length){alert('Please tick at least one game for the package.');return}
+  if(!name){alert('Please enter the customer name.');document.getElementById('pkName').focus();return}
+  if(!venue){alert('Please enter the venue address.');document.getElementById('pkVenue').focus();return}
+  if(gm&&!pkGMs.length){alert('A game master is going with the games, so please assign a staff member.');return}
+  // Warn (don't block) if any chosen game already has a booking that day
+  const [yy,mm,dd]=date.split('-').map(Number);
+  const clashes=sel.filter(x=>bookings.some(b=>b.game_id===x.game.id&&b.year===yy&&b.month===mm&&b.date===dd&&b.status!=='cancelled'&&!b.isEnquiry)).map(x=>x.game.name);
+  if(clashes.length&&!confirm('Heads up: '+clashes.join(', ')+' already has a booking on that day. Add the package anyway?'))return;
+  try{
+    let clientId=null;
+    if(email||phone){
+      const qParam=email?`email=eq.${encodeURIComponent(email)}`:`phone=eq.${encodeURIComponent(phone)}`;
+      const cr=await fetch(`${SB_URL}/rest/v1/clients?${qParam}&select=id`,{headers:H()});
+      const ex=await cr.json();
+      if(ex.length>0){clientId=ex[0].id}
+      else{
+        const parts=name.split(' ');
+        const nr=await fetch(`${SB_URL}/rest/v1/clients`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({first_name:parts[0]||'Guest',last_name:parts.slice(1).join(' ')||null,email:email||null,phone:phone||null,source:'staff'})});
+        const nc=await nr.json();clientId=nc[0]?.id;
+      }
+    }
+    const gid=sel.length>1?(crypto.randomUUID?crypto.randomUUID():null):null;
+    const rows=sel.map((x,i)=>({
+      client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
+      game_id:x.game.id,game_name:x.game.name,booking_date:date,slot_time:time+':00',
+      players_booked:1,occasion:null,status:'confirmed',source:'walkin',
+      assigned_staff_ids:JSON.stringify(gm?pkGMs:[]),tags:JSON.stringify([]),
+      staff_notes:JSON.stringify(note?[note]:[]),
+      notes_when_booked:name+(phone?' · '+phone:''),
+      deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,
+      timer_running:false,timer_sec:0,
+      play_location:'hire',gm_attends:gm,venue_address:venue,venue_contact_phone:venuePhone||null,
+      travel_fee:i===0?travel:0,gm_fee:i===0?gmFee:0,
+      dropoff_method:dropMethod,dropoff_time:dropTime?dropTime+':00':null,
+      pickup_method:pickMethod,pickup_time:pickTime?pickTime+':00':null,
+      total_amount:x.price+(i===0?gmFee+travel:0),
+    }));
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(rows)});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){alert('Error: '+e.message);return}
+  pkOpen=false;pkGMs=[];document.getElementById('pkgForm').style.display='none';
+  viewYear=yy;viewMonth=mm;selectedDate=dd;
+  bookings=bookings.filter(b=>!(b.month===viewMonth&&b.year===viewYear));
+  await loadBookings(viewMonth,viewYear);
+  buildCalendar();renderActiveView();updateHeader();
 }
 function renderWalkinGMChips(){
   document.getElementById('wGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${walkinGMs.includes(p.id)?'assigned':''}" onclick="toggleWGM('${p.id}')">${walkinGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
@@ -3227,7 +3376,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.59'; // v16.4.59: Hire bookings — optional game master fee, drop-off and pick-up options (we do it / customer does it) with optional times; total = hire + GM fee + travel. "Dropped off" wording for no-GM hires renamed to "No GM — they run it themselves".
+const BUILD_VERSION = '16.4.60'; // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
+// Previous build: 16.4.59 — // v16.4.59: Hire bookings — optional game master fee, drop-off and pick-up options (we do it / customer does it) with optional times; total = hire + GM fee + travel. "Dropped off" wording for no-GM hires renamed to "No GM — they run it themselves".
 // Previous build: 16.4.58 — // v16.4.58: Hire-out games — games can be flagged "Can be hired out" (play-time range, hire price/period) in Settings > Games; new bookings can be Played here or Hired out (venue address/phone, GM goes or drop-off, hire price + travel fee). A GM-attended hire requires an assigned staff member. Needs games.hireable/hire_* and game_bookings.play_location/venue_*/travel_fee/gm_attends columns.
 // Previous build: 16.4.57 — // v16.4.57: Settings > Errors now shows the staff member's name (instead of just "Signed-in staff") on each error's details, looked up from the staff list. If the name can't be found it still says "Signed-in staff". Nothing existing was changed or removed. | v16.4.56: Error logging + Settings > Errors. Uncaught errors on this page are now saved to the error_logs table (with the page name and build version), and a new Settings > Errors screen (admin and manager only) lists them grouped, with details and a Mark resolved button. Nothing existing was changed or removed. | v16.4.55: Settings page — the POS, Staff Portal, Control Room and Booking & Enquiry boxes now have a small line under the name ("settings" or "open"); "Bookings & Enquiries" renamed "Booking & Enquiry". | v16.4.54: Top menu row made more compact on phones — the green POS and purple Waiver boxes are shorter and have less empty space, with smaller gaps, so Settings fits on screen without sideways scrolling. | v16.4.53: Settings > Initial Setup > Games & Activities — added a small grey tip (Win + . for emoji) next to the "Add activity" heading, and a pencil button on each activity to rename it. Renaming also updates the activity name on all existing bookings, vouchers and waivers for that activity (matched by game id), and the activity's name in the games list. // v16.4.52: Booking form can now be opened from a client profile — opening btb_app.html?book_client=<client id> opens the walk-in/phone booking form with that client's name, phone and email pre-filled. The booking always links to that client's profile (even if they have no phone/email on file), and a phone or email typed in for a client who didn't have one is saved to the client profile as well as the booking. Existing phone/email on a profile is never overwritten. // v16.4.51: Settings > Links now has a "Client Inbox" card linking to clients_mobile.html (staff-only client email threads), alongside the existing public links.
 // v16.4.50: Quick-book popup's 🔗 button now opens a small "Send booking link" modal (customer name + email, Send button) that emails the locked booking link directly via the send_enquiry_template_email edge function, instead of just copying it to the clipboard. "Copy the link instead" is still available inside the modal as a fallback.
