@@ -1034,7 +1034,7 @@ function renderPkgGames(){
   const hg=games.filter(g=>g.hireable===true&&g.active!==false);
   document.getElementById('pkGames').innerHTML=hg.length?hg.map(g=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6">
     <label style="display:flex;align-items:center;gap:8px;flex:1;font-size:13px;cursor:pointer"><input type="checkbox" id="pkChk_${g.id}" onchange="updatePkgTotal()" style="accent-color:#07b4c5;width:16px;height:16px"> ${g.icon||''} ${escapeHtml(g.name)}</label>
-    <span style="font-size:12px;color:#6b7280">$</span><input type="number" id="pkPrice_${g.id}" min="0" step="0.01" value="${g.hirePrice??''}" oninput="updatePkgTotal()" style="width:70px;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px">
+    <span class="pk-price" style="display:inline-flex">$<input type="number" id="pkPrice_${g.id}" min="0" step="0.01" value="${g.hirePrice??''}" oninput="updatePkgTotal()"></span>
   </div>`).join(''):'<div style="font-size:12px;color:#9ca3af">No games are flagged "Can be hired out" yet (Settings > Games & Activities).</div>';
 }
 // v16.4.70: "Here at BtB" packages — several rooms / VR / café at their own times, plus food & drink
@@ -1202,7 +1202,7 @@ async function submitInhousePkg(){
       players_booked:x.players,status:'confirmed',source:'walkin',play_location:'in_house',
       assigned_staff_ids:JSON.stringify(pkGMs),tags:JSON.stringify([]),staff_notes:JSON.stringify(note?[note]:[]),
       notes_when_booked:name+(phone?' · '+phone:''),
-      deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,
+      deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,...(i===0&&deposit>0?{deposit_method:howPaid||null,deposit_paid_at:new Date().toISOString(),deposit_recorded_by:currentUser?.name||null}:{}),
       timer_running:false,timer_sec:0,
       addons:i===0&&extras.length?JSON.stringify(extras.map(e=>({...e,at}))):null,
       total_amount:x.price+(i===0?extrasTotal:0),
@@ -1261,7 +1261,7 @@ async function submitPkg(){
       assigned_staff_ids:JSON.stringify(gm?pkGMs:[]),tags:JSON.stringify([]),
       staff_notes:JSON.stringify(note?[note]:[]),
       notes_when_booked:name+(phone?' · '+phone:''),
-      deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,
+      deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,...(i===0&&deposit>0?{deposit_method:howPaid||null,deposit_paid_at:new Date().toISOString(),deposit_recorded_by:currentUser?.name||null}:{}),
       timer_running:false,timer_sec:0,
       play_location:'hire',gm_attends:gm,venue_address:venue,venue_contact_phone:venuePhone||null,
       travel_fee:i===0?travel:0,gm_fee:i===0?gmFee:0,hire_extras:i===0?extrasClean:[],
@@ -1442,7 +1442,7 @@ async function submitWalkin(){
         assigned_staff_ids:JSON.stringify(walkinGMs),tags:JSON.stringify([]),
         staff_notes:JSON.stringify(note?[note]:[]),
         notes_when_booked:name+(phone?' · '+phone:''),
-        deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0),how_paid:howPaid||null,
+        deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0),how_paid:howPaid||null,...(deposit>0?{deposit_method:howPaid||null,deposit_paid_at:new Date().toISOString(),deposit_recorded_by:currentUser?.name||null}:{}),
         timer_running:false,timer_sec:0,
         ...(isHire?{}:{total_amount:inHouseTotal}),
         ...(isHire?{play_location:'hire',gm_attends:gmAttends,venue_address:venueAddress,venue_contact_phone:venuePhone||null,travel_fee:travelFee,gm_fee:gmFee,dropoff_method:dropoffMethod,dropoff_time:dropoffTime?dropoffTime+':00':null,pickup_method:pickupMethod,pickup_time:pickupTime?pickupTime+':00':null,total_amount:hirePrice+gmFee+travelFee}:{}),
@@ -4027,7 +4027,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.70'; // v16.4.70: Package button now does packages here at BtB too (several rooms / VR / café at their own times + food & drink from Products, one group invoice in POS) as well as hires; hires can be saved with 'time to be confirmed' (orange CONFIRM TIME badge, set the time in Edit). Calendar buttons shorter on one line (Booking / Package / Meeting / refresh icon). Reset chip shows rooms sent back as 'not reset' in Task Hub. Settings: half width on big screens, quick buttons (Reports, Staff Portal, Task Hub, Control Room, Clients, Email templates, Errors with unresolved count). Abandoned online checkouts no longer appear as bookings. ?date=YYYY-MM-DD opens that day. Client email matching ignores capitals.
+const BUILD_VERSION = '16.4.71'; // v16.4.71: Package form — type chosen with two buttons (radio) instead of a dropdown; at-BtB rows are compact (name, time, players with − / + ), prices hidden unless 'Show / change prices' is ticked, and the dollar sign always stays with its box. Food, drink and extras picked like POS: category buttons and item tiles, tap again for more (e.g. 10 × Fizzy drink), quantity − / + on each line; deals are set up as Products; stock comes off by the quantity. A deposit taken on the walk-in / package form now also records the method, date and who took it.
+
+
+// Previous build: 16.4.70 — // v16.4.70: Package button now does packages here at BtB too (several rooms / VR / café at their own times + food & drink from Products, one group invoice in POS) as well as hires; hires can be saved with 'time to be confirmed' (orange CONFIRM TIME badge, set the time in Edit). Calendar buttons shorter on one line (Booking / Package / Meeting / refresh icon). Reset chip shows rooms sent back as 'not reset' in Task Hub. Settings: half width on big screens, quick buttons (Reports, Staff Portal, Task Hub, Control Room, Clients, Email templates, Errors with unresolved count). Abandoned online checkouts no longer appear as bookings. ?date=YYYY-MM-DD opens that day. Client email matching ignores capitals.
 
 
 // Previous build: 16.4.69 — // v16.4.69: Meetings / appointments on the calendar (cal_events): Meeting button, who's going (shown busy for online bookings), where, with whom, notes, edit/cancel; attendees get a phone notification. Today's booking cards show the room's reset status: red 'Room not reset since the X game' (tap to open the checklist) or green 'Room ready (who, when)'.

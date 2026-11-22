@@ -152,6 +152,32 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .add-trigger{display:flex;align-items:center;gap:7px;background:#07b4c5;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;width:100%;font-family:inherit}
 .walkin-trigger{display:flex;align-items:center;gap:7px;background:#1a1035;color:#07b4c5;border:1px solid #07b4c5;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;width:100%;font-family:inherit}
 .walkin-trigger:hover{background:#07b4c5;color:#fff}
+/* v16.4.71: package form */
+.pk-type-row{display:flex;gap:8px;flex-wrap:wrap}
+.pk-type{display:flex;align-items:center;gap:8px;flex:1 1 220px;border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;background:#fff;font-size:14px;cursor:pointer}
+.pk-type:has(input:checked){border-color:#07b4c5;background:#ecfeff;font-weight:600}
+.pk-type input{accent-color:#07b4c5;width:16px;height:16px;margin:0}
+.pk-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap}
+.pk-name{display:flex;align-items:center;gap:8px;flex:1 1 130px;min-width:0;font-size:14px;cursor:pointer}
+.pk-name input{accent-color:#07b4c5;width:18px;height:18px;margin:0;flex:none}
+.pk-time{font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;width:100px;flex:none;font-family:inherit}
+.pk-step{display:inline-flex;align-items:center;flex:none;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;background:#fff}
+.pk-step button{border:none;background:#f3f4f6;width:28px;height:30px;font-size:17px;line-height:1;cursor:pointer;color:#374151;padding:0}
+.pk-step input{width:36px;height:30px;border:none;text-align:center;font-size:14px;padding:0;-moz-appearance:textfield;font-family:inherit}
+.pk-step input::-webkit-outer-spin-button,.pk-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pk-price{display:none;align-items:center;gap:3px;flex:none;white-space:nowrap;font-size:13px;color:#6b7280}
+.pk-price input{width:74px;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-family:inherit}
+#pkRooms.show-prices .pk-price,.pk-extra .pk-price,#pkGames .pk-price{display:inline-flex}
+.pk-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.pk-cats button{border:1px solid #d1d5db;background:#fff;border-radius:99px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+.pk-cats button.on{background:#07b4c5;border-color:#07b4c5;color:#fff}
+.pk-prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.pk-prod-grid button{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:8px;font-size:12px;cursor:pointer;text-align:left;font-family:inherit}
+.pk-prod-grid button b{font-size:13px;color:#111827}
+.pk-prod-grid button span{color:#6b7280}
+.pk-prod-grid button.on{border-color:#07b4c5;background:#ecfeff}
+.pk-prod-grid .pk-q{position:absolute;top:-6px;right:-6px;background:#07b4c5;color:#fff !important;border-radius:99px;font-size:11px;font-weight:700;padding:1px 7px}
+.pk-extra{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .cal-actions{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .cal-actions .walkin-trigger{margin-bottom:0;flex:1 1 0;width:auto;justify-content:center;white-space:nowrap;padding:8px 10px;min-width:0}
 .cal-actions .cal-refresh{background:none;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;font-size:16px;color:#6b7280;cursor:pointer;font-family:inherit;flex:0 0 auto}

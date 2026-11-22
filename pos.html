@@ -769,7 +769,9 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.14'; // v1.9.14: Abandoned online checkouts no longer appear as bookings.
+const BUILD_VERSION = '1.9.15'; // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+
+// Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
 // Previous build: 1.9.13 — // v1.9.13: Gift vouchers now record when they were paid (new vouchers.paid_at) — set when a voucher is issued paid or marked paid, cleared on Unpay — so reports.html can count voucher sales in the right period. Marking paid / unpaid now also shows an error if the save fails.
 // Previous build: 1.9.12 — // v1.9.12: Hire bookings in POS use the stored hire price, not in-house per-player pricing — hire details box, GM fee / travel / extra charge lines, receipts list them too, no player +/- on a hire.
@@ -920,7 +922,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),
         status:row.status,source:row.source||'',
         total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,
-        deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,
+        deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,deposit_paid_at:row.deposit_paid_at||null,deposit_ref:row.deposit_ref||null,
         payments:row.payments||null,addons:row.addons||null,
         group_booking_id:row.group_booking_id||null,
         isEnquiry:row.status==='enquiry',
@@ -1244,7 +1246,7 @@ async function loadEarlier(){
     const rows=await r.json();
     const earlier=rows.map(row=>{
       const d=new Date(row.booking_date+'T12:00');
-      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
+      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,deposit_paid_at:row.deposit_paid_at||null,deposit_ref:row.deposit_ref||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
     });
     bookings=[...earlier,...bookings];
   }catch(e){console.error('Load earlier error:',e);}
@@ -1512,7 +1514,7 @@ ${(()=>{
   const fmtDate=ts=>{if(!ts)return'';const d=new Date(ts);return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]};
   if(!depPaid&&!payments.length) return balance>0?`<div style="margin-top:8px;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:'';
   return `<div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
-    ${depPaid?`<div class="pay-hist-row"><span class="pay-hist-label">Deposit${b.deposit_method?' · '+methodLabels[b.deposit_method]:''}</span><span class="pay-hist-amt collected">-$${dep.toFixed(0)}</span><button class="pay-undo-btn" onclick="toggleDepositPaid('${b.id}',false)" title="Undo">↩</button></div>`:''}
+    ${depPaid?`<div class="pay-hist-row"><span class="pay-hist-label">Deposit${b.deposit_method?' · '+(methodLabels[b.deposit_method]||b.deposit_method):''}${b.deposit_paid_at?' · '+new Date(b.deposit_paid_at).toLocaleDateString('en-NZ',{timeZone:'Pacific/Auckland',day:'numeric',month:'short'}):''}${b.deposit_ref?' · ref '+escapeHtml(b.deposit_ref):''}</span><span class="pay-hist-amt collected">-$${dep.toFixed(0)}</span><button class="pay-undo-btn" onclick="toggleDepositPaid('${b.id}',false)" title="Undo">↩</button></div>`:''}
     ${payments.map((p,i)=>{const dateStr=fmtDate(p.at);return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}${p.splitPerson?` <span style="color:#9ca3af">(${p.splitPerson})</span>`:''}${p.invoice_email?`<span style="color:#9ca3af;font-size:11px"> · ${p.invoice_email}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="removePayment('${b.id}',${i})" title="Undo">↩</button></div>`}).join('')}
     ${balance>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid #f3f4f6;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:''}
   </div>`;
@@ -1657,7 +1659,7 @@ function buildSectionHTML(b,sect){
 if(sect==='pay'){
     const quickChecks=(!depPaid||balance>0)?`
       <div style="margin-bottom:8px">
-        ${!depPaid?`<label class="quick-pay-label"><input type="checkbox" onchange="if(this.checked)toggleDepositBank('${b.id}')"> Deposit via bank <span style="color:#9ca3af">($${dep.toFixed(0)})</span></label>`:''}
+        ${!depPaid?(depFormOpen.has(b.id)?depositFormHtml(b,dep):`<label class="quick-pay-label"><input type="checkbox" onchange="if(this.checked){depFormOpen.add('${b.id}');refreshPanel()}"> Deposit received <span style="color:#9ca3af">($${dep.toFixed(0)} — enter date &amp; amount)</span></label>`):''}
         ${balance>0?`<label class="quick-pay-label"><input type="checkbox" onchange="if(this.checked)markFullBank('${b.id}')"> Full balance via bank <span style="color:#9ca3af">($${balance.toFixed(0)})</span></label>`:''}
       </div>`:'';
     const splitMode=b.splitMode||false;
@@ -1831,7 +1833,7 @@ function buildGroupCartSummaryHTML(members){
     combinedTotal+=total;
     collected+=(m.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
     payments.forEach((p,idx)=>allPayments.push({...p,memberId:m.id,idx}));
-    if(m.deposit_paid){allPayments.push({amount:dep,method:m.deposit_method||'deposit',at:null,memberId:m.id,idx:-1,isDeposit:true})}
+    if(m.deposit_paid){allPayments.push({amount:dep,method:m.deposit_method||'deposit',at:m.deposit_paid_at||null,memberId:m.id,idx:-1,isDeposit:true})}
     const addonRows=addons.map((a,ai)=>`
       <div class="receipt-row" style="padding-left:14px">
         <span class="receipt-label" style="font-size:12px;color:#6b7280">${escapeHtml(a.label)}</span>
@@ -2229,9 +2231,41 @@ function togglePOSHistory(id){
   refreshPanel();
 }
 
-async function toggleDepositBank(id){
-  const b=bookings.find(x=>x.id===id);if(!b)return;b.deposit_paid=true;b.deposit_method='bank_transfer';await savePOSData(id);refreshPanel();
+// v1.9.15: recording a deposit asks for the amount, the date it arrived, how it was paid and the bank reference,
+// so deposits can be matched to the bank statement later (game_bookings.deposit_paid_at / deposit_ref).
+const depFormOpen=new Set();
+function nzToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date())}
+function depositFormHtml(b,dep){
+  const inp='font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;font-family:inherit;box-sizing:border-box;width:100%';
+  const m=b.deposit_method&&['bank_transfer','cash','eftpos','stripe'].includes(b.deposit_method)?b.deposit_method:'bank_transfer';
+  return`<div style="border:1px solid #07b4c5;background:#f0fafb;border-radius:10px;padding:10px;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">Deposit received</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <label style="font-size:11px;color:#6b7280">Amount ($)<input type="number" step="0.01" min="0" id="depAmt-${b.id}" value="${dep.toFixed(2)}" style="${inp}"></label>
+      <label style="font-size:11px;color:#6b7280">Date received<input type="date" id="depDate-${b.id}" value="${nzToday()}" style="${inp}"></label>
+      <label style="font-size:11px;color:#6b7280">How paid<select id="depMethod-${b.id}" style="${inp}">${[['bank_transfer','Bank transfer'],['cash','Cash'],['eftpos','Eftpos'],['stripe','Card (Stripe)']].map(([v,l])=>`<option value="${v}" ${v===m?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label style="font-size:11px;color:#6b7280">Bank reference (optional)<input type="text" id="depRef-${b.id}" placeholder="e.g. SMITH DEP" style="${inp}"></label>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px"><button onclick="depFormOpen.delete('${b.id}');refreshPanel()" style="flex:1;padding:8px;border:1px solid #d1d5db;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit">Cancel</button>
+      <button onclick="saveDepositReceived('${b.id}')" style="flex:2;padding:8px;border:none;background:#07b4c5;color:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Save deposit</button></div>
+    <div id="depMsg-${b.id}" style="font-size:12px;color:#dc2626;margin-top:4px"></div></div>`;
 }
+async function saveDepositReceived(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const amt=parseFloat(document.getElementById('depAmt-'+id).value),date=document.getElementById('depDate-'+id).value;
+  const msg=document.getElementById('depMsg-'+id);
+  if(!(amt>0)){msg.textContent='Enter the amount received.';return}
+  if(!date){msg.textContent='Enter the date it was received.';return}
+  const body={deposit_paid:true,deposit_amount:amt,deposit_method:document.getElementById('depMethod-'+id).value,
+    deposit_paid_at:new Date(date+'T12:00:00').toISOString(),deposit_ref:document.getElementById('depRef-'+id).value.trim()||null,
+    deposit_recorded_by:currentUser?.name||null,updated_at:new Date().toISOString()};
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    Object.assign(b,body);depFormOpen.delete(id);refreshPanel();
+  }catch(e){msg.textContent='Not saved: '+e.message}
+}
+async function toggleDepositBank(id){depFormOpen.add(id);refreshPanel()}
 async function markFullBank(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
@@ -2243,7 +2277,12 @@ async function markFullBank(id){
   await savePOSData(id);refreshPanel();
 }
 async function toggleDepositPaid(id,paid){
-  const b=bookings.find(x=>x.id===id);if(!b)return;b.deposit_paid=paid;if(!paid)b.deposit_method=null;await savePOSData(id);refreshPanel();
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!paid&&!confirm('Undo this deposit? (Use this if it was marked by mistake.)'))return;
+  const body=paid?{deposit_paid:true}:{deposit_paid:false,deposit_method:null,deposit_paid_at:null,deposit_ref:null,deposit_recorded_by:null};
+  try{const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({...body,updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());Object.assign(b,body);refreshPanel()}
+  catch(e){alert('Deposit change not saved: '+e.message)}
 }
 
 // Helper: re-render panel without full list reload
