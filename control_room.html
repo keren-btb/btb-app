@@ -108,6 +108,12 @@
         <section id="gm-dashboard" class="hidden w-full grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             <div class="lg:col-span-2 space-y-6">
+                <!-- v18: big warning when this room hasn't been reset since the previous game (Task Hub checklists) -->
+                <div id="reset-warning" class="hidden p-5 rounded-2xl bg-red-600 text-white shadow-lg border-4 border-red-300">
+                    <div class="text-2xl font-black" id="reset-warning-title">⚠ ROOM NOT RESET</div>
+                    <div class="text-sm mt-1 font-semibold" id="reset-warning-sub"></div>
+                    <button id="reset-warning-btn" class="mt-3 px-4 py-2 rounded-xl bg-white text-red-700 font-black">Open reset checklist</button>
+                </div>
                 <div class="p-5 rounded-2xl bg-[#231647] border border-purple-900/60 shadow-md">
                     <h3 class="text-2xl font-black flex items-center gap-2">
                         <span id="game-team-name">Loading Team...</span>
@@ -239,6 +245,22 @@
         </section>
 
 </main>
+
+    <!-- v18: after "Save & Complete Session" — who resets the room? (Task Hub reset checklist) -->
+    <div id="reset-ask-overlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-[#231647] border border-purple-700 p-6 text-white">
+            <div class="text-xl font-black mb-1">Session saved ✓</div>
+            <div class="text-sm text-purple-200 mb-4" id="reset-ask-sub">Who's resetting the room?</div>
+            <button onclick="resetAskNow()" class="w-full mb-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 font-black">I'll reset it now</button>
+            <div class="mb-2 p-3 rounded-xl bg-purple-950/60 border border-purple-800">
+                <div class="text-sm font-bold mb-2">Someone else will reset it</div>
+                <select id="reset-ask-who" class="w-full mb-2 px-3 py-2 rounded-lg bg-[#1a1035] border border-purple-700 text-white"></select>
+                <button onclick="resetAskGive()" class="w-full px-4 py-2 rounded-lg bg-[#07b4c5] font-bold">Give it to them</button>
+            </div>
+            <button onclick="resetAskLater()" class="w-full px-4 py-3 rounded-xl bg-purple-900 hover:bg-purple-800 font-bold">Later</button>
+            <div id="reset-ask-msg" class="text-sm text-red-300 mt-2"></div>
+        </div>
+    </div>
 
     <div id="timers-pin-overlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div class="bg-[#231647] border border-purple-800/60 rounded-2xl p-6 w-full max-w-xs text-center">
@@ -395,7 +417,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 18; // v18: The link back to the main app now says "BtB App" (was "Btb App"), the same as every other page.
+        const BUILD_VERSION = 19; // v19: Room resets (Task Hub checklists). After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist), "Someone else" (give it to a person or Anyone), or "Later". When you open a game whose room wasn't reset after the previous game, a big red "NOT RESET" warning shows with a button to open the reset checklist. Never blocks the game or the timer.
+        // Previous build: 18 — // v18: The link back to the main app now says "BtB App" (was "Btb App"), the same as every other page.
         // Previous build: 17 — // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
         // Previous build v16: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
         // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
@@ -797,6 +820,7 @@ async function checkActiveBooking() {
             document.getElementById("game-team-name").innerText = bookingCustomerName(booking);
 
             document.getElementById("game-meta-details").innerText = `${booking.play_location==='hire' ? '🚚 Hired out' + (booking.venue_address ? ' — ' + booking.venue_address : '') : 'Booked: ' + (booking.players_booked || '0') + ' players'}${booking.status==='completed' ? ' · Completed' : ''}`;
+            checkRoomReset(booking); // v18: big warning if the previous game's reset isn't done
 
             // Handle Birthday indicators validation
             if (booking.occasion && booking.occasion.toLowerCase().includes('birth')) {
@@ -1021,6 +1045,93 @@ async function resetTimer(){
         // ==========================================
         // 💾 SAVE WORK DATA SUBMISSIONS
         // ==========================================
+        // ==========================================
+        // 🧹 ROOM RESET (Task Hub checklists) — v18
+        // ==========================================
+        let myStaffId = null;
+        async function getMyStaffId() {
+            if (myStaffId || !currentUser) return myStaffId;
+            try {
+                const r = await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${currentUser.id}&select=id`, {headers:H()});
+                const rows = await r.json(); myStaffId = rows && rows[0] ? rows[0].id : null;
+            } catch(e) { myStaffId = null; }
+            return myStaffId;
+        }
+        // The active reset checklist for this game's room, if one has been set up in Task Hub
+        async function resetTemplateFor(gameId) {
+            const ar = await fetch(`${SB_URL}/rest/v1/cl_areas?game_id=eq.${encodeURIComponent(gameId)}&active=eq.true&select=id`, {headers:H()});
+            const areas = ar.ok ? await ar.json() : [];
+            if (!areas.length) return null;
+            const tr = await fetch(`${SB_URL}/rest/v1/cl_templates?area_id=in.(${areas.map(a=>a.id).join(',')})&kind=eq.reset&active=eq.true&select=id,name,area_id&limit=1`, {headers:H()});
+            const t = tr.ok ? await tr.json() : [];
+            return t[0] || null;
+        }
+        // Finds (or creates) the reset checklist for one finished booking
+        async function resetRunFor(booking, template) {
+            const q = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${template.id}&booking_id=eq.${booking.id}&select=*`, {headers:H()});
+            const found = q.ok ? await q.json() : [];
+            if (found[0]) return found[0];
+            const r = await fetch(`${SB_URL}/rest/v1/cl_runs`, {method:'POST', headers:{...H(), 'Prefer':'return=representation'}, body: JSON.stringify({
+                template_id: template.id, template_name: template.name, kind: 'reset', owners_only: false, area_id: template.area_id, game_id: booking.game_id,
+                booking_id: booking.id, run_date: booking.booking_date, auto: true, created_by: await getMyStaffId() })});
+            if (r.ok) return (await r.json())[0];
+            if (r.status === 409) { const again = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${template.id}&booking_id=eq.${booking.id}&select=*`, {headers:H()}); return (await again.json())[0]; }
+            throw new Error(await r.text());
+        }
+        let resetAskRun = null;
+        async function askWhoResets(booking) {
+            if (!booking || booking.play_location === 'hire') return false;
+            const t = await resetTemplateFor(booking.game_id);
+            if (!t) return false;
+            resetAskRun = await resetRunFor(booking, t);
+            if (!resetAskRun || resetAskRun.status === 'done') return false;
+            document.getElementById('reset-ask-sub').textContent = `Who's resetting ${booking.game_name}?`;
+            document.getElementById('reset-ask-who').innerHTML = '<option value="">Anyone (goes on Today\'s jobs)</option>' + staff.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+            document.getElementById('reset-ask-msg').textContent = '';
+            document.getElementById('reset-ask-overlay').classList.remove('hidden');
+            return true;
+        }
+        function closeResetAsk() { document.getElementById('reset-ask-overlay').classList.add('hidden'); }
+        async function resetAskNow() {
+            try {
+                const me = await getMyStaffId();
+                if (me) await fetch(`${SB_URL}/rest/v1/cl_runs?id=eq.${resetAskRun.id}`, {method:'PATCH', headers:H(), body: JSON.stringify({assigned_staff_id: me, assigned_role: null})});
+            } catch(e) { console.error(e); }
+            closeResetAsk();
+            window.open(`task_hub.html?run=${resetAskRun.id}`, '_blank');
+        }
+        async function resetAskGive() {
+            const to = document.getElementById('reset-ask-who').value || null;
+            const r = await fetch(`${SB_URL}/rest/v1/cl_runs?id=eq.${resetAskRun.id}`, {method:'PATCH', headers:{...H(), 'Prefer':'return=representation'}, body: JSON.stringify({assigned_staff_id: to, assigned_role: null})});
+            if (!r.ok) { document.getElementById('reset-ask-msg').textContent = 'Not saved: ' + await r.text(); return; }
+            closeResetAsk();
+        }
+        function resetAskLater() { closeResetAsk(); }
+
+        // Big warning on the dashboard if the previous game in this room hasn't been reset yet
+        async function checkRoomReset(booking) {
+            const box = document.getElementById('reset-warning');
+            box.classList.add('hidden');
+            if (!booking || booking.play_location === 'hire' || booking.status === 'completed') return;
+            try {
+                const t = await resetTemplateFor(booking.game_id);
+                if (!t || currentBooking !== booking) return;
+                const br = await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(booking.game_id)}&booking_date=eq.${booking.booking_date}&slot_time=lt.${booking.slot_time}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,booking_date,slot_time&order=slot_time.desc&limit=1`, {headers:H()});
+                const prev = br.ok ? (await br.json())[0] : null;
+                if (!prev || currentBooking !== booking) return;
+                const rr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&booking_id=eq.${prev.id}&select=id,status`, {headers:H()});
+                const run = rr.ok ? (await rr.json())[0] : null;
+                if (run && run.status === 'done') return;
+                const fmt = s => { const [h,m] = String(s).slice(0,5).split(':').map(Number); return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`; };
+                document.getElementById('reset-warning-title').textContent = `⚠ ${String(booking.game_name||'ROOM').toUpperCase()} NOT RESET`;
+                document.getElementById('reset-warning-sub').textContent = `The reset after the ${fmt(prev.slot_time)} game hasn't been done. This game starts at ${fmt(booking.slot_time)}.`;
+                document.getElementById('reset-warning-btn').onclick = async () => {
+                    try { const r = await resetRunFor(prev, t); window.open(`task_hub.html?run=${r.id}`, '_blank'); } catch(e) { alert('Could not open the checklist: ' + e.message); }
+                };
+                box.classList.remove('hidden');
+            } catch(e) { console.error('Reset check:', e); }
+        }
+
         async function saveAndFinalizeSession() {
             if (!currentBooking) return;
 
@@ -1049,7 +1160,9 @@ async function resetTimer(){
                 });
                 if(!r.ok) throw new Error(await r.text());
 
-                alert("Session saved and marked complete!");
+                // v18: if this room has a reset checklist, ask who's resetting it (falls back to the old message)
+                const asked = await askWhoResets(currentBooking).catch(e => { console.error('Reset prompt:', e); return false; });
+                if (!asked) alert("Session saved and marked complete!");
                 checkActiveBooking(); // Refresh state for this room
 
             } catch (err) {

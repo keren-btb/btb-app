@@ -19,7 +19,7 @@
 }
 body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 
-/* LOGIN (same pattern as clients.html) */
+/* LOGIN */
 .login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
 .login-screen.active{display:flex}
 .login-logo{font-size:22px;font-weight:800;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:8px}
@@ -32,7 +32,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
 .login-error{font-size:12px;color:#dc2626;margin-top:8px;text-align:center;min-height:18px}
 
-/* SIDEBAR / SHELL (same pattern as clients.html) */
+/* SHELL */
 .app-wrap{display:flex;min-height:100vh;min-height:100dvh;width:100%}
 .sidebar{width:220px;background:var(--navy);color:#fff;flex-shrink:0;position:relative;transition:width .18s ease}
 .sidebar.collapsed{width:0;overflow:hidden}
@@ -44,61 +44,101 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 .sidebar-sub{font-size:11px;color:#8a9bb5;margin-top:3px}
 .sidebar-user{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px;color:#8a9bb5;display:flex;justify-content:space-between;align-items:center}
 .sidebar-logout{color:#8a9bb5;cursor:pointer;font-size:11px;text-decoration:underline}
-.sidebar-back{display:block;padding:8px 16px;font-size:12px;color:#8a9bb5;text-decoration:none;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-back{display:flex;padding:8px 16px;font-size:12px;color:#8a9bb5;text-decoration:none;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,.08)}
 .sidebar-section{padding:14px 16px 6px;font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:1px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:#a0b0c8;cursor:pointer;border-left:3px solid transparent;transition:all .15s;text-decoration:none}
 .nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-item.active{background:rgba(7,180,197,.12);color:var(--teal);border-left-color:var(--teal);font-weight:600}
 .nav-item i{font-size:16px;flex-shrink:0}
-
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.topbar{background:#fff;border-bottom:1px solid var(--border);padding:16px 24px}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 20px}
 .topbar-title{font-size:18px;font-weight:700;color:var(--text)}
-.content{padding:20px 24px;flex:1;overflow-y:auto}
-.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;margin-bottom:14px}
-.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.content{padding:16px 20px 40px;flex:1;overflow-y:auto;max-width:900px;width:100%}
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 16px;margin-bottom:12px}
+.empty-state{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+.section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px;display:flex;align-items:center;gap:6px}
+.pill-tabs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pill-tab{padding:6px 12px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border:1px solid var(--border);border-radius:999px;background:#fff}
+.pill-tab.active{color:#fff;background:var(--teal);border-color:var(--teal)}
 
-/* FORM ELEMENTS */
-.form-row{margin-bottom:12px}
+/* FORMS */
+.form-row{margin-bottom:10px}
 .form-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block}
 .form-select,.form-input,.form-textarea{width:100%;font-size:14px;font-family:inherit;color:#374151;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
 .form-textarea{min-height:60px;resize:vertical}
-.btn{font-size:13px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.row2{display:flex;gap:8px;flex-wrap:wrap}.row2>*{flex:1;min-width:140px}
+.btn{font-size:13px;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;justify-content:center}
 .btn-primary{background:var(--teal);color:#fff}
+.btn-green{background:var(--green);color:#fff}
 .btn-secondary{background:#fff;border:1px solid var(--border);color:var(--text)}
 .btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
 .btn-sm{font-size:12px;padding:5px 10px}
+.btn-big{font-size:15px;padding:12px 16px;width:100%}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.msg{font-size:12px;margin-top:6px;min-height:16px}.msg.err{color:var(--red)}.msg.ok{color:var(--green)}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;display:inline-block;letter-spacing:.3px}
+.b-red{background:#fee2e2;color:#b91c1c}.b-green{background:#dcfce7;color:#15803d}.b-amber{background:#fef3c7;color:#92400e}.b-grey{background:#f3f4f6;color:#6b7280}.b-teal{background:#e0f7fa;color:#0e7490}.b-purple{background:#ede9fe;color:#6d28d9}
 
-/* TABS */
-.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)}
-.tab-item{padding:9px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab-item.active{color:var(--teal);border-bottom-color:var(--teal)}
-.pill-tabs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.pill-tab{padding:6px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border:1px solid var(--border);border-radius:999px;background:#fff;transition:all .15s}
-.pill-tab:hover{color:var(--teal);border-color:var(--teal)}
-.pill-tab.active{color:#fff;background:var(--teal);border-color:var(--teal)}
+/* ROOM BOARD */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.room-card{border-radius:12px;padding:12px 14px;border:2px solid var(--border);background:#fff}
+.room-card.need{border-color:#dc2626;background:#fef2f2}
+.room-card.need.urgent{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.35)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
+.room-card.ready{border-color:#86efac;background:#f0fdf4}
+.room-name{font-size:15px;font-weight:700}
+.room-status{font-size:13px;font-weight:700;margin-top:4px}
+.room-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.room-btns{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 
-/* DAILY TASKS */
-.daily-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;background:#fffdf7}
-.daily-item input[type=checkbox]{margin-top:2px;width:18px;height:18px;flex-shrink:0;cursor:pointer}
-.daily-item-body{flex:1;min-width:0}
-.daily-item-name{font-size:14px;font-weight:600;color:var(--text)}
-.daily-item-meta{font-size:12px;color:var(--muted);margin-top:3px}
+/* JOB LIST */
+.job{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer}
+.job:hover{border-color:var(--teal)}
+.job.overdue{border-color:#fca5a5;background:#fff7f7}
+.job-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#e0f7fa;color:#0e7490}
+.job-body{flex:1;min-width:0}
+.job-name{font-weight:600;font-size:14px}
+.job-meta{font-size:12px;color:var(--muted);margin-top:2px}
 
-/* CHECKLIST FIELDS (both templates admin + fill-out form) */
-.field-block{border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:10px;background:var(--light)}
-.field-block-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px}
-.flag-badge{font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:99px;font-weight:600;margin-left:6px}
-.radio-opt{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:4px}
-.photo-preview{width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
-.template-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#fff;cursor:pointer}
-.template-row:hover{border-color:var(--teal)}
-.template-row-name{font-weight:600;font-size:13px}
-.template-row-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.field-editor-row{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff}
-.field-editor-row .form-row{margin-bottom:8px}
-.review-card{border:1px solid #fecaca;background:#fff7f7;border-radius:9px;padding:12px 14px;margin-bottom:10px}
-.tag-pill{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;background:#e0f2fe;color:#0369a1;display:inline-block}
+/* RUN SCREEN */
+.overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:5000;overflow-y:auto}
+.overlay.show{display:block}
+.overlay-head{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px;z-index:2}
+.overlay-title{font-size:16px;font-weight:700;flex:1;min-width:0}
+.overlay-body{padding:14px 16px 120px;max-width:720px;margin:0 auto}
+.item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.item.child{margin-left:18px;border-left:3px solid var(--teal)}
+.item.heading{background:transparent;border:none;padding:10px 2px 2px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.item-label{font-size:15px;font-weight:600}
+.item-help{font-size:12px;color:var(--muted);margin-top:3px;white-space:pre-wrap}
+.req{color:var(--red);margin-left:3px}
+.tick-btn{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;padding:0}
+.tick-box{width:30px;height:30px;border-radius:8px;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0}
+.tick-box.on{background:var(--green);border-color:var(--green)}
+.choice-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.choice{flex:1;min-width:80px;padding:10px;border-radius:9px;border:2px solid var(--border);background:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+.choice.on-ok{border-color:var(--green);background:#dcfce7;color:#15803d}
+.choice.on-bad{border-color:var(--red);background:#fee2e2;color:#b91c1c}
+.choice.on{border-color:var(--teal);background:#e0f7fa;color:#0e7490}
+.warn-line{font-size:12px;font-weight:700;color:var(--red);margin-top:6px}
+.ref-photo{max-width:160px;max-height:120px;border-radius:8px;margin-top:8px;border:1px solid var(--border);cursor:pointer}
+.photo-thumb{width:110px;height:110px;object-fit:cover;border-radius:8px;margin-top:8px;border:1px solid var(--border)}
+.run-foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);padding:10px 16px;z-index:5001;display:none}
+.run-foot.show{display:block}
+.run-foot-inner{max-width:720px;margin:0 auto;display:flex;gap:8px}
+
+/* EDITOR */
+.ed-item{border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff}
+.ed-item.child{margin-left:22px;border-left:3px solid var(--teal);background:#fafeff}
+.ed-tools{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.list-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;background:#fff}
+.list-row .grow{flex:1;min-width:0}
+table.ans{width:100%;border-collapse:collapse;font-size:13px}
+table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:top}
+@media (max-width:760px){
+  .sidebar{display:none}
+  .content{padding:12px 12px 40px}
+}
 </style>
 </head>
 <body>
@@ -137,130 +177,41 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
       <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
     </div>
     <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
-
     <div class="sidebar-section">Task Hub</div>
-    <span class="nav-item active" id="navDaily" onclick="switchTab('daily')"><i class="ti ti-checklist"></i> Daily Tasks</span>
-    <span class="nav-item" id="navRoom" onclick="switchTab('room')"><i class="ti ti-door"></i> Room Checklists</span>
-    <span class="nav-item" id="navGeneralTasks" onclick="switchTab('generaltasks')"><i class="ti ti-clipboard-list"></i> General Tasks</span>
-    <span class="nav-item" id="navReview" style="display:none" onclick="switchTab('review')"><i class="ti ti-flag"></i> Review <span id="reviewCount" style="color:var(--red)"></span></span>
-<span class="nav-item" id="navTemplates" style="display:none" onclick="switchTab('templates')"><i class="ti ti-settings"></i> Templates</span>
-    <span class="nav-item" id="navChecklistTypes" style="display:none" onclick="switchTab('checklisttypes')"><i class="ti ti-list"></i> Checklist Types</span>
-    <span class="nav-item" id="navDailyCategories" style="display:none" onclick="switchTab('dailycategories')"><i class="ti ti-category"></i> Daily Categories</span>
-    <span class="nav-item" id="navTaskTags" style="display:none" onclick="switchTab('tasktags')"><i class="ti ti-tags"></i> Task Tags</span>
+    <span class="nav-item" data-tab="today" onclick="switchTab('today')"><i class="ti ti-checklist"></i> Today</span>
+    <span class="nav-item" data-tab="history" onclick="switchTab('history')"><i class="ti ti-history"></i> History</span>
+    <span class="nav-item" data-tab="issues" onclick="switchTab('issues')"><i class="ti ti-tool"></i> Issues <span id="issueCount" style="color:#fca5a5"></span></span>
+    <span class="nav-item edit-only" data-tab="templates" onclick="switchTab('templates')"><i class="ti ti-list-details"></i> Checklists</span>
+    <span class="nav-item edit-only" data-tab="settings" onclick="switchTab('settings')"><i class="ti ti-settings"></i> Settings</span>
   </aside>
-    
 
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title" id="topbarTitle">Daily Tasks</div>
-      <div class="pill-tabs" id="hubPillTabs">
-        <span class="pill-tab active" id="pillDaily" onclick="switchTab('daily')">Daily Tasks</span>
-        <span class="pill-tab" id="pillRoom" onclick="switchTab('room')">Room Checklists</span>
-        <span class="pill-tab" id="pillGeneralTasks" onclick="switchTab('generaltasks')">General Tasks</span>
+      <div class="topbar-title" id="topbarTitle">Today</div>
+      <div class="pill-tabs">
+        <span class="pill-tab" data-tab="today" onclick="switchTab('today')">Today</span>
+        <span class="pill-tab" data-tab="history" onclick="switchTab('history')">History</span>
+        <span class="pill-tab" data-tab="issues" onclick="switchTab('issues')">Issues</span>
+        <span class="pill-tab edit-only" data-tab="templates" onclick="switchTab('templates')">Checklists</span>
+        <span class="pill-tab edit-only" data-tab="settings" onclick="switchTab('settings')">Settings</span>
       </div>
     </div>
-
-    <div class="content">
-      <!-- DAILY TASKS -->
-      <div id="dailySection">
-        <div class="card" style="display:flex;gap:8px;margin-bottom:12px">
-          <input class="form-input" id="newAdhocTaskLabel" placeholder="Add a one-off task for today…" onkeydown="if(event.key==='Enter')addAdhocDailyTask()">
-          <button class="btn btn-primary btn-sm" onclick="addAdhocDailyTask()"><i class="ti ti-plus"></i> Add</button>
-        </div>
-        <div id="dailyHistoryLinkWrap" style="display:none;margin-bottom:10px">
-          <span class="tab-item" onclick="toggleDailyHistoryPanel()"><i class="ti ti-history"></i> History</span>
-        </div>
-        <div id="dailyHistoryPanel" class="card" style="display:none;margin-bottom:12px">
-          <div class="form-row" style="display:flex;gap:8px;align-items:center">
-            <input type="date" class="form-input" id="dailyHistoryDate" onchange="loadDailyHistoryForDate()">
-            <button class="btn btn-secondary btn-sm" onclick="toggleDailyHistoryPanel()">Close</button>
-          </div>
-          <div id="dailyHistoryList" style="margin-top:10px"></div>
-        </div>
-        <div id="dailyList"></div>
-      </div>
-
-      <!-- ROOM CHECKLISTS -->
-      <div id="roomSection" style="display:none">
-        <div class="card">
-          <div class="form-row">
-            <label class="form-label">Room</label>
-            <select class="form-select" id="roomGameSelect" onchange="onRoomFormChange()"><option value="">Choose a room…</option></select>
-          </div>
-<div class="form-row">
-            <label class="form-label">Checklist type</label>
-            <select class="form-select" id="roomTypeSelect" onchange="onRoomFormChange()"></select>
-          </div>
-          <div class="form-row" id="roomBookingRow" style="display:none">
-            <label class="form-label">Which booking is this for?</label>
-            <select class="form-select" id="roomBookingSelect"></select>
-          </div>
-        </div>
-        <div id="roomChecklistForm"></div>
-      </div>
-
-      <!-- GENERAL TASKS -->
-      <div id="generalTasksSection" style="display:none">
-        <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="font-size:13px;color:var(--muted)">Tasks assigned to you, your role, or open to anyone</div>
-          <button class="btn btn-primary btn-sm" id="newGeneralTaskBtn" style="display:none" onclick="openNewGeneralTaskForm()"><i class="ti ti-plus"></i> New task</button>
-        </div>
-        <div id="generalTaskEditorWrap" style="margin-bottom:12px"></div>
-        <div id="generalTasksList"></div>
-      </div>
-
-      <!-- REVIEW QUEUE -->
-      <div id="reviewSection" style="display:none">
-        <div id="reviewList"></div>
-      </div>
-
-      <!-- TEMPLATES ADMIN -->
-      <div id="templatesSection" style="display:none">
-        <div class="tabs">
-          <span class="tab-item active" id="tplTabDaily" onclick="switchTemplateTab('daily')">Daily Tasks</span>
-          <span class="tab-item" id="tplTabRoom" onclick="switchTemplateTab('room')">Room Checklists</span>
-        </div>
-        <div id="templateListWrap"></div>
-        <button class="btn btn-primary" style="margin-top:10px" onclick="openNewTemplateForm()"><i class="ti ti-plus"></i> New template</button>
-<div id="templateEditorWrap" style="margin-top:16px"></div>
-      </div>
-
-      <!-- CHECKLIST TYPES ADMIN -->
-      <div id="checklistTypesSection" style="display:none">
-        <div id="checklistTypesListWrap"></div>
-        <div class="card" style="margin-top:16px">
-          <div class="field-block-label" style="margin-bottom:8px">Add a new checklist type</div>
-          <div class="form-row"><input class="form-input" id="newChecklistTypeLabel" placeholder="e.g. Deep Clean"></div>
-          <button class="btn btn-primary btn-sm" onclick="addChecklistType()"><i class="ti ti-plus"></i> Add</button>
-        </div>
-      </div>
-
-      <!-- DAILY CATEGORIES ADMIN -->
-      <div id="dailyCategoriesSection" style="display:none">
-        <div id="dailyCategoriesListWrap"></div>
-        <div class="card" style="margin-top:16px">
-          <div class="field-block-label" style="margin-bottom:8px">Add a new category</div>
-          <div class="form-row"><input class="form-input" id="newDailyCategoryLabel" placeholder="e.g. Tech"></div>
-          <button class="btn btn-primary btn-sm" onclick="addDailyCategory()"><i class="ti ti-plus"></i> Add</button>
-        </div>
-      </div>
-
-      <!-- GENERAL TASK TAGS ADMIN -->
-      <div id="taskTagsSection" style="display:none">
-        <div id="taskTagsListWrap"></div>
-        <div class="card" style="margin-top:16px">
-          <div class="field-block-label" style="margin-bottom:8px">Add a new tag</div>
-          <div class="form-row"><input class="form-input" id="newTaskTagLabel" placeholder="e.g. Maintenance"></div>
-          <button class="btn btn-primary btn-sm" onclick="addTaskTag()"><i class="ti ti-plus"></i> Add</button>
-        </div>
-      </div>
-    </div>
+    <div class="content" id="content"></div>
   </div>
 </div>
-        
+
+<!-- Full-screen checklist / detail view -->
+<div class="overlay" id="overlay">
+  <div class="overlay-head">
+    <button class="btn btn-secondary btn-sm" onclick="closeOverlay()"><i class="ti ti-arrow-left"></i></button>
+    <div class="overlay-title" id="overlayTitle"></div>
+  </div>
+  <div class="overlay-body" id="overlayBody"></div>
+</div>
+<div class="run-foot" id="runFoot"><div class="run-foot-inner" id="runFootInner"></div></div>
+
 <script>
 // BtB error logger v1.0.0 — sends uncaught errors to the Supabase error_logs table (see Settings > Errors).
-// Never throws, ignores browser-extension noise, de-duplicates, and sends at most 20 per page load.
 (function(){
   var PAGE='task_hub.html', EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs', KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
   var sent=0, seen={};
@@ -292,77 +243,69 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
   window.addEventListener('unhandledrejection',function(e){
     try{ var r=e.reason; send('error','promise',(r&&r.message)||String(r),r&&r.stack); }catch(x){}
   });
-  // For known trouble spots: btbLogError('where', err, {any:'extra info'}, 'warn')  (level optional: error / warn / info)
   window.btbLogError=function(source,err,ctx,level){ send(level||'error',source,(err&&err.message)||String(err),err&&err.stack,ctx); };
 })();
 </script>
 <script>
-const BUILD_VERSION = '1.7.5'; // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
-// Previous build: 1.7.4 — // v1.7.4: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.7.3: Suite-wide mobile viewport fix — app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '2.0.0'; // v2.0.0: Task Hub rebuilt (Phase 1). One kind of checklist for room reset / set-up / opening / closing / maintenance / owners / health & safety, with tick, OK/Not OK, dropdown, number (e.g. battery %), note and photo items, follow-up questions, a Quick reset (short list) for experienced GMs, and every completed checklist kept as a record. Today screen: room board (Needs reset / Ready), Today's jobs open to anyone, jobs assigned to you. History, Issues (raised from Not OK / maintenance needed / low battery answers, or reported directly), checklist editor and Areas settings. New tables cl_*; the old task tables are untouched.
+// Previous build: 1.7.5 — // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
-const H = (k) => {
-  const token = k || (currentUser && currentUser.token) || SB_ANON;
-  return {'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON};
-};
 const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
+const H=(k)=>{const token=k||(currentUser&&currentUser.token)||SB_ANON;return{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}};
 async function callEdgeFunction(action,params={},token=null){
-  const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
-  const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
+  const r=await fetch(EDGE_FN,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON},body:JSON.stringify({action,...params})});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
   return r.json();
 }
-function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-function todayStr(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
-
-const ROLE_LABELS={manager:'Any Manager',admin:'Any Admin',gamemaster_own:'Any Gamemaster'};
-const URGENCY_STYLE={low:'background:#f3f4f6;color:#6b7280',medium:'background:#e0f2fe;color:#0369a1',high:'background:#fef3c7;color:#92400e',urgent:'background:#fee2e2;color:#991b1b'};
-const URGENCY_ORDER={urgent:0,high:1,medium:2,low:3};
-const URGENCY_LABEL={low:'Low',medium:'Medium',high:'High',urgent:'Urgent'};
-const RECURRENCE_LABEL={daily:'daily',weekly:'weekly',monthly:'monthly',quarterly:'every 3 months',half_yearly:'every 6 months',yearly:'yearly'};
-let currentUser=null;
-let canEditTemplates=false;
-let staffList=[];
-let games=[];
-let taskTemplates=[]; // all templates (daily + room), fields loaded separately per-template when needed
-let templateFieldsCache={}; // template_id -> [fields]
-let dailyInstances=[];
-let activeTab='daily';
-let activeTemplateTypeTab='daily';
-let currentRoomTemplate=null; // the active template object for the room form currently shown
-let editingTemplateId=null; // template currently open in the editor, or 'new'
-let editingFields=[]; // working copy of fields while editing a template
-let checklistTypes=[]; // room checklist types (Reset/Setup/Shutdown/etc), loaded from task_checklist_types
-let dailyCategories=[]; // daily task categories (Opening/Shutdown/Tech/etc), loaded from daily_task_categories
-let taskTags=[]; // General Task tags, loaded from general_task_tags
-let generalTaskTemplates=[]; // general_task_templates rows
-let generalTaskInstances=[]; // general_task_instances rows for the current period(s)
-let editingGeneralTaskId=null;
-  
-// ───────────────────────── AUTH (same pattern as clients.html) ─────────────────────────
-let tokenRefreshTimer=null;
-function scheduleTokenRefresh(){
-  clearTimeout(tokenRefreshTimer);
-  if(!currentUser||!currentUser.expiresAt)return;
-  const msUntilRefresh=Math.max(5000,currentUser.expiresAt-Date.now()-(2*60*1000));
-  tokenRefreshTimer=setTimeout(refreshAuthToken,msUntilRefresh);
+// REST helper: throws on any failure, so nothing fails silently.
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),...(opts.headers||{})}});
+  if(!r.ok){const t=await r.text();const e=new Error(t||('Error '+r.status));e.status=r.status;throw e}
+  const txt=await r.text();return txt?JSON.parse(txt):null;
 }
+const post=(table,body,extra='')=>api(`${table}${extra}`,{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});
+const patch=(table,filter,body)=>api(`${table}?${filter}`,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});
+
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function nzParts(d=new Date()){const o={};new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).forEach(p=>o[p.type]=p.value);return o}
+function todayStr(){const o=nzParts();return`${o.year}-${o.month}-${o.day}`}
+function nowMins(){const o=nzParts();return(+o.hour)*60+(+o.minute)}
+function dowOf(ds){return new Date(ds+'T12:00:00Z').getUTCDay()}
+function addToDate(ds,n,unit){const[y,m,d]=ds.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));if(unit==='day')dt.setUTCDate(dt.getUTCDate()+n);else if(unit==='week')dt.setUTCDate(dt.getUTCDate()+7*n);else dt.setUTCMonth(dt.getUTCMonth()+n);return dt.toISOString().slice(0,10)}
+function hm(t){const[a,b]=String(t||'0:0').slice(0,5).split(':').map(Number);return(a||0)*60+(b||0)}
+function fmt12(t){if(!t)return'';const[h,m]=String(t).slice(0,5).split(':').map(Number);return`${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`}
+function fmtDate(ds){if(!ds)return'';return new Date(ds+'T12:00:00Z').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'})}
+function fmtDT(iso){if(!iso)return'';return new Date(iso).toLocaleString('en-NZ',{timeZone:'Pacific/Auckland',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}
+function fmtTime(iso){if(!iso)return'';return new Date(iso).toLocaleTimeString('en-NZ',{timeZone:'Pacific/Auckland',hour:'numeric',minute:'2-digit'})}
+function mins(a,b){if(!a||!b)return null;return Math.max(0,Math.round((new Date(b)-new Date(a))/60000))}
+
+const KIND_LABELS={reset:'Room reset',setup:'Room set-up',opening:'Opening',closing:'Closing',maintenance:'Maintenance',owners:'Owners only',safety:'Health & safety',other:'Other'};
+const KIND_ICONS={reset:'ti-refresh',setup:'ti-layout-grid',opening:'ti-door-enter',closing:'ti-door-exit',maintenance:'ti-tool',owners:'ti-crown',safety:'ti-first-aid-kit',other:'ti-checklist'};
+const TRIGGER_LABELS={after_booking:'After every game in this room',before_first_booking:'Before the first game of the day in this room',open_days:'Every open day',schedule:'Repeats on a schedule',once:'Once',on_demand:'Only when someone starts it'};
+const ROLE_LABELS={gamemaster_own:'All gamemasters',manager:'Managers',admin:'Admins'};
+const TYPE_LABELS={tick:'Tick box',okno:'OK / Not OK',dropdown:'Dropdown',number:'Number (e.g. battery %)',text:'Note',photo:'Photo',heading:'Heading (just text)'};
+
+let currentUser=null,isOwner=false,canEdit=false;
+let staffList=[],games=[],areas=[],templates=[],items=[],bookingsToday=[],openingHours=[],runs=[],openIssues=[];
+let activeTab='today';
+
+// ───────────── AUTH (same pattern as the other staff pages) ─────────────
+let tokenRefreshTimer=null;
+function scheduleTokenRefresh(){clearTimeout(tokenRefreshTimer);if(!currentUser||!currentUser.expiresAt)return;tokenRefreshTimer=setTimeout(refreshAuthToken,Math.max(5000,currentUser.expiresAt-Date.now()-120000))}
 async function refreshAuthToken(){
   if(!currentUser||!currentUser.refreshToken)return;
   try{
     const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
-    const data=await r.json();
-    if(!r.ok||!data.access_token)throw new Error(data.error_description||'Refresh failed');
-    currentUser.token=data.access_token;
-    currentUser.refreshToken=data.refresh_token||currentUser.refreshToken;
-    currentUser.expiresAt=Date.now()+((data.expires_in||3600)*1000);
-    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
-    scheduleTokenRefresh();
+    const data=await r.json();if(!r.ok||!data.access_token)throw new Error(data.error_description||'Refresh failed');
+    currentUser.token=data.access_token;currentUser.refreshToken=data.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+((data.expires_in||3600)*1000);
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleTokenRefresh();
   }catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
 }
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&currentUser){if((currentUser.expiresAt||0)-Date.now()<5*60000)refreshAuthToken();if(activeTab==='today'&&!document.getElementById('overlay').classList.contains('show'))refreshToday()}});
 async function doLogin(){
   let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
   const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
@@ -370,1052 +313,670 @@ async function doLogin(){
   try{
     const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
     const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
-    const userId=data.user.id;const token=data.access_token;
-    const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>({name:email.split('@')[0],role:'gamemaster'}))||{name:email.split('@')[0],role:'gamemaster'};
+    const userId=data.user.id,token=data.access_token;
+    const userRole=await callEdgeFunction('get_my_role',{},token).catch(()=>null)||{name:email.split('@')[0],role:'gamemaster_own'};
     let staffId=userId;
-    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id,can_edit_task_templates`,{headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON}});const srows=await sr.json();if(srows[0]){staffId=srows[0].id;canEditTemplates=!!srows[0].can_edit_task_templates}}catch(e){}
+    try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${userId}&active=eq.true&select=id`,{headers:H(token)});const rows=await sr.json();if(rows[0])staffId=rows[0].id}catch(e){}
     currentUser={id:userId,staffId,email,token,refreshToken:data.refresh_token,expiresAt:Date.now()+((data.expires_in||3600)*1000),name:userRole.name,role:userRole.role};
     localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
-    scheduleTokenRefresh();
-    await loadAppData();
-    showApp();
+    scheduleTokenRefresh();await startApp();
   }catch(e){errEl.textContent='Connection error.';console.error(e)}
 }
 function doLogout(){clearTimeout(tokenRefreshTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active');document.getElementById('loginPass').value=''}
-function showApp(){
+function toggleSidebar(){const sb=document.getElementById('mainSidebar');const c=sb.classList.toggle('collapsed');document.getElementById('sidebarEdgeTab').classList.toggle('show',c);localStorage.setItem('btb_sidebar_collapsed',c?'1':'0')}
+
+async function startApp(){
+  try{
+    const me=await api(`staff?id=eq.${currentUser.staffId}&select=is_owner,can_edit_task_templates`);
+    isOwner=!!(me&&me[0]&&me[0].is_owner);
+    canEdit=['admin','manager'].includes(currentUser.role)||!!(me&&me[0]&&me[0].can_edit_task_templates);
+  }catch(e){isOwner=false;canEdit=['admin','manager'].includes(currentUser.role)}
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='';
   document.getElementById('sidebarUser').textContent=currentUser.name;
-  const vTag=document.getElementById('buildVersionTag');if(vTag)vTag.textContent='v'+BUILD_VERSION;
-document.getElementById('navTemplates').style.display=canEditTemplates?'':'none';
-  document.getElementById('navChecklistTypes').style.display=canEditTemplates?'':'none';
-  document.getElementById('navDailyCategories').style.display=canEditTemplates?'':'none';
-  document.getElementById('navTaskTags').style.display=canEditTemplates?'':'none';
-  document.getElementById('newGeneralTaskBtn').style.display=canEditTemplates?'':'none';
-  document.getElementById('navReview').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
-  document.getElementById('dailyHistoryLinkWrap').style.display=(currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
-  if(localStorage.getItem('btb_sidebar_collapsed')==='1'){
-    document.getElementById('mainSidebar').classList.add('collapsed');
-    document.getElementById('sidebarEdgeTab').classList.add('show');
-  }
-  switchTab(activeTab);
-}
-function toggleSidebar(){
-  const sb=document.getElementById('mainSidebar');const tab=document.getElementById('sidebarEdgeTab');
-  const collapsed=sb.classList.toggle('collapsed');tab.classList.toggle('show',collapsed);
-  localStorage.setItem('btb_sidebar_collapsed',collapsed?'1':'0');
+  document.getElementById('buildVersionTag').textContent='v'+BUILD_VERSION;
+  document.querySelectorAll('.edit-only').forEach(el=>el.style.display=canEdit?'':'none');
+  if(localStorage.getItem('btb_sidebar_collapsed')==='1'){document.getElementById('mainSidebar').classList.add('collapsed');document.getElementById('sidebarEdgeTab').classList.add('show')}
+  document.getElementById('content').innerHTML='<div class="empty-state">Loading…</div>';
+  await loadBase();
+  await refreshToday(true);
+  const runId=new URLSearchParams(location.search).get('run');
+  if(runId){history.replaceState(null,'',location.pathname);openRun(runId)}
 }
 
-// ───────────────────────── DATA LOADING ─────────────────────────
-async function loadStaffList(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/staff?active=eq.true&select=id,name&order=name`,{headers:H()});staffList=await r.json()}catch(e){console.error('Staff list load:',e);staffList=[]}
+// ───────────── DATA ─────────────
+const isAdmin=()=>['admin','manager'].includes(currentUser.role);
+const me=()=>currentUser.staffId;
+function staffName(id){return staffList.find(s=>s.id===id)?.name||''}
+function areaName(id){return areas.find(a=>a.id===id)?.name||''}
+function areaForGame(gid){return areas.find(a=>a.game_id===gid)}
+function gameLen(gid){return games.find(g=>g.id===gid)?.duration||60}
+async function loadBase(){
+  const [s,g,a,t,cfg]=await Promise.all([
+    api('staff?active=eq.true&select=id,name&order=name').catch(()=>[]),
+    api('games?select=id,name,category,duration,active&order=sort_order').catch(()=>[]),
+    api('cl_areas?select=*&order=sort_order,name'),
+    api('cl_templates?select=*&order=sort_order,name'),
+    api('settings?key=eq.btb_booking_config&select=value').catch(()=>[]),
+  ]);
+  staffList=s||[];games=g||[];areas=a||[];templates=t||[];
+  try{openingHours=JSON.parse(cfg?.[0]?.value||'{}').openingHours||[]}catch(e){openingHours=[]}
+  await loadItems();
 }
-function staffName(id){if(!id)return '';return staffList.find(s=>s.id===id)?.name||'—'}
-function assigneeLabel(staffId,role){if(role)return ROLE_LABELS[role]||role;if(staffId)return staffName(staffId);return 'Anyone'}
-function assigneeOptionsHtml(selectedId,selectedRole){
-  const staffOpts=staffList.map(s=>`<option value="${s.id}" ${selectedId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
-  const roleOpts=Object.entries(ROLE_LABELS).map(([k,label])=>`<option value="role:${k}" ${selectedRole===k?'selected':''}>${escapeHtml(label)}</option>`).join('');
-  return `<option value="">Anyone</option>`+staffOpts+roleOpts;
+async function loadItems(){
+  const ids=templates.map(t=>t.id);
+  items=ids.length?await api(`cl_items?template_id=in.(${ids.join(',')})&select=*&order=sort_order`):[];
 }
-async function loadGames(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/games?active=eq.true&select=id,name,category&order=sort_order`,{headers:H()});games=await r.json()}catch(e){console.error('Games load:',e);games=[]}
+function itemsOf(tid,includeInactive=false){return items.filter(i=>i.template_id===tid&&(includeInactive||i.active))}
+async function loadBookingsToday(){
+  const d=todayStr();
+  bookingsToday=await api(`game_bookings?booking_date=eq.${d}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,slot_time,status,assigned_staff_ids&order=slot_time`).catch(()=>[])||[];
 }
-async function loadTemplates(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/task_templates?select=*&order=sort_order`,{headers:H()});taskTemplates=await r.json()}catch(e){console.error('Templates load:',e);taskTemplates=[]}
-}
-async function loadChecklistTypes(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/task_checklist_types?select=*&order=sort_order`,{headers:H()});checklistTypes=await r.json()}catch(e){console.error('Checklist types load:',e);checklistTypes=[]}
-}
-async function loadDailyCategories(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/daily_task_categories?select=*&order=sort_order`,{headers:H()});dailyCategories=await r.json()}catch(e){console.error('Daily categories load:',e);dailyCategories=[]}
-}
-async function loadTaskTags(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/general_task_tags?select=*&order=sort_order`,{headers:H()});taskTags=await r.json()}catch(e){console.error('Task tags load:',e);taskTags=[]}
-}
-function taskTagLabel(key){return taskTags.find(t=>t.key===key)?.label||key}
-async function loadGeneralTaskTemplates(){
-  try{const r=await fetch(`${SB_URL}/rest/v1/general_task_templates?active=eq.true&select=*`,{headers:H()});generalTaskTemplates=await r.json()}catch(e){console.error('General task templates load:',e);generalTaskTemplates=[]}
-}
-function periodStartStr(recurrence){
-  const d=new Date();
-  if(recurrence==='weekly'){
-    const day=d.getDay();const diff=(day===0?-6:1-day);
-    const monday=new Date(d);monday.setDate(d.getDate()+diff);
-    return monday.getFullYear()+'-'+String(monday.getMonth()+1).padStart(2,'0')+'-'+String(monday.getDate()).padStart(2,'0');
-  }
-  if(recurrence==='monthly')return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
-  if(recurrence==='quarterly'){
-    const qStartMonth=Math.floor(d.getMonth()/3)*3;
-    return d.getFullYear()+'-'+String(qStartMonth+1).padStart(2,'0')+'-01';
-  }
-  if(recurrence==='half_yearly'){
-    const hStartMonth=d.getMonth()<6?0:6;
-    return d.getFullYear()+'-'+String(hStartMonth+1).padStart(2,'0')+'-01';
-  }
-  if(recurrence==='yearly')return d.getFullYear()+'-01-01';
-  return todayStr();
-}
-async function ensureGeneralTaskInstances(){
-  const recurring=generalTaskTemplates.filter(t=>t.active&&t.recurrence!=='once');
-  for(const t of recurring){
-    try{
-      await fetch(`${SB_URL}/rest/v1/general_task_instances?on_conflict=template_id,occurrence_date`,{
-        method:'POST',headers:{...H(),'Prefer':'resolution=ignore-duplicates,return=minimal'},
-        body:JSON.stringify({template_id:t.id,occurrence_date:periodStartStr(t.recurrence)})
-      });
-    }catch(e){console.error('Ensure general task instance:',e)}
-  }
-}
-async function loadGeneralTaskInstances(){
-  const ids=generalTaskTemplates.map(t=>t.id);
-  if(!ids.length){generalTaskInstances=[];return}
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/general_task_instances?template_id=in.(${ids.join(',')})&select=*`,{headers:H()});
-    generalTaskInstances=await r.json();
-  }catch(e){console.error('General task instances load:',e);generalTaskInstances=[]}
-}
-function currentGeneralTaskInstance(t){
-  if(t.recurrence==='once')return generalTaskInstances.find(i=>i.template_id===t.id);
-  const occDate=periodStartStr(t.recurrence);
-  return generalTaskInstances.find(i=>i.template_id===t.id&&i.occurrence_date===occDate);
-}
-function generalTaskVisibleToCurrentUser(t){
-  if(currentUser.role==='admin'||currentUser.role==='manager')return true;
-  if(!t.assigned_role&&!t.assigned_staff_id)return true;
-  if(t.assigned_staff_id===currentUser.staffId)return true;
-  if(t.assigned_role===currentUser.role)return true;
-  return false;
-}
-function checklistTypeLabel(key){return checklistTypes.find(c=>c.key===key)?.label||key}
-function checklistTypeOptionsHtml(selectedKey){
-  let list=checklistTypes.filter(c=>c.active||c.key===selectedKey);
-  if(selectedKey&&!list.some(c=>c.key===selectedKey))list=list.concat([{key:selectedKey,label:selectedKey,active:false}]);
-  return list.map(c=>`<option value="${c.key}" ${c.key===selectedKey?'selected':''}>${escapeHtml(c.label)}${c.active===false?' (inactive)':''}</option>`).join('');
-}
-function dailyCategoryOptionsHtml(selectedId){
-  let list=dailyCategories.filter(c=>c.active||c.id===selectedId);
-  if(selectedId&&!list.some(c=>c.id===selectedId)){
-    const inactive=dailyCategories.find(c=>c.id===selectedId);
-    if(inactive)list=list.concat([inactive]);
-  }
-  const opts=list.map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${escapeHtml(c.label)}${c.active===false?' (inactive)':''}</option>`).join('');
-  return `<option value="">Uncategorized</option>`+opts;
-}
-  async function loadTemplateFields(templateId){
-  if(templateFieldsCache[templateId])return templateFieldsCache[templateId];
-  const r=await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}&select=*&order=sort_order`,{headers:H()});
-  const fields=await r.json();
-  templateFieldsCache[templateId]=fields;
-  return fields;
-}
-async function ensureDailyInstancesForToday(){
-  const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
-  const date=todayStr();
-  for(const t of dailyTemplates){
-    try{
-      await fetch(`${SB_URL}/rest/v1/daily_task_instances?on_conflict=template_id,task_date`,{
-        method:'POST',headers:{...H(),'Prefer':'resolution=ignore-duplicates,return=minimal'},
-        body:JSON.stringify({template_id:t.id,task_date:date})
-      });
-    }catch(e){console.error('Ensure daily instance:',e)}
-  }
-}
-async function loadDailyInstances(){
-  const date=todayStr();
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/daily_task_instances?task_date=eq.${date}&select=*`,{headers:H()});
-    dailyInstances=await r.json();
-  }catch(e){console.error('Daily instances load:',e);dailyInstances=[]}
-}
-async function loadAppData(){
-  await Promise.all([loadStaffList(),loadGames(),loadTemplates(),loadChecklistTypes(),loadDailyCategories(),loadTaskTags(),loadGeneralTaskTemplates()]);
-  await ensureDailyInstancesForToday();
-  await loadDailyInstances();
+function isOpenDay(){
+  const oh=openingHours.find(o=>o.day===dowOf(todayStr()));
+  return !!(oh&&oh.open)||bookingsToday.length>0;
 }
 
-// ───────────────────────── TAB SWITCHING ─────────────────────────
+// Creates today's due checklists from each template's "when" setting. Safe to run on every load:
+// the database refuses duplicates, which are simply ignored.
+async function ensureRuns(){
+  const today=todayStr(),now=nowMins();
+  const active=templates.filter(t=>t.active&&itemsOf(t.id).length);
+  if(!active.length)return;
+  const ids=active.map(t=>t.id).join(',');
+  const recent=await api(`cl_runs?template_id=in.(${ids})&select=id,template_id,booking_id,run_date,status,auto&order=run_date.desc&limit=2000`);
+  const todo=[];
+  const runBase=(t,extra={})=>({template_id:t.id,template_name:t.name,kind:t.kind,owners_only:t.kind==='owners',area_id:t.area_id,game_id:areas.find(a=>a.id===t.area_id)?.game_id||null,
+    run_date:today,auto:true,assigned_staff_id:t.assign_mode==='staff'?t.assign_staff_id:null,assigned_role:t.assign_mode==='role'?t.assign_role:null,created_by:me(),...extra});
+  for(const t of active){
+    const mine=recent.filter(r=>r.template_id===t.id);
+    const gid=areas.find(a=>a.id===t.area_id)?.game_id;
+    if(t.trigger==='open_days'){
+      if(isOpenDay()&&!mine.some(r=>r.run_date===today&&!r.booking_id&&r.auto))todo.push(runBase(t));
+    }else if(t.trigger==='schedule'){
+      const last=mine.find(r=>!r.booking_id);
+      if(last&&last.status!=='done'&&last.status!=='skipped')continue; // still waiting to be done
+      const next=last?addToDate(last.run_date,t.schedule_every||1,t.schedule_unit||'month'):(t.schedule_start||today);
+      if(next<=today&&!mine.some(r=>r.run_date===today&&r.auto))todo.push(runBase(t));
+    }else if(t.trigger==='once'){
+      if(!mine.length)todo.push(runBase(t,{run_date:t.due_date||today}));
+    }else if(t.trigger==='before_first_booking'&&gid){
+      if(bookingsToday.some(b=>b.game_id===gid)&&!mine.some(r=>r.run_date===today&&r.auto&&!r.booking_id))todo.push(runBase(t));
+    }else if(t.trigger==='after_booking'&&gid){
+      bookingsToday.filter(b=>b.game_id===gid).forEach(b=>{
+        const finished=b.status==='completed'||hm(b.slot_time)+gameLen(gid)<=now;
+        if(finished&&!mine.some(r=>r.booking_id===b.id))todo.push(runBase(t,{booking_id:b.id}));
+      });
+    }
+  }
+  for(const body of todo){
+    try{await post('cl_runs',body)}catch(e){if(e.status!==409)console.error('Create run:',e)}
+  }
+}
+async function loadRuns(){
+  const d=todayStr();
+  runs=await api(`cl_runs?or=(run_date.eq.${d},status.in.(todo,in_progress))&select=*&order=run_date,created_at`)||[];
+}
+async function loadOpenIssues(){
+  openIssues=await api(`cl_issues?status=neq.fixed&select=*&order=reported_at.desc`).catch(()=>[])||[];
+  document.getElementById('issueCount').textContent=openIssues.length?`(${openIssues.length})`:'';
+}
+async function refreshToday(first){
+  try{
+    await loadBookingsToday();
+    await ensureRuns();
+    await Promise.all([loadRuns(),loadOpenIssues()]);
+  }catch(e){console.error('Load today:',e);btbLogError('refreshToday',e)}
+  if(first||activeTab==='today')switchTab(activeTab);
+}
+
+// ───────────── TABS ─────────────
 function switchTab(tab){
   activeTab=tab;
-  document.getElementById('navDaily').classList.toggle('active',tab==='daily');
-  document.getElementById('navRoom').classList.toggle('active',tab==='room');
-  document.getElementById('navGeneralTasks').classList.toggle('active',tab==='generaltasks');
-  document.getElementById('navReview').classList.toggle('active',tab==='review');
-document.getElementById('navTemplates').classList.toggle('active',tab==='templates');
-  document.getElementById('navChecklistTypes').classList.toggle('active',tab==='checklisttypes');
-  document.getElementById('navDailyCategories').classList.toggle('active',tab==='dailycategories');
-  document.getElementById('navTaskTags').classList.toggle('active',tab==='tasktags');
-  document.getElementById('pillDaily').classList.toggle('active',tab==='daily');
-  document.getElementById('pillRoom').classList.toggle('active',tab==='room');
-  document.getElementById('pillGeneralTasks').classList.toggle('active',tab==='generaltasks');
-  document.getElementById('dailySection').style.display=tab==='daily'?'':'none';
-  document.getElementById('roomSection').style.display=tab==='room'?'':'none';
-  document.getElementById('generalTasksSection').style.display=tab==='generaltasks'?'':'none';
-  document.getElementById('reviewSection').style.display=tab==='review'?'':'none';
-  document.getElementById('templatesSection').style.display=tab==='templates'?'':'none';
-  document.getElementById('checklistTypesSection').style.display=tab==='checklisttypes'?'':'none';
-  document.getElementById('dailyCategoriesSection').style.display=tab==='dailycategories'?'':'none';
-  document.getElementById('taskTagsSection').style.display=tab==='tasktags'?'':'none';
-  const titles={daily:'Daily Tasks',room:'Room Checklists',generaltasks:'General Tasks',review:'Review',templates:'Task Templates',checklisttypes:'Checklist Types',dailycategories:'Daily Categories',tasktags:'Task Tags'};
-  document.getElementById('topbarTitle').textContent=titles[tab];
-  if(tab==='daily')renderDailyTasks();
-  if(tab==='room')renderRoomTab();
-  if(tab==='generaltasks')renderGeneralTasksTab();
-  if(tab==='review')renderReviewTab();
-  if(tab==='templates')renderTemplatesTab();
-  if(tab==='checklisttypes')renderChecklistTypesTab();
-  if(tab==='dailycategories')renderDailyCategoriesTab();
-  if(tab==='tasktags')renderTaskTagsTab();
+  document.querySelectorAll('[data-tab]').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
+  const titles={today:'Today',history:'History',issues:'Issues',templates:'Checklists',settings:'Settings'};
+  document.getElementById('topbarTitle').textContent=titles[tab]||tab;
+  ({today:renderToday,history:renderHistory,issues:renderIssues,templates:renderTemplates,settings:renderSettings}[tab]||renderToday)();
 }
-  
-// ───────────────────────── DAILY TASKS ─────────────────────────
-let dailyCategoryCollapsed={}; // in-memory only: {categoryId: true/false}, resets on page reload
-function toggleDailyCategoryCollapse(catId){
-  dailyCategoryCollapsed[catId]=!dailyCategoryCollapsed[catId];
-  renderDailyTasks();
+
+// ───────────── TODAY ─────────────
+function runIsForMe(r){
+  if(r.assigned_staff_id)return r.assigned_staff_id===me();
+  if(r.assigned_role)return r.assigned_role===currentUser.role;
+  return true;
 }
-function dailyTemplateItemHtml(t){
-  const inst=dailyInstances.find(i=>i.template_id===t.id);
-  const done=inst&&inst.done;
-  const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
-  const assignMeta=(inst&&(inst.assigned_staff_id||inst.assigned_role))?`Assigned: ${escapeHtml(assigneeLabel(inst.assigned_staff_id,inst.assigned_role))}`:'Open to anyone';
-  return `<div class="daily-item">
-    <input type="checkbox" ${done?'checked':''} onchange="toggleDailyDone('${t.id}',this.checked)">
-    <div class="daily-item-body">
-      <div class="daily-item-name">${escapeHtml(t.name)}</div>
-      <div class="daily-item-meta">${assignMeta}${done?' · '+doneMeta:''}</div>
-    </div>
-  </div>`;
+function bookingOf(r){return bookingsToday.find(b=>b.id===r.booking_id)}
+function jobHtml(r){
+  const overdue=r.run_date<todayStr()&&r.status!=='done';
+  const b=bookingOf(r);
+  const who=r.assigned_staff_id?staffName(r.assigned_staff_id):r.assigned_role?(ROLE_LABELS[r.assigned_role]||r.assigned_role):'Anyone';
+  const bits=[areaName(r.area_id),b?`after ${fmt12(b.slot_time)} game`:'',who,overdue?`<span style="color:var(--red);font-weight:700">Overdue since ${fmtDate(r.run_date)}</span>`:'',r.status==='in_progress'?'<span class="badge b-amber">Started</span>':''].filter(Boolean);
+  return`<div class="job ${overdue?'overdue':''}" onclick="openRun('${r.id}')">
+    <div class="job-icon"><i class="ti ${KIND_ICONS[r.kind]||'ti-checklist'}"></i></div>
+    <div class="job-body"><div class="job-name">${escapeHtml(r.template_name)}</div><div class="job-meta">${bits.join(' · ')}</div></div>
+    <i class="ti ti-chevron-right" style="color:var(--muted)"></i></div>`;
 }
-function dailyCategoryGroupHtml(catId,label,items){
-  const collapsed=!!dailyCategoryCollapsed[catId];
-  const doneCount=items.filter(t=>{const inst=dailyInstances.find(i=>i.template_id===t.id);return inst&&inst.done}).length;
-  return `<div style="margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:10px 4px;font-weight:600;font-size:14px;border-bottom:1px solid var(--border,#e5e5e5)" onclick="toggleDailyCategoryCollapse('${catId}')">
-      <i class="ti ti-chevron-${collapsed?'right':'down'}"></i> ${escapeHtml(label)}
-      <span style="font-weight:400;color:var(--muted);font-size:12px">(${doneCount}/${items.length})</span>
-    </div>
-    <div style="display:${collapsed?'none':'block'}">${items.map(dailyTemplateItemHtml).join('')}</div>
-  </div>`;
-}
-function renderDailyTasks(){
-  const dailyTemplates=taskTemplates.filter(t=>t.type==='daily'&&t.active);
-  const adhocInstances=dailyInstances.filter(i=>!i.template_id);
-  const list=document.getElementById('dailyList');
-  if(!dailyTemplates.length&&!adhocInstances.length){list.innerHTML='<div class="empty-state">No daily tasks set up yet.</div>';return}
-  const groups={};
-  dailyTemplates.forEach(t=>{
-    const cid=t.daily_category_id||'none';
-    (groups[cid]=groups[cid]||[]).push(t);
-  });
-  let groupsHtml='';
-  dailyCategories.filter(c=>c.active).sort((a,b)=>a.sort_order-b.sort_order).forEach(cat=>{
-    if(groups[cat.id]&&groups[cat.id].length)groupsHtml+=dailyCategoryGroupHtml(cat.id,cat.label,groups[cat.id]);
-  });
-  if(groups['none']&&groups['none'].length)groupsHtml+=dailyCategoryGroupHtml('none','Uncategorized',groups['none']);
-  const adhocHtml=adhocInstances.map(inst=>{
-    const done=inst.done;
-    const doneMeta=done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'})}`:'';
-    const addedMeta=`Added by ${escapeHtml(staffName(inst.created_by))} · one-off`;
-    return `<div class="daily-item">
-      <input type="checkbox" ${done?'checked':''} onchange="toggleAdhocDailyDone('${inst.id}',this.checked)">
-      <div class="daily-item-body">
-        <div class="daily-item-name">${escapeHtml(inst.label)}</div>
-        <div class="daily-item-meta">${addedMeta}${done?' · '+doneMeta:''}</div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteAdhocDailyTask('${inst.id}')"><i class="ti ti-trash"></i></button>
-    </div>`;
+function renderRoomBoard(){
+  const now=nowMins();
+  const rooms=areas.filter(a=>a.active&&a.game_id&&(templates.some(t=>t.active&&t.area_id===a.id&&(t.kind==='reset'||t.kind==='setup'))||bookingsToday.some(b=>b.game_id===a.game_id)));
+  if(!rooms.length)return'';
+  const cards=rooms.map(a=>{
+    const gb=bookingsToday.filter(b=>b.game_id===a.game_id);
+    const next=gb.find(b=>hm(b.slot_time)>now);
+    const rr=runs.filter(r=>r.game_id===a.game_id&&r.run_date===todayStr()&&r.kind==='reset');
+    const pending=rr.filter(r=>r.status!=='done'&&r.status!=='skipped');
+    const setup=runs.find(r=>r.game_id===a.game_id&&r.run_date===todayStr()&&r.kind==='setup'&&r.status!=='done');
+    const lastDone=rr.filter(r=>r.status==='done').sort((x,y)=>String(y.completed_at).localeCompare(String(x.completed_at)))[0];
+    const nextTxt=next?`Next game ${fmt12(next.slot_time)}`:(gb.length?'No more games today':'No games today');
+    if(pending.length){
+      const r=pending[0];const soon=next&&hm(next.slot_time)-now<=45;
+      return`<div class="room-card need ${soon?'urgent':''}"><div class="room-name">${escapeHtml(a.name)}</div>
+        <div class="room-status" style="color:var(--red)">⚠ NEEDS RESET</div><div class="room-sub" style="${soon?'color:var(--red);font-weight:700':''}">${nextTxt}</div>
+        ${r.assigned_staff_id?`<div class="room-sub">Given to ${escapeHtml(staffName(r.assigned_staff_id))}</div>`:''}
+        <div class="room-btns">${hasQuick(r.template_id)?`<button class="btn btn-green btn-sm" onclick="openRun('${r.id}','quick')">Quick reset</button>`:''}<button class="btn btn-primary btn-sm" onclick="openRun('${r.id}','full')">Full checklist</button><button class="btn btn-secondary btn-sm" onclick="handOver('${r.id}')">Give to…</button></div></div>`;
+    }
+    if(setup)return`<div class="room-card need"><div class="room-name">${escapeHtml(a.name)}</div><div class="room-status" style="color:var(--amber)">Set-up needed</div><div class="room-sub">${nextTxt}</div>
+      <div class="room-btns"><button class="btn btn-primary btn-sm" onclick="openRun('${setup.id}')">Set up</button></div></div>`;
+    return`<div class="room-card ${lastDone?'ready':''}"><div class="room-name">${escapeHtml(a.name)}</div>
+      <div class="room-status" style="color:${lastDone?'var(--green)':'var(--muted)'}">${lastDone?'✓ Ready':'Ready'}</div>
+      <div class="room-sub">${lastDone?`Reset by ${escapeHtml(staffName(lastDone.completed_by))} at ${fmtTime(lastDone.completed_at)}${lastDone.mode==='quick'?' (quick)':''}`:''}</div>
+      <div class="room-sub">${nextTxt}</div></div>`;
   }).join('');
-  list.innerHTML=groupsHtml+adhocHtml;
+  return`<div class="section-title"><i class="ti ti-door"></i> Rooms</div><div class="room-grid">${cards}</div>`;
 }
-async function toggleDailyDone(templateId,checked){
-  const date=todayStr();
-  const body=checked?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString()}:{done:false,done_by:null,done_at:null};
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_instances?template_id=eq.${templateId}&task_date=eq.${date}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
-    await loadDailyInstances();renderDailyTasks();
-  }catch(e){alert('Error updating task: '+e.message)}
-}
-async function addAdhocDailyTask(){
-  const labelEl=document.getElementById('newAdhocTaskLabel');
-  const label=labelEl.value.trim();
-  if(!label)return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_instances`,{method:'POST',headers:H(),body:JSON.stringify({task_date:todayStr(),label,created_by:currentUser.staffId,done:false})});
-    labelEl.value='';
-    await loadDailyInstances();renderDailyTasks();
-  }catch(e){alert('Error adding task: '+e.message)}
-}
-async function toggleAdhocDailyDone(instanceId,checked){
-  const body=checked?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString()}:{done:false,done_by:null,done_at:null};
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
-    await loadDailyInstances();renderDailyTasks();
-  }catch(e){alert('Error updating task: '+e.message)}
-}
-async function deleteAdhocDailyTask(instanceId){
-  if(!confirm('Remove this one-off task?'))return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_instances?id=eq.${instanceId}`,{method:'DELETE',headers:H()});
-    await loadDailyInstances();renderDailyTasks();
-  }catch(e){alert('Error removing task: '+e.message)}
-}
-function toggleDailyHistoryPanel(){
-  const panel=document.getElementById('dailyHistoryPanel');
-  const open=panel.style.display==='none';
-  panel.style.display=open?'':'none';
-  if(open){
-    const dateEl=document.getElementById('dailyHistoryDate');
-    if(!dateEl.value)dateEl.value=todayStr();
-    loadDailyHistoryForDate();
-  }
-}
-async function loadDailyHistoryForDate(){
-  const date=document.getElementById('dailyHistoryDate').value;
-  const list=document.getElementById('dailyHistoryList');
-  if(!date)return;
-  list.innerHTML='<div class="empty-state">Loading…</div>';
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/daily_task_instances?task_date=eq.${date}&select=*,task_templates(name)`,{headers:H()});
-    const rows=await r.json();
-    if(!rows.length){list.innerHTML='<div class="empty-state">No daily tasks recorded for this day.</div>';return}
-    const bodyRows=rows.map(inst=>{
-      const name=inst.task_templates?.name||inst.label||'(untitled task)';
-      const oneOff=!inst.template_id?' <span class="tag-pill">one-off</span>':'';
-      const who=inst.done?escapeHtml(staffName(inst.done_by)):'—';
-      const when=inst.done?new Date(inst.done_at).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'}):'—';
-      const statusBadge=inst.done?'<span class="tag-pill" style="background:#dcfce7;color:#166534">Done</span>':'<span class="tag-pill" style="background:#f3f4f6;color:#6b7280">Not done</span>';
-      return `<tr>
-        <td style="padding:7px 10px;font-size:13px">${escapeHtml(name)}${oneOff}</td>
-        <td style="padding:7px 10px">${statusBadge}</td>
-        <td style="padding:7px 10px;font-size:13px;color:var(--muted)">${who}</td>
-        <td style="padding:7px 10px;font-size:13px;color:var(--muted)">${when}</td>
-      </tr>`;
-    }).join('');
-    list.innerHTML=`<table style="width:100%;border-collapse:collapse">
-      <thead><tr style="border-bottom:1px solid var(--border)">
-        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Task</th>
-        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Status</th>
-        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Done by</th>
-        <th style="text-align:left;padding:6px 10px;font-size:11px;color:var(--muted)">Time</th>
-      </tr></thead>
-      <tbody>${bodyRows}</tbody>
-    </table>`;
-  }catch(e){list.innerHTML='<div class="empty-state">Error loading history: '+escapeHtml(e.message)+'</div>'}
+function hasQuick(tid){return itemsOf(tid).some(i=>i.in_quick)}
+function renderToday(){
+  const today=todayStr();
+  const open=runs.filter(r=>r.status!=='done'&&r.status!=='skipped'&&r.run_date<=today&&r.kind!=='reset');
+  const anyone=open.filter(r=>!r.assigned_staff_id&&(!r.assigned_role||r.assigned_role===currentUser.role));
+  const mineList=open.filter(r=>r.assigned_staff_id===me()||(r.kind==='reset'&&false));
+  const myResets=runs.filter(r=>r.kind==='reset'&&r.status!=='done'&&r.assigned_staff_id===me());
+  const others=isAdmin()?open.filter(r=>r.assigned_staff_id&&r.assigned_staff_id!==me()):[];
+  const roleOnly=open.filter(r=>r.assigned_role&&r.assigned_role!==currentUser.role&&isAdmin());
+  const doneToday=runs.filter(r=>r.status==='done'&&r.run_date===today);
+  const upcoming=runs.filter(r=>r.status!=='done'&&r.run_date>today&&runIsForMe(r));
+  const myIssues=openIssues.filter(i=>i.assigned_staff_id===me());
+  document.getElementById('content').innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="refreshToday()"><i class="ti ti-refresh"></i> Refresh</button>
+      <button class="btn btn-secondary btn-sm" onclick="startChecklistPicker()"><i class="ti ti-player-play"></i> Start a checklist</button>
+      <button class="btn btn-danger btn-sm" onclick="openIssueForm()"><i class="ti ti-alert-triangle"></i> Report a problem</button>
+    </div>
+    ${renderRoomBoard()}
+    <div class="section-title"><i class="ti ti-sun"></i> Today's jobs <span style="font-weight:400;text-transform:none;letter-spacing:0">— anyone can do these, they need doing today</span></div>
+    ${anyone.length?anyone.map(jobHtml).join(''):'<div class="card empty-state">Nothing waiting 🎉</div>'}
+    <div class="section-title"><i class="ti ti-user"></i> Given to you</div>
+    ${(mineList.length||myResets.length||myIssues.length)?[...myResets,...mineList].map(jobHtml).join('')+myIssues.map(i=>`<div class="job" onclick="switchTab('issues')"><div class="job-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-tool"></i></div><div class="job-body"><div class="job-name">${escapeHtml(i.title)}</div><div class="job-meta">Issue · ${escapeHtml(areaName(i.area_id))}</div></div></div>`).join(''):'<div class="card empty-state">Nothing given to you right now</div>'}
+    ${(others.length||roleOnly.length)?`<div class="section-title"><i class="ti ti-users"></i> Given to others</div>${[...others,...roleOnly].map(jobHtml).join('')}`:''}
+    ${upcoming.length?`<div class="section-title"><i class="ti ti-calendar"></i> Coming up</div>${upcoming.map(jobHtml).join('')}`:''}
+    ${doneToday.length?`<div class="section-title"><i class="ti ti-circle-check"></i> Done today (${doneToday.length})</div>${doneToday.map(r=>`<div class="job" onclick="openRecord('${r.id}')"><div class="job-icon" style="background:#dcfce7;color:#15803d"><i class="ti ti-check"></i></div><div class="job-body"><div class="job-name">${escapeHtml(r.template_name)}</div><div class="job-meta">${escapeHtml(areaName(r.area_id))} · ${escapeHtml(staffName(r.completed_by))} at ${fmtTime(r.completed_at)}${r.mode==='quick'?' · quick':''}</div></div></div>`).join('')}`:''}`;
 }
 
-
-// ───────────────────────── ROOM CHECKLISTS ─────────────────────────
-function renderRoomTab(){
-  const sel=document.getElementById('roomGameSelect');
-  if(sel.options.length<=1){
-    sel.innerHTML='<option value="">Choose a room…</option>'+games.map(g=>`<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
-  }
-  const typeSel=document.getElementById('roomTypeSelect');
-  const prevType=typeSel.value;
-  typeSel.innerHTML=checklistTypes.filter(c=>c.active).map(c=>`<option value="${c.key}">${escapeHtml(c.label)}</option>`).join('');
-  if(prevType&&checklistTypes.some(c=>c.key===prevType&&c.active))typeSel.value=prevType;
-  onRoomFormChange();
+// Start any active checklist by hand (e.g. a spot check, or one that only runs when started)
+function startChecklistPicker(){
+  const list=templates.filter(t=>t.active&&itemsOf(t.id).length).sort((a,b)=>(KIND_LABELS[a.kind]||'').localeCompare(KIND_LABELS[b.kind]||'')||a.name.localeCompare(b.name));
+  showOverlay('Start a checklist',list.length?list.map(t=>`<div class="job" onclick="startManualRun('${t.id}')"><div class="job-icon"><i class="ti ${KIND_ICONS[t.kind]}"></i></div><div class="job-body"><div class="job-name">${escapeHtml(t.name)}</div><div class="job-meta">${KIND_LABELS[t.kind]}${t.area_id?' · '+escapeHtml(areaName(t.area_id)):''}</div></div></div>`).join(''):'<div class="empty-state">No checklists yet.</div>');
 }
-  async function onRoomFormChange(){
-  const gameId=document.getElementById('roomGameSelect').value;
-  const type=document.getElementById('roomTypeSelect').value;
-  const bookingRow=document.getElementById('roomBookingRow');
-  const formWrap=document.getElementById('roomChecklistForm');
-  if(!gameId){formWrap.innerHTML='';bookingRow.style.display='none';return}
-  bookingRow.style.display='';
-  await loadBookingsForGame(gameId);
-  const tpl=taskTemplates.find(t=>t.type===type&&t.game_id===gameId&&t.active);
-  currentRoomTemplate=tpl||null;
-if(!tpl){formWrap.innerHTML=`<div class="empty-state">No ${escapeHtml(checklistTypeLabel(type))} checklist set up for this room yet.</div>`;return}
-    const fields=await loadTemplateFields(tpl.id);
-  formWrap.innerHTML=`<div class="card">
-    <div class="field-block-label" style="margin-bottom:12px;font-size:15px">${escapeHtml(tpl.name)}</div>
-    <div id="roomFieldsWrap">${fields.map(f=>fieldInputHtml(f)).join('')}</div>
-    <button class="btn btn-primary" style="margin-top:6px" onclick="submitRoomChecklist('${tpl.id}')"><i class="ti ti-check"></i> Submit checklist</button>
-    <div id="roomSubmitError" class="login-error" style="text-align:left"></div>
-  </div>`;
-  const fieldsWrapEl=document.getElementById('roomFieldsWrap');
-  fieldsWrapEl.onchange=()=>evaluateFieldVisibility(fields);
-  evaluateFieldVisibility(fields);
-}
-function currentFieldValue(f,wrap){
-  if(f.field_type==='checkbox'){
-    const el=wrap.querySelector(`input[data-field-id="${f.id}"][data-field-type="checkbox"]`);
-    return el&&el.checked?'true':'false';
-  }
-  if(f.field_type==='radio'){
-    const el=wrap.querySelector(`input[data-field-id="${f.id}"]:checked`);
-    return el?el.value:'';
-  }
-  return null;
-}
-function evaluateFieldVisibility(fields){
-  const wrap=document.getElementById('roomFieldsWrap');
-  if(!wrap)return;
-  fields.forEach(f=>{
-    if(!f.depends_on_field_id)return;
-    const wrapperEl=wrap.querySelector(`[data-field-wrap-id="${f.id}"]`);
-    if(!wrapperEl)return;
-    const depField=fields.find(x=>x.id===f.depends_on_field_id);
-    const visible=depField?currentFieldValue(depField,wrap)===f.depends_on_value:true;
-    wrapperEl.style.display=visible?'':'none';
-  });
-}
-async function loadBookingsForGame(gameId){
-  const sel=document.getElementById('roomBookingSelect');
-  sel.innerHTML='<option value="">No specific booking / not linked</option>';
+async function startManualRun(tid){
+  const t=templates.find(x=>x.id===tid);if(!t)return;
   try{
-    const date=todayStr();
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${gameId}&booking_date=eq.${date}&select=id,slot_time,status,clients(first_name,last_name)&order=slot_time`,{headers:H()});
-    const rows=await r.json();
-    sel.innerHTML+=rows.map(b=>{
-      const name=b.clients?[b.clients.first_name,b.clients.last_name].filter(Boolean).join(' '):'Unknown';
-      const time=b.slot_time?b.slot_time.slice(0,5):'';
-      return `<option value="${b.id}">${time} — ${escapeHtml(name)} (${escapeHtml(b.status||'')})</option>`;
-    }).join('');
-  }catch(e){console.error('Bookings load:',e)}
+    const rows=await post('cl_runs',{template_id:t.id,template_name:t.name,kind:t.kind,owners_only:t.kind==='owners',area_id:t.area_id,game_id:areas.find(a=>a.id===t.area_id)?.game_id||null,run_date:todayStr(),auto:false,assigned_staff_id:me(),created_by:me()});
+    runs.push(rows[0]);openRun(rows[0].id);
+  }catch(e){alert('Could not start it: '+e.message)}
 }
-function fieldInputHtml(f){
-  const flag=f.flags_review?'<span class="flag-badge">Flags for review</span>':'';
-  let input='';
-  if(f.field_type==='checkbox'){
-    input=`<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" data-field-id="${f.id}" data-field-type="checkbox" style="width:18px;height:18px"> Yes</label>`;
-  }else if(f.field_type==='text'){
-    input=`<textarea class="form-textarea" data-field-id="${f.id}" data-field-type="text" placeholder="Type here…"></textarea>`;
-  }else if(f.field_type==='radio'){
-    const opts=(f.options||[]);
-    input=opts.map(o=>`<label class="radio-opt"><input type="radio" name="field_${f.id}" value="${escapeHtml(o)}" data-field-id="${f.id}" data-field-type="radio"> ${escapeHtml(o)}</label>`).join('');
-  }else if(f.field_type==='photo'){
-    input=`<input type="file" accept="image/*" capture="environment" data-field-id="${f.id}" data-field-type="photo" onchange="onPhotoFieldChange(this)">
-           <img class="photo-preview" id="preview-${f.id}" style="display:none">`;
+async function handOver(runId){
+  const opts=['<option value="">Anyone (goes on Today\'s jobs)</option>',...staffList.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`)].join('');
+  showOverlay('Give this to someone',`<div class="card"><div class="form-row"><label class="form-label">Who should do it?</label><select class="form-select" id="handTo">${opts}</select></div>
+    <button class="btn btn-primary btn-big" onclick="confirmHandOver('${runId}')">Give it to them</button><div class="msg" id="handMsg"></div></div>`);
+}
+async function confirmHandOver(runId){
+  const to=document.getElementById('handTo').value||null;
+  try{await patch('cl_runs',`id=eq.${runId}`,{assigned_staff_id:to,assigned_role:null});closeOverlay();await refreshToday()}
+  catch(e){const m=document.getElementById('handMsg');m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+
+// ───────────── RUN A CHECKLIST ─────────────
+let cur=null; // {run, template, items, answers:{itemId:answer}, mode}
+function showOverlay(title,html,foot){
+  document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayBody').innerHTML=html;
+  document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden';
+  const f=document.getElementById('runFoot');if(foot){document.getElementById('runFootInner').innerHTML=foot;f.classList.add('show')}else f.classList.remove('show');
+  document.getElementById('overlay').scrollTop=0;
+}
+function closeOverlay(){document.getElementById('overlay').classList.remove('show');document.getElementById('runFoot').classList.remove('show');document.body.style.overflow='';cur=null;if(activeTab==='today')refreshToday()}
+async function openRun(runId,mode){
+  try{
+    let run=runs.find(r=>r.id===runId);
+    if(!run){const rows=await api(`cl_runs?id=eq.${runId}&select=*`);run=rows&&rows[0]}
+    if(!run){alert('That checklist could not be found.');return}
+    if(run.status==='done'){openRecord(runId);return}
+    const template=templates.find(t=>t.id===run.template_id);
+    const ans=await api(`cl_answers?run_id=eq.${runId}&select=*`);
+    const answers={};(ans||[]).forEach(a=>answers[a.item_id]=a);
+    const its=itemsOf(run.template_id);
+    cur={run,template,items:its,answers,mode:mode||run.mode||null};
+    const quickPossible=its.some(i=>i.in_quick);
+    if(!cur.mode&&quickPossible&&(run.kind==='reset'||run.kind==='setup')){renderModeChoice();return}
+    if(!cur.mode)cur.mode='full';
+    if(run.status==='todo'||run.mode!==cur.mode){
+      const upd={status:'in_progress',mode:cur.mode};
+      if(run.status==='todo'){upd.started_by=me();upd.started_at=new Date().toISOString()}
+      const rows=await patch('cl_runs',`id=eq.${run.id}`,upd);cur.run=rows[0];
+      const i=runs.findIndex(r=>r.id===run.id);if(i>-1)runs[i]=cur.run;
+    }
+    renderRun();
+  }catch(e){alert('Could not open the checklist: '+e.message);console.error(e)}
+}
+function renderModeChoice(){
+  const r=cur.run,b=bookingOf(r);
+  showOverlay(r.template_name,`<div class="card"><div style="font-size:14px;margin-bottom:12px">${escapeHtml(areaName(r.area_id))}${b?` · after the ${fmt12(b.slot_time)} game`:''}</div>
+    <button class="btn btn-green btn-big" style="margin-bottom:10px" onclick="openRun('${r.id}','quick')"><i class="ti ti-bolt"></i> Quick reset — just the key checks</button>
+    <button class="btn btn-primary btn-big" onclick="openRun('${r.id}','full')"><i class="ti ti-list-check"></i> Full checklist — every step</button>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px">Quick reset is for GMs who know this room well: battery readings, counts and anything needing maintenance.</div></div>
+    <button class="btn btn-secondary btn-big" onclick="handOver('${r.id}')"><i class="ti ti-user-share"></i> Someone else will do it</button>`);
+}
+function answerValue(itemId){return cur.answers[itemId]?.value??null}
+// Items shown right now: the mode's items, plus follow-ups whose trigger answer has been given.
+function visibleItems(){
+  const top=cur.items.filter(i=>!i.parent_item_id&&(cur.mode==='full'||i.in_quick));
+  const out=[];
+  top.forEach(i=>{out.push(i);cur.items.filter(c=>c.parent_item_id===i.id&&String(answerValue(i.id))===String(c.show_when)).forEach(c=>out.push(c))});
+  return out;
+}
+function isLow(item,ans){return item.item_type==='number'&&item.low_below!=null&&ans&&ans.number_value!=null&&Number(ans.number_value)<Number(item.low_below)}
+function itemHtml(i){
+  const a=cur.answers[i.id];const v=a?.value??'';
+  if(i.item_type==='heading')return`<div class="item heading">${escapeHtml(i.label)}</div>`;
+  let ctl='';
+  if(i.item_type==='tick'){
+    ctl=`<button class="tick-btn" onclick="setAnswer('${i.id}','${v==='yes'?'':'yes'}')"><span class="tick-box ${v==='yes'?'on':''}">${v==='yes'?'✓':''}</span><span class="item-label">${escapeHtml(i.label)}${i.required?'<span class="req">*</span>':''}</span></button>`;
+  }else{
+    ctl=`<div class="item-label">${escapeHtml(i.label)}${i.required?'<span class="req">*</span>':''}</div>`;
+    if(i.item_type==='okno')ctl+=`<div class="choice-row"><button class="choice ${v==='ok'?'on-ok':''}" onclick="setAnswer('${i.id}','ok')">OK</button><button class="choice ${v==='not_ok'?'on-bad':''}" onclick="setAnswer('${i.id}','not_ok')">Not OK</button></div>`;
+    else if(i.item_type==='dropdown'){
+      const opts=Array.isArray(i.options)?i.options:[];
+      ctl+=opts.length<=4?`<div class="choice-row">${opts.map((o,k)=>`<button class="choice ${v===o?(String(i.raises_issue_when)===o?'on-bad':'on'):''}" onclick="setAnswer('${i.id}',decodeURIComponent('${encodeURIComponent(o)}'))">${escapeHtml(o)}</button>`).join('')}</div>`
+        :`<select class="form-select" style="margin-top:8px" onchange="setAnswer('${i.id}',this.value)"><option value="">Choose…</option>${opts.map(o=>`<option ${v===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+    }
+    else if(i.item_type==='number')ctl+=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><input class="form-input" style="max-width:140px;font-size:18px;font-weight:700" type="number" inputmode="decimal" value="${escapeHtml(a?.number_value??'')}" onchange="setNumber('${i.id}',this.value)"><span>${escapeHtml(i.unit||'')}</span></div>${isLow(i,a)?`<div class="warn-line">⚠ Below ${escapeHtml(i.low_below)}${escapeHtml(i.unit||'')} — replace/charge it. This will be reported as an issue.</div>`:i.low_below!=null?`<div class="item-help">Warns below ${escapeHtml(i.low_below)}${escapeHtml(i.unit||'')}</div>`:''}`;
+    else if(i.item_type==='text')ctl+=`<textarea class="form-textarea" style="margin-top:8px" onchange="setAnswer('${i.id}',this.value.trim())">${escapeHtml(v)}</textarea>`;
+    else if(i.item_type==='photo')ctl+=`<div style="margin-top:8px"><label class="btn btn-secondary btn-sm"><i class="ti ti-camera"></i> ${a?.photo_path?'Retake photo':'Take photo'}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="setPhoto('${i.id}',this)"></label><div id="ph-${i.id}"></div></div>`;
   }
-  return `<div class="field-block" data-field-wrap-id="${f.id}">
-    <div class="field-block-label">${escapeHtml(f.label)} ${flag}</div>
-    ${input}
-  </div>`;
+  return`<div class="item ${i.parent_item_id?'child':''}" id="it-${i.id}">${ctl}${i.help?`<div class="item-help">${escapeHtml(i.help)}</div>`:''}${i.ref_photo_path?`<img class="ref-photo" data-ref="${escapeHtml(i.ref_photo_path)}" alt="How it should look" onclick="window.open(this.src)">`:''}</div>`;
 }
-const pendingPhotoBlobs={}; // field_id -> compressed Blob, staged until submit
-async function onPhotoFieldChange(inputEl){
-  const fieldId=inputEl.dataset.fieldId;
-  const file=inputEl.files[0];
-  if(!file)return;
-  const blob=await compressImage(file,1600,0.75);
-  pendingPhotoBlobs[fieldId]=blob;
-  const url=URL.createObjectURL(blob);
-  const img=document.getElementById('preview-'+fieldId);
-  img.src=url;img.style.display='';
+function renderRun(){
+  const r=cur.run,b=bookingOf(r),vis=visibleItems();
+  const head=`<div style="font-size:13px;color:var(--muted);margin-bottom:10px">${escapeHtml(areaName(r.area_id))}${b?` · after the ${fmt12(b.slot_time)} game`:''}${cur.mode==='quick'?' · <span class="badge b-green">QUICK RESET</span>':''}${cur.template?.description?`<div style="margin-top:4px;white-space:pre-wrap">${escapeHtml(cur.template.description)}</div>`:''}</div>`;
+  const quickSwitch=cur.items.some(i=>i.in_quick)?`<div style="margin-bottom:10px">${cur.mode==='quick'?`<span class="btn btn-secondary btn-sm" onclick="openRun('${r.id}','full')">Show full checklist</span>`:`<span class="btn btn-secondary btn-sm" onclick="openRun('${r.id}','quick')">Switch to quick reset</span>`}</div>`:'';
+  showOverlay(r.template_name,head+quickSwitch+vis.map(itemHtml).join('')+`<div class="card"><label class="form-label">Note (optional)</label><textarea class="form-textarea" id="runNote" onchange="saveRunNote(this.value)">${escapeHtml(r.note||'')}</textarea></div><div class="msg" id="runMsg"></div>`,
+    `<button class="btn btn-secondary" onclick="handOver('${r.id}')"><i class="ti ti-user-share"></i></button><button class="btn btn-green btn-big" onclick="completeRun()"><i class="ti ti-circle-check"></i> Finished</button>`);
+  loadPhotos();
 }
+async function loadPhotos(){
+  for(const el of document.querySelectorAll('img[data-ref]')){el.src=await signedUrl(el.dataset.ref)||''}
+  if(!cur)return;
+  for(const i of visibleItems().filter(x=>x.item_type==='photo')){
+    const a=cur.answers[i.id];const box=document.getElementById('ph-'+i.id);
+    if(box&&a?.photo_path){const u=await signedUrl(a.photo_path);if(u)box.innerHTML=`<img class="photo-thumb" src="${u}">`}
+  }
+}
+async function saveAnswer(itemId,fields){
+  const i=cur.items.find(x=>x.id===itemId);
+  const body={run_id:cur.run.id,item_id:itemId,item_label:i.label,item_type:i.item_type,answered_by:me(),answered_at:new Date().toISOString(),...fields};
+  const rows=await api('cl_answers?on_conflict=run_id,item_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(body)});
+  cur.answers[itemId]=rows[0];
+}
+async function setAnswer(itemId,value){
+  try{await saveAnswer(itemId,{value:value===''?null:value});renderRun()}
+  catch(e){alert('That answer was not saved: '+e.message)}
+}
+async function setNumber(itemId,raw){
+  const n=raw===''?null:Number(raw);
+  try{await saveAnswer(itemId,{value:raw===''?null:String(n),number_value:n});renderRun()}
+  catch(e){alert('That reading was not saved: '+e.message)}
+}
+async function setPhoto(itemId,input){
+  const f=input.files[0];if(!f)return;
+  const box=document.getElementById('ph-'+itemId);if(box)box.innerHTML='<div class="item-help">Uploading…</div>';
+  try{
+    const path=await uploadPhoto(f,`cl/${cur.run.id}/${itemId}-${Date.now()}.jpg`);
+    await saveAnswer(itemId,{value:'photo',photo_path:path});renderRun();
+  }catch(e){if(box)box.innerHTML='';alert('Photo not saved: '+e.message)}
+}
+async function saveRunNote(v){
+  try{const rows=await patch('cl_runs',`id=eq.${cur.run.id}`,{note:v.trim()||null});cur.run=rows[0]}catch(e){alert('Note not saved: '+e.message)}
+}
+function answered(i){const a=cur.answers[i.id];if(!a)return false;if(i.item_type==='photo')return!!a.photo_path;if(i.item_type==='number')return a.number_value!=null;return a.value!=null&&a.value!==''}
+function flaggedItem(i){
+  const a=cur.answers[i.id];if(!a)return false;
+  if(i.item_type==='okno'&&a.value==='not_ok')return true;
+  if(i.raises_issue_when&&String(a.value)===String(i.raises_issue_when))return true;
+  return isLow(i,a);
+}
+async function completeRun(){
+  const msg=document.getElementById('runMsg');
+  const vis=visibleItems();
+  const missing=vis.filter(i=>i.required&&!answered(i));
+  if(missing.length){msg.className='msg err';msg.textContent='Still to do: '+missing.map(i=>i.label).join(', ');document.getElementById('it-'+missing[0].id)?.scrollIntoView({behavior:'smooth',block:'center'});return}
+  msg.className='msg';msg.textContent='Saving…';
+  try{
+    // Raise an issue for each Not OK / "maintenance needed" / low reading, using its follow-up answers as the details
+    for(const i of vis.filter(x=>!x.parent_item_id&&flaggedItem(x))){
+      const kids=cur.items.filter(c=>c.parent_item_id===i.id&&String(answerValue(i.id))===String(c.show_when));
+      const desc=kids.filter(c=>c.item_type==='text').map(c=>answerValue(c.id)).filter(Boolean).join('\n');
+      const photo=kids.map(c=>cur.answers[c.id]?.photo_path).find(Boolean)||null;
+      const a=cur.answers[i.id];
+      const title=i.item_type==='number'?`${i.label}: ${a.number_value}${i.unit||''} (low)`:(desc?desc.split('\n')[0].slice(0,90):i.label);
+      const what=i.item_type==='number'?`Reading ${a.number_value}${i.unit||''} — warns below ${i.low_below}${i.unit||''}`:`${i.label}: ${a.value==='not_ok'?'Not OK':a.value}`;
+      await post('cl_issues',{title,description:desc||what,area_id:cur.run.area_id,game_id:cur.run.game_id,photo_path:photo,source_run_id:cur.run.id,source_item_id:i.id,reported_by:me()});
+      await patch('cl_answers',`id=eq.${a.id}`,{flagged:true});
+    }
+    await patch('cl_runs',`id=eq.${cur.run.id}`,{status:'done',completed_by:me(),completed_at:new Date().toISOString(),mode:cur.mode});
+    closeOverlay();
+  }catch(e){msg.className='msg err';msg.textContent='Not saved: '+e.message}
+}
+
+// ───────────── PHOTOS ─────────────
 function compressImage(file,maxDim,quality){
   return new Promise((resolve,reject)=>{
-    const img=new Image();
-    const reader=new FileReader();
-    reader.onload=e=>{img.src=e.target.result};
-    reader.onerror=reject;
-    img.onload=()=>{
-      let w=img.width,h=img.height;
-      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim}
-      else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim}
-      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      canvas.toBlob(blob=>resolve(blob),'image/jpeg',quality);
-    };
-    img.onerror=reject;
-    reader.readAsDataURL(file);
+    const img=new Image(),reader=new FileReader();
+    reader.onload=e=>{img.src=e.target.result};reader.onerror=reject;
+    img.onload=()=>{let w=img.width,h=img.height;if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim}else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim}
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);c.toBlob(b=>resolve(b),'image/jpeg',quality)};
+    img.onerror=reject;reader.readAsDataURL(file);
   });
 }
-async function uploadTaskPhoto(blob,path){
-  const r=await fetch(`${SB_URL}/storage/v1/object/task-photos/${path}`,{
-    method:'POST',
-    headers:{'Authorization':`Bearer ${currentUser.token}`,'apikey':SB_ANON,'Content-Type':'image/jpeg'},
-    body:blob
-  });
+async function uploadPhoto(file,path){
+  const blob=await compressImage(file,1600,0.75);
+  const r=await fetch(`${SB_URL}/storage/v1/object/task-photos/${path}`,{method:'POST',headers:{'Authorization':`Bearer ${currentUser.token}`,'apikey':SB_ANON,'Content-Type':'image/jpeg'},body:blob});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Photo upload failed')}
   return path;
 }
-async function submitRoomChecklist(templateId){
-  const errEl=document.getElementById('roomSubmitError');errEl.textContent='';
-  const fields=templateFieldsCache[templateId]||[];
-  const bookingId=document.getElementById('roomBookingSelect').value||null;
-  const wrap=document.getElementById('roomFieldsWrap');
-  const responses=[];
-  let needsReview=false;
-  try{
-    for(const f of fields){
-      const wrapperEl=wrap.querySelector(`[data-field-wrap-id="${f.id}"]`);
-      if(wrapperEl&&wrapperEl.style.display==='none')continue;
-      let value=null,photoPath=null;
-      if(f.field_type==='checkbox'){
-        const el=wrap.querySelector(`input[data-field-id="${f.id}"][data-field-type="checkbox"]`);
-        value=el&&el.checked?'true':'false';
-        if(f.flags_review&&value==='true')needsReview=true;
-      }else if(f.field_type==='text'){
-        const el=wrap.querySelector(`textarea[data-field-id="${f.id}"]`);
-        value=el?el.value.trim():'';
-        if(f.flags_review&&value)needsReview=true;
-      }else if(f.field_type==='radio'){
-        const el=wrap.querySelector(`input[data-field-id="${f.id}"]:checked`);
-        value=el?el.value:'';
-        if(f.flags_review&&value)needsReview=true;
-      }else if(f.field_type==='photo'){
-        const blob=pendingPhotoBlobs[f.id];
-        if(blob){
-          photoPath=`${templateId}/${Date.now()}-${f.id}.jpg`;
-          await uploadTaskPhoto(blob,photoPath);
-          if(f.flags_review)needsReview=true;
-        }
-      }
-      responses.push({field_id:f.id,value,photo_path:photoPath});
-    }
-    const instR=await fetch(`${SB_URL}/rest/v1/task_instances`,{
-      method:'POST',headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify({template_id:templateId,booking_id:bookingId,staff_id:currentUser.staffId,needs_review:needsReview})
-    });
-    const instRows=await instR.json();
-    const instanceId=instRows[0].id;
-    await fetch(`${SB_URL}/rest/v1/task_instance_responses`,{
-      method:'POST',headers:H(),
-      body:JSON.stringify(responses.map(r=>({...r,instance_id:instanceId})))
-    });
-    for(const k in pendingPhotoBlobs)delete pendingPhotoBlobs[k];
-    document.getElementById('roomChecklistForm').innerHTML=`<div class="card" style="text-align:center;color:var(--green)"><i class="ti ti-check" style="font-size:24px"></i><div style="margin-top:6px;font-weight:600">Checklist submitted${needsReview?' — flagged for review':''}.</div></div>`;
-  }catch(e){errEl.textContent='Error submitting: '+e.message;console.error(e)}
+const signedCache={};
+async function signedUrl(path){
+  if(!path)return null;if(signedCache[path])return signedCache[path];
+  try{const r=await fetch(`${SB_URL}/storage/v1/object/sign/task-photos/${path}`,{method:'POST',headers:H(),body:JSON.stringify({expiresIn:3600})});const d=await r.json();
+    const u=d.signedURL?`${SB_URL}/storage/v1${d.signedURL}`:null;if(u)signedCache[path]=u;return u}catch(e){return null}
 }
 
-// ───────────────────────── REVIEW QUEUE ─────────────────────────
-async function renderReviewTab(){
-  const list=document.getElementById('reviewList');
-  list.innerHTML='<div class="empty-state">Loading…</div>';
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/task_instances?needs_review=eq.true&reviewed=eq.false&select=*,task_templates(name,type),game_bookings(slot_time,booking_date,clients(first_name,last_name))&order=completed_at.desc`,{headers:H()});
-    const rows=await r.json();
-    updateReviewCount(rows.length);
-    if(!rows.length){list.innerHTML='<div class="empty-state">Nothing needs review right now.</div>';return}
-    list.innerHTML='';
-    for(const inst of rows){
-      const respR=await fetch(`${SB_URL}/rest/v1/task_instance_responses?instance_id=eq.${inst.id}&select=*,task_template_fields(label,field_type,flags_review)`,{headers:H()});
-      const responses=await respR.json();
-      const clientName=inst.game_bookings&&inst.game_bookings.clients?[inst.game_bookings.clients.first_name,inst.game_bookings.clients.last_name].filter(Boolean).join(' '):null;
-      let respHtml='';
-      for(const resp of responses){
-        const f=resp.task_template_fields;
-        if(!f)continue;
-        if(f.field_type==='photo'&&resp.photo_path){
-          const signedUrl=await getSignedPhotoUrl(resp.photo_path);
-          respHtml+=`<div style="margin-top:6px"><div style="font-size:12px;color:var(--muted)">${escapeHtml(f.label)}</div>${signedUrl?`<img class="photo-preview" src="${signedUrl}">`:'<div style="font-size:12px;color:var(--muted)">Photo unavailable</div>'}</div>`;
-        }else if(resp.value){
-          respHtml+=`<div style="margin-top:6px"><span style="font-size:12px;color:var(--muted)">${escapeHtml(f.label)}:</span> <span style="font-size:13px">${escapeHtml(resp.value)}</span></div>`;
-        }
-      }
-      const card=document.createElement('div');
-      card.className='review-card';
-      card.innerHTML=`
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-weight:700;font-size:13px">${escapeHtml(inst.task_templates?.name||'')} <span class="tag-pill">${escapeHtml(inst.task_templates?.type||'')}</span></div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">By ${escapeHtml(staffName(inst.staff_id))} · ${new Date(inst.completed_at).toLocaleString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${clientName?' · '+escapeHtml(clientName):''}</div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="markReviewed('${inst.id}')"><i class="ti ti-check"></i> Mark reviewed</button>
-        </div>
-        ${respHtml}
-      `;
-      list.appendChild(card);
-    }
-  }catch(e){list.innerHTML='<div class="empty-state">Error loading review queue: '+escapeHtml(e.message)+'</div>'}
+// ───────────── HISTORY / RECORDS ─────────────
+let histFilter={from:null,to:null,area:'',kind:'',person:''};
+async function renderHistory(){
+  const today=todayStr();
+  if(!histFilter.from){histFilter.from=addToDate(today,-7,'day');histFilter.to=today}
+  const c=document.getElementById('content');
+  c.innerHTML=`<div class="card"><div class="row2">
+    <div><label class="form-label">From</label><input class="form-input" type="date" id="hFrom" value="${histFilter.from}"></div>
+    <div><label class="form-label">To</label><input class="form-input" type="date" id="hTo" value="${histFilter.to}"></div></div>
+    <div class="row2" style="margin-top:8px">
+    <div><label class="form-label">Area</label><select class="form-select" id="hArea"><option value="">All</option>${areas.map(a=>`<option value="${a.id}" ${histFilter.area===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}</select></div>
+    <div><label class="form-label">Type</label><select class="form-select" id="hKind"><option value="">All</option>${Object.entries(KIND_LABELS).map(([k,l])=>`<option value="${k}" ${histFilter.kind===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div><label class="form-label">Done by</label><select class="form-select" id="hPerson"><option value="">Anyone</option>${staffList.map(s=>`<option value="${s.id}" ${histFilter.person===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="applyHistFilter()">Show</button><button class="btn btn-secondary btn-sm" onclick="exportHistory()"><i class="ti ti-download"></i> CSV</button></div></div>
+    <div id="histList"><div class="empty-state">Loading…</div></div>`;
+  await loadHistoryList();
 }
-async function getSignedPhotoUrl(path){
-  try{
-    const r=await fetch(`${SB_URL}/storage/v1/object/sign/task-photos/${path}`,{method:'POST',headers:H(),body:JSON.stringify({expiresIn:3600})});
-    const data=await r.json();
-    return data.signedURL?`${SB_URL}/storage/v1${data.signedURL}`:null;
-  }catch(e){console.error('Signed URL error:',e);return null}
+function applyHistFilter(){histFilter={from:document.getElementById('hFrom').value,to:document.getElementById('hTo').value,area:document.getElementById('hArea').value,kind:document.getElementById('hKind').value,person:document.getElementById('hPerson').value};renderHistory()}
+let histRows=[];
+async function loadHistoryList(){
+  let q=`cl_runs?status=eq.done&run_date=gte.${histFilter.from}&run_date=lte.${histFilter.to}&select=*&order=completed_at.desc&limit=500`;
+  if(histFilter.area)q+=`&area_id=eq.${histFilter.area}`;if(histFilter.kind)q+=`&kind=eq.${histFilter.kind}`;if(histFilter.person)q+=`&completed_by=eq.${histFilter.person}`;
+  try{histRows=await api(q)||[]}catch(e){document.getElementById('histList').innerHTML=`<div class="card msg err">Could not load: ${escapeHtml(e.message)}</div>`;return}
+  document.getElementById('histList').innerHTML=histRows.length?histRows.map(r=>{const d=mins(r.started_at,r.completed_at);
+    return`<div class="job" onclick="openRecord('${r.id}')"><div class="job-icon" style="background:#dcfce7;color:#15803d"><i class="ti ${KIND_ICONS[r.kind]||'ti-check'}"></i></div><div class="job-body"><div class="job-name">${escapeHtml(r.template_name)}</div>
+    <div class="job-meta">${escapeHtml(areaName(r.area_id))} · ${escapeHtml(staffName(r.completed_by))} · ${fmtDT(r.completed_at)}${d!=null?` · took ${d} min`:''}${r.mode==='quick'?' · quick':''}${r.review_note?' · <span class="badge b-purple">reviewed</span>':''}</div></div></div>`}).join(''):'<div class="card empty-state">No completed checklists in this range.</div>';
 }
-async function markReviewed(instanceId){
+async function openRecord(runId){
   try{
-    await fetch(`${SB_URL}/rest/v1/task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify({reviewed:true,reviewed_by:currentUser.staffId,reviewed_at:new Date().toISOString()})});
-    renderReviewTab();
-  }catch(e){alert('Error: '+e.message)}
+    const [rr,ans,iss]=await Promise.all([api(`cl_runs?id=eq.${runId}&select=*`),api(`cl_answers?run_id=eq.${runId}&select=*&order=answered_at`),api(`cl_issues?source_run_id=eq.${runId}&select=id,title,status`)]);
+    const r=rr[0];if(!r)return;
+    const order=itemsOf(r.template_id,true).map(i=>i.id);
+    ans.sort((a,b)=>order.indexOf(a.item_id)-order.indexOf(b.item_id));
+    const d=mins(r.started_at,r.completed_at);
+    const fmtAns=a=>a.item_type==='tick'?(a.value==='yes'?'✓ Done':'—'):a.item_type==='okno'?(a.value==='ok'?'OK':a.value==='not_ok'?'<b style="color:var(--red)">Not OK</b>':'—'):a.item_type==='photo'?`<span data-ph="${escapeHtml(a.photo_path||'')}">${a.photo_path?'Loading photo…':'—'}</span>`:a.item_type==='number'?escapeHtml(a.number_value??'—'):escapeHtml(a.value??'—');
+    showOverlay(r.template_name,`<div class="card"><div><b>${escapeHtml(areaName(r.area_id))}</b> · ${fmtDate(r.run_date)}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Done by ${escapeHtml(staffName(r.completed_by))} at ${fmtDT(r.completed_at)}${d!=null?` · took ${d} min`:''}${r.mode==='quick'?' · quick reset':''}${r.started_by&&r.started_by!==r.completed_by?` · started by ${escapeHtml(staffName(r.started_by))}`:''}</div>
+      ${r.note?`<div style="margin-top:8px;white-space:pre-wrap">📝 ${escapeHtml(r.note)}</div>`:''}</div>
+      <div class="card"><table class="ans">${ans.map(a=>`<tr><td>${escapeHtml(a.item_label)}${a.flagged?' <span class="badge b-red">issue</span>':''}</td><td style="text-align:right">${fmtAns(a)}</td></tr>`).join('')||'<tr><td>No answers recorded.</td></tr>'}</table></div>
+      ${iss.length?`<div class="card"><b>Issues raised</b>${iss.map(i=>`<div style="margin-top:6px">${escapeHtml(i.title)} <span class="badge ${i.status==='fixed'?'b-green':'b-red'}">${i.status}</span></div>`).join('')}</div>`:''}
+      ${isAdmin()?`<div class="card"><label class="form-label">Review comment (owners/managers)</label><textarea class="form-textarea" id="revNote">${escapeHtml(r.review_note||'')}</textarea><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveReview('${r.id}')">Save comment</button><div class="msg" id="revMsg"></div>${r.reviewed_at?`<div class="item-help">Last reviewed by ${escapeHtml(staffName(r.reviewed_by))} ${fmtDT(r.reviewed_at)}</div>`:''}</div>`:''}`);
+    for(const el of document.querySelectorAll('[data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);el.innerHTML=u?`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`:'(photo no longer kept)'}}
+  }catch(e){alert('Could not open the record: '+e.message)}
 }
-async function updateReviewCount(n){
-  const el=document.getElementById('reviewCount');
-  if(el)el.textContent=n?`(${n})`:'';
+async function saveReview(runId){
+  const m=document.getElementById('revMsg');
+  try{await patch('cl_runs',`id=eq.${runId}`,{review_note:document.getElementById('revNote').value.trim()||null,reviewed_by:me(),reviewed_at:new Date().toISOString()});m.className='msg ok';m.textContent='✓ Saved'}
+  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+async function exportHistory(){
+  if(!histRows.length){alert('Nothing to export — press Show first.');return}
+  const ids=histRows.map(r=>r.id);let ans=[];
+  try{for(let k=0;k<ids.length;k+=100)ans=ans.concat(await api(`cl_answers?run_id=in.(${ids.slice(k,k+100).join(',')})&select=run_id,item_label,value,number_value,flagged`)||[])}catch(e){alert('Export failed: '+e.message);return}
+  const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+  const lines=[['Date','Checklist','Area','Done by','Finished','Minutes','Mode','Item','Answer','Issue'].join(',')];
+  histRows.forEach(r=>{const a=ans.filter(x=>x.run_id===r.id);(a.length?a:[{}]).forEach(x=>lines.push([r.run_date,q(r.template_name),q(areaName(r.area_id)),q(staffName(r.completed_by)),q(fmtDT(r.completed_at)),mins(r.started_at,r.completed_at)??'',r.mode||'',q(x.item_label),q(x.number_value??x.value),x.flagged?'yes':''].join(',')))});
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});const el=document.createElement('a');el.href=URL.createObjectURL(blob);el.download=`btb_checklists_${histFilter.from}_${histFilter.to}.csv`;el.click();
 }
 
-// ───────────────────────── TEMPLATES ADMIN ─────────────────────────
-function switchTemplateTab(t){
-  activeTemplateTypeTab=t;
-  document.getElementById('tplTabDaily').classList.toggle('active',t==='daily');
-  document.getElementById('tplTabRoom').classList.toggle('active',t==='room');
-  editingTemplateId=null;
-  document.getElementById('templateEditorWrap').innerHTML='';
-  renderTemplatesTab();
+// ───────────── ISSUES ─────────────
+let issueFilter='open';
+async function renderIssues(){
+  const c=document.getElementById('content');
+  c.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    ${['open','in_progress','fixed','all'].map(s=>`<span class="pill-tab ${issueFilter===s?'active':''}" onclick="issueFilter='${s}';renderIssues()">${{open:'Open',in_progress:'Being fixed',fixed:'Fixed',all:'All'}[s]}</span>`).join('')}
+    <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="openIssueForm()"><i class="ti ti-plus"></i> Report a problem</button></div><div id="issueList"><div class="empty-state">Loading…</div></div>`;
+  let rows=[];
+  try{rows=await api(`cl_issues?select=*&order=reported_at.desc&limit=300${issueFilter==='all'?'':`&status=eq.${issueFilter}`}`)||[]}catch(e){document.getElementById('issueList').innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
+  const byArea={};rows.forEach(i=>{const k=areaName(i.area_id)||'No area';(byArea[k]=byArea[k]||[]).push(i)});
+  document.getElementById('issueList').innerHTML=rows.length?Object.keys(byArea).sort().map(k=>`<div class="section-title">${escapeHtml(k)}</div>`+byArea[k].map(i=>`
+    <div class="card"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div style="font-weight:700">${escapeHtml(i.title)}</div>
+      ${i.description?`<div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${escapeHtml(i.description)}</div>`:''}
+      <div class="item-help">Reported by ${escapeHtml(staffName(i.reported_by)||'someone')} · ${fmtDT(i.reported_at)}${i.fixed_at?` · fixed by ${escapeHtml(staffName(i.fixed_by))} ${fmtDT(i.fixed_at)}`:''}</div>
+      ${i.fix_note?`<div style="font-size:13px;margin-top:4px">🔧 ${escapeHtml(i.fix_note)}</div>`:''}
+      <span data-ph="${escapeHtml(i.photo_path||'')}"></span></div>
+      <span class="badge ${i.status==='fixed'?'b-green':i.status==='in_progress'?'b-amber':'b-red'}">${{open:'OPEN',in_progress:'BEING FIXED',fixed:'FIXED'}[i.status]}</span></div>
+      <div class="row2" style="margin-top:10px">
+        <select class="form-select" id="iss-st-${i.id}">${['open','in_progress','fixed'].map(s=>`<option value="${s}" ${i.status===s?'selected':''}>${{open:'Open',in_progress:'Being fixed',fixed:'Fixed'}[s]}</option>`).join('')}</select>
+        <select class="form-select" id="iss-who-${i.id}"><option value="">Not assigned</option>${staffList.map(s=>`<option value="${s.id}" ${i.assigned_staff_id===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div>
+      <input class="form-input" style="margin-top:8px" id="iss-note-${i.id}" placeholder="What was done / notes" value="${escapeHtml(i.fix_note||'')}">
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input class="form-input" style="max-width:120px" type="number" id="iss-cost-${i.id}" placeholder="Cost $" value="${escapeHtml(i.cost??'')}"><button class="btn btn-primary btn-sm" onclick="saveIssue('${i.id}')">Save</button><span class="msg" id="iss-msg-${i.id}"></span></div></div>`).join('')).join(''):'<div class="card empty-state">No issues here.</div>';
+  for(const el of document.querySelectorAll('#issueList [data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);if(u)el.innerHTML=`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`}}
 }
-function renderTemplatesTab(){
-  const wrap=document.getElementById('templateListWrap');
-  const list=activeTemplateTypeTab==='daily'
-    ?taskTemplates.filter(t=>t.type==='daily')
-    :taskTemplates.filter(t=>t.type!=='daily');
-  if(!list.length){wrap.innerHTML='<div class="empty-state">No templates yet.</div>';return}
-  wrap.innerHTML=list.map(t=>{
-    const gameName=t.game_id?(games.find(g=>g.id===t.game_id)?.name||'Unknown room'):'';
-const meta=t.type==='daily'?(t.active?'Active':'Inactive'):`${escapeHtml(gameName)} · ${escapeHtml(checklistTypeLabel(t.type))} · ${t.active?'Active':'Inactive'}`;
-    return `<div class="template-row" onclick="openTemplateEditor('${t.id}')">
-      <div><div class="template-row-name">${escapeHtml(t.name)}</div><div class="template-row-meta">${meta}</div></div>
-      <i class="ti ti-chevron-right"></i>
-    </div>`;
-  }).join('');
+async function saveIssue(id){
+  const st=document.getElementById('iss-st-'+id).value,m=document.getElementById('iss-msg-'+id);
+  const body={status:st,assigned_staff_id:document.getElementById('iss-who-'+id).value||null,fix_note:document.getElementById('iss-note-'+id).value.trim()||null,cost:document.getElementById('iss-cost-'+id).value===''?null:Number(document.getElementById('iss-cost-'+id).value)};
+  if(st==='fixed'){body.fixed_by=me();body.fixed_at=new Date().toISOString()}else{body.fixed_by=null;body.fixed_at=null}
+  try{await patch('cl_issues',`id=eq.${id}`,body);m.className='msg ok';m.textContent='✓ Saved';await loadOpenIssues();if(st==='fixed')setTimeout(renderIssues,600)}
+  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
 }
-function openNewTemplateForm(){
-  editingTemplateId='new';
-  editingFields=[];
-  const isDaily=activeTemplateTypeTab==='daily';
-  renderTemplateEditor({id:null,name:'',type:isDaily?'daily':'reset',game_id:'',active:true},isDaily);
+function openIssueForm(){
+  showOverlay('Report a problem',`<div class="card"><div class="form-row"><label class="form-label">Where?</label><select class="form-select" id="niArea"><option value="">Choose…</option>${areas.filter(a=>a.active).map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')}</select></div>
+    <div class="form-row"><label class="form-label">What's wrong? (short)</label><input class="form-input" id="niTitle" placeholder="e.g. Laser box lid hinge loose"></div>
+    <div class="form-row"><label class="form-label">More detail</label><textarea class="form-textarea" id="niDesc"></textarea></div>
+    <div class="form-row"><label class="btn btn-secondary btn-sm"><i class="ti ti-camera"></i> Add photo<input type="file" accept="image/*" capture="environment" style="display:none" id="niPhoto" onchange="document.getElementById('niPhotoName').textContent=this.files[0]?'✓ photo added':''"></label> <span id="niPhotoName" class="item-help"></span></div>
+    <button class="btn btn-danger btn-big" onclick="submitIssue()">Report it</button><div class="msg" id="niMsg"></div></div>`);
 }
-async function openTemplateEditor(id){
-  editingTemplateId=id;
-  const t=taskTemplates.find(x=>x.id===id);
-  const isDaily=t.type==='daily';
-  if(!isDaily){
-    editingFields=JSON.parse(JSON.stringify(await loadTemplateFields(id)));
-    editingFields.forEach(f=>{
-      f.depends_on_idx=f.depends_on_field_id?editingFields.findIndex(x=>x.id===f.depends_on_field_id):null;
-    });
-  }else editingFields=[];
-  renderTemplateEditor(t,isDaily);
+async function submitIssue(){
+  const title=document.getElementById('niTitle').value.trim(),m=document.getElementById('niMsg');
+  if(!title){m.className='msg err';m.textContent='Please say what\'s wrong.';return}
+  m.className='msg';m.textContent='Saving…';
+  try{
+    const areaId=document.getElementById('niArea').value||null;
+    let photo=null;const f=document.getElementById('niPhoto').files[0];
+    if(f)photo=await uploadPhoto(f,`issues/${Date.now()}.jpg`);
+    await post('cl_issues',{title,description:document.getElementById('niDesc').value.trim()||null,area_id:areaId,game_id:areas.find(a=>a.id===areaId)?.game_id||null,photo_path:photo,reported_by:me()});
+    closeOverlay();await loadOpenIssues();if(activeTab==='issues')renderIssues();
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
 }
-function renderTemplateEditor(t,isDaily){
-  const wrap=document.getElementById('templateEditorWrap');
-  const gameOptions=games.filter(g=>g.category==='escape'||!t.game_id||g.id===t.game_id).map(g=>`<option value="${g.id}" ${t.game_id===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('');
-  wrap.innerHTML=`<div class="card">
-    <div class="form-row"><label class="form-label">Name</label><input class="form-input" id="tplName" value="${escapeHtml(t.name)}" placeholder="e.g. Vault Room — Reset"></div>
-    ${isDaily?'':`
-<div class="form-row"><label class="form-label">Checklist type</label>
-      <select class="form-select" id="tplType">${checklistTypeOptionsHtml(t.type)}</select>
-    </div>
-<div class="form-row"><label class="form-label">Room</label><select class="form-select" id="tplGame"><option value="">Choose…</option>${gameOptions}</select></div>
-    `}
-    <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="tplActive" ${t.active?'checked':''}> Active</label></div>
-    ${isDaily?`
-    <div class="form-row"><label class="form-label">Category</label><select class="form-select" id="tplDailyCategory">${dailyCategoryOptionsHtml(t.daily_category_id||'')}</select></div>
-    <div class="form-row"><label class="form-label">Default assignment</label><select class="form-select" id="tplDefaultAssignee">${assigneeOptionsHtml('','')}</select>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">Note: this sets who it's assigned to going forward — today's copy won't change retroactively.</div></div>
-    `:`
-    <div class="form-row"><label class="form-label">Fields</label><div id="fieldEditorList"></div>
-      <button class="btn btn-secondary btn-sm" onclick="addEditingField()"><i class="ti ti-plus"></i> Add field</button>
-    </div>
-    `}
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-primary" onclick="saveTemplate()"><i class="ti ti-device-floppy"></i> Save</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('templateEditorWrap').innerHTML=''">Cancel</button>
-      ${t.id?`<button class="btn btn-danger" onclick="deactivateTemplate('${t.id}')">Deactivate</button>`:''}
-    </div>
-  </div>`;
-  if(!isDaily)renderFieldEditorList();
+
+// ───────────── CHECKLIST EDITOR ─────────────
+function renderTemplates(){
+  if(!canEdit){document.getElementById('content').innerHTML='<div class="card empty-state">Only people allowed to edit checklists can see this.</div>';return}
+  const groups={};templates.forEach(t=>(groups[t.kind]=groups[t.kind]||[]).push(t));
+  document.getElementById('content').innerHTML=`<button class="btn btn-primary" onclick="editTemplate(null)"><i class="ti ti-plus"></i> New checklist</button>`+
+    Object.keys(KIND_LABELS).filter(k=>groups[k]).map(k=>`<div class="section-title"><i class="ti ${KIND_ICONS[k]}"></i> ${KIND_LABELS[k]}</div>`+groups[k].map(t=>`
+      <div class="list-row" style="cursor:pointer;${t.active?'':'opacity:.55'}" onclick="editTemplate('${t.id}')"><div class="grow"><div style="font-weight:600">${escapeHtml(t.name)}${t.active?'':' (off)'}</div>
+      <div class="item-help">${escapeHtml(areaName(t.area_id)||'No area')} · ${triggerText(t)} · ${itemsOf(t.id).length} items${hasQuick(t.id)?' · has quick reset':''} · ${t.assign_mode==='staff'?escapeHtml(staffName(t.assign_staff_id)):t.assign_mode==='role'?(ROLE_LABELS[t.assign_role]||t.assign_role):'Anyone'}</div></div><i class="ti ti-pencil"></i></div>`).join('')).join('');
 }
-function renderFieldEditorList(){
-  const el=document.getElementById('fieldEditorList');
-  if(!el)return;
-  el.innerHTML=editingFields.map((f,idx)=>`
-    <div class="field-editor-row">
-      <div style="flex:1">
-        <div class="form-row"><input class="form-input" placeholder="Field label" value="${escapeHtml(f.label||'')}" oninput="editingFields[${idx}].label=this.value"></div>
-        <div class="form-row" style="display:flex;gap:8px">
-          <select class="form-select" onchange="editingFields[${idx}].field_type=this.value;invalidateDependentsOn(${idx});renderFieldEditorList()">
-            <option value="checkbox" ${f.field_type==='checkbox'?'selected':''}>Checkbox</option>
-            <option value="text" ${f.field_type==='text'?'selected':''}>Text box</option>
-            <option value="photo" ${f.field_type==='photo'?'selected':''}>Photo</option>
-            <option value="radio" ${f.field_type==='radio'?'selected':''}>Multiple choice</option>
-          </select>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input type="checkbox" ${f.flags_review?'checked':''} onchange="editingFields[${idx}].flags_review=this.checked"> Flags for review</label>
-        </div>
-        ${f.field_type==='radio'?`<div class="form-row"><input class="form-input" placeholder="Options, comma separated" value="${escapeHtml((f.options||[]).join(', '))}" oninput="editingFields[${idx}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)"></div>`:''}
-        <div class="form-row" style="display:flex;gap:8px;align-items:center;margin-top:4px">
-          <label style="font-size:11px;color:var(--muted);white-space:nowrap">Only show if</label>
-          <select class="form-select" onchange="setFieldDependency(${idx},this.value)">${dependencyOptionsHtml(idx)}</select>
-          ${f.depends_on_idx!=null?dependencyValueSelectHtml(idx):''}
-        </div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="removeEditingField(${idx})"><i class="ti ti-trash"></i></button>
-    </div>
-  `).join('');
+function triggerText(t){
+  if(t.trigger==='schedule')return`Every ${t.schedule_every||1} ${t.schedule_unit||'month'}${(t.schedule_every||1)>1?'s':''}`;
+  if(t.trigger==='once')return t.due_date?`Once, by ${fmtDate(t.due_date)}`:'Once';
+  return TRIGGER_LABELS[t.trigger]||t.trigger;
 }
-function dependencyOptionsHtml(ownIdx){
-  let html='<option value="">— Always show —</option>';
-  editingFields.forEach((f,i)=>{
-    if(i===ownIdx)return;
-    if(f.field_type!=='checkbox'&&f.field_type!=='radio')return;
-    html+=`<option value="${i}" ${editingFields[ownIdx].depends_on_idx===i?'selected':''}>${escapeHtml(f.label||'(untitled field)')}</option>`;
-  });
-  return html;
+let ed=null,edSeq=0; // {t:{...}, items:[{key,id,parentKey,...}]}
+function editTemplate(id){
+  const t=id?{...templates.find(x=>x.id===id)}:{name:'',kind:'reset',area_id:'',assign_mode:'anyone',assign_role:'',assign_staff_id:'',trigger:'after_booking',schedule_every:1,schedule_unit:'month',schedule_start:todayStr(),due_date:'',description:'',active:true};
+  const its=id?itemsOf(id):[];
+  const keyOf={};its.forEach(i=>keyOf[i.id]='k'+(++edSeq));
+  ed={t,items:its.map(i=>({...i,key:keyOf[i.id],parentKey:i.parent_item_id?keyOf[i.parent_item_id]:null,options:Array.isArray(i.options)?i.options:[]}))};
+  // keep each follow-up right after its parent
+  const tops=ed.items.filter(i=>!i.parentKey);ed.items=tops.flatMap(p=>[p,...ed.items.filter(c=>c.parentKey===p.key)]);
+  renderEditor();
 }
-function dependencyValueSelectHtml(ownIdx){
-  const own=editingFields[ownIdx];
-  const dep=editingFields[own.depends_on_idx];
-  if(!dep)return '';
-  if(dep.field_type==='checkbox'){
-    return `<select class="form-select" onchange="editingFields[${ownIdx}].depends_on_value=this.value">
-      <option value="true" ${own.depends_on_value==='true'?'selected':''}>is checked (Yes)</option>
-      <option value="false" ${own.depends_on_value==='false'?'selected':''}>is unchecked (No)</option>
-    </select>`;
-  }
-  const opts=dep.options||[];
-  return `<select class="form-select" onchange="editingFields[${ownIdx}].depends_on_value=this.value">
-    ${opts.map(o=>`<option value="${escapeHtml(o)}" ${own.depends_on_value===o?'selected':''}>is "${escapeHtml(o)}"</option>`).join('')}
-  </select>`;
+function edAnswersFor(p){if(p.item_type==='okno')return[['ok','OK'],['not_ok','Not OK']];if(p.item_type==='dropdown')return p.options.map(o=>[o,o]);if(p.item_type==='tick')return[['yes','Ticked']];return[]}
+function edItemHtml(it,idx){
+  const parent=it.parentKey?ed.items.find(p=>p.key===it.parentKey):null;
+  const sel=(name,val,opts)=>`<select class="form-select" onchange="edSet('${it.key}','${name}',this.value)">${opts.map(([v,l])=>`<option value="${escapeHtml(v)}" ${String(val??'')===String(v)?'selected':''}>${escapeHtml(l)}</option>`).join('')}</select>`;
+  return`<div class="ed-item ${parent?'child':''}">
+    ${parent?`<div class="row2" style="margin-bottom:6px"><div><label class="form-label">Follow-up — show when "${escapeHtml(parent.label||'…')}" is</label>${sel('show_when',it.show_when,edAnswersFor(parent))}</div></div>`:''}
+    <div class="row2"><div style="flex:2"><label class="form-label">Question / item</label><input class="form-input" value="${escapeHtml(it.label)}" onchange="edSet('${it.key}','label',this.value)"></div>
+      <div><label class="form-label">Type</label>${sel('item_type',it.item_type,Object.entries(TYPE_LABELS))}</div></div>
+    ${it.item_type==='dropdown'?`<div class="form-row" style="margin-top:6px"><label class="form-label">Choices (separate with commas)</label><input class="form-input" value="${escapeHtml(it.options.join(', '))}" onchange="edSet('${it.key}','options',this.value)"></div>`:''}
+    ${it.item_type==='number'?`<div class="row2" style="margin-top:6px"><div><label class="form-label">Unit (e.g. %, V)</label><input class="form-input" value="${escapeHtml(it.unit||'')}" onchange="edSet('${it.key}','unit',this.value)"></div><div><label class="form-label">Warn + raise issue if below</label><input class="form-input" type="number" value="${escapeHtml(it.low_below??'')}" onchange="edSet('${it.key}','low_below',this.value)"></div></div>`:''}
+    ${it.item_type==='okno'?`<label class="chk" style="margin-top:6px"><input type="checkbox" ${it.raises_issue_when==='not_ok'?'checked':''} onchange="edSet('${it.key}','raises_issue_when',this.checked?'not_ok':'')"> "Not OK" raises an issue</label>`:''}
+    ${it.item_type==='dropdown'?`<div class="form-row" style="margin-top:6px"><label class="form-label">Raise an issue when the answer is</label>${sel('raises_issue_when',it.raises_issue_when||'',[['','Never'],...it.options.map(o=>[o,o])])}</div>`:''}
+    ${it.item_type!=='heading'?`<div class="form-row" style="margin-top:6px"><label class="form-label">Instructions (optional)</label><input class="form-input" value="${escapeHtml(it.help||'')}" onchange="edSet('${it.key}','help',this.value)"></div>`:''}
+    <div class="ed-tools">
+      ${it.item_type!=='heading'?`<label class="chk"><input type="checkbox" ${it.required?'checked':''} onchange="edSet('${it.key}','required',this.checked)"> Must answer</label>`:''}
+      ${!parent?`<label class="chk"><input type="checkbox" ${it.in_quick?'checked':''} onchange="edSet('${it.key}','in_quick',this.checked)"> In quick reset</label>`:''}
+      <label class="btn btn-secondary btn-sm"><i class="ti ti-photo"></i> ${it.ref_photo_path?'Change':'Add'} "how it should look" photo<input type="file" accept="image/*" style="display:none" onchange="edRefPhoto('${it.key}',this)"></label>
+      ${it.ref_photo_path?`<span class="btn btn-secondary btn-sm" onclick="edSet('${it.key}','ref_photo_path','')">Remove photo</span>`:''}
+      <span style="flex:1"></span>
+      <span class="btn btn-secondary btn-sm" onclick="edMove('${it.key}',-1)">↑</span><span class="btn btn-secondary btn-sm" onclick="edMove('${it.key}',1)">↓</span>
+      ${!parent&&['okno','dropdown','tick'].includes(it.item_type)?`<span class="btn btn-secondary btn-sm" onclick="edAdd('${it.key}')">+ Follow-up</span>`:''}
+      <span class="btn btn-danger btn-sm" onclick="edRemove('${it.key}')">✕</span></div></div>`;
 }
-function setFieldDependency(ownIdx,depIdxStr){
-  const depIdx=depIdxStr===''?null:parseInt(depIdxStr);
-  editingFields[ownIdx].depends_on_idx=depIdx;
-  if(depIdx===null){editingFields[ownIdx].depends_on_value=null}
-  else{
-    const dep=editingFields[depIdx];
-    editingFields[ownIdx].depends_on_value=dep.field_type==='checkbox'?'true':((dep.options&&dep.options[0])||'');
-  }
-  renderFieldEditorList();
+function renderEditor(){
+  const t=ed.t;
+  const f=(label,html)=>`<div class="form-row"><label class="form-label">${label}</label>${html}</div>`;
+  const opt=(val,list)=>list.map(([v,l])=>`<option value="${escapeHtml(v)}" ${String(val??'')===String(v)?'selected':''}>${escapeHtml(l)}</option>`).join('');
+  const kinds=Object.entries(KIND_LABELS).filter(([k])=>k!=='owners'||isOwner);
+  showOverlay(t.id?'Edit checklist':'New checklist',`<div class="card">
+    ${f('Name',`<input class="form-input" id="edName" value="${escapeHtml(t.name)}" placeholder="e.g. Sherlock reset">`)}
+    <div class="row2">${f('Type',`<select class="form-select" id="edKind">${opt(t.kind,kinds)}</select>`)}${f('Room / area',`<select class="form-select" id="edArea"><option value="">None</option>${opt(t.area_id,areas.filter(a=>a.active||a.id===t.area_id).map(a=>[a.id,a.name]))}</select>`)}</div>
+    ${f('Who does it',`<select class="form-select" id="edWho" onchange="edWhoChange()">${opt(t.assign_mode==='staff'?'s:'+t.assign_staff_id:t.assign_mode==='role'?'r:'+t.assign_role:'',[['','Anyone'],...Object.entries(ROLE_LABELS).map(([k,l])=>['r:'+k,l]),...staffList.map(s=>['s:'+s.id,s.name])])}</select>`)}
+    ${f('When is it due',`<select class="form-select" id="edTrigger" onchange="edTriggerChange()">${opt(t.trigger,Object.entries(TRIGGER_LABELS))}</select>`)}
+    <div id="edSched" class="row2" style="display:${t.trigger==='schedule'?'flex':'none'}">${f('Every',`<input class="form-input" type="number" min="1" id="edEvery" value="${escapeHtml(t.schedule_every||1)}">`)}${f('&nbsp;',`<select class="form-select" id="edUnit">${opt(t.schedule_unit||'month',[['day','day(s)'],['week','week(s)'],['month','month(s)']])}</select>`)}${f('Starting',`<input class="form-input" type="date" id="edStart" value="${escapeHtml(t.schedule_start||todayStr())}">`)}</div>
+    <div id="edOnce" style="display:${t.trigger==='once'?'block':'none'}">${f('Due by (optional)',`<input class="form-input" type="date" id="edDue" value="${escapeHtml(t.due_date||'')}">`)}</div>
+    ${f('Description / notes (optional)',`<textarea class="form-textarea" id="edDesc">${escapeHtml(t.description||'')}</textarea>`)}
+    <label class="chk"><input type="checkbox" id="edActive" ${t.active?'checked':''}> Switched on</label></div>
+    <div class="section-title">Items</div>
+    <div id="edItems">${ed.items.map(edItemHtml).join('')||'<div class="empty-state">No items yet.</div>'}</div>
+    <button class="btn btn-secondary" onclick="edAdd(null)"><i class="ti ti-plus"></i> Add item</button>
+    <div class="msg" id="edMsg"></div>`,
+    `${t.id?`<button class="btn btn-secondary" onclick="closeOverlay();switchTab('templates')">Cancel</button>`:''}<button class="btn btn-primary btn-big" onclick="saveTemplate()"><i class="ti ti-device-floppy"></i> Save checklist</button>`);
+  loadPhotos();
 }
-function invalidateDependentsOn(changedIdx){
-  const f=editingFields[changedIdx];
-  const stillValid=f.field_type==='checkbox'||f.field_type==='radio';
-  if(stillValid)return;
-  editingFields.forEach(o=>{
-    if(o.depends_on_idx===changedIdx){o.depends_on_idx=null;o.depends_on_value=null}
-  });
+function edCaptureHeader(){
+  const t=ed.t,g=id=>document.getElementById(id);if(!g('edName'))return;
+  t.name=g('edName').value;t.kind=g('edKind').value;t.area_id=g('edArea').value;t.trigger=g('edTrigger').value;t.description=g('edDesc').value;t.active=g('edActive').checked;
+  const w=g('edWho').value;t.assign_mode=w.startsWith('s:')?'staff':w.startsWith('r:')?'role':'anyone';t.assign_staff_id=w.startsWith('s:')?w.slice(2):'';t.assign_role=w.startsWith('r:')?w.slice(2):'';
+  t.schedule_every=parseInt(g('edEvery').value)||1;t.schedule_unit=g('edUnit').value;t.schedule_start=g('edStart').value;t.due_date=g('edDue').value;
 }
-function removeEditingField(removeIdx){
-  editingFields.splice(removeIdx,1);
-  editingFields.forEach(f=>{
-    if(f.depends_on_idx===removeIdx){f.depends_on_idx=null;f.depends_on_value=null}
-    else if(f.depends_on_idx!=null&&f.depends_on_idx>removeIdx){f.depends_on_idx--}
-  });
-  renderFieldEditorList();
+function edWhoChange(){}
+function edTriggerChange(){const v=document.getElementById('edTrigger').value;document.getElementById('edSched').style.display=v==='schedule'?'flex':'none';document.getElementById('edOnce').style.display=v==='once'?'block':'none'}
+function edSet(key,field,val){
+  edCaptureHeader();const it=ed.items.find(i=>i.key===key);if(!it)return;
+  if(field==='options')it.options=val.split(',').map(s=>s.trim()).filter(Boolean);
+  else if(field==='low_below')it.low_below=val===''?null:Number(val);
+  else it[field]=val;
+  if(['item_type','options','ref_photo_path'].includes(field))renderEditor();
 }
-function addEditingField(){
-  editingFields.push({label:'',field_type:'checkbox',options:[],flags_review:false,sort_order:editingFields.length,depends_on_idx:null,depends_on_value:null});
-  renderFieldEditorList();
+function edAdd(parentKey){
+  edCaptureHeader();const n={key:'k'+(++edSeq),id:null,parentKey,label:'',item_type:parentKey?'text':'tick',options:[],required:!!parentKey,in_quick:false,low_below:null,unit:'',help:'',raises_issue_when:'',ref_photo_path:'',show_when:''};
+  if(parentKey){const p=ed.items.find(i=>i.key===parentKey);n.show_when=(edAnswersFor(p)[p.item_type==='okno'?1:0]||[''])[0];n.in_quick=p.in_quick;
+    let pos=ed.items.findIndex(i=>i.key===parentKey);while(ed.items[pos+1]&&ed.items[pos+1].parentKey===parentKey)pos++;ed.items.splice(pos+1,0,n)}
+  else ed.items.push(n);
+  renderEditor();
+}
+function edRemove(key){edCaptureHeader();ed.items=ed.items.filter(i=>i.key!==key&&i.parentKey!==key);renderEditor()}
+function edMove(key,dir){
+  edCaptureHeader();const it=ed.items.find(i=>i.key===key);
+  if(it.parentKey){const sib=ed.items.filter(i=>i.parentKey===it.parentKey);const k=sib.indexOf(it),j=k+dir;if(j<0||j>=sib.length)return;
+    const a=ed.items.indexOf(sib[k]),b=ed.items.indexOf(sib[j]);[ed.items[a],ed.items[b]]=[ed.items[b],ed.items[a]]}
+  else{const tops=ed.items.filter(i=>!i.parentKey);const k=tops.indexOf(it),j=k+dir;if(j<0||j>=tops.length)return;[tops[k],tops[j]]=[tops[j],tops[k]];ed.items=tops.flatMap(p=>[p,...ed.items.filter(c=>c.parentKey===p.key)])}
+  renderEditor();
+}
+async function edRefPhoto(key,input){
+  const f=input.files[0];if(!f)return;edCaptureHeader();
+  try{const path=await uploadPhoto(f,`ref/${Date.now()}.jpg`);edSet(key,'ref_photo_path',path)}catch(e){alert('Photo not saved: '+e.message)}
 }
 async function saveTemplate(){
-  const name=document.getElementById('tplName').value.trim();
-  if(!name){alert('Please enter a name.');return}
-  const active=document.getElementById('tplActive').checked;
-  const isDaily=activeTemplateTypeTab==='daily'&&editingTemplateId==='new'||(editingTemplateId!=='new'&&taskTemplates.find(t=>t.id===editingTemplateId)?.type==='daily');
-  const type=isDaily?'daily':document.getElementById('tplType').value;
-  const gameId=isDaily?null:(document.getElementById('tplGame').value||null);
-  const dailyCategoryId=isDaily?(document.getElementById('tplDailyCategory').value||null):null;
-  if(!isDaily&&!gameId){alert('Please choose which room this checklist is for.');return}
+  edCaptureHeader();const t=ed.t,m=document.getElementById('edMsg');
+  if(!t.name.trim()){m.className='msg err';m.textContent='Please give it a name.';return}
+  if(t.assign_mode==='staff'&&!t.assign_staff_id)t.assign_mode='anyone';
+  const bad=ed.items.find(i=>!String(i.label).trim());if(bad){m.className='msg err';m.textContent='Every item needs a question / label.';return}
+  const badDrop=ed.items.find(i=>i.item_type==='dropdown'&&i.options.length<2);if(badDrop){m.className='msg err';m.textContent=`"${badDrop.label}" needs at least 2 choices.`;return}
+  m.className='msg';m.textContent='Saving…';
+  const body={name:t.name.trim(),kind:t.kind,area_id:t.area_id||null,assign_mode:t.assign_mode,assign_role:t.assign_mode==='role'?t.assign_role:null,assign_staff_id:t.assign_mode==='staff'?t.assign_staff_id:null,
+    trigger:t.trigger,schedule_every:t.trigger==='schedule'?t.schedule_every:null,schedule_unit:t.trigger==='schedule'?t.schedule_unit:null,schedule_start:t.trigger==='schedule'?(t.schedule_start||todayStr()):null,
+    due_date:t.trigger==='once'?(t.due_date||null):null,description:t.description.trim()||null,active:t.active,updated_at:new Date().toISOString()};
   try{
-    let templateId=editingTemplateId;
-    if(editingTemplateId==='new'){
-      const r=await fetch(`${SB_URL}/rest/v1/task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,type,game_id:gameId,active,daily_category_id:dailyCategoryId,created_by:currentUser.staffId,sort_order:taskTemplates.length})});
-      const rows=await r.json();templateId=rows[0].id;
-    }else{
-      await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${templateId}`,{method:'PATCH',headers:H(),body:JSON.stringify({name,type,game_id:gameId,active,daily_category_id:dailyCategoryId})});
-    }
-    if(!isDaily){
-      // Simplest reliable approach: replace all fields for this template.
-      await fetch(`${SB_URL}/rest/v1/task_template_fields?template_id=eq.${templateId}`,{method:'DELETE',headers:H()});
-      if(editingFields.length){
-        const insR=await fetch(`${SB_URL}/rest/v1/task_template_fields`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(editingFields.map((f,idx)=>({template_id:templateId,field_type:f.field_type,label:f.label,options:f.options&&f.options.length?f.options:null,flags_review:f.flags_review,sort_order:idx})))});
-        const insRows=await insR.json();
-        const idxToId={};
-        insRows.forEach(row=>{idxToId[row.sort_order]=row.id});
-        const patches=editingFields.map((f,idx)=>{
-          if(f.depends_on_idx==null)return null;
-          const depId=idxToId[f.depends_on_idx];
-          if(!depId)return null;
-          return fetch(`${SB_URL}/rest/v1/task_template_fields?id=eq.${idxToId[idx]}`,{method:'PATCH',headers:H(),body:JSON.stringify({depends_on_field_id:depId,depends_on_value:f.depends_on_value})});
-        }).filter(Boolean);
-        if(patches.length)await Promise.all(patches);
+    let tid=t.id;
+    if(tid)await patch('cl_templates',`id=eq.${tid}`,body);else{body.created_by=me();tid=(await post('cl_templates',body))[0].id}
+    // Items removed in the editor are switched off (not deleted) so old records keep their answers
+    const keepIds=new Set(ed.items.filter(i=>i.id).map(i=>i.id));
+    for(const old of itemsOf(tid))if(!keepIds.has(old.id))await patch('cl_items',`id=eq.${old.id}`,{active:false});
+    const idOf={};let order=0;
+    for(const pass of [false,true]){ // parents first, then follow-ups (they need the parent's id)
+      for(const it of ed.items.filter(i=>!!i.parentKey===pass)){
+        const b={template_id:tid,parent_item_id:pass?idOf[it.parentKey]:null,show_when:pass?(it.show_when||null):null,sort_order:++order,label:String(it.label).trim(),help:(it.help||'').trim()||null,item_type:it.item_type,
+          options:it.item_type==='dropdown'?it.options:[],required:it.item_type==='heading'?false:!!it.required,in_quick:pass?!!ed.items.find(p=>p.key===it.parentKey)?.in_quick:!!it.in_quick,
+          low_below:it.item_type==='number'?it.low_below:null,unit:it.item_type==='number'?(it.unit||null):null,raises_issue_when:['okno','dropdown'].includes(it.item_type)?(it.raises_issue_when||null):null,ref_photo_path:it.ref_photo_path||null,active:true};
+        if(it.id){await patch('cl_items',`id=eq.${it.id}`,b);idOf[it.key]=it.id}else idOf[it.key]=(await post('cl_items',b))[0].id;
       }
-      delete templateFieldsCache[templateId];
     }
-    document.getElementById('templateEditorWrap').innerHTML='';
-    await loadTemplates();
-    if(isDaily)await ensureDailyInstancesForToday();
-    renderTemplatesTab();
-  }catch(e){alert('Error saving template: '+e.message)}
-}
-async function deactivateTemplate(id){
-  if(!confirm('Deactivate this template? It will stop showing up for staff, but history is kept.'))return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/task_templates?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})});
-    document.getElementById('templateEditorWrap').innerHTML='';
-await loadTemplates();renderTemplatesTab();
-  }catch(e){alert('Error: '+e.message)}
+    templates=await api('cl_templates?select=*&order=sort_order,name');await loadItems();
+    closeOverlay();switchTab('templates');
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
 }
 
-// ───────────────────────── CHECKLIST TYPES ADMIN ─────────────────────────
-function renderChecklistTypesTab(){
-  const wrap=document.getElementById('checklistTypesListWrap');
-  if(!checklistTypes.length){wrap.innerHTML='<div class="empty-state">No checklist types yet.</div>';return}
-  wrap.innerHTML=checklistTypes.map(c=>`
-    <div class="template-row" style="cursor:default">
-      <div>
-        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(c.label)}" onchange="renameChecklistType('${c.id}',this.value)">
-        <div class="template-row-meta">key: ${escapeHtml(c.key)} · ${c.active?'Active':'Inactive'}</div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="toggleChecklistTypeActive('${c.id}',${!c.active})">${c.active?'Deactivate':'Activate'}</button>
-    </div>
-  `).join('');
+// ───────────── SETTINGS (areas) ─────────────
+function renderSettings(){
+  if(!canEdit){document.getElementById('content').innerHTML='<div class="card empty-state">Only people allowed to edit checklists can see this.</div>';return}
+  document.getElementById('content').innerHTML=`<div class="section-title"><i class="ti ti-map-pin"></i> Rooms &amp; areas</div>
+    <div class="item-help" style="margin-bottom:8px">Checklists and issues belong to these. Rooms are linked to a game so resets follow that game's bookings.</div>
+    ${areas.map((a,k)=>`<div class="list-row" style="${a.active?'':'opacity:.55'}"><div class="grow"><input class="form-input" value="${escapeHtml(a.name)}" onchange="saveArea('${a.id}',{name:this.value.trim()})"></div>
+      <select class="form-select" style="max-width:170px" onchange="saveArea('${a.id}',{game_id:this.value||null})"><option value="">Not a game room</option>${games.map(g=>`<option value="${g.id}" ${a.game_id===g.id?'selected':''}>${escapeHtml(g.name)}</option>`).join('')}</select>
+      <span class="btn btn-secondary btn-sm" onclick="moveArea(${k},-1)">↑</span><span class="btn btn-secondary btn-sm" onclick="moveArea(${k},1)">↓</span>
+      <label class="chk"><input type="checkbox" ${a.active?'checked':''} onchange="saveArea('${a.id}',{active:this.checked})"> On</label></div>`).join('')}
+    <div class="card" style="margin-top:10px"><div class="row2"><input class="form-input" id="newArea" placeholder="New area, e.g. Kitchen"><button class="btn btn-primary" style="flex:0" onclick="addArea()">Add</button></div><div class="msg" id="areaMsg"></div></div>`;
 }
-async function addChecklistType(){
-  const labelEl=document.getElementById('newChecklistTypeLabel');
-  const label=labelEl.value.trim();
-  if(!label){alert('Please enter a name.');return}
-  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-  if(!key){alert('Please use at least one letter or number.');return}
-  if(checklistTypes.some(c=>c.key===key)){alert('A checklist type with that name already exists.');return}
-  try{
-    await fetch(`${SB_URL}/rest/v1/task_checklist_types`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:checklistTypes.length})});
-    labelEl.value='';
-    await loadChecklistTypes();renderChecklistTypesTab();
-  }catch(e){alert('Error adding checklist type: '+e.message)}
+async function saveArea(id,fields){
+  try{await patch('cl_areas',`id=eq.${id}`,fields);areas=await api('cl_areas?select=*&order=sort_order,name');renderSettings()}catch(e){alert('Not saved: '+e.message)}
 }
-async function renameChecklistType(id,newLabel){
-  newLabel=newLabel.trim();
-  if(!newLabel)return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
-    await loadChecklistTypes();renderChecklistTypesTab();
-  }catch(e){alert('Error renaming: '+e.message)}
+async function moveArea(k,dir){
+  const j=k+dir;if(j<0||j>=areas.length)return;const a=areas[k],b=areas[j];
+  try{await patch('cl_areas',`id=eq.${a.id}`,{sort_order:j});await patch('cl_areas',`id=eq.${b.id}`,{sort_order:k});
+    for(let n=0;n<areas.length;n++)if(n!==k&&n!==j&&areas[n].sort_order!==n)await patch('cl_areas',`id=eq.${areas[n].id}`,{sort_order:n});
+    areas=await api('cl_areas?select=*&order=sort_order,name');renderSettings()}catch(e){alert('Not saved: '+e.message)}
 }
-async function toggleChecklistTypeActive(id,active){
-  try{
-    await fetch(`${SB_URL}/rest/v1/task_checklist_types?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
-    await loadChecklistTypes();renderChecklistTypesTab();
-  }catch(e){alert('Error: '+e.message)}
-}
-function dailyCategoryLabel(id){if(!id)return 'Uncategorized';return dailyCategories.find(c=>c.id===id)?.label||'Uncategorized'}
-function renderDailyCategoriesTab(){
-  const wrap=document.getElementById('dailyCategoriesListWrap');
-  if(!dailyCategories.length){wrap.innerHTML='<div class="empty-state">No categories yet.</div>';return}
-  wrap.innerHTML=dailyCategories.map(c=>`
-    <div class="template-row" style="cursor:default">
-      <div>
-        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(c.label)}" onchange="renameDailyCategory('${c.id}',this.value)">
-        <div class="template-row-meta">key: ${escapeHtml(c.key)} · ${c.active?'Active':'Inactive'}</div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="toggleDailyCategoryActive('${c.id}',${!c.active})">${c.active?'Deactivate':'Activate'}</button>
-    </div>
-  `).join('');
-}
-async function addDailyCategory(){
-  const labelEl=document.getElementById('newDailyCategoryLabel');
-  const label=labelEl.value.trim();
-  if(!label){alert('Please enter a name.');return}
-  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-  if(!key){alert('Please use at least one letter or number.');return}
-  if(dailyCategories.some(c=>c.key===key)){alert('A category with that name already exists.');return}
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_categories`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:dailyCategories.length})});
-    labelEl.value='';
-    await loadDailyCategories();renderDailyCategoriesTab();
-  }catch(e){alert('Error adding category: '+e.message)}
-}
-async function renameDailyCategory(id,newLabel){
-  newLabel=newLabel.trim();
-  if(!newLabel)return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_categories?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
-    await loadDailyCategories();renderDailyCategoriesTab();
-  }catch(e){alert('Error renaming: '+e.message)}
-}
-async function toggleDailyCategoryActive(id,active){
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_task_categories?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
-    await loadDailyCategories();renderDailyCategoriesTab();
-  }catch(e){alert('Error: '+e.message)}
+async function addArea(){
+  const name=document.getElementById('newArea').value.trim(),m=document.getElementById('areaMsg');if(!name)return;
+  try{await post('cl_areas',{name,sort_order:areas.length+1});areas=await api('cl_areas?select=*&order=sort_order,name');renderSettings()}catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
 }
 
-// ───────────────────────── GENERAL TASK TAGS ADMIN ─────────────────────────
-function renderTaskTagsTab(){
-  const wrap=document.getElementById('taskTagsListWrap');
-  if(!taskTags.length){wrap.innerHTML='<div class="empty-state">No tags yet.</div>';return}
-  wrap.innerHTML=taskTags.map(t=>`
-    <div class="template-row" style="cursor:default">
-      <div>
-        <input class="form-input" style="font-size:13px;font-weight:600;padding:4px 8px" value="${escapeHtml(t.label)}" onchange="renameTaskTag('${t.id}',this.value)">
-        <div class="template-row-meta">key: ${escapeHtml(t.key)} · ${t.active?'Active':'Inactive'}</div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="toggleTaskTagActive('${t.id}',${!t.active})">${t.active?'Deactivate':'Activate'}</button>
-    </div>
-  `).join('');
-}
-async function addTaskTag(){
-  const labelEl=document.getElementById('newTaskTagLabel');
-  const label=labelEl.value.trim();
-  if(!label){alert('Please enter a name.');return}
-  const key=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-  if(!key){alert('Please use at least one letter or number.');return}
-  if(taskTags.some(t=>t.key===key)){alert('A tag with that name already exists.');return}
-  try{
-    await fetch(`${SB_URL}/rest/v1/general_task_tags`,{method:'POST',headers:H(),body:JSON.stringify({key,label,sort_order:taskTags.length})});
-    labelEl.value='';
-    await loadTaskTags();renderTaskTagsTab();
-  }catch(e){alert('Error adding tag: '+e.message)}
-}
-async function renameTaskTag(id,newLabel){
-  newLabel=newLabel.trim();
-  if(!newLabel)return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/general_task_tags?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({label:newLabel})});
-    await loadTaskTags();renderTaskTagsTab();
-  }catch(e){alert('Error renaming: '+e.message)}
-}
-async function toggleTaskTagActive(id,active){
-  try{
-    await fetch(`${SB_URL}/rest/v1/general_task_tags?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active})});
-    await loadTaskTags();renderTaskTagsTab();
-  }catch(e){alert('Error: '+e.message)}
-}
-
-// ───────────────────────── GENERAL TASKS ─────────────────────────
-async function renderGeneralTasksTab(){
-  const list=document.getElementById('generalTasksList');
-  list.innerHTML='<div class="empty-state">Loading…</div>';
-  await ensureGeneralTaskInstances();
-  await loadGeneralTaskInstances();
-  const visible=generalTaskTemplates.filter(generalTaskVisibleToCurrentUser);
-  const rows=visible.map(t=>({t,inst:currentGeneralTaskInstance(t)})).filter(r=>r.inst);
-  rows.sort((a,b)=>{
-    const uo=URGENCY_ORDER[a.t.urgency]-URGENCY_ORDER[b.t.urgency];
-    if(uo!==0)return uo;
-    const ad=a.t.due_date||'9999-99-99',bd=b.t.due_date||'9999-99-99';
-    return ad.localeCompare(bd);
-  });
-  if(!rows.length){list.innerHTML='<div class="empty-state">No tasks right now.</div>';return}
-  list.innerHTML=rows.map(({t,inst})=>{
-    const tagsHtml=(t.tags||[]).map(k=>`<span class="tag-pill">${escapeHtml(taskTagLabel(k))}</span>`).join(' ');
-    const recurLabel=t.recurrence==='once'?(t.due_date?`Due ${new Date(t.due_date+'T00:00:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short'})}`:'One-off'):`Repeats ${RECURRENCE_LABEL[t.recurrence]||t.recurrence}`;
-    const doneMeta=inst.done?`Done by ${escapeHtml(staffName(inst.done_by))} at ${new Date(inst.done_at).toLocaleString('en-NZ',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}${inst.completion_note?' — "'+escapeHtml(inst.completion_note)+'"':''}`:'';
-    return `<div class="daily-item">
-      <input type="checkbox" ${inst.done?'checked':''} onchange="toggleGeneralTaskDone('${inst.id}',this.checked)">
-      <div class="daily-item-body">
-        <div class="daily-item-name">${escapeHtml(t.title)} <span class="tag-pill" style="${URGENCY_STYLE[t.urgency]}">${URGENCY_LABEL[t.urgency]}</span> ${tagsHtml}</div>
-        <div class="daily-item-meta">${escapeHtml(assigneeLabel(t.assigned_staff_id,t.assigned_role))} · ${recurLabel}${t.description?' · '+escapeHtml(t.description):''}${inst.done?' · '+doneMeta:''}</div>
-      </div>
-      ${canEditTemplates?`<button class="btn btn-secondary btn-sm" onclick="openGeneralTaskEditor('${t.id}')"><i class="ti ti-pencil"></i></button>`:''}
-    </div>`;
-  }).join('');
-}
-async function toggleGeneralTaskDone(instanceId,checked){
-  const body=checked
-    ?{done:true,done_by:currentUser.staffId,done_at:new Date().toISOString(),completion_note:prompt('Any notes about completing this task? (optional)')||null}
-    :{done:false,done_by:null,done_at:null,completion_note:null};
-  try{
-    await fetch(`${SB_URL}/rest/v1/general_task_instances?id=eq.${instanceId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
-    await loadGeneralTaskInstances();renderGeneralTasksTab();
-  }catch(e){alert('Error updating task: '+e.message)}
-}
-function openNewGeneralTaskForm(){
-  editingGeneralTaskId='new';
-  renderGeneralTaskEditor({id:null,title:'',description:'',assigned_role:null,assigned_staff_id:null,urgency:'medium',recurrence:'once',due_date:'',tags:[],active:true});
-}
-function openGeneralTaskEditor(id){
-  editingGeneralTaskId=id;
-  const t=generalTaskTemplates.find(x=>x.id===id);
-  renderGeneralTaskEditor(t);
-}
-function renderGeneralTaskEditor(t){
-  const wrap=document.getElementById('generalTaskEditorWrap');
-  const tagCheckboxes=taskTags.filter(g=>g.active||(t.tags||[]).includes(g.key)).map(g=>`
-    <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:10px">
-      <input type="checkbox" value="${g.key}" ${(t.tags||[]).includes(g.key)?'checked':''} class="genTaskTagCheckbox"> ${escapeHtml(g.label)}
-    </label>`).join('');
-  wrap.innerHTML=`<div class="card">
-    <div class="form-row"><label class="form-label">Title</label><input class="form-input" id="gtTitle" value="${escapeHtml(t.title||'')}" placeholder="e.g. Restock printer paper"></div>
-    <div class="form-row"><label class="form-label">Instructions (optional)</label><textarea class="form-textarea" id="gtDescription" rows="2">${escapeHtml(t.description||'')}</textarea></div>
-    <div class="form-row" style="display:flex;gap:8px">
-      <div style="flex:1"><label class="form-label">Assign to</label><select class="form-select" id="gtAssignee">${assigneeOptionsHtml(t.assigned_staff_id,t.assigned_role)}</select></div>
-      <div style="flex:1"><label class="form-label">Urgency</label><select class="form-select" id="gtUrgency">
-        <option value="low" ${t.urgency==='low'?'selected':''}>Low</option>
-        <option value="medium" ${t.urgency==='medium'?'selected':''}>Medium</option>
-        <option value="high" ${t.urgency==='high'?'selected':''}>High</option>
-        <option value="urgent" ${t.urgency==='urgent'?'selected':''}>Urgent</option>
-      </select></div>
-    </div>
-    <div class="form-row" style="display:flex;gap:8px">
-      <div style="flex:1"><label class="form-label">Repeats</label><select class="form-select" id="gtRecurrence" onchange="onGeneralTaskRecurrenceChange()">
-        <option value="once" ${t.recurrence==='once'?'selected':''}>One-off (due by a date)</option>
-        <option value="daily" ${t.recurrence==='daily'?'selected':''}>Daily</option>
-        <option value="weekly" ${t.recurrence==='weekly'?'selected':''}>Weekly</option>
-        <option value="monthly" ${t.recurrence==='monthly'?'selected':''}>Monthly</option>
-        <option value="quarterly" ${t.recurrence==='quarterly'?'selected':''}>Every 3 months</option>
-        <option value="half_yearly" ${t.recurrence==='half_yearly'?'selected':''}>Every 6 months</option>
-        <option value="yearly" ${t.recurrence==='yearly'?'selected':''}>Yearly</option>
-      </select></div>
-      <div style="flex:1" id="gtDueDateWrap"><label class="form-label">Required by</label><input type="date" class="form-input" id="gtDueDate" value="${t.due_date||''}"></div>
-    </div>
-    <div class="form-row"><label class="form-label">Tags</label><div>${tagCheckboxes||'<div style="font-size:12px;color:var(--muted)">No tags yet — add some under Task Tags.</div>'}</div></div>
-    <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="gtActive" ${t.active!==false?'checked':''}> Active</label></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-primary" onclick="saveGeneralTask()"><i class="ti ti-device-floppy"></i> Save</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('generalTaskEditorWrap').innerHTML=''">Cancel</button>
-      ${t.id?`<button class="btn btn-danger" onclick="deactivateGeneralTask('${t.id}')">Deactivate</button>`:''}
-    </div>
-  </div>`;
-  onGeneralTaskRecurrenceChange();
-}
-function onGeneralTaskRecurrenceChange(){
-  const rec=document.getElementById('gtRecurrence').value;
-  document.getElementById('gtDueDateWrap').style.display=rec==='once'?'':'none';
-}
-async function saveGeneralTask(){
-  const title=document.getElementById('gtTitle').value.trim();
-  if(!title){alert('Please enter a task title.');return}
-  const assigneeVal=document.getElementById('gtAssignee').value;
-  const assigned_role=assigneeVal.startsWith('role:')?assigneeVal.slice(5):null;
-  const assigned_staff_id=(!assigned_role&&assigneeVal)?assigneeVal:null;
-  const urgency=document.getElementById('gtUrgency').value;
-  const recurrence=document.getElementById('gtRecurrence').value;
-  const due_date=recurrence==='once'?(document.getElementById('gtDueDate').value||null):null;
-  const description=document.getElementById('gtDescription').value.trim()||null;
-  const active=document.getElementById('gtActive').checked;
-  const tags=[...document.querySelectorAll('.genTaskTagCheckbox:checked')].map(cb=>cb.value);
-  const body={title,description,assigned_role,assigned_staff_id,urgency,recurrence,due_date,active,tags};
-  try{
-    if(editingGeneralTaskId==='new'){
-      body.created_by=currentUser.staffId;
-      const r=await fetch(`${SB_URL}/rest/v1/general_task_templates`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
-      const rows=await r.json();
-      if(recurrence==='once'&&rows[0]){
-        await fetch(`${SB_URL}/rest/v1/general_task_instances`,{method:'POST',headers:H(),body:JSON.stringify({template_id:rows[0].id,occurrence_date:due_date||todayStr()})});
-      }
-    }else{
-      await fetch(`${SB_URL}/rest/v1/general_task_templates?id=eq.${editingGeneralTaskId}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
-    }
-    document.getElementById('generalTaskEditorWrap').innerHTML='';
-    await loadGeneralTaskTemplates();
-    renderGeneralTasksTab();
-  }catch(e){alert('Error saving task: '+e.message)}
-}
-async function deactivateGeneralTask(id){
-  if(!confirm('Deactivate this task? It will stop showing up, but history is kept.'))return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/general_task_templates?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({active:false})});
-    document.getElementById('generalTaskEditorWrap').innerHTML='';
-    await loadGeneralTaskTemplates();
-    renderGeneralTasksTab();
-  }catch(e){alert('Error: '+e.message)}
-}
-
-// ───────────────────────── INIT ─────────────────────────
-  window.addEventListener('DOMContentLoaded',async()=>{
+// ───────────── INIT ─────────────
+window.addEventListener('DOMContentLoaded',async()=>{
   const saved=localStorage.getItem('btb_staff_session');
-  if(saved){
-    try{
-      const cached=JSON.parse(saved);
-      currentUser=cached;
-      if(!currentUser.refreshToken){doLogout();return}
-      const msLeft=(currentUser.expiresAt||0)-Date.now();
-      if(msLeft<5*60*1000){await refreshAuthToken();if(!currentUser)return}
-      scheduleTokenRefresh();
-      try{
-        const sr=await fetch(`${SB_URL}/rest/v1/staff?id=eq.${currentUser.staffId}&select=can_edit_task_templates`,{headers:H()});
-        const srows=await sr.json();canEditTemplates=!!(srows[0]&&srows[0].can_edit_task_templates);
-      }catch(e){}
-      await loadAppData();
-      showApp();
-    }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
-  }
+  if(!saved)return;
+  try{
+    currentUser=JSON.parse(saved);
+    if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<5*60*1000){await refreshAuthToken();if(!currentUser)return}
+    scheduleTokenRefresh();await startApp();
+  }catch(e){console.error('Session restore failed — signing out:',e);doLogout()}
 });
+setInterval(()=>{if(currentUser&&activeTab==='today'&&document.visibilityState==='visible'&&!document.getElementById('overlay').classList.contains('show'))refreshToday()},120000);
 </script>
 </body>
 </html>
