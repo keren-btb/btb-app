@@ -766,7 +766,8 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.10'; // v1.9.10: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
+const BUILD_VERSION = '1.9.11'; // v1.9.11: Hire bookings show "🚚 Hired out · games · venue" instead of player counts in the booking list.
+// Previous build: 1.9.10 — // v1.9.10: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.9: Fixed "Go to POS" from btb_app.html's booking 3-dot menu not finding bookings more than ~4 weeks ahead — the POS Bookings list only loaded up to 27 days from today, so a booking further out was never loaded. When POS is opened with ?booking=&date= it now also loads up to that booking's date. Normal opening of POS is unchanged. Previously v1.9.8: Group bookings (rooms/VR/cafe sharing a group_booking_id) now show and pay as ONE connected item in POS — collapsed into a single list row, itemised combined view, one payment recorded and split proportionally across the linked rows so per-game revenue reporting stays accurate. Staff can add another room/VR/cafe to an existing group, and email one combined receipt. Waivers/vouchers/products/split-by-person/per-item discounts still work exactly as before — tap any line item in the group to open that one room individually. Built additively: no existing single-booking functions were modified, only new group-aware functions layered on top.
 // v1.7.2: Removed dead "Manage Products" code (renderProdCatTabs, renderProdList, addProduct, deleteProduct, toggleProdActive, toggleProdFavourite, toggleProdTradeShow, exportProductsCSV, importProductsCSV, plus prodCatFilter/PROD_CATS). None of these had matching HTML on the page — no button or menu ever opened this screen, so it was unreachable dead code confused with the working product editor in btb_app.html's Settings → Products. loadProducts (used by the working Product Sale grid and Quick Sale) was kept.// v1.7.1: Added a "🎮 Game Wishlist" tile to the POS home screen. Tapping it opens a small popup with a QR code (generated via api.qrserver.com, pointing at game_wishlist_form.html on this same site) so a customer can scan it and submit a wishlist request on their own phone, plus an "Open form on this device" button for staff to fill it in directly on the tablet. No schema/DB changes — reuses the existing public game_wishlist_form.html page.
 // v1.6.7: In the "🎪 Trade Show" view (Product Sale grid + Quick Sale), cards are now colour-coded by their own category (VR purple, Book amber, Other grey, etc.) instead of all sharing one colour — makes it easy to tell items apart at a glance when they're mixed together outside their usual category tabs. Boardgames keep their existing per-game unique colour either way.
 // v1.6.6: Added a "Trade Show" tile/category — new trade_show boolean column on products, a 🎪 toggle in Manage Products (next to the ⭐ favourite toggle) to tag/untag items, and a "🎪 Trade Show" tab on both the Product Sale grid and Quick Sale that filters to only tagged items regardless of their normal category. Used to quickly sell a curated set of items (VR passes, books, etc.) at an event without scrolling the full catalog.
@@ -909,7 +910,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         time:(row.slot_time||'').slice(0,5),
         duration:games.find(g=>g.id===row.game_id)?.duration||60,
         meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,
-        players_booked:row.players_booked,
+        players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',
         status:row.status,source:row.source||'',
         total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,
         deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,
@@ -1236,7 +1237,7 @@ async function loadEarlier(){
     const rows=await r.json();
     const earlier=rows.map(row=>{
       const d=new Date(row.booking_date+'T12:00');
-      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
+      return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
     });
     bookings=[...earlier,...bookings];
   }catch(e){console.error('Load earlier error:',e);}
@@ -1299,6 +1300,7 @@ function buildGroupDisplayRow(members){
     customer:first.customer,
     name:gameNames,
     players_booked:members.reduce((s,m)=>s+(m.players_booked||0),0),
+    isHire:members.every(m=>m.play_location==='hire'),venue_address:first.venue_address||'',
     _groupBalance:balance,
     waiverCount,waiverTotal:members.length,
   };
@@ -1349,7 +1351,7 @@ html+=`<div class="brow-date-header ${headerClass}">${isToday?'Today · ':''}${d
       let balance,metaLine,hasWaiver,waiverLabel;
       if(b.isGroup){
         balance=b._groupBalance;
-        metaLine=`Group · ${b.memberIds.length} items · ${players}p · ${escapeHtml(b.name)}`;
+        metaLine=b.isHire?`🚚 Hired out · ${b.memberIds.length} games · ${escapeHtml(b.name)}${b.venue_address?' · '+escapeHtml(b.venue_address):''}`:`Group · ${b.memberIds.length} items · ${players}p · ${escapeHtml(b.name)}`;
         hasWaiver=b.waiverCount===b.waiverTotal;
         waiverLabel=hasWaiver?'✓ Waiver':`${b.waiverCount}/${b.waiverTotal} waivers`;
       } else {
@@ -1358,7 +1360,7 @@ html+=`<div class="brow-date-header ${headerClass}">${isToday?'Today · ':''}${d
         const payments=b.payments?JSON.parse(b.payments):[];
         const collected=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+p.amount,0);
         balance=Math.max(0,total-collected);
-        metaLine=`${escapeHtml(b.name)} · ${players}p`;
+        metaLine=b.play_location==='hire'?`🚚 Hired out · ${escapeHtml(b.name)}${b.venue_address?' · '+escapeHtml(b.venue_address):''}`:`${escapeHtml(b.name)} · ${players}p`;
         hasWaiver=waiverBookingIds.has(b.id);
         waiverLabel=hasWaiver?'✓ Waiver':'No waiver';
       }

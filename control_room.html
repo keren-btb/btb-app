@@ -395,7 +395,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 16; // v16: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
+        const BUILD_VERSION = 17; // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
+        // Previous build v16: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
         // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
         // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.
         // v11: Security fix — escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
@@ -760,7 +761,7 @@ async function checkActiveBooking() {
                 return `<button onclick="selectBookingFromList(${i})" class="w-full text-left p-4 rounded-xl bg-[#231647] hover:bg-[#2d1d5b] border border-purple-800/40 transition flex justify-between items-center gap-3">
                     <div>
                         <div class="font-bold">${time} — ${escapeHtml(b.game_name)}</div>
-                        <div class="text-xs text-gray-400">${escapeHtml(name)} · ${b.players_booked||0} players</div>
+                        <div class="text-xs text-gray-400">${escapeHtml(name)} · ${b.play_location==='hire' ? '🚚 Hired out' + (b.venue_address ? ' · ' + escapeHtml(b.venue_address) : '') : (b.players_booked||0) + ' players'}</div>
                     </div>
                     <div class="text-xs text-purple-300 text-center flex-shrink-0">🧑‍💼 ${gmNamesFor(b)}</div>
                     ${statusBadge}
@@ -794,7 +795,7 @@ async function checkActiveBooking() {
 
             document.getElementById("game-team-name").innerText = bookingCustomerName(booking);
 
-            document.getElementById("game-meta-details").innerText = `Booked: ${booking.players_booked || '0'} players${booking.status==='completed' ? ' · Completed' : ''}`;
+            document.getElementById("game-meta-details").innerText = `${booking.play_location==='hire' ? '🚚 Hired out' + (booking.venue_address ? ' — ' + booking.venue_address : '') : 'Booked: ' + (booking.players_booked || '0') + ' players'}${booking.status==='completed' ? ' · Completed' : ''}`;
 
             // Handle Birthday indicators validation
             if (booking.occasion && booking.occasion.toLowerCase().includes('birth')) {

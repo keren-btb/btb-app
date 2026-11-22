@@ -196,6 +196,8 @@
         </div>
         <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="pkNote"></div>
         <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkSkipEmail" checked> Don't send confirmation email</label></div>
+        <div class="form-row"><div class="form-label">Extra charges (optional — anything you like)</div><div id="pkExtras"></div>
+          <button type="button" onclick="addPkExtra()" style="border:1px dashed #0f766e;background:#fff;color:#0f766e;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer">+ Add extra charge</button></div>
         <div id="pkTotal" style="font-size:14px;font-weight:600;color:#0f766e;margin-bottom:8px"></div>
         <div class="form-btns">
           <button class="form-cancel" onclick="togglePkg()">Cancel</button>
@@ -637,7 +639,7 @@ const TODAY=_n.getDate(),TODAY_M=_n.getMonth()+1,TODAY_Y=_n.getFullYear();
 let viewMonth=TODAY_M,viewYear=TODAY_Y,selectedDate=TODAY;
 let activeTagFilter=null,activeEnqStatus=null,calView='cal';
 let selectedColorIdx=0,walkinOpen=false,enqOpen=false,walkinGMs=[];
-let pkOpen=false,pkGMs=[],pkClientId=null,pkClientOrig=null;
+let pkOpen=false,pkGMs=[],pkClientId=null,pkClientOrig=null,pkExtras=[];
 let selectedSlotDay=2;
 let currentUser=null;
 let qbOpenGameId=null;
@@ -858,6 +860,7 @@ async function loadBookings(month,year){
           travelFee:parseFloat(row.travel_fee)||0,gmFee:parseFloat(row.gm_fee)||0,
           dropoffMethod:row.dropoff_method||null,dropoffTime:(row.dropoff_time||'').slice(0,5),
           pickupMethod:row.pickup_method||null,pickupTime:(row.pickup_time||'').slice(0,5),
+          hireExtras:Array.isArray(row.hire_extras)?row.hire_extras:[],
           tags:(()=>{
             let t=JSON.parse(row.tags||'[]');
             // Auto-add occasion tag if exists
@@ -973,7 +976,7 @@ function togglePkg(){
     ['pkTime','pkName','pkPhone','pkEmail','pkVenue','pkVenuePhone','pkGmFee','pkDropoffTime','pkPickupTime','pkTravel','pkDeposit','pkNote'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
     [['pkGmAttends','yes'],['pkDropoff','we_drop_off'],['pkPickup','we_pick_up'],['pkHowPaid','']].forEach(([i,v])=>{const e=document.getElementById(i);if(e)e.value=v});
     const se=document.getElementById('pkSkipEmail');if(se)se.checked=true;
-    pkGMs=[];renderPkgGames();renderPkgGMChips();updatePkgTotal();
+    pkGMs=[];pkExtras=[];renderPkgExtras();renderPkgGames();renderPkgGMChips();updatePkgTotal();
     document.getElementById('pkName').focus();
     f.scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -985,6 +988,12 @@ function renderPkgGames(){
     <span style="font-size:12px;color:#6b7280">$</span><input type="number" id="pkPrice_${g.id}" min="0" step="0.01" value="${g.hirePrice??''}" oninput="updatePkgTotal()" style="width:70px;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px">
   </div>`).join(''):'<div style="font-size:12px;color:#9ca3af">No games are flagged "Can be hired out" yet (Settings > Games & Activities).</div>';
 }
+function renderPkgExtras(){
+  document.getElementById('pkExtras').innerHTML=pkExtras.map((x,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="text" placeholder="e.g. Late return fee" value="${escapeHtml(x.label)}" oninput="pkExtras[${i}].label=this.value" style="flex:1;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;min-width:0"><span>$</span><input type="number" step="0.01" value="${x.amount}" oninput="pkExtras[${i}].amount=this.value;updatePkgTotal()" style="width:80px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px"><button type="button" onclick="removePkExtra(${i})" style="border:none;background:none;color:#dc2626;font-size:18px;cursor:pointer">✕</button></div>`).join('');
+}
+function addPkExtra(){pkExtras.push({label:'',amount:''});renderPkgExtras()}
+function removePkExtra(i){pkExtras.splice(i,1);renderPkgExtras();updatePkgTotal()}
+function pkExtrasClean(){return pkExtras.filter(x=>String(x.label||'').trim()||parseFloat(x.amount)).map(x=>({label:String(x.label||'').trim()||'Extra',amount:parseFloat(x.amount)||0}))}
 function renderPkgGMChips(){
   document.getElementById('pkGMChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${pkGMs.includes(p.id)?'assigned':''}" onclick="togglePkGM('${p.id}')">${pkGMs.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
 }
@@ -1000,7 +1009,8 @@ function updatePkgTotal(){
   const gamesTotal=sel.reduce((a,x)=>a+x.price,0);
   const gmFee=gm?(parseFloat(document.getElementById('pkGmFee').value)||0):0;
   const travel=parseFloat(document.getElementById('pkTravel').value)||0;
-  document.getElementById('pkTotal').textContent=sel.length?`${sel.length} game${sel.length!==1?'s':''} $${gamesTotal.toFixed(2)}${gmFee?' + GM $'+gmFee.toFixed(2):''}${travel?' + travel $'+travel.toFixed(2):''} = Total $${(gamesTotal+gmFee+travel).toFixed(2)}`:'';
+  const extrasTotal=pkExtrasClean().reduce((q,x)=>q+x.amount,0);
+  document.getElementById('pkTotal').textContent=sel.length?`${sel.length} game${sel.length!==1?'s':''} $${gamesTotal.toFixed(2)}${gmFee?' + GM $'+gmFee.toFixed(2):''}${travel?' + travel $'+travel.toFixed(2):''}${extrasTotal?' + extras $'+extrasTotal.toFixed(2):''} = Total $${(gamesTotal+gmFee+travel+extrasTotal).toFixed(2)}`:'';
 }
 async function submitPkg(){
   const date=document.getElementById('pkDate').value;
@@ -1053,6 +1063,7 @@ async function submitPkg(){
         }catch(pe){console.error('Client profile update failed:',pe);alert('The package will still be saved, but the new phone/email could not be saved to the client profile.')}
       }
     }
+    const extrasClean=pkExtrasClean();const extrasTotal=extrasClean.reduce((q,x)=>q+x.amount,0);
     const gid=sel.length>1?(crypto.randomUUID?crypto.randomUUID():null):null;
     const rows=sel.map((x,i)=>({
       client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
@@ -1064,15 +1075,15 @@ async function submitPkg(){
       deposit_amount:i===0?deposit:null,deposit_paid:i===0?!!(deposit&&deposit>0):false,how_paid:i===0?howPaid:null,
       timer_running:false,timer_sec:0,
       play_location:'hire',gm_attends:gm,venue_address:venue,venue_contact_phone:venuePhone||null,
-      travel_fee:i===0?travel:0,gm_fee:i===0?gmFee:0,
+      travel_fee:i===0?travel:0,gm_fee:i===0?gmFee:0,hire_extras:i===0?extrasClean:[],
       dropoff_method:dropMethod,dropoff_time:dropTime?dropTime+':00':null,
       pickup_method:pickMethod,pickup_time:pickTime?pickTime+':00':null,
-      total_amount:x.price+(i===0?gmFee+travel:0),
+      total_amount:x.price+(i===0?gmFee+travel+extrasTotal:0),
     }));
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(rows)});
     if(!r.ok)throw new Error(await r.text());
   }catch(e){alert('Error: '+e.message);return}
-  pkOpen=false;pkGMs=[];pkClientId=null;pkClientOrig=null;document.getElementById('pkgForm').style.display='none';
+  pkOpen=false;pkGMs=[];pkExtras=[];pkClientId=null;pkClientOrig=null;document.getElementById('pkgForm').style.display='none';
   viewYear=yy;viewMonth=mm;selectedDate=dd;
   bookings=bookings.filter(b=>!(b.month===viewMonth&&b.year===viewYear));
   await loadBookings(viewMonth,viewYear);
@@ -1614,7 +1625,7 @@ function buildHireCard(members){
   const money=n=>'$'+(n||0).toFixed(2);
   const t=x=>x?' at '+fmt12(x):'';
   const gamePills=members.map((m,i)=>{
-    const price=(parseFloat(m.total_amount)||0)-(m.gmFee||0)-(m.travelFee||0);
+    const price=(parseFloat(m.total_amount)||0)-(m.gmFee||0)-(m.travelFee||0)-(m.hireExtras||[]).reduce((q,x)=>q+(parseFloat(x.amount)||0),0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:${getGameColor(m.name)};border-radius:8px;padding:7px 10px;font-size:15px;font-weight:700;color:#0e7490"><span>${escapeHtml(m.name)}</span><span style="font-size:12px;font-weight:600;color:#374151">${money(price)}</span></div>`;
   }).join('');
   const dropTxt=b.dropoffMethod==='we_drop_off'?'We drop off'+t(b.dropoffTime):(b.dropoffMethod?'They collect from us'+t(b.dropoffTime):'');
@@ -1622,7 +1633,9 @@ function buildHireCard(members){
   const gmLine=b.gmAttends===false?'No GM — they run it themselves':(gmNames?('GM goes: '+escapeHtml(gmNames)):'<span style="color:#dc2626;font-weight:600">⚠ GM goes — not assigned yet</span>');
   const gmChips=b.gmAttends===false?'':staff.map(p=>`<button class="gm-chip ${gmIds.includes(p.id)?'assigned':''}" onclick="toggleHireGM('${b.id}','${p.id}')">${gmIds.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
   const row=(icon,html)=>html?`<div style="display:flex;gap:8px;font-size:13px;color:#374151;margin-top:4px"><span style="width:18px;flex-shrink:0">${icon}</span><span>${html}</span></div>`:'';
-  const extras=[gmFee?'GM '+money(gmFee):'',travel?'travel '+money(travel):''].filter(Boolean).join(' + ');
+  const extraLines=members.flatMap(m=>m.hireExtras||[]);
+  const breakdown=[gmFee?['Game master fee',gmFee]:null,travel?['Travel',travel]:null,...extraLines.map(x=>[x.label||'Extra',parseFloat(x.amount)||0])].filter(Boolean)
+    .map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;color:#374151;margin-top:3px"><span>+ ${escapeHtml(l)}</span><span>${money(v)}</span></div>`).join('');
   const ps=owing>0?`<span class="pay-badge owing"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
   const el=document.createElement('div');
   el.style.cssText='background:#faf5ff;border:2px solid #7c3aed;border-left-width:8px;border-radius:12px;padding:12px;margin-bottom:10px';
@@ -1637,6 +1650,7 @@ function buildHireCard(members){
           <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
           <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
           <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
+          <button class="action-menu-item" onclick="startHireEdit('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-pencil" style="font-size:15px;color:#6b7280"></i>Edit details &amp; prices</button>
           <button class="action-menu-item" onclick="cancelHire('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-circle-x" style="font-size:15px"></i>Cancel this hire</button>
         </div>
       </span>
@@ -1650,11 +1664,88 @@ function buildHireCard(members){
     ${row('➡️',dropTxt)}
     ${row('⬅️',pickTxt)}
     ${notes.map(n=>row('📝',escapeHtml(n))).join('')}
-    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e9d5ff;display:flex;justify-content:space-between;align-items:baseline">
-      <span style="font-size:12px;color:#6b7280">${extras?'Includes '+extras:'Total'}</span>
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e9d5ff">${breakdown}</div>
+    <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:12px;color:#6b7280">Total</span>
       <span style="font-size:20px;font-weight:800;color:#111827">${money(total)}</span>
     </div>`;
   return el;
+}
+// HIRE EDITOR — edit venue, GM, drop-off/pick-up, every game's price, and add any custom extra charges.
+let hireEditId=null,hireDraft=null;
+function startHireEdit(id){
+  closeBookingActions();
+  const first=bookings.find(x=>x.id===id);if(!first)return;
+  const members=hireMembersOf(first);
+  const prices={};
+  members.forEach(m=>{prices[m.id]=(parseFloat(m.total_amount)||0)-(m.gmFee||0)-(m.travelFee||0)-(m.hireExtras||[]).reduce((q,x)=>q+(parseFloat(x.amount)||0),0)});
+  hireEditId=first.id;
+  hireDraft={venue:first.venueAddress||'',vphone:first.venuePhone||'',gm:first.gmAttends!==false,
+    gmFee:members.reduce((a,m)=>a+(m.gmFee||0),0),travel:members.reduce((a,m)=>a+(m.travelFee||0),0),
+    dropM:first.dropoffMethod||'we_drop_off',dropT:first.dropoffTime||'',pickM:first.pickupMethod||'we_pick_up',pickT:first.pickupTime||'',
+    prices,extras:members.flatMap(m=>m.hireExtras||[]).map(x=>({label:x.label||'',amount:parseFloat(x.amount)||0}))};
+  renderActiveView();
+}
+function cancelHireEdit(){hireEditId=null;hireDraft=null;renderActiveView()}
+function hireDraftTotal(){
+  const d=hireDraft;if(!d)return 0;
+  return Object.values(d.prices).reduce((a,v)=>a+(parseFloat(v)||0),0)+(d.gm?(parseFloat(d.gmFee)||0):0)+(parseFloat(d.travel)||0)+d.extras.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+}
+function refreshHireDraftTotal(){const el=document.getElementById('heTotal');if(el)el.textContent='$'+hireDraftTotal().toFixed(2)}
+function addHireExtra(){hireDraft.extras.push({label:'',amount:0});renderActiveView()}
+function removeHireExtra(i){hireDraft.extras.splice(i,1);renderActiveView()}
+function setHireDraft(k,v,rerender){hireDraft[k]=v;if(rerender)renderActiveView();else refreshHireDraftTotal()}
+function buildHireEditor(members){
+  const d=hireDraft;
+  const inp='style="width:100%;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:7px 9px;box-sizing:border-box"';
+  const lab='style="font-size:12px;color:#6b7280;margin:8px 0 3px"';
+  const el=document.createElement('div');
+  el.style.cssText='background:#faf5ff;border:2px solid #7c3aed;border-left-width:8px;border-radius:12px;padding:12px;margin-bottom:10px';
+  el.innerHTML=`
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px">✏️ Edit hire — ${escapeHtml(members[0].customer||'')}</div>
+    <div ${lab}>Game prices</div>
+    ${members.map(m=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="flex:1;font-size:14px;font-weight:600;background:${getGameColor(m.name)};padding:6px 9px;border-radius:8px;color:#0e7490">${escapeHtml(m.name)}</span><span>$</span><input type="number" min="0" step="0.01" value="${d.prices[m.id]}" oninput="hireDraft.prices['${m.id}']=this.value;refreshHireDraftTotal()" style="width:90px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px"></div>`).join('')}
+    <div ${lab}>Extra charges (anything you like)</div>
+    ${d.extras.map((x,i)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="text" placeholder="e.g. Late return fee" value="${escapeHtml(x.label)}" oninput="hireDraft.extras[${i}].label=this.value" style="flex:1;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;min-width:0"><span>$</span><input type="number" step="0.01" value="${x.amount}" oninput="hireDraft.extras[${i}].amount=this.value;refreshHireDraftTotal()" style="width:80px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px"><button type="button" onclick="removeHireExtra(${i})" style="border:none;background:none;color:#dc2626;font-size:18px;cursor:pointer">✕</button></div>`).join('')}
+    <button type="button" onclick="addHireExtra()" style="border:1px dashed #7c3aed;background:#fff;color:#7c3aed;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;margin-top:2px">+ Add extra charge</button>
+    <div style="display:flex;gap:8px;margin-top:2px"><div style="flex:1"><div ${lab}>Travel fee ($)</div><input type="number" min="0" step="0.01" value="${d.travel}" oninput="hireDraft.travel=this.value;refreshHireDraftTotal()" ${inp}></div>
+      <div style="flex:1"><div ${lab}>Game master</div><select onchange="setHireDraft('gm',this.value==='yes',true)" ${inp}><option value="yes" ${d.gm?'selected':''}>GM goes</option><option value="no" ${d.gm?'':'selected'}>No GM — self-run</option></select></div></div>
+    ${d.gm?`<div ${lab}>Game master fee ($)</div><input type="number" min="0" step="0.01" value="${d.gmFee}" oninput="hireDraft.gmFee=this.value;refreshHireDraftTotal()" ${inp}>`:''}
+    <div ${lab}>Venue address</div><input type="text" value="${escapeHtml(d.venue)}" oninput="hireDraft.venue=this.value" ${inp}>
+    <div ${lab}>Venue contact phone</div><input type="tel" value="${escapeHtml(d.vphone)}" oninput="hireDraft.vphone=this.value" ${inp}>
+    <div style="display:flex;gap:8px"><div style="flex:1"><div ${lab}>Getting it to them</div><select onchange="hireDraft.dropM=this.value" ${inp}><option value="we_drop_off" ${d.dropM==='we_drop_off'?'selected':''}>We drop it off</option><option value="customer_collects" ${d.dropM==='customer_collects'?'selected':''}>They pick it up</option></select></div>
+      <div style="width:110px"><div ${lab}>Time</div><input type="time" value="${d.dropT}" oninput="hireDraft.dropT=this.value" ${inp}></div></div>
+    <div style="display:flex;gap:8px"><div style="flex:1"><div ${lab}>Getting it back</div><select onchange="hireDraft.pickM=this.value" ${inp}><option value="we_pick_up" ${d.pickM==='we_pick_up'?'selected':''}>We pick it up</option><option value="customer_returns" ${d.pickM==='customer_returns'?'selected':''}>They return it</option></select></div>
+      <div style="width:110px"><div ${lab}>Time</div><input type="time" value="${d.pickT}" oninput="hireDraft.pickT=this.value" ${inp}></div></div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;color:#6b7280">New total</span><span id="heTotal" style="font-size:20px;font-weight:800">$${hireDraftTotal().toFixed(2)}</span></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" onclick="cancelHireEdit()" style="flex:1;padding:9px;border:1px solid #d1d5db;background:#fff;border-radius:8px;font-size:14px;cursor:pointer">Cancel</button><button type="button" onclick="saveHireEdit()" style="flex:1;padding:9px;border:none;background:#7c3aed;color:#fff;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Save changes</button></div>`;
+  return el;
+}
+async function saveHireEdit(){
+  const d=hireDraft;const first=bookings.find(x=>x.id===hireEditId);if(!d||!first)return;
+  if(!String(d.venue).trim()){alert('Please enter the venue address.');return}
+  const members=hireMembersOf(first);
+  const extras=d.extras.filter(x=>String(x.label||'').trim()||parseFloat(x.amount)).map(x=>({label:String(x.label||'').trim()||'Extra',amount:parseFloat(x.amount)||0}));
+  const extrasTotal=extras.reduce((a,x)=>a+x.amount,0);
+  const gmFee=d.gm?(parseFloat(d.gmFee)||0):0, travel=parseFloat(d.travel)||0;
+  const updates=members.map((m,i)=>({m,body:{
+    venue_address:String(d.venue).trim(),venue_contact_phone:String(d.vphone).trim()||null,gm_attends:d.gm,
+    dropoff_method:d.dropM,dropoff_time:d.dropT?d.dropT+':00':null,pickup_method:d.pickM,pickup_time:d.pickT?d.pickT+':00':null,
+    travel_fee:i===0?travel:0,gm_fee:i===0?gmFee:0,hire_extras:i===0?extras:[],
+    total_amount:(parseFloat(d.prices[m.id])||0)+(i===0?gmFee+travel+extrasTotal:0),updated_at:new Date().toISOString()}}));
+  try{
+    for(const u of updates){
+      const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${u.m.id}`,{method:'PATCH',headers:H(),body:JSON.stringify(u.body)});
+      if(!r.ok)throw new Error(await r.text());
+    }
+  }catch(e){alert('Could not save the changes: '+e.message);return}
+  updates.forEach(({m,body})=>{
+    m.venueAddress=body.venue_address;m.venuePhone=body.venue_contact_phone||'';m.gmAttends=body.gm_attends;
+    m.dropoffMethod=body.dropoff_method;m.dropoffTime=(body.dropoff_time||'').slice(0,5);m.pickupMethod=body.pickup_method;m.pickupTime=(body.pickup_time||'').slice(0,5);
+    m.travelFee=body.travel_fee;m.gmFee=body.gm_fee;m.hireExtras=body.hire_extras;m.total_amount=body.total_amount;
+    m.meta='Hired out · '+body.venue_address;
+  });
+  hireEditId=null;hireDraft=null;renderActiveView();
 }
 function toggleHireGM(id,pid){
   const first=bookings.find(x=>x.id===id);if(!first)return;
@@ -1705,7 +1796,7 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   }
   units.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   units.forEach(u=>{
-    if(u.type==='hire'){list.appendChild(buildHireCard(u.members));return}
+    if(u.type==='hire'){list.appendChild((hireDraft&&u.members.some(m=>m.id===hireEditId))?buildHireEditor(u.members):buildHireCard(u.members));return}
     const grp=u.grp;
     if(grp.length>1){
       const wrap=document.createElement('div');
@@ -3499,7 +3590,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.62'; // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
+const BUILD_VERSION = '16.4.63'; // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
+// Previous build: 16.4.62 — // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
 // Previous build: 16.4.61 — // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
 // Previous build: 16.4.60 — // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
 // Previous build: 16.4.59 — // v16.4.59: Hire bookings — optional game master fee, drop-off and pick-up options (we do it / customer does it) with optional times; total = hire + GM fee + travel. "Dropped off" wording for no-GM hires renamed to "No GM — they run it themselves".
