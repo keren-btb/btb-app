@@ -168,6 +168,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .pk-step input::-webkit-outer-spin-button,.pk-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .pk-price{display:none;align-items:center;gap:3px;flex:none;white-space:nowrap;font-size:13px;color:#6b7280}
 .pk-price input{width:6.2em;box-sizing:border-box;font-size:13px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-family:inherit}
+.pk-fixed{display:none;font-size:10px;font-weight:700;color:#0e7490;background:#ecfeff;border-radius:99px;padding:1px 6px;margin-left:3px}
+.pk-row.fixed .pk-fixed{display:inline}
+.pk-row.fixed .pk-price,
 #pkRooms.show-prices .pk-price,.pk-extra .pk-price,#pkGames .pk-price{display:inline-flex}
 .pk-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .pk-cats button{border:1px solid #d1d5db;background:#fff;border-radius:99px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit}

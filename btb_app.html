@@ -10,7 +10,7 @@
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <!-- Bump ?v= whenever btb_app.css changes, or browsers keep showing the old styles -->
-<link rel="stylesheet" href="btb_app.css?v=16.4.73">
+<link rel="stylesheet" href="btb_app.css?v=16.4.74">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -1066,8 +1066,16 @@ function renderPkgRooms(){
   el.innerHTML=pkInhouseGames().map(g=>`<div class="pk-row">
     <label class="pk-name" title="${escapeHtml(g.name)}"><input type="checkbox" id="pkRChk_${g.id}" onchange="pkRoomTouched('${g.id}')"> ${g.icon||''} ${escapeHtml(abbrevGameName(g.name))}</label>
     <span class="pk-step" title="Players"><button type="button" onclick="pkStepPlayers('${g.id}',-1)">−</button><input type="number" id="pkRPl_${g.id}" min="1" inputmode="numeric" placeholder="0" oninput="pkRoomTouched('${g.id}',true)"><button type="button" onclick="pkStepPlayers('${g.id}',1)">+</button></span>
-    <span class="pk-price">$<input type="number" id="pkRPrice_${g.id}" min="0" step="0.01" oninput="this.dataset.manual='1';updatePkgTotal()"></span>
+    <span class="pk-price">$<input type="number" id="pkRPrice_${g.id}" min="0" step="0.01" oninput="pkPriceTyped(this)"><small class="pk-fixed">fixed</small></span>
   </div>`).join('')||'<div style="font-size:12px;color:#9ca3af">No bookable games.</div>';
+}
+// v16.4.74: a typed price (e.g. café space hire $50 instead of per person) stays fixed and stays visible.
+// Clearing the box goes back to the per-person price.
+function pkPriceTyped(el){
+  const row=el.closest('.pk-row'),gid=el.id.replace('pkRPrice_','');
+  if(el.value===''){delete el.dataset.manual;row.classList.remove('fixed');pkRoomTouched(gid,true);return}
+  el.dataset.manual='1';row.classList.add('fixed');
+  const chk=document.getElementById('pkRChk_'+gid);if(!chk.checked){chk.checked=true;pkRoomTouched(gid)}else updatePkgTotal();
 }
 function pkStepPlayers(gid,d){
   const el=document.getElementById('pkRPl_'+gid);const n=Math.max(0,(parseInt(el.value)||0)+d);
@@ -4077,7 +4085,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.73'; // v16.4.73: Package form — in 'One after the other', any game can be set to 'Same time as above' (e.g. three rooms together, then everyone into the café); the next game starts when the longest game in the group finishes, plus the gap.
+const BUILD_VERSION = '16.4.74'; // v16.4.74: Package form — a price typed for a game (e.g. Board Game Cafe space hire $50 instead of per person) stays fixed when players change and stays visible with a 'fixed' tag even when prices are hidden; clearing it goes back to the per-person price.
+
+
+// Previous build: 16.4.73 — // v16.4.73: Package form — in 'One after the other', any game can be set to 'Same time as above' (e.g. three rooms together, then everyone into the café); the next game starts when the longest game in the group finishes, plus the gap.
 
 
 // Previous build: 16.4.72 — // v16.4.72: Package form — 'Book here' (first, default) / 'Hire out' radio buttons; short game names (e.g. Christmas); no time on each game: one Start time and 'All at the same time' or 'One after the other' (play order = order ticked, ↑ ↓ to change, straight after or a 10/15/30/45/60 min gap) with each game's time shown; smaller players box with bolder − / +; price box sized for 0000.00. Stylesheet link version bumped so browsers load the new styles (it was stuck on ?v=16.4.46).

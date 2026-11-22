@@ -109,6 +109,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.74 — 2026-11-23 — Package form: a typed price (e.g. café space hire $50) stays fixed when players change and stays visible with a 'fixed' tag when prices are hidden; clearing it returns to per-person pricing. CSS ?v=16.4.74.
 - v16.4.73 — 2026-11-23 — Package form: 'With above' on each game in 'One after the other' starts it at the same time as the game above (e.g. 3 rooms together then everyone into the café); next game starts when the longest in the group ends, plus the gap. CSS ?v=16.4.73.
 - v16.4.72 — 2026-11-23 — Package form: Book here / Hire out radios (Book here first); short game names; one start time with all-at-once or one-after-the-other (order + gap), times worked out; compact players stepper; price box sized for 0000.00; btb_app.css?v= bumped (browsers were keeping old styles).
 - v16.4.71 — 2026-11-23 — Package form: radio buttons for hire / at BtB; compact rows with players − / +; prices hidden unless "Show / change prices" (dollar sign stays with its box); food & drink picked like POS (category buttons, tap item again for more, quantity − / + per line, "10 × Fizzy drink"), stock reduced by quantity; deposits taken on walk-in/package forms record method, date and who.
