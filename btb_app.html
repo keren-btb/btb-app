@@ -1435,7 +1435,7 @@ ${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-w
         📋 Open waiver for this booking
       </button>
       ${rescheduleOpenIds.has(b.id)?`
-      <div style="border:1px solid #07b4c5;background:#f0fafb;border-radius:10px;padding:12px;margin-top:10px">
+      <div id="rescheduleBox-${b.id}" style="border:1px solid #07b4c5;background:#f0fafb;border-radius:10px;padding:12px;margin-top:10px">
         <div style="font-size:12px;font-weight:700;color:#07b4c5;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-calendar-time"></i> Reschedule this booking</div>
         <div class="form-2col">
           <div><div class="form-label">New date</div><input class="form-input" type="date" id="resDate-${b.id}" value="${b.year}-${String(b.month).padStart(2,'0')}-${String(b.date).padStart(2,'0')}"></div>
@@ -1447,7 +1447,7 @@ ${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-w
         </div>
       </div>`:''}
       ${cancelOpenIds.has(b.id)?`
-      <div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:12px;margin-top:10px">
+      <div id="cancelBox-${b.id}" style="border:1px solid #fca5a5;background:#fef2f2;border-radius:10px;padding:12px;margin-top:10px">
         <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-alert-triangle"></i> Cancel this booking?</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer;margin-bottom:10px"><input type="checkbox" id="cancelEmailChk-${b.id}"> Send cancellation email to customer</label>
         <div class="form-btns">
@@ -1962,9 +1962,11 @@ function openWishlistForm(id){
   if(b.customerEmail)params.set('email',b.customerEmail);
   window.open(`game_wishlist_form.html?${params.toString()}`,'_blank');
 }
-function openReschedule(id){closeBookingActions();openPanels.add(id);rescheduleOpenIds.add(id);cancelOpenIds.delete(id);renderActiveView()}
+// v16.4.67: after opening the Cancel / Reschedule box, scroll it into view so the confirm buttons are on screen
+function scrollBoxIntoView(elId){requestAnimationFrame(()=>{const el=document.getElementById(elId);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})})}
+function openReschedule(id){closeBookingActions();openPanels.add(id);rescheduleOpenIds.add(id);cancelOpenIds.delete(id);renderActiveView();scrollBoxIntoView('rescheduleBox-'+id)}
 function closeReschedule(id){rescheduleOpenIds.delete(id);renderActiveView()}
-function openCancel(id){closeBookingActions();openPanels.add(id);cancelOpenIds.add(id);rescheduleOpenIds.delete(id);renderActiveView()}
+function openCancel(id){closeBookingActions();openPanels.add(id);cancelOpenIds.add(id);rescheduleOpenIds.delete(id);renderActiveView();scrollBoxIntoView('cancelBox-'+id)}
 function closeCancel(id){cancelOpenIds.delete(id);renderActiveView()}
 // Same 90-minute overlap window the walk-in form uses (checkGameTimeConflict), but for an
 // arbitrary target date (not just the currently-selected calendar day) and excluding the
@@ -3677,7 +3679,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.66'; // v16.4.66: Booking card changes (tags, GMs incl. hire GMs, notes, done tick, no-show) now save ONLY the field that changed, applied on top of the latest saved booking, instead of re-saving tags/notes/GMs/status/no-show together from this page's older copy. Stops btb_app undoing changes made elsewhere (e.g. a session completed in Control Room reverting to confirmed, or a GM assigned in Staff Portal being removed). Failed saves now show a message and reload the calendar instead of failing silently.
+const BUILD_VERSION = '16.4.67'; // v16.4.67: Choosing Cancel booking or Reschedule from a booking's ⋯ menu now scrolls the page so the confirm box (and its buttons) is on screen, instead of opening it out of sight further down.
+// Previous build: 16.4.66 — // v16.4.66: Booking card changes (tags, GMs incl. hire GMs, notes, done tick, no-show) now save ONLY the field that changed, applied on top of the latest saved booking, instead of re-saving tags/notes/GMs/status/no-show together from this page's older copy. Stops btb_app undoing changes made elsewhere (e.g. a session completed in Control Room reverting to confirmed, or a GM assigned in Staff Portal being removed). Failed saves now show a message and reload the calendar instead of failing silently.
 // Previous build: 16.4.65 — // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.
 // Previous build: 16.4.64 — // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
 // Previous build: 16.4.63 — // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
