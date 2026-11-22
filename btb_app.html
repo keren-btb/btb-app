@@ -887,25 +887,49 @@ async function loadBookings(month,year){
     console.log(`✓ ${rows.length} bookings for ${month}/${year}`);
   }catch(e){console.error('Bookings load:',e)}
 }
-async function saveBooking(id){
-  const b=bookings.find(x=>x.id===id);if(!b)return;
-  try{
-    await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{
-      method:'PATCH',headers:H(),
-      body:JSON.stringify({
-        tags:JSON.stringify(b.tags||[]),staff_notes:JSON.stringify(b.notes||[]),
-        assigned_staff_ids:JSON.stringify(b.gms||[]),
-        status:b.status==='completed'?'completed':b.status==='enquiry'?'enquiry':b.status==='waitlist'?'waitlist':'confirmed',
-        no_show:b.no_show||false,
-        // NOTE: players_actual / clues_given / time_taken / gm_notes / ask_for_review
-        // and timer_running / timer_sec / timer_started_at are now owned by control_room.html.
-        // btb_app.html must not PATCH these — doing so would overwrite control_room's data
-        // with stale local values every time an unrelated field (tag/note/GM) is saved here.
-        updated_at:new Date().toISOString(),
-      })
-    });
-  }catch(e){console.error('Booking save:',e)}
+// v16.4.66: BOOKING CARD SAVES — each change (tag, GM, note, done, no-show) now saves ONLY its own field,
+// applied on top of the latest saved booking. Before, every save wrote tags, notes, GMs, status and no-show
+// all at once from this page's earlier copy, which could undo changes made elsewhere — e.g. a session
+// marked complete in Control Room went back to "confirmed", or a GM assigned in the Staff Portal was removed.
+// NOTE: players_actual / clues_given / time_taken / gm_notes / ask_for_review and the timer fields are owned
+// by control_room.html — btb_app.html never saves them.
+function parseList(v){
+  if(Array.isArray(v))return v;
+  try{const a=JSON.parse(v||'[]');if(Array.isArray(a))return a;if(typeof a==='string')return parseList(a);return[]}catch(e){return[]}
 }
+// change(cur) gets the latest saved {tags,notes,gms,status,no_show}, edits it, and returns the database fields to save.
+// It can return null to save nothing. Returns true if saved.
+async function updateBooking(id,change){
+  const b=bookings.find(x=>x.id===id);if(!b)return false;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${encodeURIComponent(id)}&select=tags,staff_notes,assigned_staff_ids,status,no_show`,{headers:H()});
+    if(!r.ok)throw new Error(await r.text());
+    const row=(await r.json())[0];
+    if(!row)throw new Error('this booking could not be found — it may have been deleted');
+    const cur={tags:parseList(row.tags),notes:parseList(row.staff_notes),gms:parseList(row.assigned_staff_ids),status:row.status,no_show:!!row.no_show};
+    const body=change(cur);
+    if(body){
+      body.updated_at=new Date().toISOString();
+      const p=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
+      if(!p.ok)throw new Error(await p.text());
+    }
+    // Bring this page's copy in line with what is now saved (including changes made on other pages).
+    const occTag=b.occasion?tags.find(x=>x.label.toLowerCase()===b.occasion.toLowerCase()||x.label.toLowerCase().includes(b.occasion.toLowerCase().split(' ')[0])):null;
+    b.tags=cur.tags.slice();if(occTag&&!b.tags.includes(occTag.id))b.tags.push(occTag.id);
+    b.notes=cur.notes;b.gms=cur.gms;b.no_show=cur.no_show;
+    b.status=cur.status;b.isEnquiry=cur.status==='enquiry';b.isWaitlist=cur.status==='waitlist';
+    return !!body;
+  }catch(e){
+    console.error('Booking save:',e);
+    alert('That change could not be saved ('+e.message+'). The calendar will now reload so it shows what is really saved.');
+    bookings=bookings.filter(x=>!(x.month===viewMonth&&x.year===viewYear));
+    await loadBookings(viewMonth,viewYear);
+    buildCalendar();renderActiveView();updateHeader();
+    return false;
+  }
+}
+// Add or remove one item from a saved list, based on what the person meant (add = true/false).
+function setInList(list,item,add){const out=list.filter(x=>x!==item);if(add)out.push(item);return out}
 
 // WALK-IN FORM
 function toggleWalkin(){
@@ -1752,11 +1776,16 @@ async function saveHireEdit(){
   });
   hireEditId=null;hireDraft=null;renderActiveView();
 }
-function toggleHireGM(id,pid){
+async function toggleHireGM(id,pid){
   const first=bookings.find(x=>x.id===id);if(!first)return;
   const members=hireMembersOf(first);
   const add=!(first.gms||[]).includes(pid);
-  members.forEach(m=>{m.gms=m.gms||[];const i=m.gms.indexOf(pid);if(add&&i===-1)m.gms.push(pid);else if(!add&&i!==-1)m.gms.splice(i,1);saveBooking(m.id)});
+  members.forEach(m=>{m.gms=setInList(m.gms||[],pid,add)});
+  renderActiveView();
+  // v16.4.66: save just the GM list on each game in the hire, on top of what's already saved
+  for(const m of members){
+    if(!await updateBooking(m.id,cur=>{cur.gms=setInList(cur.gms,pid,add);return{assigned_staff_ids:JSON.stringify(cur.gms)}}))return;
+  }
   renderActiveView();
 }
 async function cancelHire(id){
@@ -1821,12 +1850,50 @@ function renderActiveView(){if(calView==='sched')renderSchedule();else renderEve
 
 // BOOKING ACTIONS
 function togglePanel(id){if(openPanels.has(id))openPanels.delete(id);else openPanels.add(id);renderActiveView()}
-function toggleTag(bid,tid){const b=bookings.find(x=>x.id===bid);if(!b)return;const i=(b.tags||[]).indexOf(tid);if(i===-1)(b.tags=b.tags||[]).push(tid);else b.tags.splice(i,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
-function toggleGM(bid,pid){const b=bookings.find(x=>x.id===bid);if(!b)return;b.gms=b.gms||[];const i=b.gms.indexOf(pid);if(i===-1)b.gms.push(pid);else b.gms.splice(i,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
-function saveNote(bid,btnEl){const input=btnEl?btnEl.previousElementSibling:document.querySelector(`[data-bid="${bid}"]`);const text=input?input.value.trim():'';if(!text)return;const b=bookings.find(x=>x.id===bid);if(!b)return;(b.notes=b.notes||[]).push(text);if(input)input.value='';openPanels.add(bid);saveBooking(bid);renderActiveView()}
-function deleteNote(bid,idx){const b=bookings.find(x=>x.id===bid);if(!b)return;b.notes.splice(idx,1);openPanels.add(bid);saveBooking(bid);renderActiveView()}
-function toggleDone(id){const b=bookings.find(x=>x.id===id);if(!b)return;b.status=(b.status==='completed')?'confirmed':'completed';saveBooking(id);renderActiveView()}
-function togglePost(id,field){const b=bookings.find(x=>x.id===id);if(!b)return;b[field]=!b[field];openPanels.add(id);saveBooking(id);renderActiveView()}
+// v16.4.66: each of these shows the change straight away, then saves only that one field on top of the
+// latest saved booking (see updateBooking), then redraws with what is really saved.
+async function toggleTag(bid,tid){
+  const b=bookings.find(x=>x.id===bid);if(!b)return;
+  const add=!(b.tags||[]).includes(tid);
+  b.tags=setInList(b.tags||[],tid,add);openPanels.add(bid);renderActiveView();
+  if(await updateBooking(bid,cur=>{cur.tags=setInList(cur.tags,tid,add);return{tags:JSON.stringify(cur.tags)}}))renderActiveView();
+}
+async function toggleGM(bid,pid){
+  const b=bookings.find(x=>x.id===bid);if(!b)return;
+  const add=!(b.gms||[]).includes(pid);
+  b.gms=setInList(b.gms||[],pid,add);openPanels.add(bid);renderActiveView();
+  if(await updateBooking(bid,cur=>{cur.gms=setInList(cur.gms,pid,add);return{assigned_staff_ids:JSON.stringify(cur.gms)}}))renderActiveView();
+}
+async function saveNote(bid,btnEl){
+  const input=btnEl?btnEl.previousElementSibling:document.querySelector(`[data-bid="${bid}"]`);
+  const text=input?input.value.trim():'';if(!text)return;
+  const b=bookings.find(x=>x.id===bid);if(!b)return;
+  (b.notes=b.notes||[]).push(text);if(input)input.value='';openPanels.add(bid);renderActiveView();
+  if(await updateBooking(bid,cur=>{cur.notes.push(text);return{staff_notes:JSON.stringify(cur.notes)}}))renderActiveView();
+}
+async function deleteNote(bid,idx){
+  const b=bookings.find(x=>x.id===bid);if(!b||!b.notes)return;
+  const text=b.notes[idx];b.notes.splice(idx,1);openPanels.add(bid);renderActiveView();
+  if(await updateBooking(bid,cur=>{const i=cur.notes.indexOf(text);if(i===-1)return null;cur.notes.splice(i,1);return{staff_notes:JSON.stringify(cur.notes)}}))renderActiveView();
+  else renderActiveView();
+}
+async function toggleDone(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const next=(b.status==='completed')?'confirmed':'completed';
+  b.status=next;renderActiveView();
+  await updateBooking(id,cur=>{
+    // Only switch between confirmed and completed — never revive a cancelled booking or change a waitlist/enquiry here
+    if(cur.status!=='confirmed'&&cur.status!=='completed'){alert(`This booking is now "${cur.status}" (changed elsewhere), so it wasn't changed.`);return null}
+    cur.status=next;return{status:next};
+  });
+  renderActiveView();
+}
+async function togglePost(id,field){
+  if(field!=='no_show')return; // only no-show uses this
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const want=!b.no_show;b.no_show=want;openPanels.add(id);renderActiveView();
+  if(await updateBooking(id,cur=>{cur.no_show=want;return{no_show:want}}))renderActiveView();
+}
 
 // BOOKING ACTIONS MENU — Call / Email / Reschedule / Cancel, opened from the ⋯ button on each card
 function toggleBookingActions(id,btnEl,e){
@@ -3610,7 +3677,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.65'; // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.
+const BUILD_VERSION = '16.4.66'; // v16.4.66: Booking card changes (tags, GMs incl. hire GMs, notes, done tick, no-show) now save ONLY the field that changed, applied on top of the latest saved booking, instead of re-saving tags/notes/GMs/status/no-show together from this page's older copy. Stops btb_app undoing changes made elsewhere (e.g. a session completed in Control Room reverting to confirmed, or a GM assigned in Staff Portal being removed). Failed saves now show a message and reload the calendar instead of failing silently.
+// Previous build: 16.4.65 — // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.
 // Previous build: 16.4.64 — // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
 // Previous build: 16.4.63 — // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
 // Previous build: 16.4.62 — // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
