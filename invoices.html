@@ -105,7 +105,7 @@ table.lines .num{width:90px;text-align:right}
 // Customer invoice requests (from invoice_request.html) → make an invoice from a booking/package (deposit $35 per game,
 // or the full amount less deposits) → email it (with a view / print / PDF link) → mark paid, which also records the
 // deposit or payment on the booking(s) so POS and Reports agree. Admin / manager only (enforced by the database).
-const BUILD_VERSION='1.2.0'; // v1.2.0: big status banner on each invoice (NOT PAID YET / PART PAID / OVERDUE / PAID IN FULL / VOID); recording a payment is behind 'Record a payment received…' (no more green 'Paid' button that looked done); 'Edit invoice' on sent invoices (Save changes / Save & resend). Previous build: 1.1.0 — v1.1.0: new invoices start from the customer, then their booking / package (or other charges); must be linked to a customer; product lines; drafts reopen with their booking. Previous build: 1.0.0
+const BUILD_VERSION='1.3.0'; // v1.3.0: '+ Add an item' lists games & activities (priced from Booking Config — per person by group size, or flat), hire games and products; picking one fills in the name and unit price. Quantities are whole numbers; changing players re-prices a per-person game. Previous build: 1.2.0 — v1.2.0: big status banner on each invoice (NOT PAID YET / PART PAID / OVERDUE / PAID IN FULL / VOID); recording a payment is behind 'Record a payment received…' (no more green 'Paid' button that looked done); 'Edit invoice' on sent invoices (Save changes / Save & resend). Previous build: 1.1.0 — v1.1.0: new invoices start from the customer, then their booking / package (or other charges); must be linked to a customer; product lines; drafts reopen with their booking. Previous build: 1.0.0
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -279,12 +279,52 @@ function attachCustomer(id){
   if(!d.ed.bill_email)d.ed.bill_email=c.email||null;if(!d.ed.bill_phone)d.ed.bill_phone=c.phone||null;
   backToDraft();
 }
-// Products (food, drink, deals…) to add as invoice lines
-let productList=null;
-async function loadProducts(){if(productList)return productList;try{productList=await api('products?select=id,name,sell_price,category&order=category,name')}catch(e){productList=[]}return productList}
+// v1.3.0: items to add as invoice lines — games (priced from Booking Config: per-person by group size, flat, or hire)
+// and products (food, drink, deals…). Picking one fills in the name and unit price.
+let productList=null,gameList=null,bookingCfg=null;
+async function loadProducts(){
+  if(productList)return productList;
+  try{
+    const [p,g,s]=await Promise.all([api('products?select=id,name,sell_price,category&order=category,name'),
+      api('games?select=id,name,category,active,bookable,hireable,hire_price,pricing_type,pricing_preset_id,min_players&order=sort_order'),
+      api("settings?key=eq.btb_booking_config&select=value")]);
+    productList=p||[];gameList=(g||[]).filter(x=>x.active!==false);
+    try{bookingCfg=JSON.parse(s?.[0]?.value||'{}')}catch(e){bookingCfg={}}
+    // games using a shared pricing preset take their prices from it (same as BtB App)
+    for(const gm of gameList){const pr=(bookingCfg.pricingPresets||[]).find(x=>x.id===gm.pricing_preset_id);if(!pr)continue;gm.pricing_type=pr.type;
+      if(pr.type==='per_hour_flat'){(bookingCfg.gameFlatPrice=bookingCfg.gameFlatPrice||{})[gm.id]=pr.amount}
+      else if(pr.type==='per_person_per_hour'){(bookingCfg.gamePerPersonPerHour=bookingCfg.gamePerPersonPerHour||{})[gm.id]=pr.rate}
+      else{(bookingCfg.gamePriceTiers=bookingCfg.gamePriceTiers||{})[gm.id]=pr.tiers}}
+  }catch(e){productList=productList||[];gameList=gameList||[];bookingCfg=bookingCfg||{};console.error('Item list:',e)}
+  return productList;
+}
+// unit price for a game at a quantity (qty = players for per-person games, sessions/hours for flat ones)
+function gameUnitPrice(gid,qty){
+  const g=(gameList||[]).find(x=>x.id===gid),c=bookingCfg||{};if(!g)return 0;
+  const type=g.pricing_type||'per_person_tiered';
+  if(type==='per_hour_flat')return Number((c.gameFlatPrice||{})[gid])||0;
+  if(type==='per_person_per_hour')return Number((c.gamePerPersonPerHour||{})[gid])||0;
+  const tiers=(c.gamePriceTiers||{})[gid]||[{min:1,max:99,pp:35}];
+  const t=tiers.find(x=>qty>=x.min&&qty<=x.max)||tiers[tiers.length-1];return Number(t?.pp)||35;
+}
+function itemOptionsHtml(){
+  const g=(gameList||[]).filter(x=>x.bookable!==false&&!String(x.id).startsWith('g_hire_'));
+  const h=(gameList||[]).filter(x=>x.hireable);
+  return'<option value="">+ Add an item (game, food, drink, deal…)</option>'
+    +(g.length?`<optgroup label="Games &amp; activities">${g.map(x=>`<option value="g:${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>`:'')
+    +(h.length?`<optgroup label="Hire (games going out)">${h.map(x=>`<option value="h:${x.id}">${esc(x.name)} — hire ${money(x.hire_price)}</option>`).join('')}</optgroup>`:'')
+    +((productList||[]).length?`<optgroup label="Products">${productList.map(p=>`<option value="p:${p.id}">${esc(p.name)} — ${money(p.sell_price)}</option>`).join('')}</optgroup>`:'');
+}
 function addProductLine(sel){
-  const p=(productList||[]).find(x=>String(x.id)===sel.value);sel.value='';if(!p)return;
-  const price=Number(p.sell_price)||0;ed.lines.push({description:p.name,qty:1,unit_price:price,amount:price});renderLines();
+  const v=sel.value;sel.value='';if(!v)return;const [kind,id]=[v.slice(0,1),v.slice(2)];
+  if(kind==='p'){const p=(productList||[]).find(x=>String(x.id)===id);if(!p)return;const price=Number(p.sell_price)||0;ed.lines.push({description:p.name,qty:1,unit_price:price,amount:price})}
+  else if(kind==='h'){const g=(gameList||[]).find(x=>x.id===id);if(!g)return;const price=Number(g.hire_price)||0;ed.lines.push({description:`${g.name} — hire`,qty:1,unit_price:price,amount:price})}
+  else if(kind==='g'){const g=(gameList||[]).find(x=>x.id===id);if(!g)return;
+    const perPerson=!['per_hour_flat'].includes(g.pricing_type||'per_person_tiered');
+    const qty=perPerson?Math.max(1,Number((bookingCfg.gamePlayerLimits||{})[id]?.min)||Number(g.min_players)||2):1;
+    const unit=gameUnitPrice(id,qty);
+    ed.lines.push({description:perPerson?`${g.name} (per person)`:g.name,qty,unit_price:unit,amount:Math.round(qty*unit*100)/100,game_id:id,per_person:perPerson})}
+  renderLines();
 }
 function otherChargesFor(){
   const c=pickClient||{},name=[c.first_name,c.last_name].filter(Boolean).join(' ');
@@ -328,7 +368,7 @@ function openEditor(inv,members,req){
     <div style="margin-top:12px"><label class="f">Lines (prices include GST)</label>
       <table class="lines"><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th></th></tr><tbody id="e_lines"></tbody></table>
       <div class="row" style="margin-top:6px"><button class="btn" onclick="ed.lines.push({description:'',qty:1,unit_price:0,amount:0});renderLines()"><i class="ti ti-plus"></i> Add line</button>
-        <select class="in" id="e_prod" style="max-width:280px" onchange="addProductLine(this)"><option value="">+ Add a product (food, drink, deal…)</option></select></div></div>
+        <select class="in" id="e_prod" style="max-width:320px" onchange="addProductLine(this)"><option value="">+ Add an item (game, food, drink, deal…)</option></select></div></div>
     <div class="row" style="margin-top:8px"><label class="f" style="margin:0">Already paid (e.g. deposit by bank) $</label><input class="in" style="width:110px" type="number" step="0.01" id="e_paid_amount" value="${Number(ed.paid_amount)||0}" oninput="renderTotals()"></div>
     <div class="tot" id="e_tot"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
@@ -337,20 +377,28 @@ function openEditor(inv,members,req){
       <button class="btn btn-primary" onclick="saveEd(true)"><i class="ti ti-send"></i> ${ed.status==='sent'?'Save &amp; resend':'Save &amp; email it'}</button></div>
     <div class="msg" id="e_msg"></div>`;
   renderLines();document.getElementById('ov').classList.add('show');
-  loadProducts().then(list=>{const s=document.getElementById('e_prod');if(s)s.innerHTML='<option value="">+ Add a product (food, drink, deal…)</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)} — ${money(p.sell_price)}</option>`).join('')});
+  loadProducts().then(()=>{const s=document.getElementById('e_prod');if(s)s.innerHTML=itemOptionsHtml()});
 }
 function switchKind(k){collectEd();const keep={...ed};const d=draftFrom(edMembers,k,edReq);Object.assign(ed,{kind:k,lines:d.lines,paid_amount:d.paid_amount});
   ['bill_to','contact_name','bill_email','po_number','reference','bill_address','issue_date','due_date','notes'].forEach(f=>ed[f]=keep[f]);openEditor(ed,edMembers,edReq)}
 function renderLines(){
   document.getElementById('e_lines').innerHTML=ed.lines.map((l,i)=>`<tr>
     <td><input class="in" value="${esc(l.description)}" oninput="ed.lines[${i}].description=this.value"></td>
-    <td><input class="in num" type="number" step="0.01" value="${l.qty??1}" oninput="lineCalc(${i},'qty',this.value)"></td>
+    <td><input class="in num" type="number" step="1" min="1" inputmode="numeric" value="${l.qty??1}" oninput="lineCalc(${i},'qty',this.value)" onblur="this.value=ed.lines[${i}].qty"></td>
     <td><input class="in num" type="number" step="0.01" value="${l.unit_price??0}" oninput="lineCalc(${i},'unit_price',this.value)"></td>
     <td class="num" id="la${i}" style="padding-top:12px;font-weight:600">${money(l.amount)}</td>
     <td><button class="btn btn-danger" onclick="ed.lines.splice(${i},1);renderLines()">✕</button></td></tr>`).join('');
   renderTotals();
 }
-function lineCalc(i,k,v){const l=ed.lines[i];l[k]=Number(v)||0;l.amount=Math.round((Number(l.qty)||0)*(Number(l.unit_price)||0)*100)/100;document.getElementById('la'+i).textContent=money(l.amount);renderTotals()}
+// v1.3.0: quantity is whole units (1, 2, 3…); for a per-person game, changing the number re-prices it from the
+// group-size price list (e.g. 2 players $52.50 each, 3–6 players $35 each) unless the price was typed by hand
+function lineCalc(i,k,v){
+  const l=ed.lines[i];
+  if(k==='qty'){l.qty=Math.max(1,Math.round(Number(v)||1));
+    if(l.game_id&&l.per_person&&!l.price_typed){l.unit_price=gameUnitPrice(l.game_id,l.qty);const up=document.querySelectorAll('#e_lines tr')[i]?.querySelectorAll('input')[2];if(up)up.value=l.unit_price}}
+  else{l[k]=Number(v)||0;if(k==='unit_price')l.price_typed=true}
+  l.amount=Math.round((Number(l.qty)||0)*(Number(l.unit_price)||0)*100)/100;document.getElementById('la'+i).textContent=money(l.amount);renderTotals();
+}
 function renderTotals(){const paid=Number(document.getElementById('e_paid_amount')?.value)||0;const t=BtbInvoice.totals({...ed,paid_amount:paid});
   document.getElementById('e_tot').innerHTML=`Total (incl GST) <b>${money(t.total)}</b> · GST ${money(t.gst)}${t.paid?` · paid ${money(t.paid)}`:''} · <b>Amount due ${money(t.due)}</b>`}
 function collectEd(){
