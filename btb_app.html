@@ -1181,6 +1181,10 @@ async function submitWalkin(){
     if(!proceed)return;
   }
   const ds=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
+  // v16.4.64: save the price on in-house bookings too (hire bookings already save their hire total).
+  // Same formula as POS and the booking widget. Left empty if no price is set up for this game.
+  const inHousePrice=isHire?null:calcPrice(gameId,players);
+  const inHouseTotal=inHousePrice>0?inHousePrice:null;
   try{
     // Find or create client — same pattern as enquiries.html, so the same
     // person always resolves to the same client record whether they enquire,
@@ -1224,6 +1228,7 @@ async function submitWalkin(){
         notes_when_booked:name+(phone?' · '+phone:''),
         deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0),how_paid:howPaid||null,
         timer_running:false,timer_sec:0,
+        ...(isHire?{}:{total_amount:inHouseTotal}),
         ...(isHire?{play_location:'hire',gm_attends:gmAttends,venue_address:venueAddress,venue_contact_phone:venuePhone||null,travel_fee:travelFee,gm_fee:gmFee,dropoff_method:dropoffMethod,dropoff_time:dropoffTime?dropoffTime+':00':null,pickup_method:pickupMethod,pickup_time:pickupTime?pickupTime+':00':null,total_amount:hirePrice+gmFee+travelFee}:{}),
       })
     });
@@ -1231,7 +1236,7 @@ async function submitWalkin(){
     const saved=(await r.json())[0];
     if(saved){
       const d=new Date(ds+'T12:00');
-      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:isHire?Math.round((game.hirePeriodHours||game.duration/60)*60):game.duration,meta:`${players} player${players!==1?'s':''} · ${isHire?'Hired out — '+venueAddress+(gmAttends?' · GM goes':' · self-run')+(dropoffMethod==='we_drop_off'?' · we drop off':' · they collect')+(pickupMethod==='we_pick_up'?' · we pick up':' · they return'):'Walk-in'}`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||'',...(isHire?{playLocation:'hire',venueAddress,venuePhone,gmAttends,travelFee,gmFee,dropoffMethod,dropoffTime:dropoffTime||'',pickupMethod,pickupTime:pickupTime||'',total_amount:hirePrice+gmFee+travelFee,deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0)}:{})});
+      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:isHire?Math.round((game.hirePeriodHours||game.duration/60)*60):game.duration,meta:`${players} player${players!==1?'s':''} · ${isHire?'Hired out — '+venueAddress+(gmAttends?' · GM goes':' · self-run')+(dropoffMethod==='we_drop_off'?' · we drop off':' · they collect')+(pickupMethod==='we_pick_up'?' · we pick up':' · they return'):'Walk-in'}`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||'',players_booked:players,...(isHire?{}:{total_amount:inHouseTotal,deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0)}),...(isHire?{playLocation:'hire',venueAddress,venuePhone,gmAttends,travelFee,gmFee,dropoffMethod,dropoffTime:dropoffTime||'',pickupMethod,pickupTime:pickupTime||'',total_amount:hirePrice+gmFee+travelFee,deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0)}:{})});
     }
   }catch(e){alert('Error: '+e.message);return}
   walkinGMs=[];walkinOpen=false;walkinClientId=null;walkinClientOrig=null;document.getElementById('walkinForm').style.display='none';
@@ -1961,11 +1966,18 @@ async function confirmWaitlistBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   closeBookingActions();
   if(!confirm(`Turn this waitlist request into a confirmed booking for ${b.customer||'this customer'} at ${fmt12(b.time||'00:00')}?`))return;
+  // v16.4.64: waitlist requests have no price yet — save one when it becomes a real booking
+  // (only if none is stored, so a price staff already set is never overwritten).
+  const hasTotal=b.total_amount!=null&&parseFloat(b.total_amount)>0;
+  const price=hasTotal?null:calcPrice(b.game_id,b.players_booked||1);
+  const body={status:'confirmed',updated_at:new Date().toISOString()};
+  if(price>0)body.total_amount=price;
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'confirmed',updated_at:new Date().toISOString()})});
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify(body)});
     if(!r.ok)throw new Error(await r.text());
   }catch(e){alert('Could not confirm booking: '+e.message);return}
   b.status='confirmed';b.isWaitlist=false;
+  if(body.total_amount)b.total_amount=body.total_amount;
   renderActiveView();updateHeader();
 }
 async function removeWaitlist(id){
@@ -3590,7 +3602,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.63'; // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
+const BUILD_VERSION = '16.4.64'; // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
+// Previous build: 16.4.63 — // v16.4.63: Hire cards can be edited (menu > Edit details & prices): change each game's price, GM fee, travel, venue, drop-off/pick-up and add any custom extra charges (stored in game_bookings.hire_extras). Hire package form also takes extra charges.
 // Previous build: 16.4.62 — // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
 // Previous build: 16.4.61 — // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
 // Previous build: 16.4.60 — // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
