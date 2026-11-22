@@ -1169,7 +1169,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.36'; // v1.9.36: Hired-out bookings show "🚚 HIRED OUT" with venue and drop-off/pick-up in the week rota and today's list.
+const BUILD_VERSION = '1.9.37'; // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
+// Previous build: 1.9.36 — // v1.9.36: Hired-out bookings show "🚚 HIRED OUT" with venue and drop-off/pick-up in the week rota and today's list.
 // Previous build: 1.9.35 — // v1.9.35: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.34: My Week — owners now see EVERYONE who uses free times (all active calendar-mode staff), not just owners; NEW "Confirm this week" box: each person confirms their own free times for the next two weeks (stage "following" 8–14 days ahead, "next" 1–7 days ahead), status shown for everyone, flips to "changed since confirmed" if that week's free times change. Uses new staff_week_confirmations table. | v1.9.33: v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
 // v1.9.19: Calendar-mode staff (e.g. Joolz) now see a "New events found on your calendar" panel on the Availability tab. Recurring events synced from their calendar need a one-time yes/no — does this pattern mean they're unavailable for GM shifts? Answers are remembered; a bulk "Ignore all pending" button is included since a personal calendar can surface a lot of irrelevant recurring entries (birthdays, reminders) alongside real ones.
@@ -1501,6 +1502,24 @@ function hoursFromClockInOut(inIso, outIso) {
   if (!inIso || !outIso) return null;
   const diff = (new Date(outIso) - new Date(inIso)) / 3600000;
   return Math.round(diff * 100) / 100;
+}
+
+// v1.9.37: true if clock-out is not after clock-in (would give zero or negative hours)
+function clockOutBeforeIn(inIso, outIso) {
+  return !!(inIso && outIso && new Date(outIso) <= new Date(inIso));
+}
+
+// v1.9.37: saves changes to one timesheet and confirms it really saved. A change the database refuses
+// shows its error; a change it silently ignores (e.g. no permission for that row) is reported too,
+// instead of the screen showing it as saved when it wasn't.
+async function patchTimesheet(id, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
+    method: 'PATCH', headers: {...H(), 'Prefer': 'return=representation'}, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  const rows = await r.json();
+  if (!Array.isArray(rows) || !rows.length) throw new Error('the change was not saved (you may not have permission to change this timesheet)');
+  return rows[0];
 }
 
 function initials(name) {
@@ -2629,6 +2648,8 @@ async function togglePushNotifications() {
 // ============================================================
 async function clockIn() {
   if (!myStaffRecord) return;
+  // v1.9.37: don't start a second session on top of one that's still open
+  if (getActiveClock()) { alert('You are still clocked in from an earlier session. Please put in its finish time first.'); renderClockWidget(); return; }
   const btn = document.getElementById('clockInBtn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Clocking in…'; }
   try {
@@ -2683,14 +2704,34 @@ async function clockOut() {
   if (btn) btn.disabled = false;
 }
 
+// v1.9.37: finds your open session even if it started on an earlier day (forgot to clock out, or worked
+// past midnight). Before, only today's was found, so an older one could never be closed from here and
+// you could clock in again on top of it.
 function getActiveClock() {
-  return timesheets.find(t => t.status === 'clocked_in' && t.work_date === nzToday());
+  return timesheets.filter(t => t.status === 'clocked_in')
+    .sort((a, b) => String(b.clock_in || '').localeCompare(String(a.clock_in || '')))[0];
 }
 
 function renderClockWidget() {
   const el = document.getElementById('clockWidget');
   const active = getActiveClock();
-  if (active) {
+  if (active && active.work_date !== nzToday()) {
+    // Left open from an earlier day: clocking out "now" would add many hours, so open the timesheet
+    // to put in the real finish time instead.
+    el.innerHTML = `
+      <div class="clock-banner">
+        <div class="clock-banner-out">
+          <div class="clock-info">
+            <div class="clock-label">Still clocked in from</div>
+            <div class="clock-time">${escapeHtml(fmtDatetime(active.clock_in))}</div>
+            <div class="clock-sub">Forgot to clock out? Tap to put in the time you finished</div>
+          </div>
+          <button class="clock-btn" onclick="openTsDetail('${active.id}', false)">
+            <i class="ti ti-pencil" style="margin-right:4px"></i>Fix finish time
+          </button>
+        </div>
+      </div>`;
+  } else if (active) {
     const since = fmtDatetime(active.clock_in);
     el.innerHTML = `
       <div class="clock-banner">
@@ -3527,7 +3568,9 @@ function openTsDetail(tsId, isAdmin) {
     (staff ? staff.name + ' · ' : '') + fmtFriendlyDate(ts.work_date);
 
   const isAdminUser = ['admin','manager'].includes(currentUser.role);
-  const canEdit = isAdminUser || (ts.status === 'pending' || ts.status === 'queried');
+  // v1.9.37: staff can also put in the finish time of a session left open from an earlier day
+  const canEdit = isAdminUser || (ts.status === 'pending' || ts.status === 'queried') ||
+    (ts.status === 'clocked_in' && ts.work_date !== nzToday());
   
   const canApproveStaff = !isAdminUser && (ts.status === 'pending' || ts.status === 'queried');
   const canApproveAdmin = isAdminUser && (ts.status === 'staff_approved' || ts.status === 'pending');
@@ -3630,6 +3673,13 @@ async function saveTsEdits(id, isAdminUser) {
   const existingTs = [...timesheets, ...adminTs].find(t => t.id === id);
   const wasClockedIn = existingTs?.status === 'clocked_in';
 
+  // v1.9.37: sanity checks before saving
+  const tsMsg = document.getElementById('tsDetailMsg');
+  const showErr = t => { if (tsMsg) { tsMsg.className = 'msg err'; tsMsg.textContent = t; } };
+  if (clockOutBeforeIn(clockIn, clockOut)) { showErr('Clock out must be after clock in.'); return; }
+  if (!isAdminUser && wasClockedIn && !clockOut) { showErr('Please put in the time you finished (Clock out).'); return; }
+  if (hours != null && hours < 0) { showErr('Hours can\'t be negative.'); return; }
+
   try {
     const payload = {
       clock_in: clockIn,
@@ -3729,17 +3779,18 @@ function buildTsCard(ts, isAdmin) {
 async function saveTsStaffNote(id) {
   const note = document.getElementById('tsStaffNote')?.value.trim();
   try {
-    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
-      method:'PATCH', headers:H(),
-      body:JSON.stringify({staff_notes:note, updated_at:new Date().toISOString()})
-    });
+    await patchTimesheet(id, {staff_notes:note, updated_at:new Date().toISOString()});
     const t = timesheets.find(x=>x.id===id);
     if (t) t.staff_notes = note;
     const msgEl = document.getElementById('tsDetailMsg');
     msgEl.className='msg ok'; msgEl.textContent='✓ Note saved';
     setTimeout(()=>msgEl.textContent='',2000);
     renderMyTimesheets();
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error(e);
+    const msgEl = document.getElementById('tsDetailMsg');
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Note not saved: '+e.message; }
+  }
 }
 
 async function approveTs(id, who) {
@@ -3755,7 +3806,7 @@ async function approveTs(id, who) {
     updates = {admin_approved:true, admin_approved_at:now, status:'admin_approved', updated_at:now};
   }
   try {
-    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {method:'PATCH',headers:H(),body:JSON.stringify(updates)});
+    await patchTimesheet(id, updates);
     const updateLocal = arr => { const t=arr.find(x=>x.id===id); if(t) Object.assign(t,updates); };
     updateLocal(timesheets); updateLocal(adminTs);
     closePanel('panelTsDetail');
@@ -3768,10 +3819,7 @@ async function queryTs(id) {
   const note = document.getElementById('tsAdminNote')?.value.trim();
   const now = new Date().toISOString();
   try {
-    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${id}`, {
-      method:'PATCH', headers:H(),
-      body:JSON.stringify({status:'queried', admin_notes:note||null, updated_at:now})
-    });
+    await patchTimesheet(id, {status:'queried', admin_notes:note||null, updated_at:now});
     const t = adminTs.find(x=>x.id===id);
     if (t) { t.status='queried'; t.admin_notes=note; }
     closePanel('panelTsDetail');
@@ -4422,11 +4470,13 @@ async function exportTimesheets() {
     const csvRows = rows.map(ts => {
       const staff = allStaff.find(s=>s.id===ts.staff_id);
       const pay = ts.hours_worked && ts.hourly_rate_used ? (ts.hours_worked * ts.hourly_rate_used).toFixed(2) : '';
+      // v1.9.37: clock times in NZ time (were raw UTC), names quoted so a comma can't shift the columns
+      const nzTime = iso => iso ? isoToNzDatetimeLocal(iso).replace('T', ' ') : '';
       return [
-        staff?.name||'',
+        `"${(staff?.name||'').replace(/"/g,"'")}"`,
         ts.work_date,
-        ts.clock_in||'',
-        ts.clock_out||'',
+        nzTime(ts.clock_in),
+        nzTime(ts.clock_out),
         ts.hours_worked||'',
         ts.hourly_rate_used||'',
         pay,
@@ -4633,6 +4683,10 @@ async function adminClockOut(staffId, tsId) {
   const inEl = document.getElementById('ccIn-'+staffId);
   const clockIn = inEl?.value ? nzDatetimeLocalToIso(inEl.value) : null;
   const hours = clockIn ? hoursFromClockInOut(clockIn, clockOut) : null;
+  if (clockOutBeforeIn(clockIn, clockOut)) {
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='The clock-in time is later than now — please correct it first.'; }
+    return;
+  }
 
   try {
     const updates = {
@@ -4671,12 +4725,13 @@ async function adminSaveTimes(staffId, tsId) {
   const existingTs = todayTimesheets.find(t => t.id === tsId) || adminTs.find(t => t.id === tsId);
   const wasClockedIn = existingTs?.status === 'clocked_in';
   const statusUpdate = (wasClockedIn && clockOut) ? { status: 'pending' } : {};
+  if (clockOutBeforeIn(clockIn, clockOut)) {
+    if (msgEl) { msgEl.className='msg err'; msgEl.textContent='Clock out must be after clock in.'; }
+    return;
+  }
 
   try {
-    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
-      method:'PATCH', headers:H(),
-      body:JSON.stringify({clock_in:clockIn, clock_out:clockOut, hours_worked:hours, updated_at:new Date().toISOString(), ...statusUpdate})
-    });
+    await patchTimesheet(tsId, {clock_in:clockIn, clock_out:clockOut, hours_worked:hours, updated_at:new Date().toISOString(), ...statusUpdate});
     const updateLocal = arr => {
       const t = arr.find(x=>x.id===tsId);
       if (t) { t.clock_in=clockIn; t.clock_out=clockOut; t.hours_worked=hours; if (statusUpdate.status) t.status = statusUpdate.status; }
@@ -4701,9 +4756,7 @@ async function adminApproveDirect(tsId) {
     status: 'admin_approved', updated_at: now
   };
   try {
-    await fetch(`${SB_URL}/rest/v1/timesheets?id=eq.${tsId}`, {
-      method:'PATCH', headers:H(), body:JSON.stringify(updates)
-    });
+    await patchTimesheet(tsId, updates);
     const updateLocal = arr => { const t=arr.find(x=>x.id===tsId); if(t) Object.assign(t,updates); };
     updateLocal(todayTimesheets); updateLocal(adminTs);
     renderClockGrid();
