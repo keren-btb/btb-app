@@ -1059,10 +1059,12 @@ async function submitPkg(){
   if(!name){alert('Please enter the customer name.');document.getElementById('pkName').focus();return}
   if(!venue){alert('Please enter the venue address.');document.getElementById('pkVenue').focus();return}
   if(gm&&!pkGMs.length){alert('A game master is going with the games, so please assign a staff member.');return}
-  // Warn (don't block) if any chosen game already has a booking that day
+  // Warn (don't block) if any chosen game is already booked or hired out during this hire (v16.4.68: real hire
+  // window from drop-off to pick-up, checked in the database so it works for any month)
   const [yy,mm,dd]=date.split('-').map(Number);
-  const clashes=sel.filter(x=>bookings.some(b=>b.game_id===x.game.id&&b.year===yy&&b.month===mm&&b.date===dd&&b.status!=='cancelled'&&!b.isEnquiry)).map(x=>x.game.name);
-  if(clashes.length&&!confirm('Heads up: '+clashes.join(', ')+' already has a booking on that day. Add the package anyway?'))return;
+  const clashes=[];
+  for(const x of sel){const c=await findGameClash(x.game.id,date,time,{dropoff:dropTime,pickup:pickTime},null);if(c)clashes.push(`${x.game.name} ${clashText(x.game.name,c)}`)}
+  if(clashes.length&&!confirm('Heads up — these overlap this hire:\n'+clashes.join('\n')+'\n\nAdd the package anyway?'))return;
   try{
     let clientId=pkClientId||null;
     if(!clientId&&(email||phone)){
@@ -1157,20 +1159,45 @@ async function checkClientBookDeepLink(){
   }catch(e){console.error('Book-from-client failed:',e);alert('Could not open the booking form for that client.')}
 }
 function toggleWGM(id){const i=walkinGMs.indexOf(id);if(i===-1)walkinGMs.push(id);else walkinGMs.splice(i,1);renderWalkinGMChips()}
-// Checks whether a proposed walk-in time falls within 90 minutes of an existing booking start for the same game on the selected day
-function checkGameTimeConflict(gameId,timeStr){
-  const game=games.find(g=>g.id===gameId);if(!game)return null;
-  const toMin=t=>{const[h,m]=(t||'0:0').split(':').map(Number);return h*60+m};
-  const newStart=toMin(timeStr);
-  const WINDOW=90;
-  const sameDay=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry&&b.game_id===gameId);
-  for(const b of sameDay){
-    const bStart=toMin(b.time);
-    // Conflict if new booking starts within 90 min of existing, or existing starts within 90 min of new
-    if(Math.abs(newStart-bStart)<WINDOW)return b;
-  }
-  return null;
+// v16.4.68: GAME CLASH CHECK (walk-in, reschedule, hire package) — one check used everywhere.
+// Each booking ties up its game for a window of time on its day:
+//   played here: start → start + game length + reset buffer (game 60 + reset 30 = the old 90-minute rule)
+//   hired out:   drop-off (or start) → pick-up (or start + hire period) + reset buffer, because the kit is away
+// Looks the day up in the database, so it works for any date (not just the month on screen) and sees
+// bookings other staff have just added.
+function hmMin(t){const[h,m]=String(t||'0:0').slice(0,5).split(':').map(Number);return(h||0)*60+(m||0)}
+function gameWindow(gameId,timeStr,hire){
+  const g=games.find(x=>x.id===gameId);
+  const len=(g&&g.duration)||60,buf=(g&&g.bufferMinutes!=null)?g.bufferMinutes:30;
+  const s=hmMin(timeStr);
+  if(!hire)return[s,s+len+buf];
+  const period=(g&&g.hirePeriodHours)?Math.round(g.hirePeriodHours*60):len;
+  let start=s,end=s+Math.max(period,len);
+  if(hire.dropoff){const d=hmMin(hire.dropoff);if(d<start)start=d}
+  if(hire.pickup){const p=hmMin(hire.pickup);end=p>start?p:24*60} // pick-up before drop-off = comes back next day
+  return[start,end+buf];
 }
+// Returns the first clashing booking {time,customer,hired} or null. hire = {dropoff,pickup} for a hire, else null.
+async function findGameClash(gameId,dateStr,timeStr,hire,excludeId){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(gameId)}&booking_date=eq.${dateStr}&status=in.(confirmed,completed)&select=id,slot_time,play_location,dropoff_time,pickup_time,notes_when_booked,clients(first_name,last_name)`,{headers:H()});
+    if(!r.ok)throw new Error(await r.text());
+    const rows=await r.json();
+    const[ns,ne]=gameWindow(gameId,timeStr,hire);
+    for(const row of rows){
+      if(row.id===excludeId)continue;
+      const isHire=row.play_location==='hire';
+      const[bs,be]=gameWindow(gameId,row.slot_time,isHire?{dropoff:row.dropoff_time,pickup:row.pickup_time}:null);
+      if(ns<be&&ne>bs){
+        const c=row.clients;
+        const customer=c?[c.first_name,c.last_name].filter(Boolean).join(' '):(row.notes_when_booked||'').split('·')[0].trim();
+        return{time:(row.slot_time||'').slice(0,5),customer,hired:isHire};
+      }
+    }
+    return null;
+  }catch(e){console.error('Clash check:',e);return null} // never block a booking because the check itself failed
+}
+function clashText(gameName,c){return `${c.hired?'is hired out':'already has a booking'} at ${fmt12(c.time||'00:00')} (${c.customer||'no name'})`}
 async function submitWalkin(){
   const time=document.getElementById('wTime').value;if(!time){document.getElementById('wTime').focus();return}
   const players=parseInt(document.getElementById('wPlayers').value)||1;
@@ -1199,12 +1226,12 @@ async function submitWalkin(){
     if(!venueAddress){alert('Please enter the venue address for the hire.');document.getElementById('wVenueAddress').focus();return}
     if(gmAttends&&!walkinGMs.length){alert('A game master is going with this game, so please assign a staff member.');return}
   }
-  const conflict=checkGameTimeConflict(gameId,time);
+  const ds=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
+  const conflict=await findGameClash(gameId,ds,time,isHire?{dropoff:dropoffTime,pickup:pickupTime}:null,null);
   if(conflict){
-    const proceed=confirm(`Heads up: this overlaps with an existing ${game.name} booking at ${fmt12(conflict.time||'00:00')} (${conflict.customer||'no name'}). Book anyway?`);
+    const proceed=confirm(`Heads up: ${game.name} ${clashText(game.name,conflict)} and that overlaps this ${isHire?'hire':'booking'}. Book anyway?`);
     if(!proceed)return;
   }
-  const ds=`${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}`;
   // v16.4.64: save the price on in-house bookings too (hire bookings already save their hire total).
   // Same formula as POS and the booking widget. Left empty if no price is set up for this game.
   const inHousePrice=isHire?null:calcPrice(gameId,players);
@@ -1968,28 +1995,16 @@ function openReschedule(id){closeBookingActions();openPanels.add(id);rescheduleO
 function closeReschedule(id){rescheduleOpenIds.delete(id);renderActiveView()}
 function openCancel(id){closeBookingActions();openPanels.add(id);cancelOpenIds.add(id);rescheduleOpenIds.delete(id);renderActiveView();scrollBoxIntoView('cancelBox-'+id)}
 function closeCancel(id){cancelOpenIds.delete(id);renderActiveView()}
-// Same 90-minute overlap window the walk-in form uses (checkGameTimeConflict), but for an
-// arbitrary target date (not just the currently-selected calendar day) and excluding the
-// booking being moved itself, since otherwise it would always "conflict" with its old self.
-function checkGameTimeConflictOnDate(gameId,timeStr,dateNum,monthNum,yearNum,excludeId){
-  const toMin=t=>{const[h,m]=(t||'0:0').split(':').map(Number);return h*60+m};
-  const newStart=toMin(timeStr);
-  const WINDOW=90;
-  const sameDay=bookings.filter(b=>b.id!==excludeId&&b.date===dateNum&&b.month===monthNum&&b.year===yearNum&&!b.isEnquiry&&b.game_id===gameId);
-  for(const b of sameDay){
-    if(Math.abs(newStart-toMin(b.time))<WINDOW)return b;
-  }
-  return null;
-}
 async function confirmReschedule(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   const dateVal=document.getElementById('resDate-'+id).value;
   const timeVal=document.getElementById('resTime-'+id).value;
   if(!dateVal||!timeVal){alert('Please choose both a date and a time.');return}
   const[ny,nm,nd]=dateVal.split('-').map(Number);
-  const conflict=checkGameTimeConflictOnDate(b.game_id,timeVal,nd,nm,ny,id);
+  // v16.4.68: same clash check as the walk-in form (findGameClash), ignoring the booking being moved
+  const conflict=await findGameClash(b.game_id,dateVal,timeVal,b.playLocation==='hire'?{dropoff:b.dropoffTime,pickup:b.pickupTime}:null,id);
   if(conflict){
-    const proceed=confirm(`Heads up: this overlaps with an existing ${b.name} booking at ${fmt12(conflict.time||'00:00')} (${conflict.customer||'no name'}) on that day. Reschedule anyway?`);
+    const proceed=confirm(`Heads up: ${b.name} ${clashText(b.name,conflict)} on that day, which overlaps. Reschedule anyway?`);
     if(!proceed)return;
   }
   try{
@@ -3679,7 +3694,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.67'; // v16.4.67: Choosing Cancel booking or Reschedule from a booking's ⋯ menu now scrolls the page so the confirm box (and its buttons) is on screen, instead of opening it out of sight further down.
+const BUILD_VERSION = '16.4.68'; // v16.4.68: Clash warnings (new booking, reschedule, hire package) now use one check that looks the day up in the database and compares the real time each booking ties up its game — game + reset for played-here bookings, drop-off to pick-up + reset for hires. Before: only "starts within 90 minutes", only bookings in the month on screen, and the package check only looked for any booking that day.
+// Previous build: 16.4.67 — // v16.4.67: Choosing Cancel booking or Reschedule from a booking's ⋯ menu now scrolls the page so the confirm box (and its buttons) is on screen, instead of opening it out of sight further down.
 // Previous build: 16.4.66 — // v16.4.66: Booking card changes (tags, GMs incl. hire GMs, notes, done tick, no-show) now save ONLY the field that changed, applied on top of the latest saved booking, instead of re-saving tags/notes/GMs/status/no-show together from this page's older copy. Stops btb_app undoing changes made elsewhere (e.g. a session completed in Control Room reverting to confirmed, or a GM assigned in Staff Portal being removed). Failed saves now show a message and reload the calendar instead of failing silently.
 // Previous build: 16.4.65 — // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.
 // Previous build: 16.4.64 — // v16.4.64: In-house walk-in bookings now save their price (total_amount) when created, and a waitlist request saves its price when confirmed — previously these had no stored total, so confirmation emails said "Total: $0" and reports counted them as $0. Same price formula as POS/booking widget; hire bookings unchanged.
