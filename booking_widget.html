@@ -4111,7 +4111,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                     <div class="radio-dot"></div>
                     <span class="radio-label">🏦 Bank transfer</span>
                   </div>
-                  <div class="radio-opt" id="depositOptInvoice" data-val="invoice" onclick="setDepositPref('invoice')" style="display:none">
+                  <div class="radio-opt" id="depositOptInvoice" data-val="invoice" onclick="setDepositPref('invoice')">
                     <div class="radio-dot"></div>
                     <span class="radio-label">📧 Invoice me</span>
                   </div>
@@ -4325,7 +4325,9 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.46'; // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
+const BUILD_VERSION = '1.7.47'; // v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+
+// Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
 // Previous build: 1.7.45 — // v1.7.45: Staff going to a BtB meeting count as busy for games that overlap it.
 // Previous build: 1.7.44 — // v1.7.44: Roster-mode staff now count as available only if their shift covers the whole game (start to finish), not just the start time. Also, the roster is now actually readable here: the database lets the public key see who-is-working/when for taken shifts (2026-11-22) — before, this page always got an empty roster, so only calendar-mode staff were ever offered.
@@ -4483,6 +4485,7 @@ const EXPERIENCE_LEVELS = [
 ];
 let selectedExperienceLevels = ['First time'];
 let depositPref = null;
+let lastBookingLink = null; // v1.7.47: {id, token} of the booking just made — for the invoice details link
 let appliedVoucher = null; // { code, discount, label } once validated — see applyVoucherCode()
 let escapeView = 'game';
 let enqType = null;
@@ -5908,13 +5911,9 @@ document.getElementById('fOccasion').addEventListener('change', function() {
     if (sa) sa.value = '';
   }
   const invoiceOpt = document.getElementById('depositOptInvoice');
-  if (invoiceOpt) {
-    invoiceOpt.style.display = isCompany ? '' : 'none';
-    if (!isCompany && depositPref === 'invoice') {
-      depositPref = null;
-      invoiceOpt.classList.remove('selected');
-    }
-  }
+  // v1.7.47: "Invoice me" is offered for every booking (not only company occasions) — the customer then fills in
+  // the invoice details (company, PO, accounts email…) from the confirmation screen or their confirmation email.
+  if (invoiceOpt) invoiceOpt.style.display = '';
   const lbl = document.getElementById('specialPersonLabel');
   if (lbl) {
     if (this.value === 'Birthday') lbl.textContent = 'Name of the birthday person';
@@ -6225,6 +6224,10 @@ assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
           return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
         });
     bookingData.id = newBookingId;
+    // v1.7.47: private link token for this booking's "invoice details" page (made here because the public page can't read the booking back)
+    const newToken = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
+    if (newToken) bookingData.public_token = newToken;
+    lastBookingLink = newToken ? { id: newBookingId, token: newToken } : null;
 
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
@@ -6305,12 +6308,25 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
     if (dep > 0) {
       let t = `Your booking is made. Please pay your $${dep} deposit as soon as you can.`;
       if (depositPref === 'stripe' || depositPref === 'cash') t += ` Please call us to see when you can pop in and pay (we're always open Saturdays 10am to 2pm).`;
-      else if (depositPref === 'invoice') t += ` We'll email you an invoice for it.`;
+      else if (depositPref === 'invoice') t += ` Please fill in your invoice details below and we'll email you an invoice.`;
       else t += ` Payment details are in your confirmation email.`;
       cs.textContent = t;
     } else {
       cs.textContent = `Your booking is made. Check your email for confirmation.`;
     }
+  }
+  // v1.7.47: button to the invoice details page (company, PO, accounts email…) — prominent if they chose "Invoice me"
+  const old = document.getElementById('confirmInvoiceBtn'); if (old) old.remove();
+  if (lastBookingLink) {
+    const a = document.createElement('a');
+    a.id = 'confirmInvoiceBtn';
+    a.href = `invoice_request.html?b=${encodeURIComponent(lastBookingLink.id)}&t=${encodeURIComponent(lastBookingLink.token)}`;
+    a.target = '_blank';
+    a.textContent = depositPref === 'invoice' ? '🧾 Fill in your invoice details' : '🧾 Need a tax invoice? Add your invoice details';
+    a.style.cssText = depositPref === 'invoice'
+      ? 'display:block;text-align:center;margin:14px 0;background:#07b4c5;color:#fff;border-radius:10px;padding:13px;font-weight:700;text-decoration:none'
+      : 'display:block;text-align:center;margin:12px 0;color:#07b4c5;font-size:14px';
+    document.getElementById('confirmCard').after(a);
   }
   goTo('s4', 5);
 }
@@ -6335,7 +6351,7 @@ function startOver() {
   document.getElementById('companyNameWrap').style.display = 'none';
   document.getElementById('schoolGroupWrap').style.display = 'none';
   const invoiceOptReset = document.getElementById('depositOptInvoice');
-  if (invoiceOptReset) { invoiceOptReset.style.display = 'none';
+  if (invoiceOptReset) { invoiceOptReset.style.display = '';
     invoiceOptReset.classList.remove('selected'); }
   selectedExperienceLevels = ['First time'];
   renderExperienceLevels();

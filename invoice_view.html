@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice — Beyond the Box</title>
+<link rel="icon" href="icon-32.png">
+<style>
+body{margin:0;background:#e5e7eb;font-family:Arial,Helvetica,sans-serif}
+.bar{max-width:210mm;margin:16px auto;display:flex;gap:8px;justify-content:flex-end;padding:0 8px}
+.bar button{background:#07b4c5;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer}
+.wrap{overflow-x:auto;padding:0 0 30px}
+.msg{max-width:520px;margin:40px auto;background:#fff;border-radius:12px;padding:20px;text-align:center}
+@media print{body{background:#fff}.bar{display:none}.wrap{padding:0}@page{size:A4;margin:0}.inv-page{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar" style="display:none"><button onclick="window.print()">🖨 Print / save as PDF</button></div>
+<div class="wrap" id="out"><div class="msg">Loading invoice…</div></div>
+<script src="invoice_render.js?v=1.0.0"></script>
+<script>
+// invoice_view.html v1.0.0 — 2026-11-23: the customer's link to view / print / save an invoice as PDF.
+// Needs the invoice id + its private token (from the invoice email). Staff open drafts from invoices.html instead.
+const BUILD_VERSION='1.0.0';
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+(async()=>{
+  const qp=new URLSearchParams(location.search),out=document.getElementById('out');
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/btb-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'invoice_view',invoiceId:qp.get('i'),token:qp.get('t')})});
+    const d=await r.json();if(!r.ok||!d.ok)throw new Error();
+    document.title=`${d.invoice.invoice_number} — Beyond the Box`;
+    out.innerHTML=BtbInvoice.render(d.invoice);document.getElementById('bar').style.display='';
+  }catch(e){out.innerHTML='<div class="msg">This invoice link isn\'t valid. Please contact us on 0220 537 365.</div>'}
+})();
+</script>
+</body>
+</html>

@@ -29,6 +29,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.0 — 2026-08-28 — Product Sale screen redesign. Product grid is now a fixed 3 columns (was auto-fill, 2-4 depending on screen width). The always-on cart+payment footer is replaced with a compact "Ready to pay →" bar; tapping it opens a full-screen payment view matching the booking-payment look — a colour-tinted cart card listing items/vouchers/discounts with amounts, then colour-coded payment method buttons (Cash/Eftpos/Stripe/Bank/Invoice), same style as booking payment. Added brand-new "Use voucher" and "Take money off" tiles to Product Sale (previously only available on booking payments) — voucher search/apply and reason+amount discount both work the same way as bookings, and both simply add a negative-amount line to the cart (no schema changes, no new columns). Unlike the booking flow, an applied voucher is only marked "used" once the sale actually completes, not the moment it's applied — so backing out of a sale never leaves a good voucher stuck as used. Quick Sale popup and the booking-payment product picker are unchanged — Quick Sale currently has no button anywhere in the app pointing to it (flagged for Keren, not touched in this session).
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-11-23 — Invoices: new tables invoices and invoice_requests (admin/manager only), sequence invoice_number_seq starting 1175 + next_invoice_number() (admin/manager), game_bookings.public_token (private link for the invoice details page; anon may set it on insert). Edge functions: btb-public v3 (invoice_form / invoice_request / invoice_view, each checked against the private token), btb-booking-confirmation v1.5.0 ('Need a tax invoice? Fill in your invoice details' link in every confirmation email).
 - 2026-11-23 — Edge function btb-booking-confirmation v1.4.0: packages (bookings sharing a group_booking_id) get ONE invoice-style email — each game with time, players and price, food/drink/extras, hire fees, total, deposit $35 per game, balance due on the day; sent by the first game only, all marked sent; calendar invite covers the whole package. Only confirmed bookings are emailed. Preview mode (service key only) returns the email without sending. Single-booking email unchanged.
 - 2026-11-23 — game_bookings: new deposit_paid_at, deposit_ref, deposit_recorded_by. Backfilled deposit_method from how_paid where a deposit was paid but no method was stored.
 - 2026-11-23 — Security hardening: public booking page (anon) may now only insert the fields it sends, with status confirmed/group_request/enquiry/waitlist/abandoned, source online, date not in the past, 1–80 players (blocks fake paid/completed bookings). Removed unused anon grants on games (insert/update) and waivers (select/update). Trigger-only functions no longer callable via the API; can_edit_task_config not callable by anon. Fixed search_path on 4 functions. New column game_bookings.time_tbc. Edge function btb-admin v27: every action needs a staff login (user_roles row); client-email push internal-only; email From locked to @mail.btbescaperooms.co.nz; create_staff_login validates role and removes the login if the role row fails. .cpanel.yml now only publishes web files (no .md/.pdf).
@@ -110,6 +111,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.76 — 2026-11-23 — Invoice item in booking ⋯ menu; Settings Invoices button with count; package 'Pay by invoice' → Make the invoice button. CSS ?v=16.4.76.
 - v16.4.75 — 2026-11-23 — Package form: food, drink & extras hidden until 'Add food, drink or extras' is ticked (unticking with items asks, then removes them); bigger up/down arrows kept together with the time. CSS ?v=16.4.75.
 - v16.4.74 — 2026-11-23 — Package form: a typed price (e.g. café space hire $50) stays fixed when players change and stays visible with a 'fixed' tag when prices are hidden; clearing it returns to per-person pricing. CSS ?v=16.4.74.
 - v16.4.73 — 2026-11-23 — Package form: 'With above' on each game in 'One after the other' starts it at the same time as the game above (e.g. 3 rooms together then everyone into the café); next game starts when the longest in the group ends, plus the gap. CSS ?v=16.4.73.
@@ -272,6 +274,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.47 — 2026-11-23 — 'Invoice me' for every booking; private booking link token; invoice details button on the confirmation screen.
 - v1.7.46 — 2026-11-23 — Voucher redeem result checked; if the code had already been used, it's logged in Settings > Errors with the booking id.
 - v1.7.45 — 2026-11-22 — Staff in a BtB meeting count as busy.
 - v1.7.44 — 2026-11-22 — Roster-mode staff count as available only if their shift covers the whole game, not just its start time. Together with the database change below, the roster now actually reaches this page — before it always got an empty roster, so only calendar-mode staff (Keren, Joolz) were ever offered. Nothing removed.
@@ -386,4 +389,14 @@ Newest entry per file goes at the top of that file's list.
 - v1.1.0 — 2026-08-04 — Checklist types (Reset/Setup/Shutdown) are no longer hardcoded. Added task_checklist_types table + new "Checklist Types" sidebar item (visible to anyone with can_edit_task_templates) to add/rename/deactivate types. Both the staff-facing "Checklist type" dropdown and the admin template editor dropdown now read from this table live instead of a fixed 3-option list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
+## invoices.html
+- v1.0.0 — 2026-11-23 — New. Tax invoices made in the app instead of Xero (numbers carry on from Xero: next INV-1175). To do tab: customer invoice requests + drafts; Unpaid (with overdue), Paid, All. Make an invoice from a booking/package (deposit $35 per game, or full amount — games, food/drink/extras, hire fees, less any deposit already invoiced; deposits paid another way show as payments) or a blank one; edit lines (GST-inclusive), dates (14-day terms), PO, 'what it's for', billing address; save draft / save & email (from invoices@mail.btbescaperooms.co.nz, with a view / print / PDF link). Record payments (amount, date, method, bank ref) — also marks the booking deposits paid (deposit invoice) or adds payments to the bookings (full invoice). Void keeps the number. Print / PDF on the BtB letterhead. Admin / manager only.
 
+## invoice_request.html
+- v1.0.0 — 2026-11-23 — New public page (private link from the confirmation email / booking page): customer gives company name, contact, invoice email, phone, PO / reference, what the invoice should say, deposit / full now / full after, billing address, payment terms, notes. Saved as an invoice request + a to-do on the client.
+
+## invoice_view.html
+- v1.0.0 — 2026-11-23 — New public page: the customer's link to view / print / save their invoice as PDF (private link in the invoice email).
+
+## invoice_render.js / invoice_letterhead.png
+- v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.

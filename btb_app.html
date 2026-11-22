@@ -10,7 +10,7 @@
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <!-- Bump ?v= whenever btb_app.css changes, or browsers keep showing the old styles -->
-<link rel="stylesheet" href="btb_app.css?v=16.4.75">
+<link rel="stylesheet" href="btb_app.css?v=16.4.76">
 </head>
 <body>
 <div class="help-overlay" id="helpOverlay">
@@ -213,6 +213,7 @@
         </div>
         <div class="form-row"><div class="form-label">Note (optional)</div><input class="form-input" type="text" id="pkNote"></div>
         <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkSkipEmail" checked> Don't send confirmation email</label></div>
+        <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkInvoice"> Pay by invoice — open the invoice to fill in and send after saving</label></div>
         <div class="form-row"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4b5563;cursor:pointer"><input type="checkbox" id="pkWantExtras" onchange="pkExtrasToggle()"> Add food, drink or extras</label></div>
         <div class="form-row" id="pkExtrasBox" style="display:none"><div class="form-label">Food, drink &amp; extras — tap an item to add it, tap again for more</div>
           <div id="pkProdCats" class="pk-cats"></div>
@@ -262,6 +263,7 @@
         <button class="sq-btn" onclick="window.open('task_hub.html','_blank')"><i class="ti ti-checklist"></i> Task Hub</button>
         <button class="sq-btn gated-btn" data-tab="control_room" onclick="window.open('control_room.html','_blank')"><i class="ti ti-device-gamepad-2"></i> Control Room</button>
         <button class="sq-btn" onclick="window.open('clients.html','_blank')"><i class="ti ti-address-book"></i> Clients</button>
+        <button class="sq-btn" id="sqInvoices" style="display:none" onclick="window.open('invoices.html','_blank')"><i class="ti ti-file-invoice"></i> Invoices<span id="sqInvCount" class="sq-count"></span></button>
         <button class="sq-btn" id="sqTemplates" style="display:none" onclick="window.open('clients.html?templates=1','_blank')"><i class="ti ti-mail"></i> Email templates</button>
         <button class="sq-btn" id="sqErrors" style="display:none" onclick="openPanel('pErrors')"><i class="ti ti-bug"></i> Errors<span id="sqErrCount"></span></button>
       </div>
@@ -1034,7 +1036,7 @@ function togglePkg(){
     [['pkGmAttends','yes'],['pkDropoff','we_drop_off'],['pkPickup','we_pick_up'],['pkHowPaid','']].forEach(([i,v])=>{const e=document.getElementById(i);if(e)e.value=v});
     const se=document.getElementById('pkSkipEmail');if(se)se.checked=true;
     const tb=document.getElementById('pkTbc');if(tb)tb.checked=false;
-    pkGMs=[];pkExtras=[];renderPkgExtras();renderPkgGames();renderPkgRooms();renderPkgProducts();renderPkgGMChips();pkTypeChanged();document.getElementById('pkWantExtras').checked=false;document.getElementById('pkExtrasBox').style.display='none';
+    pkGMs=[];pkExtras=[];renderPkgExtras();renderPkgGames();renderPkgRooms();renderPkgProducts();renderPkgGMChips();pkTypeChanged();document.getElementById('pkWantExtras').checked=false;const pki=document.getElementById('pkInvoice');if(pki)pki.checked=false;document.getElementById('pkExtrasBox').style.display='none';
     document.getElementById('pkName').focus();
     f.scrollIntoView({behavior:'smooth',block:'start'});
   }
@@ -1231,6 +1233,16 @@ async function pkResolveClient(name,email,phone){
   }
   return clientId;
 }
+// v16.4.76: after saving a package marked "Pay by invoice" — a button to open its invoice (a tap opens the new tab
+// reliably; opening it automatically after saving would be blocked as a pop-up)
+function pkInvoiceToast(bookingId){
+  if(!bookingId)return;
+  document.getElementById('pkInvToast')?.remove();
+  const d=document.createElement('div');d.id='pkInvToast';
+  d.style.cssText='position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:3000;background:#1a1035;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;font-size:14px;max-width:92vw';
+  d.innerHTML=`✓ Package saved <a href="invoices.html?booking=${encodeURIComponent(bookingId)}" target="_blank" onclick="setTimeout(()=>document.getElementById('pkInvToast')?.remove(),300)" style="background:#07b4c5;color:#fff;border-radius:8px;padding:8px 12px;text-decoration:none;font-weight:700">🧾 Make the invoice</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#9ca3af;font-size:18px;cursor:pointer">✕</button>`;
+  document.body.appendChild(d);
+}
 // Take one off the shelf count for food/drink added to a package (same as POS does)
 async function pkTakeStock(extras){
   for(const x of extras){
@@ -1266,7 +1278,7 @@ async function submitInhousePkg(){
     const gid=sel.length>1?(crypto.randomUUID?crypto.randomUUID():null):null;
     const at=new Date().toISOString();
     const rows=sel.sort((a,b)=>a.time.localeCompare(b.time)).map((x,i)=>({
-      client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
+      id:(crypto.randomUUID?crypto.randomUUID():undefined),client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
       game_id:x.game.id,game_name:x.game.name,booking_date:date,slot_time:x.time+':00',
       players_booked:x.players,status:'confirmed',source:'walkin',play_location:'in_house',
       assigned_staff_ids:JSON.stringify(pkGMs),tags:JSON.stringify([]),staff_notes:JSON.stringify(note?[note]:[]),
@@ -1279,6 +1291,7 @@ async function submitInhousePkg(){
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(rows)});
     if(!r.ok)throw new Error(await r.text());
     await pkTakeStock(extras);
+    if(document.getElementById('pkInvoice')?.checked)pkInvoiceToast(rows[0].id);
   }catch(e){alert('Error: '+e.message);btn.disabled=false;return}
   btn.disabled=false;
   pkOpen=false;pkGMs=[];pkExtras=[];pkClientId=null;pkClientOrig=null;document.getElementById('pkgForm').style.display='none';
@@ -1324,7 +1337,7 @@ async function submitPkg(){
     const extrasClean=pkExtrasClean();const extrasTotal=extrasClean.reduce((q,x)=>q+x.amount,0);
     const gid=sel.length>1?(crypto.randomUUID?crypto.randomUUID():null):null;
     const rows=sel.map((x,i)=>({
-      client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
+      id:(crypto.randomUUID?crypto.randomUUID():undefined),client_id:clientId,skip_confirmation_email:skipEmail,group_booking_id:gid,
       game_id:x.game.id,game_name:x.game.name,booking_date:date,slot_time:time+':00',
       players_booked:1,occasion:null,status:'confirmed',source:'walkin',
       assigned_staff_ids:JSON.stringify(gm?pkGMs:[]),tags:JSON.stringify([]),
@@ -1342,6 +1355,7 @@ async function submitPkg(){
     const r=await fetch(`${SB_URL}/rest/v1/game_bookings`,{method:'POST',headers:{...H(),'Prefer':'return=minimal'},body:JSON.stringify(rows)});
     if(!r.ok)throw new Error(await r.text());
     await pkTakeStock(extrasClean);
+    if(document.getElementById('pkInvoice')?.checked)pkInvoiceToast(rows[0].id);
   }catch(e){alert('Error: '+e.message);return}
   pkOpen=false;pkGMs=[];pkExtras=[];pkClientId=null;pkClientOrig=null;document.getElementById('pkgForm').style.display='none';
   viewYear=yy;viewMonth=mm;selectedDate=dd;
@@ -1650,6 +1664,7 @@ ${resetChipHtml(b)}
             <button class="action-menu-item" onclick="toggleExpandFromMenu('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-chevron-${isOpen?'up':'down'}" style="font-size:15px;color:#6b7280"></i>${isOpen?'Collapse details':'Expand details'}</button>
             <button class="action-menu-item" onclick="openInControlRoom('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-device-gamepad-2" style="font-size:15px;color:#6b7280"></i>Open in Control Room</button>
             <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
+            <button class="action-menu-item" onclick="closeBookingActions();window.open('invoices.html?booking='+encodeURIComponent('${b.id}'),'_blank')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-file-invoice" style="font-size:15px;color:#6b7280"></i>Invoice</button>
             <button class="action-menu-item" onclick="openWishlistForm('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-heart" style="font-size:15px;color:#6b7280"></i>Add to game wishlist</button>
             <button class="action-menu-item" onclick="openReschedule('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-calendar-time" style="font-size:15px;color:#6b7280"></i>Reschedule</button>
             ${b.isWaitlist?`
@@ -1943,6 +1958,7 @@ function buildHireCard(members){
           <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
           <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
           <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
+            <button class="action-menu-item" onclick="closeBookingActions();window.open('invoices.html?booking='+encodeURIComponent('${b.id}'),'_blank')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-file-invoice" style="font-size:15px;color:#6b7280"></i>Invoice</button>
           <button class="action-menu-item" onclick="startHireEdit('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-pencil" style="font-size:15px;color:#6b7280"></i>Edit details &amp; prices</button>
           <button class="action-menu-item" onclick="cancelHire('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-circle-x" style="font-size:15px"></i>Cancel this hire</button>
         </div>
@@ -3221,6 +3237,15 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 // v16.4.56 — Settings > Errors (reads the error_logs table; admin/manager only, enforced by the database too)
 // ============================================================
 let errRows=[], errGroups=[], errNames={};
+// v16.4.76: red count on the Settings "Invoices" button — new invoice requests from customers + overdue invoices
+async function countInvoiceTodos(){
+  try{
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+    const [a,b]=await Promise.all([fetch(`${SB_URL}/rest/v1/invoice_requests?status=eq.new&select=id`,{headers:H()}),fetch(`${SB_URL}/rest/v1/invoices?status=eq.sent&due_date=lt.${today}&select=id`,{headers:H()})]);
+    if(!a.ok||!b.ok)return;const n=(await a.json()).length+(await b.json()).length;
+    const el=document.getElementById('sqInvCount');if(el)el.textContent=n?String(n):'';
+  }catch(e){}
+}
 // v16.4.70: red count on the Settings "Errors" button when there are unresolved problems from the last 14 days
 async function countOpenErrors(){
   try{
@@ -3450,6 +3475,8 @@ function showApp(){
   const canErr=isAdmin||currentUser.role==='manager';
   const gErr=document.getElementById('sqErrors');if(gErr)gErr.style.display=canErr?'':'none';
   if(canErr)countOpenErrors();
+  const gInv=document.getElementById('sqInvoices');if(gInv)gInv.style.display=canErr?'':'none';
+  if(canErr)countInvoiceTodos();
   const gTpl=document.getElementById('sqTemplates');if(gTpl)gTpl.style.display=isAdmin?'':'none';
   document.querySelectorAll('.gated-btn').forEach(b=>{b.style.display=currentUser.allowedTabs.includes(b.getAttribute('data-tab'))?'':'none'});
   document.getElementById('cardConfig').style.display=isAdmin?'':'none';
@@ -4096,7 +4123,10 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.75'; // v16.4.75: Package form — food, drink and extras only show after ticking 'Add food, drink or extras' (unticking with items added asks, then removes them); bigger up/down arrows for the play order.
+const BUILD_VERSION = '16.4.76'; // v16.4.76: Invoices — 'Invoice' in each booking's ⋯ menu opens invoices.html for that booking / package; Settings has an Invoices button (admin/manager) with a red count of new invoice requests + overdue invoices; package form has 'Pay by invoice' (after saving, a 🧾 Make the invoice button). Package rows get their id up front so the invoice can find them.
+
+
+// Previous build: 16.4.75 — // v16.4.75: Package form — food, drink and extras only show after ticking 'Add food, drink or extras' (unticking with items added asks, then removes them); bigger up/down arrows for the play order.
 
 
 // Previous build: 16.4.74 — // v16.4.74: Package form — a price typed for a game (e.g. Board Game Cafe space hire $50 instead of per person) stays fixed when players change and stays visible with a 'fixed' tag even when prices are hidden; clearing it goes back to the per-person price.

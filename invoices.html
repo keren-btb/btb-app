@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Invoices</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#07b4c5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#15803d;--red:#dc2626;--amber:#b45309;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-input{width:100%;font-size:14px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:inherit}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.wrap{display:none;max-width:980px;margin:0 auto;padding:0 0 60px}
+header.topbar{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.topbar a{color:#8a9bb5;font-size:12px;text-decoration:none}
+.topbar-title{color:#fff;font-size:16px;font-weight:700;flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{border-color:var(--teal)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.btn-danger{color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.content{padding:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--border);background:#fff;border-radius:99px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.tabs .n{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;margin-left:4px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.item{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.item:hover{border-color:var(--teal)}
+.item .main{flex:1;min-width:0}
+.item .t{font-weight:700}
+.item .m{font-size:12px;color:var(--muted);margin-top:2px}
+.amt{font-weight:700;white-space:nowrap}
+.badge{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.b-draft{background:#f3f4f6;color:#374151}.b-sent{background:#dbeafe;color:#1d4ed8}.b-paid{background:#dcfce7;color:var(--green)}.b-void{background:#f3f4f6;color:#9ca3af;text-decoration:line-through}.b-over{background:#fee2e2;color:var(--red)}.b-new{background:#fef3c7;color:var(--amber)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+label.f{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.in{width:100%;font-size:14px;font-family:inherit;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:8px 9px}
+.in:focus{outline:none;border-color:var(--teal)}
+textarea.in{min-height:56px;resize:vertical}
+table.lines{width:100%;border-collapse:collapse;margin-top:6px}
+table.lines th{font-size:11px;color:var(--muted);text-align:left;padding:4px;border-bottom:1px solid var(--border)}
+table.lines td{padding:4px;vertical-align:top}
+table.lines .num{width:90px;text-align:right}
+.tot{text-align:right;font-size:14px;margin-top:8px;line-height:1.6}
+.msg{font-size:13px;margin-top:8px}.err{color:var(--red)}.ok{color:var(--green)}
+.empty{text-align:center;color:var(--muted);padding:26px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:500;overflow:auto;padding:20px 10px}
+.overlay.show{display:block}
+.overlay .box{background:#fff;border-radius:12px;max-width:860px;margin:0 auto;padding:14px}
+@media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{position:absolute;left:0;top:0}@page{size:A4;margin:0}.inv-page{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div style="color:var(--teal);font-size:22px;font-weight:800;margin-bottom:20px"><i class="ti ti-file-invoice"></i> Invoices</div>
+  <div class="login-card">
+    <input class="login-input" id="loginEmail" placeholder="firstname" autocapitalize="off">
+    <input class="login-input" id="loginPass" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button><div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <a href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <div class="topbar-title"><i class="ti ti-file-invoice"></i> Invoices <span id="ver" style="font-size:10px;color:#8a9bb5;font-weight:400"></span></div>
+    <button class="btn btn-primary" onclick="newBlankInvoice()"><i class="ti ti-plus"></i> New invoice</button>
+  </header>
+  <div class="content">
+    <div class="tabs" id="tabs"></div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+<div class="overlay" id="ov"><div class="box" id="ovBox"></div></div>
+<div id="printArea"></div>
+
+<script>
+// BtB error logger (same as the other pages) — handled errors and failure pop-ups go to Settings > Errors
+(function(){
+  var PAGE='invoices.html',EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0,seen={};
+  function send(level,source,msg,stack){try{msg=String(msg||'').slice(0,2000);var k=source+'|'+msg;if(seen[k]||sent>=20)return;seen[k]=1;sent++;
+    var tok=KEY;try{if(currentUser&&currentUser.token)tok=currentUser.token}catch(e){}
+    fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:JSON.stringify({level:level,source:source,message:msg,stack:stack?String(stack).slice(0,8000):null,page:PAGE,url:location.origin+location.pathname,context:{},user_agent:navigator.userAgent.slice(0,400),app_version:(typeof BUILD_VERSION!=='undefined'?BUILD_VERSION:null)}),keepalive:true}).catch(function(){})}catch(e){}}
+  window.addEventListener('error',function(e){send('error','window.onerror',e.message,e.error&&e.error.stack)});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;send('error','promise',(r&&r.message)||String(r),r&&r.stack)});
+  window.btbLogError=function(s,err){send('error',s,(err&&err.message)||String(err),err&&err.stack)};
+  try{var ce=console.error;console.error=function(){try{ce.apply(console,arguments)}catch(x){}try{var p=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:(typeof x==='string'?x:'')}).filter(Boolean);if(p.length)send('error','console.error',p.join(' '))}catch(x){}}}catch(x){}
+})();
+</script>
+<script src="invoice_render.js?v=1.0.0"></script>
+<script>
+// invoices.html v1.0.0 — 2026-11-23: tax invoices made in the app instead of Xero (numbers carry on from Xero, INV-1175).
+// Customer invoice requests (from invoice_request.html) → make an invoice from a booking/package (deposit $35 per game,
+// or the full amount less deposits) → email it (with a view / print / PDF link) → mark paid, which also records the
+// deposit or payment on the booking(s) so POS and Reports agree. Admin / manager only (enforced by the database).
+const BUILD_VERSION='1.0.0';
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const DEPOSIT_PER_GAME=35, TERMS_DAYS=14;
+const SITE_BASE=location.href.replace(/[^/]*$/,'');
+let currentUser=null,tokenTimer=null;
+const H=()=>({'Content-Type':'application/json','Authorization':`Bearer ${currentUser?.token||SB_ANON}`,'apikey':SB_ANON});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'$'+(Number(n)||0).toLocaleString('en-NZ',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nzToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+const addDays=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const fmtD=d=>d?new Date(String(d).slice(0,10)+'T12:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'';
+const fmtT=t=>{if(!t)return'';const[h,m]=t.split(':').map(Number);return`${h%12||12}${m?':'+String(m).padStart(2,'0'):''}${h>=12?'pm':'am'}`};
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),'Prefer':'return=representation',...(opts.headers||{})}});
+  const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||t||('Error '+r.status));return d;
+}
+async function edge(action,params){
+  const r=await fetch(`${SB_URL}/functions/v1/btb-admin`,{method:'POST',headers:H(),body:JSON.stringify({action,...params})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('Error '+r.status));return d;
+}
+
+// ───────── LIST ─────────
+let invoices=[],requests=[],tab='todo';
+async function loadAll(){
+  try{
+    [invoices,requests]=await Promise.all([api('invoices?select=*&order=created_at.desc&limit=500'),api('invoice_requests?select=*&order=created_at.desc&limit=300')]);
+  }catch(e){document.getElementById('list').innerHTML=`<div class="card err">Could not load invoices: ${esc(e.message)}. (Invoices are for admin / managers.)</div>`;return}
+  render();
+}
+const isOverdue=i=>i.status==='sent'&&i.due_date&&i.due_date<nzToday();
+function render(){
+  const newReq=requests.filter(r=>r.status==='new');
+  const unpaid=invoices.filter(i=>i.status==='sent');
+  const tabs=[['todo','To do',newReq.length+invoices.filter(i=>i.status==='draft').length],['unpaid','Unpaid',unpaid.filter(isOverdue).length],['paid','Paid',0],['all','All',0]];
+  document.getElementById('tabs').innerHTML=tabs.map(([k,l,n])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';render()">${l}${n?`<span class="n">${n}</span>`:''}</button>`).join('');
+  const L=document.getElementById('list');let h='';
+  if(tab==='todo'){
+    h+=`<div style="font-weight:700;margin:4px 0 8px">Invoice requests</div>`+(newReq.length?newReq.map(reqHtml).join(''):'<div class="card empty">No new requests</div>');
+    const drafts=invoices.filter(i=>i.status==='draft');
+    h+=`<div style="font-weight:700;margin:16px 0 8px">Drafts (not sent yet)</div>`+(drafts.length?drafts.map(invHtml).join(''):'<div class="card empty">No drafts</div>');
+  }else{
+    const list=tab==='unpaid'?unpaid.sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date))):tab==='paid'?invoices.filter(i=>i.status==='paid'):invoices;
+    const due=unpaid.reduce((a,i)=>a+BtbInvoice.totals(i).due,0);
+    if(tab==='unpaid')h+=`<div class="card"><b>${money(due)}</b> owing on ${unpaid.length} invoice${unpaid.length===1?'':'s'}${unpaid.filter(isOverdue).length?` · <span style="color:var(--red);font-weight:700">${unpaid.filter(isOverdue).length} overdue</span>`:''}</div>`;
+    h+=list.length?list.map(invHtml).join(''):'<div class="card empty">Nothing here</div>';
+  }
+  L.innerHTML=h;
+}
+function reqHtml(r){
+  const what={deposit:'deposit only',full_now:'full amount now',full_after:'full amount after the event'}[r.invoice_what]||'';
+  return`<div class="item" onclick="fromRequest('${r.id}')"><span class="badge b-new">Request</span><div class="main"><div class="t">${esc(r.org_name)}</div>
+    <div class="m">${esc(r.email||'')}${r.po_number?' · PO '+esc(r.po_number):''} · ${what} · ${fmtD(r.created_at)}${r.narration?' · '+esc(r.narration):''}</div></div>
+    <button class="btn" onclick="event.stopPropagation();dismissRequest('${r.id}')" title="Not needed">✕</button><i class="ti ti-chevron-right"></i></div>`;
+}
+function invHtml(i){
+  const t=BtbInvoice.totals(i),od=isOverdue(i);
+  const b=i.status==='void'?'b-void':od?'b-over':'b-'+i.status;
+  return`<div class="item" onclick="openInvoice('${i.id}')"><span class="badge ${b}">${od?'Overdue':i.status[0].toUpperCase()+i.status.slice(1)}</span>
+    <div class="main"><div class="t">${esc(i.invoice_number)} · ${esc(i.bill_to)}</div><div class="m">${fmtD(i.issue_date)} · due ${fmtD(i.due_date)}${i.reference?' · '+esc(i.reference):''}${i.kind==='deposit'?' · deposit':''}</div></div>
+    <div class="amt">${money(t.total)}${t.paid&&t.due>0?`<div class="m" style="text-align:right">${money(t.due)} due</div>`:''}</div></div>`;
+}
+async function dismissRequest(id){
+  if(!confirm('Mark this request as not needed?'))return;
+  try{await api(`invoice_requests?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'dismissed'})});await loadAll()}catch(e){alert('Not saved: '+e.message)}
+}
+
+// ───────── BUILD FROM BOOKING(S) ─────────
+async function bookingsFor(bookingId){
+  const b=(await api(`game_bookings?id=eq.${bookingId}&select=*,clients(first_name,last_name,email,phone,company)`))[0];
+  if(!b)throw new Error('Booking not found');
+  let members=[b];
+  if(b.group_booking_id)members=await api(`game_bookings?group_booking_id=eq.${b.group_booking_id}&status=neq.cancelled&select=*,clients(first_name,last_name,email,phone,company)&order=slot_time`);
+  return members;
+}
+const parseList=v=>{if(Array.isArray(v))return v;if(typeof v==='string'&&v.trim()){try{const p=JSON.parse(v);return Array.isArray(p)?p:[]}catch(e){return[]}}return[]};
+function buildLines(members,kind){
+  const lines=[],lessLines=[];let paidAlready=0;
+  const dep=invoices.filter(i=>i.kind==='deposit'&&i.status!=='void'&&i.status!=='draft');
+  for(const m of members){
+    const when=m.play_location==='hire'?`hire, ${fmtD(m.booking_date)}`:`${fmtD(m.booking_date)} ${fmtT(m.slot_time)}`;
+    if(kind==='deposit'){lines.push({description:`Deposit — ${m.game_name}, ${when}`,qty:1,unit_price:DEPOSIT_PER_GAME,amount:DEPOSIT_PER_GAME,booking_id:m.id});continue}
+    const addons=parseList(m.addons),extras=parseList(m.hire_extras);
+    const extraSum=addons.reduce((a,x)=>a+(Number(x.amount)||0),0)+extras.reduce((a,x)=>a+(Number(x.amount)||0),0)+(Number(m.gm_fee)||0)+(Number(m.travel_fee)||0);
+    const price=Math.round(((Number(m.total_amount)||0)-extraSum)*100)/100;
+    const pl=m.play_location==='hire'?'':` — ${m.players_booked} player${m.players_booked===1?'':'s'}`;
+    lines.push({description:`${m.game_name}, ${when}${pl}`,qty:1,unit_price:price,amount:price,booking_id:m.id});
+    for(const x of addons){const q=(String(x.label||'').match(/^(\d+)\s*×\s*(.+)$/));const qty=q?Number(q[1]):(x.qty||1);
+      lines.push({description:q?q[2]:(x.label||'Extra'),qty,unit_price:Math.round((Number(x.amount)||0)/qty*100)/100,amount:Number(x.amount)||0,booking_id:m.id})}
+    if(Number(m.gm_fee))lines.push({description:'Game master',qty:1,unit_price:Number(m.gm_fee),amount:Number(m.gm_fee),booking_id:m.id});
+    if(Number(m.travel_fee))lines.push({description:'Travel',qty:1,unit_price:Number(m.travel_fee),amount:Number(m.travel_fee),booking_id:m.id});
+    for(const x of extras)lines.push({description:x.label||'Extra',qty:1,unit_price:Number(x.amount)||0,amount:Number(x.amount)||0,booking_id:m.id});
+    // Deposit already invoiced (its own tax invoice) → take it off as a line; paid some other way → shows as a payment
+    const depInv=dep.find(i=>(i.booking_ids||[]).includes(m.id));
+    if(depInv){const amt=(depInv.lines||[]).filter(l=>l.booking_id===m.id).reduce((a,l)=>a+(Number(l.amount)||0),0);
+      if(amt)lessLines.push({description:`Less deposit — ${m.game_name} (${depInv.invoice_number})`,qty:1,unit_price:-amt,amount:-amt,booking_id:m.id})}
+    else if(m.deposit_paid)paidAlready+=Number(m.deposit_amount)||0;
+  }
+  return{lines:[...lines,...lessLines],paidAlready};
+}
+function draftFrom(members,kind,req){
+  const c=members[0].clients||{};
+  const name=[c.first_name,c.last_name].filter(Boolean).join(' ');
+  const {lines,paidAlready}=buildLines(members,kind);
+  const issue=req?.invoice_what==='full_after'&&members[0].booking_date>nzToday()?members[0].booking_date:nzToday();
+  return{kind,status:'draft',client_id:members[0].client_id,request_id:req?.id||null,booking_ids:members.map(m=>m.id),group_booking_id:members[0].group_booking_id||null,
+    issue_date:issue,due_date:addDays(issue,TERMS_DAYS),bill_to:req?.org_name||c.company||name||'',contact_name:req?.contact_name||name||null,
+    bill_email:req?.email||c.email||null,bill_phone:req?.phone||c.phone||null,bill_address:req?.billing_address||null,po_number:req?.po_number||null,
+    reference:req?.narration||`${[...new Set(members.map(m=>m.game_name))].join(' + ')} — ${fmtD(members[0].booking_date)}`,
+    lines,paid_amount:paidAlready,notes:req?.terms_note?`Customer asked for terms: ${req.terms_note}`:null};
+}
+async function fromRequest(id){
+  const r=requests.find(x=>x.id===id);if(!r)return;
+  try{const members=await bookingsFor(r.booking_id);openEditor(draftFrom(members,r.invoice_what==='deposit'?'deposit':'full',r),members,r)}
+  catch(e){alert('Could not load the booking: '+e.message)}
+}
+async function fromBooking(bookingId,kind){
+  try{const members=await bookingsFor(bookingId);openEditor(draftFrom(members,kind||'full',null),members,null)}
+  catch(e){alert('Could not load the booking: '+e.message)}
+}
+function newBlankInvoice(){openEditor({kind:'other',status:'draft',booking_ids:[],issue_date:nzToday(),due_date:addDays(nzToday(),TERMS_DAYS),bill_to:'',lines:[{description:'',qty:1,unit_price:0,amount:0}],paid_amount:0},[],null)}
+
+// ───────── EDITOR ─────────
+let ed=null,edMembers=[],edReq=null;
+function openInvoice(id){const i=invoices.find(x=>x.id===id);if(!i)return;if(i.status==='draft')openEditor(JSON.parse(JSON.stringify(i)),[],null);else openDetail(i)}
+function openEditor(inv,members,req){
+  ed=inv;edMembers=members;edReq=req;
+  const v=k=>esc(ed[k]??'');
+  document.getElementById('ovBox').innerHTML=`
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${ed.invoice_number?esc(ed.invoice_number)+' (draft)':'New invoice'}</b><button class="btn" onclick="closeOv()">✕ Close</button></div>
+    ${members.length?`<div class="card" style="background:#f0fafb"><div class="row" style="justify-content:space-between"><div>${members.map(m=>`${esc(m.game_name)} ${fmtT(m.slot_time)}`).join(' · ')} — ${fmtD(members[0].booking_date)}</div>
+      <div class="row"><span style="font-size:12px;color:var(--muted)">Invoice for:</span><button class="btn ${ed.kind==='deposit'?'btn-primary':''}" onclick="switchKind('deposit')">Deposit ($${DEPOSIT_PER_GAME} × ${members.length})</button><button class="btn ${ed.kind==='full'?'btn-primary':''}" onclick="switchKind('full')">Full amount</button></div></div></div>`:''}
+    <div class="grid2">
+      <div><label class="f">Invoice to (company / name) *</label><input class="in" id="e_bill_to" value="${v('bill_to')}"></div>
+      <div><label class="f">Contact person</label><input class="in" id="e_contact_name" value="${v('contact_name')}"></div>
+      <div><label class="f">Email the invoice to *</label><input class="in" id="e_bill_email" type="email" value="${v('bill_email')}"></div>
+      <div><label class="f">PO / their reference</label><input class="in" id="e_po_number" value="${v('po_number')}"></div>
+      <div><label class="f">What it's for (shows on the invoice)</label><input class="in" id="e_reference" value="${v('reference')}"></div>
+      <div><label class="f">Billing address</label><textarea class="in" id="e_bill_address">${v('bill_address')}</textarea></div>
+      <div class="row"><div style="flex:1"><label class="f">Invoice date</label><input class="in" type="date" id="e_issue_date" value="${v('issue_date')}" onchange="document.getElementById('e_due_date').value=addDays(this.value,${TERMS_DAYS})"></div>
+        <div style="flex:1"><label class="f">Due date</label><input class="in" type="date" id="e_due_date" value="${v('due_date')}"></div></div>
+      <div><label class="f">Private note (not on the invoice)</label><input class="in" id="e_notes" value="${v('notes')}"></div>
+    </div>
+    <div style="margin-top:12px"><label class="f">Lines (prices include GST)</label>
+      <table class="lines"><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th></th></tr><tbody id="e_lines"></tbody></table>
+      <button class="btn" style="margin-top:6px" onclick="ed.lines.push({description:'',qty:1,unit_price:0,amount:0});renderLines()"><i class="ti ti-plus"></i> Add line</button></div>
+    <div class="row" style="margin-top:8px"><label class="f" style="margin:0">Already paid (e.g. deposit by bank) $</label><input class="in" style="width:110px" type="number" step="0.01" id="e_paid_amount" value="${Number(ed.paid_amount)||0}" oninput="renderTotals()"></div>
+    <div class="tot" id="e_tot"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn" onclick="previewEd()"><i class="ti ti-eye"></i> Preview</button>
+      <button class="btn" onclick="saveEd(false)"><i class="ti ti-device-floppy"></i> Save draft</button>
+      <button class="btn btn-primary" onclick="saveEd(true)"><i class="ti ti-send"></i> Save &amp; email it</button></div>
+    <div class="msg" id="e_msg"></div>`;
+  renderLines();document.getElementById('ov').classList.add('show');
+}
+function switchKind(k){collectEd();const keep={...ed};const d=draftFrom(edMembers,k,edReq);Object.assign(ed,{kind:k,lines:d.lines,paid_amount:d.paid_amount});
+  ['bill_to','contact_name','bill_email','po_number','reference','bill_address','issue_date','due_date','notes'].forEach(f=>ed[f]=keep[f]);openEditor(ed,edMembers,edReq)}
+function renderLines(){
+  document.getElementById('e_lines').innerHTML=ed.lines.map((l,i)=>`<tr>
+    <td><input class="in" value="${esc(l.description)}" oninput="ed.lines[${i}].description=this.value"></td>
+    <td><input class="in num" type="number" step="0.01" value="${l.qty??1}" oninput="lineCalc(${i},'qty',this.value)"></td>
+    <td><input class="in num" type="number" step="0.01" value="${l.unit_price??0}" oninput="lineCalc(${i},'unit_price',this.value)"></td>
+    <td class="num" id="la${i}" style="padding-top:12px;font-weight:600">${money(l.amount)}</td>
+    <td><button class="btn btn-danger" onclick="ed.lines.splice(${i},1);renderLines()">✕</button></td></tr>`).join('');
+  renderTotals();
+}
+function lineCalc(i,k,v){const l=ed.lines[i];l[k]=Number(v)||0;l.amount=Math.round((Number(l.qty)||0)*(Number(l.unit_price)||0)*100)/100;document.getElementById('la'+i).textContent=money(l.amount);renderTotals()}
+function renderTotals(){const paid=Number(document.getElementById('e_paid_amount')?.value)||0;const t=BtbInvoice.totals({...ed,paid_amount:paid});
+  document.getElementById('e_tot').innerHTML=`Total (incl GST) <b>${money(t.total)}</b> · GST ${money(t.gst)}${t.paid?` · paid ${money(t.paid)}`:''} · <b>Amount due ${money(t.due)}</b>`}
+function collectEd(){
+  ['bill_to','contact_name','bill_email','po_number','reference','bill_address','issue_date','due_date','notes'].forEach(k=>{const el=document.getElementById('e_'+k);if(el)ed[k]=el.value.trim()||null});
+  ed.paid_amount=Number(document.getElementById('e_paid_amount')?.value)||0;
+  ed.lines=ed.lines.filter(l=>String(l.description||'').trim()||Number(l.amount));
+  const t=BtbInvoice.totals(ed);ed.total=t.total;ed.gst=t.gst;
+}
+function previewEd(){collectEd();printOrShow({...ed,invoice_number:ed.invoice_number||'INV-(next)'},false)}
+async function saveEd(andSend){
+  collectEd();const m=document.getElementById('e_msg');
+  if(!ed.bill_to){m.className='msg err';m.textContent='Who is the invoice to?';return}
+  if(!ed.lines.length){m.className='msg err';m.textContent='Add at least one line.';return}
+  if(andSend&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ed.bill_email||'')){m.className='msg err';m.textContent='Enter the email to send it to.';return}
+  m.className='msg';m.textContent='Saving…';
+  try{
+    if(!ed.invoice_number){const n=await fetch(`${SB_URL}/rest/v1/rpc/next_invoice_number`,{method:'POST',headers:H(),body:'{}'});if(!n.ok)throw new Error(await n.text());ed.invoice_number=await n.json()}
+    const row={invoice_number:ed.invoice_number,kind:ed.kind,status:'draft',client_id:ed.client_id||null,request_id:ed.request_id||null,booking_ids:ed.booking_ids||[],group_booking_id:ed.group_booking_id||null,
+      issue_date:ed.issue_date,due_date:ed.due_date,bill_to:ed.bill_to,contact_name:ed.contact_name,bill_email:ed.bill_email,bill_phone:ed.bill_phone||null,bill_address:ed.bill_address,
+      po_number:ed.po_number,reference:ed.reference,lines:ed.lines,total:ed.total,gst:ed.gst,paid_amount:ed.paid_amount,notes:ed.notes,updated_at:new Date().toISOString()};
+    let saved;
+    if(ed.id)saved=(await api(`invoices?id=eq.${ed.id}`,{method:'PATCH',body:JSON.stringify(row)}))[0];
+    else{row.created_by=currentUser?.name||null;saved=(await api('invoices',{method:'POST',body:JSON.stringify(row)}))[0]}
+    ed=saved;
+    if(ed.request_id)await api(`invoice_requests?id=eq.${ed.request_id}`,{method:'PATCH',body:JSON.stringify({status:'invoiced',invoice_id:ed.id})}).catch(e=>console.error('Request link:',e));
+    if(andSend){await sendInvoice(ed);m.className='msg ok';m.textContent=`✓ ${ed.invoice_number} emailed to ${ed.bill_email}`}
+    else{m.className='msg ok';m.textContent=`✓ Saved as ${ed.invoice_number} (draft)`}
+    await loadAll();
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+async function sendInvoice(inv){
+  const viewUrl=`${SITE_BASE}invoice_view.html?i=${inv.id}&t=${inv.public_token}`;
+  const intro=`<p style="font-size:14px;margin:0 0 14px">Hi ${esc((inv.contact_name||inv.bill_to||'').split(' ')[0])},<br>Please find your invoice from Beyond the Box Escape Rooms below. Thank you!</p>`;
+  await edge('send_pos_receipt_email',{to:inv.bill_email,subject:`Invoice ${inv.invoice_number} from Beyond the Box Escape Rooms`,htmlBody:BtbInvoice.render(inv,{email:true,intro,viewUrl}),fromEmail:'invoices@mail.btbescaperooms.co.nz',fromName:'Beyond the Box Escape Rooms'});
+  await api(`invoices?id=eq.${inv.id}`,{method:'PATCH',body:JSON.stringify({status:inv.status==='paid'?'paid':'sent',sent_at:new Date().toISOString(),sent_to:inv.bill_email})});
+}
+
+// ───────── SENT / PAID INVOICE ─────────
+function openDetail(i){
+  const t=BtbInvoice.totals(i);
+  const viewUrl=`${SITE_BASE}invoice_view.html?i=${i.id}&t=${i.public_token}`;
+  document.getElementById('ovBox').innerHTML=`
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">${esc(i.invoice_number)} · ${esc(i.bill_to)}</b><button class="btn" onclick="closeOv()">✕ Close</button></div>
+    <div class="card">${i.sent_at?`Sent to ${esc(i.sent_to)} on ${fmtD(i.sent_at)}`:'Not sent'} · Total ${money(t.total)} · Paid ${money(t.paid)} · <b>Due ${money(Math.max(0,t.due))}</b> by ${fmtD(i.due_date)}${i.paid_at?` · last paid ${fmtD(i.paid_at)}${i.paid_ref?' (ref '+esc(i.paid_ref)+')':''}`:''}${i.notes?`<div style="margin-top:6px;color:var(--muted)">📝 ${esc(i.notes)}</div>`:''}</div>
+    ${i.status!=='void'&&t.due>0?`<div class="card"><b>Record a payment</b><div class="row" style="margin-top:8px">
+      <div><label class="f">Amount $</label><input class="in" style="width:120px" type="number" step="0.01" id="p_amt" value="${t.due.toFixed(2)}"></div>
+      <div><label class="f">Date received</label><input class="in" type="date" id="p_date" value="${nzToday()}"></div>
+      <div><label class="f">How</label><select class="in" id="p_method"><option value="bank_transfer">Bank transfer</option><option value="eftpos">Eftpos</option><option value="cash">Cash</option><option value="stripe">Card</option></select></div>
+      <div><label class="f">Bank ref</label><input class="in" id="p_ref" placeholder="${esc(i.invoice_number)}"></div>
+      <button class="btn btn-green" style="align-self:flex-end" onclick="recordPayment('${i.id}')"><i class="ti ti-check"></i> Paid</button></div><div class="msg" id="p_msg"></div></div>`:''}
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" onclick="printOrShow(invoices.find(x=>x.id==='${i.id}'),true)"><i class="ti ti-printer"></i> Print / PDF</button>
+      <button class="btn" onclick="navigator.clipboard.writeText('${viewUrl}');this.textContent='✓ Link copied'"><i class="ti ti-link"></i> Copy customer link</button>
+      ${i.status!=='void'?`<button class="btn" onclick="resend('${i.id}')"><i class="ti ti-send"></i> ${i.sent_at?'Resend':'Email it'}</button>`:''}
+      ${i.status!=='void'&&!t.paid?`<button class="btn btn-danger" onclick="voidInv('${i.id}')">Void</button>`:''}</div>
+    <div class="msg" id="d_msg"></div>
+    <div style="overflow-x:auto;margin-top:12px;background:#e5e7eb;padding:10px;border-radius:10px">${BtbInvoice.render(i)}</div>`;
+  document.getElementById('ov').classList.add('show');
+}
+async function resend(id){const i=invoices.find(x=>x.id===id),m=document.getElementById('d_msg');
+  const to=prompt('Send it to:',i.bill_email||'');if(!to)return;
+  try{if(to!==i.bill_email){await api(`invoices?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({bill_email:to})});i.bill_email=to}
+    await sendInvoice(i);m.className='msg ok';m.textContent='✓ Sent to '+to;await loadAll()}catch(e){m.className='msg err';m.textContent='Not sent: '+e.message}}
+async function voidInv(id){if(!confirm('Void this invoice? It stays on record (numbers are never reused) but is no longer owed.'))return;
+  try{await api(`invoices?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'void',updated_at:new Date().toISOString()})});closeOv();await loadAll()}catch(e){alert('Not saved: '+e.message)}}
+// A payment on the invoice is also recorded on the booking(s): a deposit invoice marks each game's deposit paid;
+// a full invoice adds a payment to each booking for its share — so POS, the calendar and Reports all agree.
+async function recordPayment(id){
+  const i=invoices.find(x=>x.id===id),m=document.getElementById('p_msg');
+  const amt=Number(document.getElementById('p_amt').value),date=document.getElementById('p_date').value,method=document.getElementById('p_method').value,ref=document.getElementById('p_ref').value.trim()||i.invoice_number;
+  if(!(amt>0)||!date){m.className='msg err';m.textContent='Enter the amount and the date it was received.';return}
+  const t=BtbInvoice.totals(i);const at=new Date(date+'T12:00:00').toISOString();
+  m.className='msg';m.textContent='Saving…';
+  try{
+    const newPaid=Math.round((t.paid+amt)*100)/100;
+    await api(`invoices?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({paid_amount:newPaid,paid_at:at,paid_method:method,paid_ref:ref,status:newPaid>=t.total?'paid':i.status,updated_at:new Date().toISOString()})});
+    // share of this payment for each booking, in proportion to its lines on the invoice
+    const byB={};(i.lines||[]).forEach(l=>{if(l.booking_id)byB[l.booking_id]=(byB[l.booking_id]||0)+(Number(l.amount)||0)});
+    const lineTotal=Object.values(byB).reduce((a,v)=>a+v,0);
+    for(const [bid,share] of Object.entries(byB)){
+      if(share<=0||lineTotal<=0)continue;
+      const part=Math.round(amt*share/lineTotal*100)/100;
+      if(i.kind==='deposit'){
+        await api(`game_bookings?id=eq.${bid}`,{method:'PATCH',body:JSON.stringify({deposit_paid:true,deposit_amount:part,deposit_method:method,deposit_paid_at:at,deposit_ref:`${i.invoice_number}${ref&&ref!==i.invoice_number?' · '+ref:''}`,deposit_recorded_by:currentUser?.name||null,updated_at:new Date().toISOString()})});
+      }else{
+        const b=(await api(`game_bookings?id=eq.${bid}&select=payments`))[0];
+        let p=b?.payments;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=[]}}if(!Array.isArray(p))p=[];
+        p.push({amount:part,method,at,ref:`${i.invoice_number}${ref&&ref!==i.invoice_number?' · '+ref:''}`});
+        await api(`game_bookings?id=eq.${bid}`,{method:'PATCH',body:JSON.stringify({payments:JSON.stringify(p),updated_at:new Date().toISOString()})});
+      }
+    }
+    m.className='msg ok';m.textContent='✓ Payment recorded';await loadAll();openDetail(invoices.find(x=>x.id===id));
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+function printOrShow(inv,print){
+  if(print){document.getElementById('printArea').innerHTML=BtbInvoice.render(inv);setTimeout(()=>window.print(),300);return}
+  const w=window.open('','_blank');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(inv.invoice_number)}</title><base href="${SITE_BASE}"><style>body{margin:0;background:#e5e7eb}@media print{body{background:#fff}@page{size:A4;margin:0}}</style></head><body>${BtbInvoice.render(inv)}</body></html>`);w.document.close();
+}
+function closeOv(){document.getElementById('ov').classList.remove('show');ed=null}
+
+// ───────── LOGIN (same shared session as the other staff pages) ─────────
+function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)return;tokenTimer=setTimeout(refreshToken,Math.max(5000,currentUser.expiresAt-Date.now()-120000))}
+async function refreshToken(){
+  if(!currentUser?.refreshToken)return;
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
+  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();if(!r.ok){err.textContent=d.error_description||'Login failed.';return}
+    currentUser={id:d.user.id,email,token:d.access_token,refreshToken:d.refresh_token,expiresAt:Date.now()+(d.expires_in||3600)*1000};
+    const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));start()}
+  catch(e){err.textContent='Connection error.'}
+}
+function doLogout(){clearTimeout(tokenTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active')}
+async function start(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  document.getElementById('ver').textContent='v'+BUILD_VERSION;scheduleRefresh();
+  await loadAll();
+  // invoices.html?booking=<id>&kind=deposit|full  (from BtB App / POS)   invoices.html?request=<id>
+  const qp=new URLSearchParams(location.search);
+  if(qp.get('booking'))fromBooking(qp.get('booking'),qp.get('kind'));
+  else if(qp.get('request'))fromRequest(qp.get('request'));
+  else if(qp.get('id'))openInvoice(qp.get('id'));
+  if([...qp.keys()].length)history.replaceState(null,'',location.pathname);
+}
+window.addEventListener('DOMContentLoaded',async()=>{
+  const s=localStorage.getItem('btb_staff_session');if(!s)return;
+  try{currentUser=JSON.parse(s);if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<300000){await refreshToken();if(!currentUser)return}
+    start()}catch(e){doLogout()}
+});
+</script>
+</body>
+</html>
