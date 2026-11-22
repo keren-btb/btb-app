@@ -206,6 +206,7 @@ tr:hover td{background:#fafafa}
     <div class="topbar">
       <div class="topbar-title" id="reportTitle">Revenue Overview</div>
       <div class="date-range">
+        <button class="range-btn" onclick="setRange('today',this)">Today</button>
         <button class="range-btn" onclick="setRange('week',this)">This week</button>
         <button class="range-btn active" onclick="setRange('month',this)">This month</button>
         <button class="range-btn" onclick="setRange('last_month',this)">Last month</button>
@@ -450,7 +451,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.15'; // v1.0.15: Revenue Overview and Payment Methods now include gift voucher sales (by the date paid; cancelled vouchers left out). A deposit ticked paid with no amount saved now counts as the standard deposit (same as POS) instead of $0, in revenue, outstanding balances and payment methods.
+const BUILD_VERSION = '1.0.16'; // v1.0.16: New "Today" date button (first in the row) — shows today's totals: bookings for today, shop sales and gift vouchers paid today (NZ time).
+// Previous build: 1.0.15 — // v1.0.15: Revenue Overview and Payment Methods now include gift voucher sales (by the date paid; cancelled vouchers left out). A deposit ticked paid with no amount saved now counts as the standard deposit (same as POS) instead of $0, in revenue, outstanding balances and payment methods.
 // Previous build: 1.0.14 — // v1.0.14: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.13: Suite-wide mobile viewport fix — sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
 // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
@@ -601,7 +603,9 @@ function setRange(type,btn){
   if(btn)btn.classList.add('active');
   const now=nzNow();
   const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
-  if(type==='week'){
+  if(type==='today'){
+    dateFrom=toStr(now);dateTo=toStr(now);
+  } else if(type==='week'){
     const dow=(now.getDay()+6)%7;
     const mon=new Date(y,m,d-dow);
     dateFrom=toStr(mon);dateTo=toStr(now);

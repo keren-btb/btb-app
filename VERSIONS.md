@@ -218,6 +218,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.16 — 2026-11-22 — New "Today" button at the start of the date buttons: shows today's totals (today's bookings, plus shop sales and gift vouchers paid today, NZ time). "This month" is still the default when the page opens. Nothing removed.
 - v1.0.15 — 2026-11-22 — Revenue Overview now includes gift voucher sales (counted by the date paid, cancelled vouchers left out): in the totals, weekly chart, payment-method chart, a new "Gift vouchers" slice in the split chart, and the transactions list. Payment Methods also lists voucher sales. A deposit ticked paid but with no amount saved now counts as the standard deposit (same rule as POS) instead of $0. Using a voucher on a booking already lowers that booking's total, so voucher money is not counted twice. Nothing removed.
 - v1.0.14 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.0.13 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
