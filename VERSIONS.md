@@ -392,6 +392,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.2.0 — 2026-11-23 — Status banner (NOT PAID YET / PART PAID / OVERDUE / PAID IN FULL / VOID); payment form hidden behind 'Record a payment received…' with a 'Save payment' button; Edit invoice on sent invoices (Save changes / Save & resend).
 - v1.1.0 — 2026-11-23 — New invoice: customer search → their bookings/packages → Deposit or Full (or other charges for that customer); invoices must be linked to a customer; add product lines from Products; drafts reopen with their booking; link to customer profile.
 - v1.0.0 — 2026-11-23 — New. Tax invoices made in the app instead of Xero (numbers carry on from Xero: next INV-1175). To do tab: customer invoice requests + drafts; Unpaid (with overdue), Paid, All. Make an invoice from a booking/package (deposit $35 per game, or full amount — games, food/drink/extras, hire fees, less any deposit already invoiced; deposits paid another way show as payments) or a blank one; edit lines (GST-inclusive), dates (14-day terms), PO, 'what it's for', billing address; save draft / save & email (from invoices@mail.btbescaperooms.co.nz, with a view / print / PDF link). Record payments (amount, date, method, bank ref) — also marks the booking deposits paid (deposit invoice) or adds payments to the bookings (full invoice). Void keeps the number. Print / PDF on the BtB letterhead. Admin / manager only.
 
