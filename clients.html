@@ -205,7 +205,7 @@ tr:last-child td{border-bottom:none}
       <span id="sidebarUser">—</span>
       <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
     </div>
-    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Calendar</a>
+    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
 
     <div class="sidebar-section">Communications</div>
     <span class="nav-item active" id="navClients"><i class="ti ti-table"></i> Clients</span>
@@ -524,7 +524,8 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.9'; // v1.5.9: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
+const BUILD_VERSION = '1.5.10'; // v1.5.10: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
+// Previous build: 1.5.9 — // v1.5.9: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
 // Previous build: 1.5.8 — // v1.5.8: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.5.7: Added a "Book" button to the client side panel — opens btb_app.html's booking form pre-filled with this client's name, phone and email, and links the booking to their profile (needs btb_app.html v16.4.52+). // v1.5.6: Suite-wide mobile viewport fix — sidebar and slide-in side panel now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones. Added safe-area-inset-bottom padding to the panel body so form fields/buttons aren't hidden under the iPhone home-indicator area.
 console.log(`%cClients — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 

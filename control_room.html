@@ -59,7 +59,7 @@
             <h1 class="text-xl font-bold tracking-wider text-white">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
         </div>
         <div class="flex items-center gap-3">
-            <a href="btb_app.html" class="text-xs text-gray-400 hover:text-accent transition">&larr; Btb App</a>
+            <a href="btb_app.html" class="text-xs text-gray-400 hover:text-accent transition">&larr; BtB App</a>
             <span id="buildVersionTag" class="text-[10px] text-gray-500"></span>
             <span id="authName" class="text-xs text-gray-400"></span>
             <button onclick="doLogout()" class="text-xs text-gray-400 hover:text-red-400 transition">Sign out</button>
@@ -395,7 +395,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 17; // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
+        const BUILD_VERSION = 18; // v18: The link back to the main app now says "BtB App" (was "Btb App"), the same as every other page.
+        // Previous build: 17 — // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
         // Previous build v16: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
         // v14: GM dashboard reorder for mobile — combined the -1min/+1min timer buttons into one stacked +/- button so Reset fits on phone screens; new field order is Name+Players -> Booking Notes -> Help Button -> Timer -> Clues Given -> GM Notes -> Photo Name/Time Taken -> Review Status -> Actual Players -> Save; removed "Slot" line and "Booking Source" text from header, and removed the "Session Logging Details" section header/badge (fields kept).
         // v12: Code quality — replaced the two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy), so changing the warning window only needs one edit per file instead of two easy-to-miss ones. No behaviour change.

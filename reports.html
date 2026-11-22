@@ -450,7 +450,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.14'; // v1.0.14: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.13: Suite-wide mobile viewport fix — sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '1.0.15'; // v1.0.15: Revenue Overview and Payment Methods now include gift voucher sales (by the date paid; cancelled vouchers left out). A deposit ticked paid with no amount saved now counts as the standard deposit (same as POS) instead of $0, in revenue, outstanding balances and payment methods.
+// Previous build: 1.0.14 — // v1.0.14: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.0.13: Suite-wide mobile viewport fix — sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 // v1.0.10: Fixed timezone bug — quick_sales report query was comparing NZ local dates directly against UTC-stored sold_at timestamps, silently dropping sales made in NZ morning hours (before NZ noon) from "today"/date-range reports. Now converts local NZ date boundaries to correct UTC instants (DST-aware) before querying.
 // v1.0.9: Excluded 'abandoned' status bookings from all revenue/booking-count panels (were being counted as real bookings with $0 revenue, inflating counts and undercounting revenue-by-game). Added collapsible sidebar (toggle button in logo header, state saved to localStorage).
 // v1.0.5: Bug fix — sidebar "back" link pointed at staff_app.html, which doesn't exist; now points to btb_app.html like every other app's back-link
@@ -639,7 +640,12 @@ async function loadData(){
     fetch(`${SB_URL}/rest/v1/staff?active=eq.true&order=name`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
     fetch(`${SB_URL}/rest/v1/vouchers?order=issued_at.desc`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
     fetch(`${SB_URL}/rest/v1/quick_sales?sold_at=gte.${nzLocalToUtcISO(dateFrom,'00:00:00')}&sold_at=lte.${nzLocalToUtcISO(dateTo,'23:59:59')}&order=sold_at.desc`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
-  ]);
+    fetch(`${SB_URL}/rest/v1/settings?key=eq.btb_booking_config&select=value`,{headers:H()}).then(r=>r.json()).catch(()=>[]),
+  ]).then(res=>{
+    // v1.0.15: deposit settings, so a deposit marked paid with no amount counts the same as POS does
+    try{const c=JSON.parse(res[5]?.[0]?.value||'{}');depositCfg={type:c.depositType||'fixed',amount:c.depositAmount??35}}catch(e){depositCfg={type:'fixed',amount:35}}
+    return res.slice(0,5);
+  });
   allBookings=Array.isArray(bRows)?bRows:[];
   allClients=Array.isArray(cRows)?cRows:[];
   allStaff=Array.isArray(sRows)?sRows:[];
@@ -647,10 +653,31 @@ async function loadData(){
   allQuickSales=Array.isArray(qRows)?qRows:[];
 }
 
+// v1.0.15: deposit actually paid on a booking. Matches POS: if the deposit is ticked paid but no amount was
+// saved, it's the standard deposit (fixed amount, capped at the booking total — or a % if set that way).
+let depositCfg={type:'fixed',amount:35};
+function depositPaidAmount(b){
+  if(!b.deposit_paid)return 0;
+  if(b.deposit_amount!=null&&b.deposit_amount!=='')return parseFloat(b.deposit_amount)||0;
+  const total=parseFloat(b.total_amount)||0;
+  if(depositCfg.type==='percent')return Math.round(total*depositCfg.amount/100*100)/100;
+  return Math.min(depositCfg.amount,total);
+}
+// v1.0.15: gift vouchers paid for in this date range (by the date they were paid; older ones by issue date).
+// Cancelled vouchers are left out (treated as refunded). When a voucher is later used on a booking, that
+// booking's total is reduced by the voucher, so counting the sale here doesn't count the money twice.
+function voucherSalesInRange(){
+  return allVouchers.filter(v=>{
+    if(!(parseFloat(v.paid_amount)>0)||v.status==='cancelled')return false;
+    const d=toNzDateStr(v.paid_at||v.issued_at);
+    return d&&d>=dateFrom&&d<=dateTo;
+  }).map(v=>({...v,saleDate:toNzDateStr(v.paid_at||v.issued_at),amount:parseFloat(v.paid_amount)||0}));
+}
+
 // Helper: calculate collected for a booking
 function calcCollected(b){
   const payments=safeJSON(b.payments)||[];
-  const dep=b.deposit_paid?(parseFloat(b.deposit_amount)||0):0;
+  const dep=depositPaidAmount(b);
   const payTotal=payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
   return dep+payTotal;
 }
@@ -730,14 +757,18 @@ function renderRevenue(){
   const qsOwing=qs.filter(q=>q.status!=='paid');
   const qsOwingCount=qsOwing.length;
 
-  const totalRevenue=bookingRevenue+qsRevenue;
-  const totalCollected=bookingCollected+qsCollected;
+  // v1.0.15: gift voucher sales (always fully paid when counted)
+  const vs=voucherSalesInRange();
+  const vsRevenue=vs.reduce((s,v)=>s+v.amount,0);
+
+  const totalRevenue=bookingRevenue+qsRevenue+vsRevenue;
+  const totalCollected=bookingCollected+qsCollected+vsRevenue;
   const outstanding=Math.max(0,bookingRevenue-bookingCollected)+Math.max(0,qsRevenue-qsCollected);
-  const txnCount=bookingCount+qs.length;
+  const txnCount=bookingCount+qs.length+vs.length;
   const avgValue=txnCount?totalRevenue/txnCount:0;
 
   document.getElementById('rev-stats').innerHTML=`
-    <div class="stat-card teal"><div class="stat-label">Total revenue</div><div class="stat-value">${fmtMoney(totalRevenue)}</div><div class="stat-sub">${bookingCount} bookings + ${qs.length} sales</div></div>
+    <div class="stat-card teal"><div class="stat-label">Total revenue</div><div class="stat-value">${fmtMoney(totalRevenue)}</div><div class="stat-sub">${bookingCount} bookings + ${qs.length} sales${vs.length?` + ${vs.length} voucher${vs.length!==1?'s':''}`:''}</div></div>
     <div class="stat-card green"><div class="stat-label">Collected</div><div class="stat-value">${fmtMoney(totalCollected)}</div><div class="stat-sub">${totalRevenue?Math.round(totalCollected/totalRevenue*100):0}% of total</div></div>
     <div class="stat-card amber"><div class="stat-label">Outstanding</div><div class="stat-value">${fmtMoney(outstanding)}</div><div class="stat-sub">across ${bookingOwingCount+qsOwingCount} transactions</div></div>
     <div class="stat-card"><div class="stat-label">Avg transaction value</div><div class="stat-value">${fmtMoney(avgValue)}</div><div class="stat-sub">per booking/sale</div></div>
@@ -753,6 +784,7 @@ function renderRevenue(){
   };
   confirmed.forEach(b=>{const k=weekKeyFor(b.booking_date);byWeek[k]=(byWeek[k]||0)+(parseFloat(b.total_amount)||0)});
   qs.forEach(q=>{const nzDate=toNzDateStr(q.sold_at);if(!nzDate)return;const k=weekKeyFor(nzDate);byWeek[k]=(byWeek[k]||0)+(parseFloat(q.total_amount)||0)});
+  vs.forEach(v=>{const k=weekKeyFor(v.saleDate);byWeek[k]=(byWeek[k]||0)+v.amount});
   const wks=Object.keys(byWeek).sort();
   makeChart('revWeekChart','bar',wks.map(k=>{const d=new Date(k+'T12:00');return d.getDate()+' '+MONTHS[d.getMonth()]}),[{label:'Revenue',data:wks.map(k=>byWeek[k]),backgroundColor:'rgba(7,180,197,0.7)',borderRadius:4}]);
 
@@ -766,25 +798,27 @@ function renderRevenue(){
   const byMethod={};
   confirmed.forEach(b=>{
     const payments=safeJSON(b.payments)||[];
-    if(b.deposit_paid&&b.deposit_amount){const m=b.deposit_method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(b.deposit_amount)||0)}
+    const dep=depositPaidAmount(b);if(dep){const m=b.deposit_method||'unknown';byMethod[m]=(byMethod[m]||0)+dep}
     payments.filter(p=>!(p.method==='invoice'&&p.status==='pending')).forEach(p=>{byMethod[p.method]=(byMethod[p.method]||0)+(parseFloat(p.amount)||0)});
   });
   qs.forEach(q=>{const m=q.method||'unknown';byMethod[m]=(byMethod[m]||0)+(parseFloat(q.total_amount)||0)});
+  vs.forEach(v=>{const m=v.how_paid||'unknown';byMethod[m]=(byMethod[m]||0)+v.amount});
   const ms=Object.entries(byMethod).sort((a,b)=>b[1]-a[1]);
   makeChart('revMethodChart','doughnut',ms.map(m=>METHOD_LABELS[m[0]]||m[0]),[{data:ms.map(m=>m[1]),backgroundColor:ms.map(m=>METHOD_COLORS[m[0]]||'#9ca3af')}],{legend:true});
 
   // Bookings vs Shop sales split
-  makeChart('revSourceChart','doughnut',['Bookings','Shop sales'],[{data:[bookingRevenue,qsRevenue],backgroundColor:['#07b4c5','#7c3aed']}],{legend:true});
+  makeChart('revSourceChart','doughnut',['Bookings','Shop sales','Gift vouchers'],[{data:[bookingRevenue,qsRevenue,vsRevenue],backgroundColor:['#07b4c5','#7c3aed','#ef9f27']}],{legend:true});
 
   // Combined transactions table
   const txns=[
     ...confirmed.map(b=>({date:b.booking_date,type:'Booking',customer:customerName(b),details:b.game_name||'—',method:(safeJSON(b.payments)||[])[0]?.method||(b.deposit_method||'—'),total:parseFloat(b.total_amount)||0,status:b.status})),
     ...qs.map(q=>{const items=safeJSON(q.items)||[];const itemStr=items.map(i=>`${i.name}${i.qty>1?' ×'+i.qty:''}`).join(', ');return{date:toNzDateStr(q.sold_at),type:'Sale',customer:q.customer_name||'—',details:itemStr||'—',method:q.method||'—',total:parseFloat(q.total_amount)||0,status:q.status}}),
+    ...vs.map(v=>({date:v.saleDate,type:'Voucher',customer:v.purchased_by||'—',details:`Gift voucher ${v.code}${v.game_name?' — '+v.game_name:''}`,method:v.how_paid||'—',total:v.amount,status:'paid'})),
   ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
   document.getElementById('rev-tbody').innerHTML=txns.length?txns.map(t=>`<tr>
       <td>${fmtDate(t.date)}</td>
-      <td><span class="badge ${t.type==='Booking'?'badge-green':'badge-amber'}">${t.type}</span></td>
+      <td><span class="badge ${t.type==='Booking'?'badge-green':t.type==='Voucher'?'badge-purple':'badge-amber'}">${t.type}</span></td>
       <td>${escapeHtml(t.customer)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(t.details)}">${escapeHtml(t.details)}</td>
       <td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
@@ -836,13 +870,18 @@ function renderPayments(){
   const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='abandoned');
   const txns=[];
   confirmed.forEach(b=>{
-    if(b.deposit_paid&&b.deposit_amount){
-      txns.push({date:b.booking_date,booking:b.id,game:b.game_name,customer:customerName(b),method:b.deposit_method||'unknown',amount:parseFloat(b.deposit_amount)||0,type:'Deposit'});
+    const dep=depositPaidAmount(b);
+    if(dep){
+      txns.push({date:b.booking_date,booking:b.id,game:b.game_name,customer:customerName(b),method:b.deposit_method||'unknown',amount:dep,type:'Deposit'});
     }
     const payments=safeJSON(b.payments)||[];
     payments.forEach(p=>{
       txns.push({date:b.booking_date,booking:b.id,game:b.game_name,customer:customerName(b),method:p.method||'unknown',amount:parseFloat(p.amount)||0,type:p.method==='invoice'&&p.status==='pending'?'Invoice (pending)':'Payment'});
     });
+  });
+  // v1.0.15: gift voucher sales are money collected too
+  voucherSalesInRange().forEach(v=>{
+    txns.push({date:v.saleDate,booking:null,game:'Gift voucher '+v.code,customer:v.purchased_by||'—',method:v.how_paid||'unknown',amount:v.amount,type:'Gift voucher'});
   });
 
   const byMethod={};const countByMethod={};
@@ -865,8 +904,8 @@ function renderPayments(){
 
   document.getElementById('pay-tbody').innerHTML=txns.length?txns.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<tr>
     <td>${fmtDate(t.date)}</td>
-    <td style="font-size:11px;color:var(--muted)">${t.booking.slice(0,8)}…</td>
-    <td>${t.game}</td>
+    <td style="font-size:11px;color:var(--muted)">${t.booking?t.booking.slice(0,8)+'…':'—'}</td>
+    <td>${escapeHtml(t.game)}</td>
 <td>${escapeHtml(t.customer)}</td>
 <td><span class="method-pill mp-${t.method}">${METHOD_LABELS[t.method]||t.method}</span></td>
     <td>${fmtMoney(t.amount)}</td>

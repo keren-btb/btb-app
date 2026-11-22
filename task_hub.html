@@ -136,7 +136,7 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
       <span id="sidebarUser">—</span>
       <span class="sidebar-logout" onclick="doLogout()">Sign out</span>
     </div>
-    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> Calendar</a>
+    <a class="sidebar-back" href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
 
     <div class="sidebar-section">Task Hub</div>
     <span class="nav-item active" id="navDaily" onclick="switchTab('daily')"><i class="ti ti-checklist"></i> Daily Tasks</span>
@@ -297,7 +297,8 @@ body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI
 })();
 </script>
 <script>
-const BUILD_VERSION = '1.7.4'; // v1.7.4: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.7.3: Suite-wide mobile viewport fix — app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '1.7.5'; // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
+// Previous build: 1.7.4 — // v1.7.4: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.7.3: Suite-wide mobile viewport fix — app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';

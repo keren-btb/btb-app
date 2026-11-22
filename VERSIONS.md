@@ -7,6 +7,7 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## pos.html
+- v1.9.13 — 2026-11-22 — Gift vouchers now record when they were paid (new vouchers.paid_at): set when a voucher is issued paid or marked paid, cleared on Unpay, so reports count voucher sales in the right period. Marking paid / unpaid now shows an error if the save fails. Back link to the main app now says "← BtB App" (was "← App"). Nothing removed.
 - v1.9.12 — 2026-11-22 — Hire bookings in POS are priced from the stored hire total (game price + GM fee + travel + extra charges), not in-house per-player pricing. Shows a Hired out details box (venue, GM, drop-off/pick-up) and a line for each fee/extra; emailed receipts list them too; no player +/- on a hire so the price can't be overwritten.
 - v1.9.11 — 2026-11-22 — Hire bookings show "🚚 Hired out · games · venue" in the booking list instead of player counts.
 - v1.9.10 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
@@ -26,6 +27,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.7.0 — 2026-08-28 — Product Sale screen redesign. Product grid is now a fixed 3 columns (was auto-fill, 2-4 depending on screen width). The always-on cart+payment footer is replaced with a compact "Ready to pay →" bar; tapping it opens a full-screen payment view matching the booking-payment look — a colour-tinted cart card listing items/vouchers/discounts with amounts, then colour-coded payment method buttons (Cash/Eftpos/Stripe/Bank/Invoice), same style as booking payment. Added brand-new "Use voucher" and "Take money off" tiles to Product Sale (previously only available on booking payments) — voucher search/apply and reason+amount discount both work the same way as bookings, and both simply add a negative-amount line to the cart (no schema changes, no new columns). Unlike the booking flow, an applied voucher is only marked "used" once the sale actually completes, not the moment it's applied — so backing out of a sale never leaves a good voucher stuck as used. Quick Sale popup and the booking-payment product picker are unchanged — Quick Sale currently has no button anywhere in the app pointing to it (flagged for Keren, not touched in this session).
 
 ## Database (Supabase RLS — no file/BUILD_VERSION, tracked here for record)
+- 2026-11-22 — New column `vouchers.paid_at` (when a gift voucher was paid for; set by pos.html v1.9.13). The 2 vouchers already paid were given their issue date. reports.html v1.0.15 uses it to count voucher sales by date paid.
 - 2026-11-22 — Grants fix (migration `lock_down_public_views_and_product_costs`). (1) The views the booking widget reads — `public_staff_can_reset`, `public_staff_free_times`, `public_staff_free_day_overrides` (and `public_staff_training`) — are now read-only: insert/update/delete were removed from anon and authenticated. The first three run as the view owner (bypassing RLS) and could be written through, so anyone with the public key could change or delete staff free times and can-reset ticks. SELECT kept, so the widget works exactly as before (checked on the live /test/ widget). `error_log_summary` is no longer readable by the public key. (2) `products`: the public key's access was removed completely. No public page reads products (POS and btb_app load them after login), and the 15 Aug column-only revoke of `purchase_price` hadn't worked because the table-level SELECT grant still covered it, so cost prices were publicly readable until now. Staff access unchanged. Supabase's advisor will still list the three views as "Security Definer View" — they're intentionally public read-only views; converting them is left for the security review.
 - 2026-11-22 — Filled in `game_bookings.total_amount` on the 55 in-house bookings (28 cal.com, 27 walk-in; status confirmed/completed) that had no stored price, using the same price formula as POS (settings btb_games + btb_booking_config), $9,270 in total. All 41 of these that had payments had been paid exactly this price. POS and the calendar badges already showed these prices, so screens don't change; reports now count them (revenue, outstanding balances). Hire bookings and enquiry/waitlist/abandoned rows untouched.
 - 2026-11-22 — `calcom-booking-intake` edge function v1.2.0 (deployed as version 8): new cal.com bookings now save their price (total_amount) using the same formula, so confirmation emails no longer say "Total: $0". If no price can be worked out (e.g. the "package-booking" event type), the booking is still saved without a total.
@@ -216,6 +218,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.15 — 2026-11-22 — Revenue Overview now includes gift voucher sales (counted by the date paid, cancelled vouchers left out): in the totals, weekly chart, payment-method chart, a new "Gift vouchers" slice in the split chart, and the transactions list. Payment Methods also lists voucher sales. A deposit ticked paid but with no amount saved now counts as the standard deposit (same rule as POS) instead of $0. Using a voucher on a booking already lowers that booking's total, so voucher money is not counted twice. Nothing removed.
 - v1.0.14 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.0.13 — 2026-08-30 — Suite-wide mobile viewport fix: sidebar and app-wrap now use 100dvh instead of 100vh so they don't get clipped behind the browser's address bar on phones.
 - v1.0.12 — 2026-08-30 — Fixed timezone bug in Vouchers report: Issued/Used dates (table + CSV export) were sliced straight off the raw UTC timestamp instead of converting to NZ local date, so vouchers issued/used during NZ mornings could show the previous day. Now uses the existing toNzDateStr() helper.
@@ -230,6 +233,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v18 — 2026-11-22 — Back link to the main app now says "← BtB App" (was "Btb App"), same as every other page.
 - v17 — 2026-11-22 — Hired-out bookings show "🚚 Hired out" and the venue instead of player counts in the booking list and game header.
 - v16 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v15 — 2026-08-22 — Added deep-link support: control_room.html?date=YYYY-MM-DD&booking=<id> now auto-selects that booking and opens its dashboard on load, instead of leaving staff on the room/date picker screen. Powers the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
@@ -305,6 +309,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.10 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.
 - v1.5.9 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.5.8 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.5.7 — 2026-10-31 — Added a "Book" button to the client side panel (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
@@ -317,6 +322,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.6 — 2026-11-22 — Bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), same as every other page.
 - v1.3.5 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
 - v1.3.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.3.3 — 2026-11-03 — Added a "Book" button to the client thread header (next to Edit profile): opens the booking form in btb_app.html pre-filled with the client's name, phone and email and linked to their profile. Requires btb_app.html v16.4.52+.
@@ -326,6 +332,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v1.7.5 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.
 - v1.7.4 — 2026-11-16 — Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed.
 - v1.7.3 — 2026-08-30 — Suite-wide mobile viewport fix: app-wrap now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 - v1.7.2 — 2026-08-30 — Fixed timezone bug: todayStr() was using the device's local clock/timezone instead of being NZ-anchored, so daily task generation/loading (ensureDailyInstancesForToday, loadDailyInstances) could pick the wrong date if a device's clock or timezone was off. Now uses Pacific/Auckland via Intl.DateTimeFormat, matching the pattern used in the other apps.
