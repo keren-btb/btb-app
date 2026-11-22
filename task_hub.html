@@ -181,6 +181,8 @@ table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:t
     <span class="nav-item" data-tab="today" onclick="switchTab('today')"><i class="ti ti-checklist"></i> Today</span>
     <span class="nav-item" data-tab="history" onclick="switchTab('history')"><i class="ti ti-history"></i> History</span>
     <span class="nav-item" data-tab="issues" onclick="switchTab('issues')"><i class="ti ti-tool"></i> Issues <span id="issueCount" style="color:#fca5a5"></span></span>
+    <span class="nav-item" data-tab="safety" onclick="switchTab('safety')"><i class="ti ti-first-aid-kit"></i> Health &amp; safety</span>
+    <span class="nav-item owner-only" data-tab="owners" onclick="switchTab('owners')"><i class="ti ti-crown"></i> Owners</span>
     <span class="nav-item edit-only" data-tab="templates" onclick="switchTab('templates')"><i class="ti ti-list-details"></i> Checklists</span>
     <span class="nav-item edit-only" data-tab="settings" onclick="switchTab('settings')"><i class="ti ti-settings"></i> Settings</span>
   </aside>
@@ -192,6 +194,8 @@ table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:t
         <span class="pill-tab" data-tab="today" onclick="switchTab('today')">Today</span>
         <span class="pill-tab" data-tab="history" onclick="switchTab('history')">History</span>
         <span class="pill-tab" data-tab="issues" onclick="switchTab('issues')">Issues</span>
+        <span class="pill-tab" data-tab="safety" onclick="switchTab('safety')">Safety</span>
+        <span class="pill-tab owner-only" data-tab="owners" onclick="switchTab('owners')">Owners</span>
         <span class="pill-tab edit-only" data-tab="templates" onclick="switchTab('templates')">Checklists</span>
         <span class="pill-tab edit-only" data-tab="settings" onclick="switchTab('settings')">Settings</span>
       </div>
@@ -247,7 +251,8 @@ table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:t
 })();
 </script>
 <script>
-const BUILD_VERSION = '2.0.0'; // v2.0.0: Task Hub rebuilt (Phase 1). One kind of checklist for room reset / set-up / opening / closing / maintenance / owners / health & safety, with tick, OK/Not OK, dropdown, number (e.g. battery %), note and photo items, follow-up questions, a Quick reset (short list) for experienced GMs, and every completed checklist kept as a record. Today screen: room board (Needs reset / Ready), Today's jobs open to anyone, jobs assigned to you. History, Issues (raised from Not OK / maintenance needed / low battery answers, or reported directly), checklist editor and Areas settings. New tables cl_*; the old task tables are untouched.
+const BUILD_VERSION = '2.1.0'; // v2.1.0: Phase 2. Issues show as maintenance jobs on Today and have their own steps (tick off, notes, reorder; first step = Being fixed, all done = offer Fixed). Owners tab (owners only): jobs/renewals with due dates, repeats and reminders N days before. Health & safety: incident/accident register (WorkSafe flag), hazard register with review dates, safety checks. Cash-up vs today's POS takings. Battery & readings history chart. Phone notifications via btb-notify (jobs given to you, problems, incidents, owners' reminders). Editor: show N days before due.
+// Previous build: 2.0.0 — // v2.0.0: Task Hub rebuilt (Phase 1). One kind of checklist for room reset / set-up / opening / closing / maintenance / owners / health & safety, with tick, OK/Not OK, dropdown, number (e.g. battery %), note and photo items, follow-up questions, a Quick reset (short list) for experienced GMs, and every completed checklist kept as a record. Today screen: room board (Needs reset / Ready), Today's jobs open to anyone, jobs assigned to you. History, Issues (raised from Not OK / maintenance needed / low battery answers, or reported directly), checklist editor and Areas settings. New tables cl_*; the old task tables are untouched.
 // Previous build: 1.7.5 — // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
 console.log(`%cTask Hub — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
 
@@ -335,6 +340,7 @@ async function startApp(){
   document.getElementById('sidebarUser').textContent=currentUser.name;
   document.getElementById('buildVersionTag').textContent='v'+BUILD_VERSION;
   document.querySelectorAll('.edit-only').forEach(el=>el.style.display=canEdit?'':'none');
+  document.querySelectorAll('.owner-only').forEach(el=>el.style.display=isOwner?'':'none');
   if(localStorage.getItem('btb_sidebar_collapsed')==='1'){document.getElementById('mainSidebar').classList.add('collapsed');document.getElementById('sidebarEdgeTab').classList.add('show')}
   document.getElementById('content').innerHTML='<div class="empty-state">Loading…</div>';
   await loadBase();
@@ -396,9 +402,11 @@ async function ensureRuns(){
       const last=mine.find(r=>!r.booking_id);
       if(last&&last.status!=='done'&&last.status!=='skipped')continue; // still waiting to be done
       const next=last?addToDate(last.run_date,t.schedule_every||1,t.schedule_unit||'month'):(t.schedule_start||today);
-      if(next<=today&&!mine.some(r=>r.run_date===today&&r.auto))todo.push(runBase(t));
+      // v2.1.0: appears "remind_days" before it's due (owners' renewals etc.); its date is the due date
+      if(addToDate(next,-(t.remind_days||0),'day')<=today&&!mine.some(r=>r.run_date===next&&r.auto&&!r.booking_id))todo.push(runBase(t,{run_date:next}));
     }else if(t.trigger==='once'){
-      if(!mine.length)todo.push(runBase(t,{run_date:t.due_date||today}));
+      const due=t.due_date||today;
+      if(!mine.length&&addToDate(due,-(t.remind_days||0),'day')<=today)todo.push(runBase(t,{run_date:due}));
     }else if(t.trigger==='before_first_booking'&&gid){
       if(bookingsToday.some(b=>b.game_id===gid)&&!mine.some(r=>r.run_date===today&&r.auto&&!r.booking_id))todo.push(runBase(t));
     }else if(t.trigger==='after_booking'&&gid){
@@ -409,8 +417,21 @@ async function ensureRuns(){
     }
   }
   for(const body of todo){
-    try{await post('cl_runs',body)}catch(e){if(e.status!==409)console.error('Create run:',e)}
+    try{
+      await post('cl_runs',body);
+      if(body.kind==='owners')notify({owners:true},'👑 Owners job coming up',`${body.template_name} — due ${fmtDate(body.run_date)}`);
+      else if(body.assigned_staff_id&&body.assigned_staff_id!==me())notify({staffIds:[body.assigned_staff_id]},'Job for you',`${body.template_name} — ${areaName(body.area_id)||'today'}`);
+    }catch(e){if(e.status!==409)console.error('Create run:',e)}
   }
+}
+
+// v2.1.0: phone notifications (staff choose "Jobs & problems" in Staff Portal > My Profile). Never blocks anything.
+function notify(target,title,body,url='task_hub.html'){
+  try{
+    if(target.staffIds)target={staffIds:target.staffIds.filter(id=>id&&id!==me())};
+    if(target.staffIds&&!target.staffIds.length)return;
+    fetch(`${SB_URL}/functions/v1/btb-notify`,{method:'POST',headers:H(),body:JSON.stringify({...target,title,body,url})}).catch(()=>{});
+  }catch(e){}
 }
 async function loadRuns(){
   const d=todayStr();
@@ -419,12 +440,15 @@ async function loadRuns(){
 async function loadOpenIssues(){
   openIssues=await api(`cl_issues?status=neq.fixed&select=*&order=reported_at.desc`).catch(()=>[])||[];
   document.getElementById('issueCount').textContent=openIssues.length?`(${openIssues.length})`:'';
+  await loadIssueSteps(openIssues.map(i=>i.id)).catch(()=>{});
 }
+let hazards=[];
+async function loadHazards(){hazards=await api('cl_hazards?status=eq.active&select=*&order=next_review.nullslast').catch(()=>[])||[]}
 async function refreshToday(first){
   try{
     await loadBookingsToday();
     await ensureRuns();
-    await Promise.all([loadRuns(),loadOpenIssues()]);
+    await Promise.all([loadRuns(),loadOpenIssues(),loadHazards()]);
   }catch(e){console.error('Load today:',e);btbLogError('refreshToday',e)}
   if(first||activeTab==='today')switchTab(activeTab);
 }
@@ -433,9 +457,9 @@ async function refreshToday(first){
 function switchTab(tab){
   activeTab=tab;
   document.querySelectorAll('[data-tab]').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
-  const titles={today:'Today',history:'History',issues:'Issues',templates:'Checklists',settings:'Settings'};
+  const titles={today:'Today',history:'History',issues:'Issues',safety:'Health & safety',owners:'Owners',templates:'Checklists',settings:'Settings'};
   document.getElementById('topbarTitle').textContent=titles[tab]||tab;
-  ({today:renderToday,history:renderHistory,issues:renderIssues,templates:renderTemplates,settings:renderSettings}[tab]||renderToday)();
+  ({today:renderToday,history:renderHistory,issues:renderIssues,safety:renderSafety,owners:renderOwners,templates:renderTemplates,settings:renderSettings}[tab]||renderToday)();
 }
 
 // ───────────── TODAY ─────────────
@@ -486,8 +510,12 @@ function renderRoomBoard(){
 function hasQuick(tid){return itemsOf(tid).some(i=>i.in_quick)}
 function renderToday(){
   const today=todayStr();
-  const open=runs.filter(r=>r.status!=='done'&&r.status!=='skipped'&&r.run_date<=today&&r.kind!=='reset');
+  const allOpen=runs.filter(r=>r.status!=='done'&&r.status!=='skipped'&&r.run_date<=today&&r.kind!=='reset');
+  const maintRuns=allOpen.filter(r=>r.kind==='maintenance'&&!r.assigned_staff_id);
+  const open=allOpen.filter(r=>!maintRuns.includes(r));
   const anyone=open.filter(r=>!r.assigned_staff_id&&(!r.assigned_role||r.assigned_role===currentUser.role));
+  const unassignedIssues=openIssues.filter(i=>!i.assigned_staff_id);
+  const myHazards=hazards.filter(h=>h.owner_staff_id===me()&&h.next_review&&h.next_review<=today);
   const mineList=open.filter(r=>r.assigned_staff_id===me()||(r.kind==='reset'&&false));
   const myResets=runs.filter(r=>r.kind==='reset'&&r.status!=='done'&&r.assigned_staff_id===me());
   const others=isAdmin()?open.filter(r=>r.assigned_staff_id&&r.assigned_staff_id!==me()):[];
@@ -500,12 +528,16 @@ function renderToday(){
       <button class="btn btn-secondary btn-sm" onclick="refreshToday()"><i class="ti ti-refresh"></i> Refresh</button>
       <button class="btn btn-secondary btn-sm" onclick="startChecklistPicker()"><i class="ti ti-player-play"></i> Start a checklist</button>
       <button class="btn btn-danger btn-sm" onclick="openIssueForm()"><i class="ti ti-alert-triangle"></i> Report a problem</button>
+      <button class="btn btn-secondary btn-sm" onclick="openCashup()"><i class="ti ti-cash"></i> Cash-up</button>
+      <button class="btn btn-secondary btn-sm" onclick="openIncidentForm()"><i class="ti ti-first-aid-kit"></i> Report incident</button>
     </div>
     ${renderRoomBoard()}
     <div class="section-title"><i class="ti ti-sun"></i> Today's jobs <span style="font-weight:400;text-transform:none;letter-spacing:0">— anyone can do these, they need doing today</span></div>
     ${anyone.length?anyone.map(jobHtml).join(''):'<div class="card empty-state">Nothing waiting 🎉</div>'}
+    <div class="section-title"><i class="ti ti-tool"></i> Maintenance <span style="font-weight:400;text-transform:none;letter-spacing:0">— problems to fix and planned jobs</span></div>
+    ${(unassignedIssues.length||maintRuns.length)?maintRuns.map(jobHtml).join('')+unassignedIssues.map(issueJobHtml).join(''):'<div class="card empty-state">Nothing needs fixing 🎉</div>'}
     <div class="section-title"><i class="ti ti-user"></i> Given to you</div>
-    ${(mineList.length||myResets.length||myIssues.length)?[...myResets,...mineList].map(jobHtml).join('')+myIssues.map(i=>`<div class="job" onclick="switchTab('issues')"><div class="job-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-tool"></i></div><div class="job-body"><div class="job-name">${escapeHtml(i.title)}</div><div class="job-meta">Issue · ${escapeHtml(areaName(i.area_id))}</div></div></div>`).join(''):'<div class="card empty-state">Nothing given to you right now</div>'}
+    ${(mineList.length||myResets.length||myIssues.length||myHazards.length)?[...myResets,...mineList].map(jobHtml).join('')+myIssues.map(issueJobHtml).join('')+myHazards.map(h=>`<div class="job overdue" onclick="switchTab('safety');safetyTab='hazards';renderSafety()"><div class="job-icon" style="background:#fef3c7;color:#92400e"><i class="ti ti-alert-triangle"></i></div><div class="job-body"><div class="job-name">Review hazard: ${escapeHtml(h.hazard)}</div><div class="job-meta">Review due ${fmtDate(h.next_review)}</div></div></div>`).join(''):'<div class="card empty-state">Nothing given to you right now</div>'}
     ${(others.length||roleOnly.length)?`<div class="section-title"><i class="ti ti-users"></i> Given to others</div>${[...others,...roleOnly].map(jobHtml).join('')}`:''}
     ${upcoming.length?`<div class="section-title"><i class="ti ti-calendar"></i> Coming up</div>${upcoming.map(jobHtml).join('')}`:''}
     ${doneToday.length?`<div class="section-title"><i class="ti ti-circle-check"></i> Done today (${doneToday.length})</div>${doneToday.map(r=>`<div class="job" onclick="openRecord('${r.id}')"><div class="job-icon" style="background:#dcfce7;color:#15803d"><i class="ti ti-check"></i></div><div class="job-body"><div class="job-name">${escapeHtml(r.template_name)}</div><div class="job-meta">${escapeHtml(areaName(r.area_id))} · ${escapeHtml(staffName(r.completed_by))} at ${fmtTime(r.completed_at)}${r.mode==='quick'?' · quick':''}</div></div></div>`).join('')}`:''}`;
@@ -530,7 +562,10 @@ async function handOver(runId){
 }
 async function confirmHandOver(runId){
   const to=document.getElementById('handTo').value||null;
-  try{await patch('cl_runs',`id=eq.${runId}`,{assigned_staff_id:to,assigned_role:null});closeOverlay();await refreshToday()}
+  try{
+    const r=(await patch('cl_runs',`id=eq.${runId}`,{assigned_staff_id:to,assigned_role:null}))[0];
+    if(to)notify({staffIds:[to]},'Job given to you',`${r.template_name} — ${areaName(r.area_id)||''}`);
+    closeOverlay();await refreshToday()}
   catch(e){const m=document.getElementById('handMsg');m.className='msg err';m.textContent='Not saved: '+e.message}
 }
 
@@ -669,6 +704,7 @@ async function completeRun(){
       const what=i.item_type==='number'?`Reading ${a.number_value}${i.unit||''} — warns below ${i.low_below}${i.unit||''}`:`${i.label}: ${a.value==='not_ok'?'Not OK':a.value}`;
       await post('cl_issues',{title,description:desc||what,area_id:cur.run.area_id,game_id:cur.run.game_id,photo_path:photo,source_run_id:cur.run.id,source_item_id:i.id,reported_by:me()});
       await patch('cl_answers',`id=eq.${a.id}`,{flagged:true});
+      notify({owners:true},'🔧 Problem reported',`${areaName(cur.run.area_id)}: ${title}`);
     }
     await patch('cl_runs',`id=eq.${cur.run.id}`,{status:'done',completed_by:me(),completed_at:new Date().toISOString(),mode:cur.mode});
     closeOverlay();
@@ -711,7 +747,7 @@ async function renderHistory(){
     <div><label class="form-label">Area</label><select class="form-select" id="hArea"><option value="">All</option>${areas.map(a=>`<option value="${a.id}" ${histFilter.area===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}</select></div>
     <div><label class="form-label">Type</label><select class="form-select" id="hKind"><option value="">All</option>${Object.entries(KIND_LABELS).map(([k,l])=>`<option value="${k}" ${histFilter.kind===k?'selected':''}>${l}</option>`).join('')}</select></div>
     <div><label class="form-label">Done by</label><select class="form-select" id="hPerson"><option value="">Anyone</option>${staffList.map(s=>`<option value="${s.id}" ${histFilter.person===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div></div>
-    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="applyHistFilter()">Show</button><button class="btn btn-secondary btn-sm" onclick="exportHistory()"><i class="ti ti-download"></i> CSV</button></div></div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary btn-sm" onclick="applyHistFilter()">Show</button><button class="btn btn-secondary btn-sm" onclick="exportHistory()"><i class="ti ti-download"></i> CSV</button><button class="btn btn-secondary btn-sm" onclick="openReadings()"><i class="ti ti-battery-2"></i> Battery &amp; readings</button>${(isAdmin()||isOwner)?`<button class="btn btn-secondary btn-sm" onclick="openCashup()"><i class="ti ti-cash"></i> Cash-ups</button>`:''}</div></div>
     <div id="histList"><div class="empty-state">Loading…</div></div>`;
   await loadHistoryList();
 }
@@ -759,34 +795,107 @@ async function exportHistory(){
 
 // ───────────── ISSUES ─────────────
 let issueFilter='open';
+// v2.1.0: issues show as maintenance jobs (Today > Maintenance) and each one has its own list of steps
+let issueSteps={},curIssue=null;
+async function loadIssueSteps(ids){
+  if(!ids.length)return;
+  const rows=await api(`cl_issue_steps?issue_id=in.(${ids.join(',')})&select=*&order=sort_order,created_at`)||[];
+  ids.forEach(id=>issueSteps[id]=[]);rows.forEach(s=>(issueSteps[s.issue_id]=issueSteps[s.issue_id]||[]).push(s));
+}
+function stepProgress(id){const s=issueSteps[id]||[];return s.length?`${s.filter(x=>x.done).length} of ${s.length} steps done`:''}
+const ISSUE_STATUS={open:'Open',in_progress:'Being fixed',fixed:'Fixed'};
+function issueJobHtml(i){
+  const badge=`<span class="badge ${i.status==='fixed'?'b-green':i.status==='in_progress'?'b-amber':'b-red'}">${ISSUE_STATUS[i.status].toUpperCase()}</span>`;
+  const bits=[escapeHtml(areaName(i.area_id)||'No area'),stepProgress(i.id),i.assigned_staff_id?escapeHtml(staffName(i.assigned_staff_id)):'',`reported ${fmtDate(String(i.reported_at).slice(0,10))}`].filter(Boolean);
+  return`<div class="job" onclick="openIssue('${i.id}')"><div class="job-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-tool"></i></div>
+    <div class="job-body"><div class="job-name">${escapeHtml(i.title)}</div><div class="job-meta">${bits.join(' · ')}</div></div>${badge}</div>`;
+}
 async function renderIssues(){
   const c=document.getElementById('content');
   c.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     ${['open','in_progress','fixed','all'].map(s=>`<span class="pill-tab ${issueFilter===s?'active':''}" onclick="issueFilter='${s}';renderIssues()">${{open:'Open',in_progress:'Being fixed',fixed:'Fixed',all:'All'}[s]}</span>`).join('')}
     <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="openIssueForm()"><i class="ti ti-plus"></i> Report a problem</button></div><div id="issueList"><div class="empty-state">Loading…</div></div>`;
   let rows=[];
-  try{rows=await api(`cl_issues?select=*&order=reported_at.desc&limit=300${issueFilter==='all'?'':`&status=eq.${issueFilter}`}`)||[]}catch(e){document.getElementById('issueList').innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
+  try{rows=await api(`cl_issues?select=*&order=reported_at.desc&limit=300${issueFilter==='all'?'':`&status=eq.${issueFilter}`}`)||[];await loadIssueSteps(rows.map(r=>r.id))}
+  catch(e){document.getElementById('issueList').innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
   const byArea={};rows.forEach(i=>{const k=areaName(i.area_id)||'No area';(byArea[k]=byArea[k]||[]).push(i)});
-  document.getElementById('issueList').innerHTML=rows.length?Object.keys(byArea).sort().map(k=>`<div class="section-title">${escapeHtml(k)}</div>`+byArea[k].map(i=>`
-    <div class="card"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div style="font-weight:700">${escapeHtml(i.title)}</div>
-      ${i.description?`<div style="font-size:13px;margin-top:4px;white-space:pre-wrap">${escapeHtml(i.description)}</div>`:''}
-      <div class="item-help">Reported by ${escapeHtml(staffName(i.reported_by)||'someone')} · ${fmtDT(i.reported_at)}${i.fixed_at?` · fixed by ${escapeHtml(staffName(i.fixed_by))} ${fmtDT(i.fixed_at)}`:''}</div>
-      ${i.fix_note?`<div style="font-size:13px;margin-top:4px">🔧 ${escapeHtml(i.fix_note)}</div>`:''}
-      <span data-ph="${escapeHtml(i.photo_path||'')}"></span></div>
-      <span class="badge ${i.status==='fixed'?'b-green':i.status==='in_progress'?'b-amber':'b-red'}">${{open:'OPEN',in_progress:'BEING FIXED',fixed:'FIXED'}[i.status]}</span></div>
-      <div class="row2" style="margin-top:10px">
-        <select class="form-select" id="iss-st-${i.id}">${['open','in_progress','fixed'].map(s=>`<option value="${s}" ${i.status===s?'selected':''}>${{open:'Open',in_progress:'Being fixed',fixed:'Fixed'}[s]}</option>`).join('')}</select>
-        <select class="form-select" id="iss-who-${i.id}"><option value="">Not assigned</option>${staffList.map(s=>`<option value="${s.id}" ${i.assigned_staff_id===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div>
-      <input class="form-input" style="margin-top:8px" id="iss-note-${i.id}" placeholder="What was done / notes" value="${escapeHtml(i.fix_note||'')}">
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input class="form-input" style="max-width:120px" type="number" id="iss-cost-${i.id}" placeholder="Cost $" value="${escapeHtml(i.cost??'')}"><button class="btn btn-primary btn-sm" onclick="saveIssue('${i.id}')">Save</button><span class="msg" id="iss-msg-${i.id}"></span></div></div>`).join('')).join(''):'<div class="card empty-state">No issues here.</div>';
-  for(const el of document.querySelectorAll('#issueList [data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);if(u)el.innerHTML=`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`}}
+  document.getElementById('issueList').innerHTML=rows.length?Object.keys(byArea).sort().map(k=>`<div class="section-title">${escapeHtml(k)}</div>`+byArea[k].map(issueJobHtml).join('')).join(''):'<div class="card empty-state">No issues here.</div>';
 }
-async function saveIssue(id){
-  const st=document.getElementById('iss-st-'+id).value,m=document.getElementById('iss-msg-'+id);
-  const body={status:st,assigned_staff_id:document.getElementById('iss-who-'+id).value||null,fix_note:document.getElementById('iss-note-'+id).value.trim()||null,cost:document.getElementById('iss-cost-'+id).value===''?null:Number(document.getElementById('iss-cost-'+id).value)};
-  if(st==='fixed'){body.fixed_by=me();body.fixed_at=new Date().toISOString()}else{body.fixed_by=null;body.fixed_at=null}
-  try{await patch('cl_issues',`id=eq.${id}`,body);m.className='msg ok';m.textContent='✓ Saved';await loadOpenIssues();if(st==='fixed')setTimeout(renderIssues,600)}
-  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+async function openIssue(id){
+  try{
+    const [rows,steps]=await Promise.all([api(`cl_issues?id=eq.${id}&select=*`),api(`cl_issue_steps?issue_id=eq.${id}&select=*&order=sort_order,created_at`)]);
+    if(!rows||!rows[0]){alert('That issue could not be found.');return}
+    curIssue=rows[0];issueSteps[id]=steps||[];renderIssueDetail();
+  }catch(e){alert('Could not open it: '+e.message)}
+}
+function renderIssueDetail(){
+  const i=curIssue,st=issueSteps[i.id]||[];
+  const done=st.filter(s=>s.done).length;
+  showOverlay('Issue',`<div class="card">
+      <div class="form-row"><label class="form-label">What's wrong</label><input class="form-input" id="isTitle" value="${escapeHtml(i.title)}"></div>
+      <div class="form-row"><label class="form-label">Details</label><textarea class="form-textarea" id="isDesc">${escapeHtml(i.description||'')}</textarea></div>
+      <div class="row2"><div class="form-row"><label class="form-label">Where</label><select class="form-select" id="isArea"><option value="">No area</option>${areas.map(a=>`<option value="${a.id}" ${i.area_id===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}</select></div>
+        <div class="form-row"><label class="form-label">Status</label><select class="form-select" id="isStatus">${Object.entries(ISSUE_STATUS).map(([k,l])=>`<option value="${k}" ${i.status===k?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="form-row"><label class="form-label">Who's fixing it</label><select class="form-select" id="isWho"><option value="">Anyone / not assigned</option>${staffList.map(s=>`<option value="${s.id}" ${i.assigned_staff_id===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div></div>
+      <span data-ph="${escapeHtml(i.photo_path||'')}"></span>
+      <div class="item-help">Reported by ${escapeHtml(staffName(i.reported_by)||'someone')} · ${fmtDT(i.reported_at)}${i.fixed_at?` · fixed by ${escapeHtml(staffName(i.fixed_by))} ${fmtDT(i.fixed_at)}`:''}</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Steps</b><span class="item-help">${st.length?`${done} of ${st.length} done`:''}</span></div>
+      ${st.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border)">
+        <button class="tick-btn" style="width:auto" onclick="toggleStep('${s.id}')"><span class="tick-box ${s.done?'on':''}">${s.done?'✓':''}</span></button>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;${s.done?'text-decoration:line-through;color:var(--muted)':''}">${escapeHtml(s.label)}</div>
+          ${s.done?`<div class="item-help">${escapeHtml(staffName(s.done_by))} · ${fmtDT(s.done_at)}</div>`:''}
+          <input class="form-input" style="margin-top:4px;padding:5px 8px;font-size:12px" placeholder="Note (e.g. order number)" value="${escapeHtml(s.note||'')}" onchange="saveStepNote('${s.id}',this.value)"></div>
+        <span class="btn btn-secondary btn-sm" onclick="moveStep('${s.id}',-1)">↑</span><span class="btn btn-secondary btn-sm" onclick="moveStep('${s.id}',1)">↓</span>
+        <span class="btn btn-danger btn-sm" onclick="removeStep('${s.id}')">✕</span></div>`).join('')||'<div class="item-help" style="margin:6px 0">No steps yet — add things like "Order from Jaycar", "Pick up", "Fit it".</div>'}
+      <div class="row2" style="margin-top:8px"><input class="form-input" id="newStep" placeholder="Add a step…" onkeydown="if(event.key==='Enter')addStep()"><button class="btn btn-primary" style="flex:0" onclick="addStep()">Add</button></div></div>
+    <div class="card"><div class="form-row"><label class="form-label">What was done / notes</label><input class="form-input" id="isNote" value="${escapeHtml(i.fix_note||'')}"></div>
+      <div class="form-row"><label class="form-label">Cost $</label><input class="form-input" style="max-width:140px" type="number" id="isCost" value="${escapeHtml(i.cost??'')}"></div></div>
+    <div class="msg" id="isMsg"></div>`,
+    `<button class="btn btn-primary btn-big" onclick="saveIssueDetail()"><i class="ti ti-device-floppy"></i> Save</button>`);
+  (async()=>{for(const el of document.querySelectorAll('#overlayBody [data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);if(u)el.innerHTML=`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`}}})();
+}
+async function saveIssueDetail(close=true){
+  const i=curIssue,m=document.getElementById('isMsg');
+  const st=document.getElementById('isStatus').value,who=document.getElementById('isWho').value||null;
+  const body={title:document.getElementById('isTitle').value.trim()||i.title,description:document.getElementById('isDesc').value.trim()||null,area_id:document.getElementById('isArea').value||null,
+    status:st,assigned_staff_id:who,fix_note:document.getElementById('isNote').value.trim()||null,cost:document.getElementById('isCost').value===''?null:Number(document.getElementById('isCost').value)};
+  body.game_id=areas.find(a=>a.id===body.area_id)?.game_id||null;
+  if(st==='fixed'&&i.status!=='fixed'){body.fixed_by=me();body.fixed_at=new Date().toISOString()}else if(st!=='fixed'){body.fixed_by=null;body.fixed_at=null}
+  try{
+    curIssue=(await patch('cl_issues',`id=eq.${i.id}`,body))[0];
+    if(who&&who!==i.assigned_staff_id)notify({staffIds:[who]},'🔧 Problem given to you',`${body.title} — ${areaName(body.area_id)||''}`);
+    await loadOpenIssues();
+    if(close){closeOverlay();if(activeTab==='issues')renderIssues()}
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+async function addStep(){
+  const el=document.getElementById('newStep'),label=el.value.trim();if(!label)return;
+  const st=issueSteps[curIssue.id]||[];
+  try{const row=(await post('cl_issue_steps',{issue_id:curIssue.id,label,sort_order:st.length+1,created_by:me()}))[0];st.push(row);issueSteps[curIssue.id]=st;renderIssueDetail();document.getElementById('newStep')?.focus()}
+  catch(e){alert('Step not saved: '+e.message)}
+}
+async function toggleStep(id){
+  const st=issueSteps[curIssue.id]||[],s=st.find(x=>x.id===id);if(!s)return;
+  const now=!s.done;
+  try{
+    Object.assign(s,(await patch('cl_issue_steps',`id=eq.${id}`,{done:now,done_by:now?me():null,done_at:now?new Date().toISOString():null}))[0]);
+    if(now&&curIssue.status==='open')curIssue=(await patch('cl_issues',`id=eq.${curIssue.id}`,{status:'in_progress'}))[0];
+    renderIssueDetail();
+    if(now&&st.every(x=>x.done)&&curIssue.status!=='fixed'&&confirm('All steps are done — mark this issue as fixed?')){
+      curIssue=(await patch('cl_issues',`id=eq.${curIssue.id}`,{status:'fixed',fixed_by:me(),fixed_at:new Date().toISOString()}))[0];
+      await loadOpenIssues();renderIssueDetail();
+    }
+  }catch(e){alert('Not saved: '+e.message)}
+}
+async function saveStepNote(id,v){try{await patch('cl_issue_steps',`id=eq.${id}`,{note:v.trim()||null});const s=(issueSteps[curIssue.id]||[]).find(x=>x.id===id);if(s)s.note=v.trim()||null}catch(e){alert('Note not saved: '+e.message)}}
+async function removeStep(id){
+  if(!confirm('Remove this step?'))return;
+  try{await api(`cl_issue_steps?id=eq.${id}`,{method:'DELETE'});issueSteps[curIssue.id]=(issueSteps[curIssue.id]||[]).filter(s=>s.id!==id);renderIssueDetail()}catch(e){alert('Not removed: '+e.message)}
+}
+async function moveStep(id,dir){
+  const st=issueSteps[curIssue.id]||[];const k=st.findIndex(s=>s.id===id),j=k+dir;if(j<0||j>=st.length)return;
+  [st[k],st[j]]=[st[j],st[k]];
+  try{for(let n=0;n<st.length;n++)if(st[n].sort_order!==n+1){await patch('cl_issue_steps',`id=eq.${st[n].id}`,{sort_order:n+1});st[n].sort_order=n+1}renderIssueDetail()}catch(e){alert('Not saved: '+e.message)}
 }
 function openIssueForm(){
   showOverlay('Report a problem',`<div class="card"><div class="form-row"><label class="form-label">Where?</label><select class="form-select" id="niArea"><option value="">Choose…</option>${areas.filter(a=>a.active).map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')}</select></div>
@@ -804,8 +913,234 @@ async function submitIssue(){
     let photo=null;const f=document.getElementById('niPhoto').files[0];
     if(f)photo=await uploadPhoto(f,`issues/${Date.now()}.jpg`);
     await post('cl_issues',{title,description:document.getElementById('niDesc').value.trim()||null,area_id:areaId,game_id:areas.find(a=>a.id===areaId)?.game_id||null,photo_path:photo,reported_by:me()});
+    notify({owners:true},'🔧 Problem reported',`${areaName(areaId)||'Somewhere'}: ${title}`);
     closeOverlay();await loadOpenIssues();if(activeTab==='issues')renderIssues();
   }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+
+// ───────────── HEALTH & SAFETY (v2.1.0) ─────────────
+let safetyTab='incidents';
+const canManageSafety=()=>isAdmin()||isOwner||canEdit;
+const RISK_BADGE={low:'b-green',medium:'b-amber',high:'b-red'};
+async function renderSafety(){
+  const c=document.getElementById('content');
+  c.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <span class="pill-tab ${safetyTab==='incidents'?'active':''}" onclick="safetyTab='incidents';renderSafety()">Incidents &amp; accidents</span>
+    <span class="pill-tab ${safetyTab==='hazards'?'active':''}" onclick="safetyTab='hazards';renderSafety()">Hazard register</span>
+    <span class="pill-tab ${safetyTab==='checks'?'active':''}" onclick="safetyTab='checks';renderSafety()">Safety checks</span></div><div id="safetyBody"><div class="empty-state">Loading…</div></div>`;
+  const b=document.getElementById('safetyBody');
+  if(safetyTab==='incidents'){
+    let rows=[];try{rows=await api('cl_incidents?select=*&order=occurred_at.desc&limit=200')||[]}catch(e){b.innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
+    b.innerHTML=`<button class="btn btn-danger" onclick="openIncidentForm()"><i class="ti ti-plus"></i> Report an incident or accident</button>
+      <div class="item-help" style="margin:8px 0 4px">${canManageSafety()?'All incidents.':'You can see the incidents you reported. Managers and owners see them all.'}</div>`+
+      (rows.length?rows.map(r=>`<div class="job" onclick="openIncident('${r.id}')"><div class="job-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-first-aid-kit"></i></div>
+        <div class="job-body"><div class="job-name">${escapeHtml(r.what_happened.slice(0,80))}</div><div class="job-meta">${fmtDT(r.occurred_at)} · ${escapeHtml(areaName(r.area_id)||'')}${r.injury?' · injury':''}${r.notifiable?' · <b style="color:var(--red)">notifiable</b>':''}</div></div>
+        <span class="badge ${r.status==='closed'?'b-green':'b-red'}">${r.status==='closed'?'CLOSED':'OPEN'}</span></div>`).join(''):'<div class="card empty-state">No incidents recorded.</div>');
+  }else if(safetyTab==='hazards'){
+    await loadHazards();const today=todayStr();
+    b.innerHTML=(canManageSafety()?`<button class="btn btn-primary" onclick="editHazard(null)"><i class="ti ti-plus"></i> Add a hazard</button>`:'')+
+      (hazards.length?hazards.map(h=>`<div class="card"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><div style="font-weight:700">${escapeHtml(h.hazard)}</div>
+        <div class="item-help">${escapeHtml(areaName(h.area_id)||'Whole site')}${h.owner_staff_id?' · looked after by '+escapeHtml(staffName(h.owner_staff_id)):''}</div>
+        ${h.controls?`<div style="font-size:13px;margin-top:6px;white-space:pre-wrap"><b>How we control it:</b> ${escapeHtml(h.controls)}</div>`:''}
+        <div class="item-help" style="${h.next_review&&h.next_review<=today?'color:var(--red);font-weight:700':''}">Next review ${h.next_review?fmtDate(h.next_review):'not set'} (every ${h.review_every_months} months)</div></div>
+        <span class="badge ${RISK_BADGE[h.risk]}">${h.risk.toUpperCase()} RISK</span></div>
+        ${canManageSafety()?`<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-green btn-sm" onclick="reviewHazard('${h.id}')">Reviewed today</button><button class="btn btn-secondary btn-sm" onclick="editHazard('${h.id}')">Edit</button></div>`:''}</div>`).join(''):'<div class="card empty-state" style="margin-top:10px">No hazards recorded yet.</div>');
+  }else{
+    const list=templates.filter(t=>t.kind==='safety');
+    b.innerHTML=`<div class="item-help" style="margin-bottom:8px">Regular safety checks are checklists of type "Health &amp; safety" — they appear on Today's jobs when due. ${canEdit?'Edit them under Checklists.':''}</div>`+
+      (list.length?list.map(t=>`<div class="job" onclick="startManualRun('${t.id}')"><div class="job-icon"><i class="ti ti-first-aid-kit"></i></div><div class="job-body"><div class="job-name">${escapeHtml(t.name)}</div><div class="job-meta">${escapeHtml(areaName(t.area_id))} · ${triggerText(t)} · tap to do it now</div></div></div>`).join(''):'<div class="card empty-state">No safety checks set up.</div>');
+  }
+}
+function openIncidentForm(){
+  const now=nzParts();const local=`${now.year}-${now.month}-${now.day}T${now.hour}:${now.minute}`;
+  showOverlay('Report an incident or accident',`<div class="card">
+    <div class="row2"><div class="form-row"><label class="form-label">When did it happen?</label><input class="form-input" type="datetime-local" id="incWhen" value="${local}"></div>
+      <div class="form-row"><label class="form-label">Where?</label><select class="form-select" id="incArea"><option value="">Choose…</option>${areas.filter(a=>a.active).map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')}</select></div></div>
+    <div class="form-row"><label class="form-label">What happened? *</label><textarea class="form-textarea" id="incWhat"></textarea></div>
+    <div class="form-row"><label class="form-label">Who was involved (staff / customers)</label><input class="form-input" id="incPeople"></div>
+    <div class="form-row"><label class="form-label">Any injury? (what and where on the body)</label><input class="form-input" id="incInjury"></div>
+    <div class="form-row"><label class="form-label">First aid given</label><input class="form-input" id="incAid"></div>
+    <div class="form-row"><label class="form-label">What has been done so it doesn't happen again</label><textarea class="form-textarea" id="incActions"></textarea></div>
+    <label class="chk" style="margin-bottom:4px"><input type="checkbox" id="incNotifiable"> This might need reporting to WorkSafe</label>
+    <div class="item-help" style="margin-bottom:10px">WorkSafe must be told about a death, a serious injury or illness (e.g. hospital admission, amputation, serious head injury, loss of consciousness) or a dangerous incident. If in doubt tick this — an owner will check.</div>
+    <div class="form-row"><label class="btn btn-secondary btn-sm"><i class="ti ti-camera"></i> Add photo<input type="file" accept="image/*" capture="environment" style="display:none" id="incPhoto" onchange="document.getElementById('incPhotoName').textContent=this.files[0]?'✓ photo added':''"></label> <span id="incPhotoName" class="item-help"></span></div>
+    <button class="btn btn-danger btn-big" onclick="submitIncident()">Save report</button><div class="msg" id="incMsg"></div></div>`);
+}
+function nzLocalToIso(v){ // 'YYYY-MM-DDTHH:MM' NZ wall time -> ISO
+  const [d,t]=v.split('T');const guess=new Date(`${d}T${t}:00Z`);
+  const o=nzParts(guess);const shown=Date.UTC(+o.year,+o.month-1,+o.day,+o.hour,+o.minute);
+  return new Date(guess.getTime()-(shown-guess.getTime())).toISOString();
+}
+async function submitIncident(){
+  const what=document.getElementById('incWhat').value.trim(),m=document.getElementById('incMsg');
+  if(!what){m.className='msg err';m.textContent='Please say what happened.';return}
+  m.className='msg';m.textContent='Saving…';
+  try{
+    let photo=null;const f=document.getElementById('incPhoto').files[0];if(f)photo=await uploadPhoto(f,`incidents/${Date.now()}.jpg`);
+    const areaId=document.getElementById('incArea').value||null;const notifiable=document.getElementById('incNotifiable').checked;
+    await post('cl_incidents',{occurred_at:nzLocalToIso(document.getElementById('incWhen').value),area_id:areaId,what_happened:what,people:document.getElementById('incPeople').value.trim()||null,
+      injury:document.getElementById('incInjury').value.trim()||null,first_aid:document.getElementById('incAid').value.trim()||null,actions:document.getElementById('incActions').value.trim()||null,notifiable,photo_path:photo,reported_by:me()});
+    notify({owners:true},notifiable?'⚠️ Incident — may need WorkSafe':'⚠️ Incident reported',`${areaName(areaId)||''}: ${what.slice(0,90)}`);
+    closeOverlay();if(activeTab==='safety'){safetyTab='incidents';renderSafety()}
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+async function openIncident(id){
+  try{
+    const r=(await api(`cl_incidents?id=eq.${id}&select=*`))[0];if(!r)return;
+    const row=(l,v)=>v?`<div style="margin-top:8px"><div class="form-label">${l}</div><div style="white-space:pre-wrap">${escapeHtml(v)}</div></div>`:'';
+    showOverlay('Incident',`<div class="card"><div><b>${fmtDT(r.occurred_at)}</b> · ${escapeHtml(areaName(r.area_id)||'')}</div>
+      ${row('What happened',r.what_happened)}${row('Who was involved',r.people)}${row('Injury',r.injury)}${row('First aid',r.first_aid)}${row('Actions',r.actions)}
+      ${r.notifiable?'<div style="margin-top:8px;color:var(--red);font-weight:700">Flagged as possibly notifiable to WorkSafe</div>':''}
+      <span data-ph="${escapeHtml(r.photo_path||'')}"></span>
+      <div class="item-help">Reported by ${escapeHtml(staffName(r.reported_by))} · ${fmtDT(r.reported_at)}</div></div>
+      ${(isAdmin()||isOwner)?`<div class="card"><label class="chk"><input type="checkbox" id="incWs" ${r.worksafe_notified?'checked':''}> WorkSafe has been notified</label>
+        <div class="form-row" style="margin-top:8px"><label class="form-label">Review / follow-up notes</label><textarea class="form-textarea" id="incReview">${escapeHtml(r.review_note||'')}</textarea></div>
+        <div class="form-row"><label class="form-label">Status</label><select class="form-select" id="incStatus"><option value="open" ${r.status==='open'?'selected':''}>Open</option><option value="closed" ${r.status==='closed'?'selected':''}>Closed</option></select></div>
+        <button class="btn btn-primary" onclick="saveIncidentReview('${r.id}')">Save</button><div class="msg" id="incRevMsg"></div>
+        ${r.reviewed_at?`<div class="item-help">Last reviewed by ${escapeHtml(staffName(r.reviewed_by))} ${fmtDT(r.reviewed_at)}</div>`:''}</div>`:''}`);
+    for(const el of document.querySelectorAll('#overlayBody [data-ph]')){if(el.dataset.ph){const u=await signedUrl(el.dataset.ph);if(u)el.innerHTML=`<img class="photo-thumb" src="${u}" onclick="window.open(this.src)">`}}
+  }catch(e){alert('Could not open it: '+e.message)}
+}
+async function saveIncidentReview(id){
+  const m=document.getElementById('incRevMsg');
+  try{await patch('cl_incidents',`id=eq.${id}`,{worksafe_notified:document.getElementById('incWs').checked,review_note:document.getElementById('incReview').value.trim()||null,status:document.getElementById('incStatus').value,reviewed_by:me(),reviewed_at:new Date().toISOString()});m.className='msg ok';m.textContent='✓ Saved'}
+  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+function editHazard(id){
+  const h=id?hazards.find(x=>x.id===id):{hazard:'',area_id:'',risk:'medium',controls:'',owner_staff_id:'',review_every_months:12,next_review:addToDate(todayStr(),12,'month')};
+  showOverlay(id?'Edit hazard':'Add a hazard',`<div class="card">
+    <div class="form-row"><label class="form-label">Hazard *</label><input class="form-input" id="hzName" value="${escapeHtml(h.hazard)}" placeholder="e.g. Low beam in the Gregg room"></div>
+    <div class="row2"><div class="form-row"><label class="form-label">Where</label><select class="form-select" id="hzArea"><option value="">Whole site</option>${areas.map(a=>`<option value="${a.id}" ${h.area_id===a.id?'selected':''}>${escapeHtml(a.name)}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Risk</label><select class="form-select" id="hzRisk">${['low','medium','high'].map(r=>`<option value="${r}" ${h.risk===r?'selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('')}</select></div></div>
+    <div class="form-row"><label class="form-label">How we control it</label><textarea class="form-textarea" id="hzControls">${escapeHtml(h.controls||'')}</textarea></div>
+    <div class="row2"><div class="form-row"><label class="form-label">Looked after by</label><select class="form-select" id="hzOwner"><option value="">—</option>${staffList.map(s=>`<option value="${s.id}" ${h.owner_staff_id===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></div>
+      <div class="form-row"><label class="form-label">Review every (months)</label><input class="form-input" type="number" min="1" id="hzEvery" value="${escapeHtml(h.review_every_months)}"></div>
+      <div class="form-row"><label class="form-label">Next review</label><input class="form-input" type="date" id="hzNext" value="${escapeHtml(h.next_review||'')}"></div></div>
+    ${id?`<button class="btn btn-danger btn-sm" style="margin-bottom:10px" onclick="removeHazard('${id}')">No longer a hazard</button>`:''}
+    <button class="btn btn-primary btn-big" onclick="saveHazard(${id?`'${id}'`:'null'})">Save</button><div class="msg" id="hzMsg"></div></div>`);
+}
+async function saveHazard(id){
+  const m=document.getElementById('hzMsg'),name=document.getElementById('hzName').value.trim();
+  if(!name){m.className='msg err';m.textContent='Please name the hazard.';return}
+  const body={hazard:name,area_id:document.getElementById('hzArea').value||null,risk:document.getElementById('hzRisk').value,controls:document.getElementById('hzControls').value.trim()||null,
+    owner_staff_id:document.getElementById('hzOwner').value||null,review_every_months:parseInt(document.getElementById('hzEvery').value)||12,next_review:document.getElementById('hzNext').value||null,updated_at:new Date().toISOString()};
+  try{if(id)await patch('cl_hazards',`id=eq.${id}`,body);else await post('cl_hazards',{...body,created_by:me()});closeOverlay();safetyTab='hazards';switchTab('safety')}
+  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+async function reviewHazard(id){
+  const h=hazards.find(x=>x.id===id);if(!h)return;
+  try{await patch('cl_hazards',`id=eq.${id}`,{next_review:addToDate(todayStr(),h.review_every_months||12,'month'),updated_at:new Date().toISOString()});renderSafety()}catch(e){alert('Not saved: '+e.message)}
+}
+async function removeHazard(id){
+  if(!confirm('Mark this as no longer a hazard? It stays on record but leaves the register.'))return;
+  try{await patch('cl_hazards',`id=eq.${id}`,{status:'removed',updated_at:new Date().toISOString()});closeOverlay();safetyTab='hazards';switchTab('safety')}catch(e){alert('Not saved: '+e.message)}
+}
+
+// ───────────── OWNERS (v2.1.0) ─────────────
+async function renderOwners(){
+  const c=document.getElementById('content');
+  if(!isOwner){c.innerHTML='<div class="card empty-state">Owners only.</div>';return}
+  const list=templates.filter(t=>t.kind==='owners');
+  let oRuns=[];try{oRuns=await api('cl_runs?kind=eq.owners&select=*&order=run_date.desc&limit=500')||[]}catch(e){}
+  const today=todayStr();
+  const nextDue=t=>{const open=oRuns.find(r=>r.template_id===t.id&&r.status!=='done'&&r.status!=='skipped');if(open)return{date:open.run_date,run:open};
+    const last=oRuns.find(r=>r.template_id===t.id&&r.status==='done');
+    if(t.trigger==='schedule')return{date:last?addToDate(last.run_date,t.schedule_every||1,t.schedule_unit||'month'):(t.schedule_start||today)};
+    if(t.trigger==='once')return{date:last?null:(t.due_date||today),doneAt:last?.completed_at};return{date:null}};
+  const rows=list.map(t=>({t,...nextDue(t)})).sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+  c.innerHTML=`<div class="card"><b>Add an owners' job or renewal</b>
+    <div class="row2" style="margin-top:8px"><div class="form-row" style="flex:2"><label class="form-label">What</label><input class="form-input" id="ojName" placeholder="e.g. Public liability insurance renewal"></div>
+      <div class="form-row"><label class="form-label">Due</label><input class="form-input" type="date" id="ojDue" value="${today}"></div></div>
+    <div class="row2"><div class="form-row"><label class="form-label">Repeats</label><select class="form-select" id="ojRepeat"><option value="none">Doesn't repeat</option><option value="1">Every month</option><option value="3">Every 3 months</option><option value="6">Every 6 months</option><option value="12" selected>Every year</option></select></div>
+      <div class="form-row"><label class="form-label">Remind me (days before)</label><input class="form-input" type="number" min="0" id="ojRemind" value="14"></div></div>
+    <div class="form-row"><label class="form-label">Notes (account numbers, who to call…)</label><textarea class="form-textarea" id="ojNotes"></textarea></div>
+    <button class="btn btn-primary" onclick="addOwnerJob()">Add</button><div class="msg" id="ojMsg"></div></div>
+    <div class="section-title"><i class="ti ti-crown"></i> Owners' jobs &amp; renewals</div>
+    ${rows.length?rows.map(({t,date,run,doneAt})=>{const overdue=date&&date<today,soon=date&&!overdue&&date<=addToDate(today,t.remind_days||14,'day');
+      return`<div class="job ${overdue?'overdue':''}" onclick="${run?`openRun('${run.id}')`:`editTemplate('${t.id}')`}"><div class="job-icon" style="background:#ede9fe;color:#6d28d9"><i class="ti ti-crown"></i></div>
+        <div class="job-body"><div class="job-name">${escapeHtml(t.name)}${t.active?'':' (off)'}</div><div class="job-meta">${date?`${overdue?'<b style="color:var(--red)">Overdue — was due ':soon?'<b style="color:#b45309">Due ':'Next due '}${fmtDate(date)}${overdue||soon?'</b>':''}`:(doneAt?`Done ${fmtDT(doneAt)}`:'')} · ${triggerText(t)}${t.remind_days!=null?` · reminder ${t.remind_days} days before`:''}</div></div>
+        ${run?'<span class="badge b-purple">TO DO</span>':''}</div>`}).join(''):'<div class="card empty-state">No owners\' jobs yet.</div>'}`;
+}
+async function addOwnerJob(){
+  const name=document.getElementById('ojName').value.trim(),m=document.getElementById('ojMsg');
+  if(!name){m.className='msg err';m.textContent='Please say what it is.';return}
+  const due=document.getElementById('ojDue').value||todayStr(),rep=document.getElementById('ojRepeat').value;
+  const body={name,kind:'owners',assign_mode:'anyone',active:true,description:document.getElementById('ojNotes').value.trim()||null,remind_days:parseInt(document.getElementById('ojRemind').value)||0,created_by:me(),
+    ...(rep==='none'?{trigger:'once',due_date:due}:{trigger:'schedule',schedule_every:parseInt(rep),schedule_unit:'month',schedule_start:due})};
+  try{
+    const t=(await post('cl_templates',body))[0];
+    await post('cl_items',{template_id:t.id,sort_order:1,label:'Done',item_type:'tick',required:true});
+    await post('cl_items',{template_id:t.id,sort_order:2,label:'Notes (e.g. new policy number, cost)',item_type:'text'});
+    templates=await api('cl_templates?select=*&order=sort_order,name');await loadItems();await refreshToday();switchTab('owners');
+  }catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+
+// ───────────── CASH-UP (v2.1.0) ─────────────
+function nzDateOf(iso){if(!iso)return null;const o=nzParts(new Date(iso));return`${o.year}-${o.month}-${o.day}`}
+// What POS recorded today, by payment method: booking payments (dated) + paid shop sales. Deposits have no date so aren't included.
+async function posTotalsFor(ds){
+  const since=addToDate(ds,-2,'day');const by={};
+  const add=(m,a)=>{m=m||'unknown';by[m]=(by[m]||0)+(Number(a)||0)};
+  const bk=await api(`game_bookings?updated_at=gte.${since}&payments=not.is.null&select=payments`)||[];
+  bk.forEach(b=>{let p=b.payments;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=[]}}(Array.isArray(p)?p:[]).forEach(x=>{if(!(x.method==='invoice'&&x.status==='pending')&&nzDateOf(x.at)===ds)add(x.method,x.amount)})});
+  const qs=await api(`quick_sales?sold_at=gte.${since}&select=total_amount,method,status,sold_at`)||[];
+  qs.forEach(q=>{if(q.status==='paid'&&nzDateOf(q.sold_at)===ds)add(q.method,q.total_amount)});
+  return by;
+}
+const money=n=>'$'+(Number(n)||0).toFixed(2);
+let cashPos={};
+async function openCashup(){
+  const ds=todayStr();
+  showOverlay('Cash-up',`<div class="empty-state">Working out today's POS takings…</div>`);
+  let last=[];
+  try{cashPos=await posTotalsFor(ds);last=await api('cl_cashups?select=*&order=done_at.desc&limit=14')||[]}catch(e){document.getElementById('overlayBody').innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
+  const lastFloat=last[0]?.float_amount??'';
+  const others=Object.entries(cashPos).filter(([k])=>!['cash','eftpos'].includes(k));
+  showOverlay('Cash-up — '+fmtDate(ds),`<div class="card"><b>POS says today</b>
+      <table class="ans" style="margin-top:6px"><tr><td>Cash</td><td style="text-align:right">${money(cashPos.cash)}</td></tr><tr><td>Eftpos</td><td style="text-align:right">${money(cashPos.eftpos)}</td></tr>
+      ${others.map(([k,v])=>`<tr><td style="color:var(--muted)">${escapeHtml(k.replace('_',' '))}</td><td style="text-align:right;color:var(--muted)">${money(v)}</td></tr>`).join('')}</table>
+      <div class="item-help">Deposits ticked as paid without a date aren't included.</div></div>
+    <div class="card"><div class="row2">
+      <div class="form-row"><label class="form-label">Float left in the till $</label><input class="form-input" type="number" step="0.01" id="cuFloat" value="${escapeHtml(lastFloat)}" oninput="cashupCalc()"></div>
+      <div class="form-row"><label class="form-label">Cash counted (incl. float) $</label><input class="form-input" type="number" step="0.01" id="cuCash" oninput="cashupCalc()"></div>
+      <div class="form-row"><label class="form-label">Eftpos settlement total $</label><input class="form-input" type="number" step="0.01" id="cuEftpos" oninput="cashupCalc()"></div></div>
+      <div id="cuCalc" style="font-size:14px;margin:6px 0 10px"></div>
+      <div class="form-row"><label class="form-label">Notes (why it's over/under, banked, etc.)</label><textarea class="form-textarea" id="cuNotes"></textarea></div>
+      <button class="btn btn-green btn-big" onclick="saveCashup()">Save cash-up</button><div class="msg" id="cuMsg"></div></div>
+    ${last.length?`<div class="section-title">Recent cash-ups</div>${last.map(c=>{const dc=(Number(c.cash_counted)||0)-(Number(c.float_amount)||0)-(Number(c.pos_cash)||0),de=(Number(c.eftpos_total)||0)-(Number(c.pos_eftpos)||0);
+      return`<div class="list-row"><div class="grow"><b>${fmtDate(c.cash_date)}</b> · ${escapeHtml(staffName(c.done_by))}<div class="item-help">Cash ${dc===0?'✓ matches':(dc>0?'over ':'short ')+money(Math.abs(dc))} · Eftpos ${de===0?'✓ matches':(de>0?'over ':'short ')+money(Math.abs(de))}${c.notes?' · '+escapeHtml(c.notes):''}</div></div></div>`}).join('')}`:''}`);
+  cashupCalc();
+}
+function cashupCalc(){
+  const f=Number(document.getElementById('cuFloat')?.value)||0,c=document.getElementById('cuCash')?.value,e=document.getElementById('cuEftpos')?.value;
+  const line=(label,diff)=>diff===null?'':`<div><b>${label}:</b> ${Math.abs(diff)<0.005?'<span style="color:var(--green);font-weight:700">✓ matches</span>':`<span style="color:var(--red);font-weight:700">${diff>0?'over':'short'} by ${money(Math.abs(diff))}</span>`}</div>`;
+  document.getElementById('cuCalc').innerHTML=line('Cash',c===''?null:Number(c)-f-(cashPos.cash||0))+line('Eftpos',e===''?null:Number(e)-(cashPos.eftpos||0));
+}
+async function saveCashup(){
+  const m=document.getElementById('cuMsg'),num=id=>{const v=document.getElementById(id).value;return v===''?null:Number(v)};
+  if(num('cuCash')===null&&num('cuEftpos')===null){m.className='msg err';m.textContent='Enter the cash counted and/or the eftpos total.';return}
+  try{await post('cl_cashups',{cash_date:todayStr(),float_amount:num('cuFloat'),cash_counted:num('cuCash'),eftpos_total:num('cuEftpos'),pos_cash:cashPos.cash||0,pos_eftpos:cashPos.eftpos||0,notes:document.getElementById('cuNotes').value.trim()||null,done_by:me()});
+    m.className='msg ok';m.textContent='✓ Saved';setTimeout(openCashup,700)}
+  catch(e){m.className='msg err';m.textContent='Not saved: '+e.message}
+}
+
+// ───────────── READINGS (battery history etc.) (v2.1.0) ─────────────
+function openReadings(){
+  const nums=items.filter(i=>i.item_type==='number');
+  showOverlay('Battery & readings',nums.length?`<div class="card"><label class="form-label">Which reading?</label><select class="form-select" id="rdItem" onchange="showReadings(this.value)"><option value="">Choose…</option>${nums.map(i=>{const t=templates.find(x=>x.id===i.template_id);return`<option value="${i.id}">${escapeHtml((t?areaName(t.area_id)+' — ':'')+i.label)}${i.active?'':' (removed)'}</option>`}).join('')}</select></div><div id="rdOut"></div>`
+    :'<div class="card empty-state">No number items (e.g. battery %) in any checklist yet. Add one in Checklists.</div>');
+}
+async function showReadings(itemId){
+  const out=document.getElementById('rdOut');if(!itemId){out.innerHTML='';return}
+  const it=items.find(i=>i.id===itemId);
+  let rows=[];try{rows=await api(`cl_answers?item_id=eq.${itemId}&number_value=not.is.null&select=number_value,answered_at,answered_by&order=answered_at.desc&limit=40`)||[]}catch(e){out.innerHTML=`<div class="msg err">${escapeHtml(e.message)}</div>`;return}
+  if(!rows.length){out.innerHTML='<div class="card empty-state">No readings recorded yet.</div>';return}
+  const pts=[...rows].reverse(),max=Math.max(100,...pts.map(p=>Number(p.number_value))),W=640,Hh=160,bw=W/pts.length;
+  const low=it?.low_below!=null?Number(it.low_below):null;
+  const bars=pts.map((p,k)=>{const v=Number(p.number_value),h=Math.max(2,v/max*(Hh-10));return`<rect x="${k*bw+2}" y="${Hh-h}" width="${Math.max(2,bw-4)}" height="${h}" rx="2" fill="${low!=null&&v<low?'#dc2626':'#07b4c5'}"><title>${fmtDT(p.answered_at)}: ${v}${it?.unit||''}</title></rect>`}).join('');
+  const lowLine=low!=null?`<line x1="0" x2="${W}" y1="${Hh-low/max*(Hh-10)}" y2="${Hh-low/max*(Hh-10)}" stroke="#dc2626" stroke-dasharray="4 4"/><text x="4" y="${Hh-low/max*(Hh-10)-4}" font-size="11" fill="#dc2626">warns below ${low}${escapeHtml(it?.unit||'')}</text>`:'';
+  out.innerHTML=`<div class="card"><svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto">${lowLine}${bars}</svg><div class="item-help">Oldest on the left, newest on the right (last ${pts.length})</div></div>
+    <div class="card"><table class="ans">${rows.map(r=>`<tr><td>${fmtDT(r.answered_at)}</td><td>${escapeHtml(staffName(r.answered_by))}</td><td style="text-align:right;font-weight:700;${low!=null&&Number(r.number_value)<low?'color:var(--red)':''}">${escapeHtml(r.number_value)}${escapeHtml(it?.unit||'')}</td></tr>`).join('')}</table></div>`;
 }
 
 // ───────────── CHECKLIST EDITOR ─────────────
@@ -867,6 +1202,7 @@ function renderEditor(){
     ${f('When is it due',`<select class="form-select" id="edTrigger" onchange="edTriggerChange()">${opt(t.trigger,Object.entries(TRIGGER_LABELS))}</select>`)}
     <div id="edSched" class="row2" style="display:${t.trigger==='schedule'?'flex':'none'}">${f('Every',`<input class="form-input" type="number" min="1" id="edEvery" value="${escapeHtml(t.schedule_every||1)}">`)}${f('&nbsp;',`<select class="form-select" id="edUnit">${opt(t.schedule_unit||'month',[['day','day(s)'],['week','week(s)'],['month','month(s)']])}</select>`)}${f('Starting',`<input class="form-input" type="date" id="edStart" value="${escapeHtml(t.schedule_start||todayStr())}">`)}</div>
     <div id="edOnce" style="display:${t.trigger==='once'?'block':'none'}">${f('Due by (optional)',`<input class="form-input" type="date" id="edDue" value="${escapeHtml(t.due_date||'')}">`)}</div>
+    <div id="edRemind" style="display:${['once','schedule'].includes(t.trigger)?'block':'none'}">${f('Show it this many days before it\'s due',`<input class="form-input" style="max-width:120px" type="number" min="0" id="edRemindDays" value="${escapeHtml(t.remind_days??0)}">`)}</div>
     ${f('Description / notes (optional)',`<textarea class="form-textarea" id="edDesc">${escapeHtml(t.description||'')}</textarea>`)}
     <label class="chk"><input type="checkbox" id="edActive" ${t.active?'checked':''}> Switched on</label></div>
     <div class="section-title">Items</div>
@@ -881,9 +1217,10 @@ function edCaptureHeader(){
   t.name=g('edName').value;t.kind=g('edKind').value;t.area_id=g('edArea').value;t.trigger=g('edTrigger').value;t.description=g('edDesc').value;t.active=g('edActive').checked;
   const w=g('edWho').value;t.assign_mode=w.startsWith('s:')?'staff':w.startsWith('r:')?'role':'anyone';t.assign_staff_id=w.startsWith('s:')?w.slice(2):'';t.assign_role=w.startsWith('r:')?w.slice(2):'';
   t.schedule_every=parseInt(g('edEvery').value)||1;t.schedule_unit=g('edUnit').value;t.schedule_start=g('edStart').value;t.due_date=g('edDue').value;
+  t.remind_days=g('edRemindDays').value===''?null:parseInt(g('edRemindDays').value);
 }
 function edWhoChange(){}
-function edTriggerChange(){const v=document.getElementById('edTrigger').value;document.getElementById('edSched').style.display=v==='schedule'?'flex':'none';document.getElementById('edOnce').style.display=v==='once'?'block':'none'}
+function edTriggerChange(){const v=document.getElementById('edTrigger').value;document.getElementById('edSched').style.display=v==='schedule'?'flex':'none';document.getElementById('edOnce').style.display=v==='once'?'block':'none';document.getElementById('edRemind').style.display=['once','schedule'].includes(v)?'block':'none'}
 function edSet(key,field,val){
   edCaptureHeader();const it=ed.items.find(i=>i.key===key);if(!it)return;
   if(field==='options')it.options=val.split(',').map(s=>s.trim()).filter(Boolean);
@@ -919,7 +1256,7 @@ async function saveTemplate(){
   m.className='msg';m.textContent='Saving…';
   const body={name:t.name.trim(),kind:t.kind,area_id:t.area_id||null,assign_mode:t.assign_mode,assign_role:t.assign_mode==='role'?t.assign_role:null,assign_staff_id:t.assign_mode==='staff'?t.assign_staff_id:null,
     trigger:t.trigger,schedule_every:t.trigger==='schedule'?t.schedule_every:null,schedule_unit:t.trigger==='schedule'?t.schedule_unit:null,schedule_start:t.trigger==='schedule'?(t.schedule_start||todayStr()):null,
-    due_date:t.trigger==='once'?(t.due_date||null):null,description:t.description.trim()||null,active:t.active,updated_at:new Date().toISOString()};
+    due_date:t.trigger==='once'?(t.due_date||null):null,remind_days:['once','schedule'].includes(t.trigger)?(t.remind_days||null):null,description:t.description.trim()||null,active:t.active,updated_at:new Date().toISOString()};
   try{
     let tid=t.id;
     if(tid)await patch('cl_templates',`id=eq.${tid}`,body);else{body.created_by=me();tid=(await post('cl_templates',body))[0].id}

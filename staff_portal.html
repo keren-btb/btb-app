@@ -687,6 +687,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <input type="checkbox" id="notifyClientGeneral" style="width:16px;height:16px" onchange="updateClientEmailPref('notify_client_general', this.checked)">
           New / general emails <span style="color:#9ca3af;font-weight:normal">(new enquiries, anything else)</span>
         </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="notifyTasks" style="width:16px;height:16px" onchange="updateClientEmailPref('notify_tasks', this.checked)">
+          Jobs &amp; problems <span style="color:#9ca3af;font-weight:normal">(a job or meeting given to you, a problem reported, owners' reminders)</span>
+        </label>
         <div class="msg" id="clientEmailPrefsMsg"></div>
       </div>
     </div>
@@ -1169,7 +1173,8 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.37'; // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
+const BUILD_VERSION = '1.9.38'; // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
+// Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
 // Previous build: 1.9.36 — // v1.9.36: Hired-out bookings show "🚚 HIRED OUT" with venue and drop-off/pick-up in the week rota and today's list.
 // Previous build: 1.9.35 — // v1.9.35: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v1.9.34: My Week — owners now see EVERYONE who uses free times (all active calendar-mode staff), not just owners; NEW "Confirm this week" box: each person confirms their own free times for the next two weeks (stage "following" 8–14 days ahead, "next" 1–7 days ahead), status shown for everyone, flips to "changed since confirmed" if that week's free times change. Uses new staff_week_confirmations table. | v1.9.33: v1.9.33: Staff Training grid has a per-game "Can reset" tick (admin/manager only). v1.9.32: Hid the "Usual Weekly Routine" and "Request Specific Time Off" menu buttons (replaced by My Week); the calendar "New events found on your calendar" review panel moved into My Week. Nothing deleted. | v1.9.31: My Week — NEW free times: green blocks show when each owner is free. Tap a day to add, change or remove a free time, for just that date or for every [weekday] (your usual week). Saved in the new staff_free_times / staff_free_day_overrides tables. Display only — the booking page does not use free times yet. | v1.9.30: v1.9.30: My Week — grid now starts at 9am (was 8am) and the time column is narrower. | v1.9.29: v1.9.29: My Week — tapping a booking (or calendar item) now scrolls down to its details / GM options, with a "Back to the week" button. | v1.9.28: v1.9.28: My Week — time column now stays on the left when scrolling sideways on a phone; NEW: tap a booking to assign or remove GMs (any active staff member, more than one allowed) — saves straight away, same field the main app uses. | v1.9.27: v1.9.27: My Week — days now clearly divided (alternating shading + stronger day lines) and Joolz's colour changed to a clearly different blue from Keren's purple. | v1.9.26: v1.9.26: NEW "My Week" tab (owners only, view-only): week view Mon–Sun showing bookings (coloured by assigned GM, dashed = no GM) and each owner's personal calendar items with titles. Nothing can be changed from it yet. | earlier: v1.9.25: My Profile push card now has two extra toggles — "Client replies" and "New / general emails" — so staff can opt their device in to a phone notification when a client email comes in (separate from help alerts).
 // v1.9.24: Admin can now add an extra staff slot to an existing shift (single or multi-staff) via a new "Add slot" button, instead of only being able to set staff count at creation time.
@@ -1572,6 +1577,7 @@ const WEEK_FALLBACK_COLOUR = '#0d9488';
 
 let weekSelectedBookingId = null;
 let weekBookingsCache = [];
+let weekMeetings = []; // v1.9.38
 
 // Hired-out bookings: show it clearly, with venue and drop-off / pick-up, instead of a player count.
 function weekHireOrPlayers(b) {
@@ -1899,6 +1905,11 @@ async function loadWeekView(silent) {
       fetch(`${SB_URL}/rest/v1/staff_free_day_overrides?free_date=gte.${fromStr}&free_date=lte.${toStr}&select=staff_id,free_date`, {headers:H()}),
       fetch(`${SB_URL}/rest/v1/staff_week_confirmations?week_start=eq.${fromStr}&select=staff_id,stage,confirmed_at,free_snapshot`, {headers:H()})
     ]);
+    // v1.9.38: meetings from the BtB app calendar (cal_events) — shown like calendar items for the people going
+    try {
+      const mr = await fetch(`${SB_URL}/rest/v1/cal_events?event_date=gte.${fromStr}&event_date=lte.${toStr}&cancelled=eq.false&select=title,event_date,start_time,end_time,attendee_staff_ids`, {headers:H()});
+      weekMeetings = mr.ok ? await mr.json() : [];
+    } catch (e) { weekMeetings = []; }
     const bj = await br.json(); const dj = await dr.json();
     const uj = await ur.json(); const xj = await xr.json(); const oj = await orr.json(); const cj = await cr.json();
     if (!br.ok) throw new Error('bookings: ' + JSON.stringify(bj));
@@ -1960,6 +1971,13 @@ async function loadWeekView(silent) {
       const rec = { title: (it.title || '').trim(), s: os - ds, e: oe - ds, fullStart: s, fullEnd: e };
       if (s <= ds && e >= de) itemsByDay[i].allDay.push(rec); else itemsByDay[i].timed.push(rec);
     });
+  });
+  // v1.9.38: BtB meetings this person is going to
+  (Array.isArray(weekMeetings) ? weekMeetings : []).filter(m => (m.attendee_staff_ids || []).includes(weekViewPersonId)).forEach(m => {
+    const i = dates.findIndex(d => toDateStr(d) === m.event_date); if (i < 0) return;
+    const toMs = t => { const [h, mi] = String(t).slice(0,5).split(':').map(Number); return (h * 60 + mi) * 60000; };
+    const s = toMs(m.start_time), e = toMs(m.end_time);
+    itemsByDay[i].timed.push({ title: '📅 ' + (m.title || 'Meeting'), s, e, fullStart: dayStarts[i] + s, fullEnd: dayStarts[i] + e });
   });
 
   // Bookings per day, with simple side-by-side lanes for overlaps
@@ -2561,11 +2579,12 @@ async function refreshPushToggleUI() {
 // push_subscriptions row and reflects them on the two checkboxes.
 async function loadClientEmailPrefs(endpoint) {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&select=notify_client_reply,notify_client_general`, { headers: H() });
+    const r = await fetch(`${SB_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&select=notify_client_reply,notify_client_general,notify_tasks`, { headers: H() });
     const rows = await r.json();
     const row = rows && rows[0];
     document.getElementById('notifyClientReply').checked = !!(row && row.notify_client_reply);
     document.getElementById('notifyClientGeneral').checked = !!(row && row.notify_client_general);
+    document.getElementById('notifyTasks').checked = !row || row.notify_tasks !== false;
   } catch(e) { console.error('Could not load client email prefs:', e); }
 }
 

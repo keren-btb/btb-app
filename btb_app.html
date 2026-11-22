@@ -94,6 +94,7 @@
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="toggleWalkin()"><i class="ti ti-walk"></i> Add walk-in / phone booking</button>
         <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="togglePkg()"><i class="ti ti-package"></i> Hire package</button>
+        <button class="walkin-trigger" style="margin-bottom:0;flex:1" onclick="openMeetForm(null)"><i class="ti ti-calendar-event"></i> Meeting</button>
         <button id="refreshBtn" onclick="refreshBookings()" style="background:none;border:1px solid #e5e7eb;border-radius:10px;padding:9px 14px;font-size:13px;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit" title="Refresh bookings">
           <i class="ti ti-refresh"></i> Refresh
         </button>
@@ -202,6 +203,27 @@
         <div class="form-btns">
           <button class="form-cancel" onclick="togglePkg()">Cancel</button>
           <button class="form-submit" onclick="submitPkg()">Add hire package</button>
+        </div>
+      </div>
+      <!-- v16.4.69: MEETING / APPOINTMENT (not a booking — no POS, reports or customer emails) -->
+      <div class="form-wrap" id="meetForm" style="display:none">
+        <div class="form-title" id="meetFormTitle">New meeting / appointment</div>
+        <div class="form-row"><div class="form-label">What</div><input class="form-input" id="mtTitle" placeholder="e.g. Meeting with venue about Christmas party"></div>
+        <div class="form-2col">
+          <div><div class="form-label">Date</div><input class="form-input" type="date" id="mtDate"></div>
+          <div><div class="form-label">With (who you're meeting)</div><input class="form-input" id="mtWith" placeholder="Name / company"></div>
+        </div>
+        <div class="form-2col">
+          <div><div class="form-label">Start</div><input class="form-input" type="time" id="mtStart"></div>
+          <div><div class="form-label">End</div><input class="form-input" type="time" id="mtEnd"></div>
+        </div>
+        <div class="form-row"><div class="form-label">Where</div><select class="form-input" id="mtWhere"></select></div>
+        <div class="form-row" id="mtWhereOtherRow" style="display:none"><div class="form-label">Place</div><input class="form-input" id="mtWhereOther" placeholder="e.g. Their office, 12 Queen St"></div>
+        <div class="form-row"><div class="form-label">Who from BtB is going (they show as busy for online bookings)</div><div class="gm-chip-row" id="mtStaffChips"></div></div>
+        <div class="form-row"><div class="form-label">Notes</div><textarea class="form-input" id="mtNotes" rows="2"></textarea></div>
+        <div class="form-btns">
+          <button class="form-cancel" onclick="closeMeetForm()">Cancel</button>
+          <button class="form-submit" style="background:#4f46e5" onclick="saveMeeting()">Save meeting</button>
         </div>
       </div>
       <p class="sec-title" id="bookingListTitle"></p>
@@ -632,6 +654,7 @@ let bookingText={
   },
 };
 let staff=[],staffTraining=[],bookings=[],enquiries=[];
+var meetings=[],resetInfo={templateByGame:{},runsByBooking:{}}; // v16.4.69 (declared up here so the calendar can draw before they load)
 let openTrainingPanels=new Set(),openPanels=new Set();
 let openActionsId=null,rescheduleOpenIds=new Set(),cancelOpenIds=new Set();
 const _n=nzNow();
@@ -885,6 +908,7 @@ async function loadBookings(month,year){
       }
     });
     console.log(`✓ ${rows.length} bookings for ${month}/${year}`);
+    await Promise.all([loadMeetings(month,year),loadResetInfo()]); // v16.4.69
   }catch(e){console.error('Bookings load:',e)}
 }
 // v16.4.66: BOOKING CARD SAVES — each change (tag, GM, note, done, no-show) now saves ONLY its own field,
@@ -1316,6 +1340,7 @@ function buildCalendar(){
   grid.innerHTML='';labels.forEach(l=>grid.appendChild(l));
   document.getElementById('monthNavLabel').textContent=`${MONTHS[viewMonth-1]} ${viewYear}`;
   const hasEvent=new Set(bookings.filter(b=>b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry).map(b=>b.date));
+  meetings.forEach(m=>{const[y,mo,d]=m.event_date.split('-').map(Number);if(y===viewYear&&mo===viewMonth)hasEvent.add(d)}); // v16.4.69
   const firstDay=new Date(viewYear,viewMonth-1,1).getDay();
   const offset=(firstDay+6)%7;
   const daysInMonth=new Date(viewYear,viewMonth,0).getDate();
@@ -1399,6 +1424,7 @@ function buildCard(b,hideTime){
 <div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
 ${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
+${resetChipHtml(b)}
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
@@ -1835,12 +1861,14 @@ function renderEvents(){
   let filtered=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry);
   if(activeTagFilter)filtered=filtered.filter(b=>(b.tags||[]).includes(activeTagFilter));
   if(currentUser?.role==='gamemaster_own')filtered=filtered.filter(b=>(b.gms||[]).includes(currentUser.staffId||currentUser.id));
-  document.getElementById('bookingListTitle').textContent=`${dayLbl(selectedDate)} ${selectedDate} ${MONTHS[viewMonth-1]} — ${filtered.length} booking${filtered.length!==1?'s':''}`;
+  const dayMeets=meetingsOn(selectedDate,viewMonth,viewYear).filter(m=>currentUser?.role!=='gamemaster_own'||(m.attendee_staff_ids||[]).includes(currentUser.staffId||currentUser.id));
+  document.getElementById('bookingListTitle').textContent=`${dayLbl(selectedDate)} ${selectedDate} ${MONTHS[viewMonth-1]} — ${filtered.length} booking${filtered.length!==1?'s':''}${dayMeets.length?` · ${dayMeets.length} meeting${dayMeets.length!==1?'s':''}`:''}`;
   renderQuickBookRow();
-  if(!filtered.length){list.innerHTML='<div class="empty-state">No bookings for this day.</div>';return}
+  if(!filtered.length&&!dayMeets.length){list.innerHTML='<div class="empty-state">No bookings for this day.</div>';return}
 const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   // Hire bookings become one card per hire (a package of several games = one card)
   const hireMap={},units=[],inhouse=[];
+  dayMeets.forEach(m=>units.push({time:String(m.start_time).slice(0,5),type:'meet',meeting:m})); // v16.4.69 meetings sit in time order with bookings
   sorted.forEach(b=>{
     if(b.playLocation==='hire'){
       const k=b.groupId||('single_'+b.id);
@@ -1857,6 +1885,7 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   }
   units.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   units.forEach(u=>{
+    if(u.type==='meet'){list.appendChild(buildMeetingCard(u.meeting));return}
     if(u.type==='hire'){list.appendChild((hireDraft&&u.members.some(m=>m.id===hireEditId))?buildHireEditor(u.members):buildHireCard(u.members));return}
     const grp=u.grp;
     if(grp.length>1){
@@ -1874,6 +1903,147 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   });
 }
 function renderActiveView(){if(calView==='sched')renderSchedule();else renderEvents()}
+
+// ───────── v16.4.69: MEETINGS / APPOINTMENTS (cal_events) ─────────
+var meetEditId=null,meetStaff=[],taskAreas=[];
+function ymd(y,m,d){return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function meetingsOn(d,m,y){const ds=ymd(y,m,d);return meetings.filter(x=>x.event_date===ds&&!x.cancelled)}
+async function loadMeetings(month,year){
+  try{
+    const first=ymd(year,month,1),last=ymd(year,month,new Date(year,month,0).getDate());
+    const r=await fetch(`${SB_URL}/rest/v1/cal_events?event_date=gte.${first}&event_date=lte.${last}&cancelled=eq.false&order=start_time&select=*`,{headers:H()});
+    const rows=await r.json();if(!Array.isArray(rows))return;
+    meetings=meetings.filter(x=>!(x.event_date>=first&&x.event_date<=last)).concat(rows);
+  }catch(e){console.error('Meetings load:',e)}
+}
+async function loadTaskAreas(){
+  if(taskAreas.length)return;
+  try{const r=await fetch(`${SB_URL}/rest/v1/cl_areas?active=eq.true&select=id,name&order=sort_order,name`,{headers:H()});const rows=await r.json();if(Array.isArray(rows))taskAreas=rows}catch(e){}
+}
+function hmLabel(t){return fmt12(String(t||'').slice(0,5))}
+function buildMeetingCard(m){
+  const el=document.createElement('div');
+  const who=(m.attendee_staff_ids||[]).map(id=>staff.find(s=>s.id===id)?.name).filter(Boolean).join(', ');
+  const where=m.area_id?(taskAreas.find(a=>a.id===m.area_id)?.name||''):(m.location_text||'');
+  el.style.cssText='background:#eef2ff;border:2px solid #6366f1;border-left-width:8px;border-radius:12px;padding:12px;margin-bottom:10px';
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="background:#4f46e5;color:#fff;font-size:11px;font-weight:800;letter-spacing:.6px;padding:3px 9px;border-radius:99px">📅 MEETING</span>
+      <span style="font-size:16px;font-weight:700;color:#111827">${hmLabel(m.start_time)}–${hmLabel(m.end_time)}</span>
+      <span style="margin-left:auto;display:flex;gap:6px"><button class="icon-btn" title="Edit" onclick="openMeetForm('${m.id}')" style="border:1px solid #c7d2fe;border-radius:8px;padding:4px 9px;background:#fff"><i class="ti ti-pencil"></i></button>
+      <button class="icon-btn" title="Cancel meeting" onclick="cancelMeeting('${m.id}')" style="border:1px solid #fecaca;border-radius:8px;padding:4px 9px;background:#fff;color:#dc2626"><i class="ti ti-x"></i></button></span></div>
+    <div style="font-size:16px;font-weight:700;margin-top:6px">${escapeHtml(m.title)}</div>
+    ${m.with_name?`<div style="font-size:13px;color:#374151;margin-top:3px">With ${escapeHtml(m.with_name)}</div>`:''}
+    ${where?`<div style="font-size:13px;color:#374151;margin-top:3px">📍 ${escapeHtml(where)}</div>`:''}
+    ${who?`<div style="font-size:13px;color:#374151;margin-top:3px">👤 ${escapeHtml(who)}</div>`:''}
+    ${m.notes?`<div style="font-size:13px;color:#4b5563;margin-top:4px;white-space:pre-wrap">📝 ${escapeHtml(m.notes)}</div>`:''}`;
+  return el;
+}
+async function openMeetForm(id){
+  await loadTaskAreas();
+  if(walkinOpen)toggleWalkin();if(pkOpen)togglePkg();
+  const m=id?meetings.find(x=>x.id===id):null;meetEditId=id;
+  meetStaff=m?[...(m.attendee_staff_ids||[])]:[currentUser?.staffId].filter(Boolean);
+  document.getElementById('meetFormTitle').textContent=m?'Edit meeting':'New meeting / appointment';
+  document.getElementById('mtTitle').value=m?.title||'';
+  document.getElementById('mtDate').value=m?.event_date||ymd(viewYear,viewMonth,selectedDate);
+  document.getElementById('mtWith').value=m?.with_name||'';
+  document.getElementById('mtStart').value=m?String(m.start_time).slice(0,5):'';
+  document.getElementById('mtEnd').value=m?String(m.end_time).slice(0,5):'';
+  document.getElementById('mtNotes').value=m?.notes||'';
+  const sel=document.getElementById('mtWhere');
+  sel.innerHTML=taskAreas.map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('')+'<option value="other">Somewhere else…</option>';
+  sel.value=m?(m.area_id||'other'):(taskAreas.find(a=>/conference/i.test(a.name))?.id||'other');
+  sel.onchange=()=>{document.getElementById('mtWhereOtherRow').style.display=sel.value==='other'?'':'none'};
+  document.getElementById('mtWhereOther').value=m?.location_text||'';
+  sel.onchange();renderMeetChips();
+  const f=document.getElementById('meetForm');f.style.display='';f.scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('mtTitle').focus();
+}
+function renderMeetChips(){
+  document.getElementById('mtStaffChips').innerHTML=staff.map(p=>`<button type="button" class="gm-chip ${meetStaff.includes(p.id)?'assigned':''}" onclick="toggleMeetStaff('${p.id}')">${meetStaff.includes(p.id)?'✓ ':''}${escapeHtml(p.name)}</button>`).join('');
+}
+function toggleMeetStaff(id){const i=meetStaff.indexOf(id);if(i===-1)meetStaff.push(id);else meetStaff.splice(i,1);renderMeetChips()}
+function closeMeetForm(){document.getElementById('meetForm').style.display='none';meetEditId=null}
+async function saveMeeting(){
+  const title=document.getElementById('mtTitle').value.trim(),date=document.getElementById('mtDate').value,start=document.getElementById('mtStart').value,end=document.getElementById('mtEnd').value;
+  if(!title){alert('Please say what the meeting is.');return}
+  if(!date||!start||!end){alert('Please choose the date, start and end time.');return}
+  if(end<=start){alert('The end time must be after the start time.');return}
+  const where=document.getElementById('mtWhere').value;
+  const body={title,event_date:date,start_time:start+':00',end_time:end+':00',attendee_staff_ids:meetStaff,with_name:document.getElementById('mtWith').value.trim()||null,
+    area_id:where==='other'?null:where,location_text:where==='other'?(document.getElementById('mtWhereOther').value.trim()||null):null,notes:document.getElementById('mtNotes').value.trim()||null,updated_at:new Date().toISOString()};
+  const before=meetEditId?(meetings.find(x=>x.id===meetEditId)?.attendee_staff_ids||[]):[];
+  try{
+    const url=meetEditId?`${SB_URL}/rest/v1/cal_events?id=eq.${meetEditId}`:`${SB_URL}/rest/v1/cal_events`;
+    const r=await fetch(url,{method:meetEditId?'PATCH':'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(meetEditId?body:{...body,created_by:currentUser?.staffId||null})});
+    if(!r.ok)throw new Error(await r.text());
+    const saved=(await r.json())[0];if(!saved)throw new Error('not saved');
+    meetings=meetings.filter(x=>x.id!==saved.id).concat([saved]);
+    const added=meetStaff.filter(id=>!before.includes(id)&&id!==currentUser?.staffId);
+    if(added.length)fetch(`${SB_URL}/functions/v1/btb-notify`,{method:'POST',headers:H(),body:JSON.stringify({staffIds:added,title:'📅 Meeting',body:`${title} — ${new Date(date+'T12:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})} ${hmLabel(start)}`,url:'btb_app.html'})}).catch(()=>{});
+    closeMeetForm();
+    const[y,mo,d]=date.split('-').map(Number);if(y!==viewYear||mo!==viewMonth){viewYear=y;viewMonth=mo;await loadBookings(mo,y)}selectedDate=d;
+    buildCalendar();renderActiveView();updateHeader();
+  }catch(e){alert('Meeting not saved: '+e.message)}
+}
+async function cancelMeeting(id){
+  const m=meetings.find(x=>x.id===id);if(!m||!confirm(`Cancel "${m.title}"?`))return;
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/cal_events?id=eq.${id}`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({cancelled:true,updated_at:new Date().toISOString()})});
+    if(!r.ok)throw new Error(await r.text());
+    meetings=meetings.filter(x=>x.id!==id);buildCalendar();renderActiveView();updateHeader();
+  }catch(e){alert('Not cancelled: '+e.message)}
+}
+
+// ───────── v16.4.69: ROOM RESET STATUS ON TODAY'S BOOKING CARDS (Task Hub checklists) ─────────
+async function loadResetInfo(){
+  try{
+    const today=ymd(TODAY_Y,TODAY_M,TODAY);
+    const [tr,ar,rr]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/cl_templates?kind=eq.reset&active=eq.true&select=id,name,area_id`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/cl_areas?game_id=not.is.null&select=id,game_id`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&run_date=eq.${today}&select=id,booking_id,status,completed_by,completed_at,mode`,{headers:H()})]);
+    const [ts,as,rs]=[await tr.json(),await ar.json(),await rr.json()];
+    if(!Array.isArray(ts)||!Array.isArray(as)||!Array.isArray(rs))return;
+    const tbg={};ts.forEach(t=>{const a=as.find(x=>x.id===t.area_id);if(a&&!tbg[a.game_id])tbg[a.game_id]=t});
+    const rbb={};rs.forEach(r=>{if(r.booking_id)rbb[r.booking_id]=r});
+    resetInfo={templateByGame:tbg,runsByBooking:rbb};
+  }catch(e){console.error('Reset status load:',e)}
+}
+// The booking just before this one in the same room today, if it has finished
+function previousFinished(b){
+  if(b.playLocation==='hire'||b.date!==TODAY||b.month!==TODAY_M||b.year!==TODAY_Y)return null;
+  const n=nzNow(),nowM=n.getHours()*60+n.getMinutes(),toM=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+m};
+  const prev=bookings.filter(x=>x.id!==b.id&&x.game_id===b.game_id&&x.date===b.date&&x.month===b.month&&x.year===b.year&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&(x.time||'')<(b.time||''))
+    .sort((x,y)=>(y.time||'').localeCompare(x.time||''))[0];
+  if(!prev)return null;
+  const finished=prev.status==='completed'||toM(prev.time)+(prev.duration||60)<=nowM;
+  return finished?prev:null;
+}
+function resetChipHtml(b){
+  if(b.status==='completed'||!resetInfo.templateByGame[b.game_id])return'';
+  const prev=previousFinished(b);if(!prev)return'';
+  const run=resetInfo.runsByBooking[prev.id];
+  if(run&&run.status==='done'){
+    const who=staff.find(s=>s.id===run.completed_by)?.name||'';
+    const at=run.completed_at?new Date(run.completed_at).toLocaleTimeString('en-NZ',{timeZone:'Pacific/Auckland',hour:'numeric',minute:'2-digit'}):'';
+    return`<div style="margin:4px 0"><span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 9px;border-radius:99px">✓ Room ready${who||at?` (${escapeHtml(who)}${who&&at?', ':''}${at})`:''}</span></div>`;
+  }
+  return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="openResetFor('${prev.id}')" title="Open the reset checklist" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset since the ${fmt12(prev.time||'00:00')} game</span></div>`;
+}
+async function openResetFor(prevId){
+  const prev=bookings.find(x=>x.id===prevId);const t=prev&&resetInfo.templateByGame[prev.game_id];if(!t)return;
+  try{
+    let run=resetInfo.runsByBooking[prevId];
+    if(!run){
+      const r=await fetch(`${SB_URL}/rest/v1/cl_runs`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({template_id:t.id,template_name:t.name,kind:'reset',owners_only:false,area_id:t.area_id,game_id:prev.game_id,booking_id:prev.id,run_date:ymd(prev.year,prev.month,prev.date),auto:true,created_by:currentUser?.staffId||null})});
+      if(r.ok)run=(await r.json())[0];
+      else if(r.status===409){const q=await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&booking_id=eq.${prev.id}&select=*`,{headers:H()});run=(await q.json())[0]}
+      else throw new Error(await r.text());
+    }
+    window.open(`task_hub.html?run=${run.id}`,'_blank');
+  }catch(e){alert('Could not open the reset checklist: '+e.message)}
+}
 
 // BOOKING ACTIONS
 function togglePanel(id){if(openPanels.has(id))openPanels.delete(id);else openPanels.add(id);renderActiveView()}
@@ -3694,7 +3864,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.68'; // v16.4.68: Clash warnings (new booking, reschedule, hire package) now use one check that looks the day up in the database and compares the real time each booking ties up its game — game + reset for played-here bookings, drop-off to pick-up + reset for hires. Before: only "starts within 90 minutes", only bookings in the month on screen, and the package check only looked for any booking that day.
+const BUILD_VERSION = '16.4.69'; // v16.4.69: Meetings / appointments on the calendar (cal_events): Meeting button, who's going (shown busy for online bookings), where, with whom, notes, edit/cancel; attendees get a phone notification. Today's booking cards show the room's reset status: red 'Room not reset since the X game' (tap to open the checklist) or green 'Room ready (who, when)'.
+// Previous build: 16.4.68 — // v16.4.68: Clash warnings (new booking, reschedule, hire package) now use one check that looks the day up in the database and compares the real time each booking ties up its game — game + reset for played-here bookings, drop-off to pick-up + reset for hires. Before: only "starts within 90 minutes", only bookings in the month on screen, and the package check only looked for any booking that day.
 // Previous build: 16.4.67 — // v16.4.67: Choosing Cancel booking or Reschedule from a booking's ⋯ menu now scrolls the page so the confirm box (and its buttons) is on screen, instead of opening it out of sight further down.
 // Previous build: 16.4.66 — // v16.4.66: Booking card changes (tags, GMs incl. hire GMs, notes, done tick, no-show) now save ONLY the field that changed, applied on top of the latest saved booking, instead of re-saving tags/notes/GMs/status/no-show together from this page's older copy. Stops btb_app undoing changes made elsewhere (e.g. a session completed in Control Room reverting to confirmed, or a GM assigned in Staff Portal being removed). Failed saves now show a message and reload the calendar instead of failing silently.
 // Previous build: 16.4.65 — // v16.4.65: Booking card ⋯ menu now stays fully on screen — opens upwards when the booking is near the bottom of the screen, and scrolls inside itself if it can't fit either way. Previously the bottom options were cut off and couldn't be reached.

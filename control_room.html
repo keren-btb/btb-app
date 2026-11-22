@@ -417,7 +417,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 19; // v19: Room resets (Task Hub checklists). After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist), "Someone else" (give it to a person or Anyone), or "Later". When you open a game whose room wasn't reset after the previous game, a big red "NOT RESET" warning shows with a button to open the reset checklist. Never blocks the game or the timer.
+        const BUILD_VERSION = 20; // v20: 'Someone else will reset it' sends that person a phone notification.
+        // Previous build: 19 — // v19: Room resets (Task Hub checklists). After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist), "Someone else" (give it to a person or Anyone), or "Later". When you open a game whose room wasn't reset after the previous game, a big red "NOT RESET" warning shows with a button to open the reset checklist. Never blocks the game or the timer.
         // Previous build: 18 — // v18: The link back to the main app now says "BtB App" (was "Btb App"), the same as every other page.
         // Previous build: 17 — // v17: Hired-out bookings show "🚚 Hired out" and the venue instead of player counts.
         // Previous build v16: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for staff. Nothing existing was changed or removed. | v15: Added deep-link support — control_room.html?date=YYYY-MM-DD&booking=<id> now jumps straight into that booking's dashboard on load, instead of leaving staff on the room/date picker. Used by the new "Open in Control Room" link in btb_app.html's booking ⋯ menu.
@@ -1104,6 +1105,7 @@ async function resetTimer(){
             const to = document.getElementById('reset-ask-who').value || null;
             const r = await fetch(`${SB_URL}/rest/v1/cl_runs?id=eq.${resetAskRun.id}`, {method:'PATCH', headers:{...H(), 'Prefer':'return=representation'}, body: JSON.stringify({assigned_staff_id: to, assigned_role: null})});
             if (!r.ok) { document.getElementById('reset-ask-msg').textContent = 'Not saved: ' + await r.text(); return; }
+            if (to) fetch(`${SB_URL}/functions/v1/btb-notify`, {method:'POST', headers:H(), body: JSON.stringify({staffIds:[to], title:'🧹 Room reset for you', body:`${resetAskRun.template_name}`, url:`task_hub.html?run=${resetAskRun.id}`})}).catch(()=>{}); // v20
             closeResetAsk();
         }
         function resetAskLater() { closeResetAsk(); }

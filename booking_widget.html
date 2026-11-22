@@ -4322,7 +4322,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.44'; // v1.7.44: Roster-mode staff now count as available only if their shift covers the whole game (start to finish), not just the start time. Also, the roster is now actually readable here: the database lets the public key see who-is-working/when for taken shifts (2026-11-22) — before, this page always got an empty roster, so only calendar-mode staff were ever offered.
+const BUILD_VERSION = '1.7.45'; // v1.7.45: Staff going to a BtB meeting count as busy for games that overlap it.
+// Previous build: 1.7.44 — // v1.7.44: Roster-mode staff now count as available only if their shift covers the whole game (start to finish), not just the start time. Also, the roster is now actually readable here: the database lets the public key see who-is-working/when for taken shifts (2026-11-22) — before, this page always got an empty roster, so only calendar-mode staff were ever offered.
 // Previous build: 1.7.43 — // v1.7.43: Hired-out games are now blocked for the whole hire — from drop-off (or start) to pick-up (or start + hire period) plus the reset — instead of just one game slot, so e.g. Gregg in the Box can't be booked here while it's out at a venue. Self-run hires (no GM goes) no longer use up a staff member, and hires are left out of the reset check. Needs the public_booking_slots view columns play_location, gm_attends, dropoff_time, pickup_time (added 2026-11-22).
 // Previous build: 1.7.42 — // v1.7.42: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.7.41: Reset-aware availability. A GM is now only needed for the game itself (not held through the reset buffer) — the reset of a game only has to be done before the next booking of the SAME game, by the GM who ran it or anyone ticked "can reset" for that game who is free (My Week green or on the roster) and not busy elsewhere. If nobody can cover a reset, the slot that would need it isn't offered. Falls back to the v1.7.40 rules if the can-reset list can't be loaded. | v1.7.40: Slots now use My Week free times (owners must be free for the whole game; no free time = not free), game length + reset buffer, and bookings with no GM yet. | v1.7.39: Week view no longer shows days that have already gone (e.g. on a Saturday it starts at Saturday, not Monday); the week label starts from today and "Prev" no longer goes back into past weeks. // v1.7.38: Deposit wording now matches the confirmation email (booking is made; please pay the deposit as soon as you can; card/cash = call to arrange), the price box heading is clearer (fixes missing space after the amount), and a REQUIRED tick box on the review step: "I will pay the deposit as soon as I can". // v1.7.37: Occasion dropdowns (main booking, group booking, contact enquiry) now use a custom-built dropdown because Chrome/Edge's built-in list was closing as soon as the mouse moved. Same options and look; the original select stays hidden underneath so everything else is unchanged. // v1.7.36: Fixed bookings not saving ("permission denied") — widget now creates the booking ID itself and saves with return=minimal instead of asking the database to send the saved booking back. // v1.7.35: Locked booking links — booking_widget.html now reads ?game=&date=&time=&locked=1 from the URL and, if that slot is still open, jumps straight to the details form with it fixed (no "Change"). Shows a banner and falls back to the normal picker if the slot's gone.
 console.log(`%cBooking Widget — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:bold;font-size:13px');
@@ -4684,6 +4685,13 @@ try {
       } else { freeTimesLoaded = false; }
     } catch (e) { freeTimesLoaded = false; console.error('Free times load:', e); }
 
+    // v1.7.45: BtB meetings (only who is going and when — no titles/names) make those staff busy
+    try {
+      const mr = await fetch(`${SB_URL}/rest/v1/cal_events?event_date=gte.${today}&cancelled=eq.false&select=event_date,start_time,end_time,attendee_staff_ids`, { headers: SB_H });
+      const mRows = await mr.json();
+      staffMeetings = (mr.ok && Array.isArray(mRows)) ? mRows : [];
+    } catch (e) { staffMeetings = []; }
+
     // v1.7.41: who is ticked "can reset" for which game (public view — only staff + game, yes ticks only)
     try {
       const cr = await fetch(`${SB_URL}/rest/v1/public_staff_can_reset?select=staff_id,game_id`, { headers: SB_H });
@@ -4817,8 +4825,16 @@ function gameNeedsReset(gameId) {
   return gameBuffer(gameId) > 0;
 }
 
+// v1.7.45: is this person in a BtB meeting at any point in [sMin, eMin) on this date?
+var staffMeetings = [];
+function inMeeting(sid, dateStr, sMin, eMin) {
+  return staffMeetings.some(m => m.event_date === dateStr && (m.attendee_staff_ids || []).includes(sid) &&
+    sMin < hmToMins(String(m.end_time).slice(0, 5)) && eMin > hmToMins(String(m.start_time).slice(0, 5)));
+}
+
 // Is this person free (free time / on the roster, no calendar clash) for the whole of [sMin, eMin) on this date?
 function personFreeForWindow(sid, dateStr, sMin, eMin) {
+  if (inMeeting(sid, dateStr, sMin, eMin)) return false; // v1.7.45
   const [y, mo, da] = dateStr.split('-').map(Number);
   const dow = new Date(Date.UTC(y, mo - 1, da)).getUTCDay();
   if (staffMode[sid] === 'calendar') {
@@ -4965,6 +4981,8 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
     // Manual time-off override (Book Time Off tab) applies regardless of mode
     const blocked = (staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable';
     if (blocked) return;
+    // v1.7.45: in a BtB meeting during the game
+    if (inMeeting(sid, dateStr, hmToMins(slotTime), hmToMins(slotTime) + durationMin)) return;
 
     if (staffMode[sid] === 'calendar') {
       // Weekly recurring "always away" block e.g. a day job
