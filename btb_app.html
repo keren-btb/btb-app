@@ -852,7 +852,12 @@ async function loadBookings(month,year){
           time:(row.slot_time||'').slice(0,5),
           duration:games.find(g=>g.id===row.game_id)?.duration||60,
           players_booked:row.players_booked||1,
-          meta:`${row.players_booked} player${row.players_booked!==1?'s':''} · ${row.source||''}`,
+          meta:row.play_location==='hire'?('Hired out'+(row.venue_address?' · '+row.venue_address:'')):`${row.players_booked} player${row.players_booked!==1?'s':''} · ${row.source||''}`,
+          playLocation:row.play_location||'in_house',groupId:row.group_booking_id||null,
+          venueAddress:row.venue_address||'',venuePhone:row.venue_contact_phone||'',gmAttends:row.gm_attends,
+          travelFee:parseFloat(row.travel_fee)||0,gmFee:parseFloat(row.gm_fee)||0,
+          dropoffMethod:row.dropoff_method||null,dropoffTime:(row.dropoff_time||'').slice(0,5),
+          pickupMethod:row.pickup_method||null,pickupTime:(row.pickup_time||'').slice(0,5),
           tags:(()=>{
             let t=JSON.parse(row.tags||'[]');
             // Auto-add occasion tag if exists
@@ -1215,7 +1220,7 @@ async function submitWalkin(){
     const saved=(await r.json())[0];
     if(saved){
       const d=new Date(ds+'T12:00');
-      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:isHire?Math.round((game.hirePeriodHours||game.duration/60)*60):game.duration,meta:`${players} player${players!==1?'s':''} · ${isHire?'Hired out — '+venueAddress+(gmAttends?' · GM goes':' · self-run')+(dropoffMethod==='we_drop_off'?' · we drop off':' · they collect')+(pickupMethod==='we_pick_up'?' · we pick up':' · they return'):'Walk-in'}`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||''});
+      bookings.push({id:saved.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),name:game.name,game_id:gameId,customer:name,time,duration:isHire?Math.round((game.hirePeriodHours||game.duration/60)*60):game.duration,meta:`${players} player${players!==1?'s':''} · ${isHire?'Hired out — '+venueAddress+(gmAttends?' · GM goes':' · self-run')+(dropoffMethod==='we_drop_off'?' · we drop off':' · they collect')+(pickupMethod==='we_pick_up'?' · we pick up':' · they return'):'Walk-in'}`,tags:[],notes:note?[note]:[],gms:[...walkinGMs],status:'confirmed',timerSec:0,timerRunning:false,timerStartedAt:null,timerInterval:null,source:'walkin',occasion:occasion||'',...(isHire?{playLocation:'hire',venueAddress,venuePhone,gmAttends,travelFee,gmFee,dropoffMethod,dropoffTime:dropoffTime||'',pickupMethod,pickupTime:pickupTime||'',total_amount:hirePrice+gmFee+travelFee,deposit_amount:deposit,deposit_paid:!!(deposit&&deposit>0)}:{})});
     }
   }catch(e){alert('Error: '+e.message);return}
   walkinGMs=[];walkinOpen=false;walkinClientId=null;walkinClientOrig=null;document.getElementById('walkinForm').style.display='none';
@@ -1294,7 +1299,7 @@ function calcPrice(gameId,players){
 }
 function getPaymentStatus(b){
   const hasStoredTotal=b.total_amount!==null&&b.total_amount!==undefined&&parseFloat(b.total_amount)>0;
-  const total=hasStoredTotal?parseFloat(b.total_amount):calcPrice(b.game_id,b.players_booked||1);
+  const total=hasStoredTotal?parseFloat(b.total_amount):(b.playLocation==='hire'?0:calcPrice(b.game_id,b.players_booked||1));
   if(!total||total<=0)return null;
   let list=b.payments;
   if(typeof list==='string'){try{list=JSON.parse(list)}catch(e){list=[]}}
@@ -1594,6 +1599,85 @@ function showLinkCopiedToast(msg){
   el._t=setTimeout(()=>{el.style.opacity='0'},2200);
 }
 
+// HIRE CARD — one card per hire (a hire package of several games = ONE card): booking details and total shown once,
+// each game keeps its own colour chip.
+function hireMembersOf(b){return b.groupId?bookings.filter(x=>x.groupId===b.groupId&&x.status!=='cancelled'):[b]}
+function buildHireCard(members){
+  const b=members[0];
+  const total=members.reduce((a,m)=>a+(parseFloat(m.total_amount)||0),0);
+  const gmFee=members.reduce((a,m)=>a+(m.gmFee||0),0);
+  const travel=members.reduce((a,m)=>a+(m.travelFee||0),0);
+  const owing=members.reduce((a,m)=>{const ps=getPaymentStatus(m);return a+(ps?ps.owing:0)},0);
+  const gmIds=[...new Set(members.flatMap(m=>m.gms||[]))];
+  const gmNames=gmIds.map(id=>{const p=staff.find(x=>x.id===id);return p?p.name:'?'}).join(', ');
+  const notes=[...new Set(members.flatMap(m=>m.notes||[]))];
+  const money=n=>'$'+(n||0).toFixed(2);
+  const t=x=>x?' at '+fmt12(x):'';
+  const gamePills=members.map((m,i)=>{
+    const price=(parseFloat(m.total_amount)||0)-(m.gmFee||0)-(m.travelFee||0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:${getGameColor(m.name)};border-radius:8px;padding:7px 10px;font-size:15px;font-weight:700;color:#0e7490"><span>${escapeHtml(m.name)}</span><span style="font-size:12px;font-weight:600;color:#374151">${money(price)}</span></div>`;
+  }).join('');
+  const dropTxt=b.dropoffMethod==='we_drop_off'?'We drop off'+t(b.dropoffTime):(b.dropoffMethod?'They collect from us'+t(b.dropoffTime):'');
+  const pickTxt=b.pickupMethod==='we_pick_up'?'We pick up'+t(b.pickupTime):(b.pickupMethod?'They return to us'+t(b.pickupTime):'');
+  const gmLine=b.gmAttends===false?'No GM — they run it themselves':(gmNames?('GM goes: '+escapeHtml(gmNames)):'<span style="color:#dc2626;font-weight:600">⚠ GM goes — not assigned yet</span>');
+  const gmChips=b.gmAttends===false?'':staff.map(p=>`<button class="gm-chip ${gmIds.includes(p.id)?'assigned':''}" onclick="toggleHireGM('${b.id}','${p.id}')">${gmIds.includes(p.id)?'✓ ':''}${p.name}</button>`).join('');
+  const row=(icon,html)=>html?`<div style="display:flex;gap:8px;font-size:13px;color:#374151;margin-top:4px"><span style="width:18px;flex-shrink:0">${icon}</span><span>${html}</span></div>`:'';
+  const extras=[gmFee?'GM '+money(gmFee):'',travel?'travel '+money(travel):''].filter(Boolean).join(' + ');
+  const ps=owing>0?`<span class="pay-badge owing"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
+  const el=document.createElement('div');
+  el.style.cssText='background:#faf5ff;border:2px solid #7c3aed;border-left-width:8px;border-radius:12px;padding:12px;margin-bottom:10px';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <span style="background:#7c3aed;color:#fff;font-size:11px;font-weight:800;letter-spacing:.6px;padding:3px 9px;border-radius:99px">🚚 HIRED OUT</span>
+      <span style="font-size:17px;font-weight:700;color:#111827">${fmt12(b.time||'00:00')} · ${members.length} game${members.length!==1?'s':''}</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        ${ps}
+        <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',this,event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
+        <div id="actionsDD-${b.id}" style="display:none;position:fixed;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
+          <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
+          <button class="action-menu-item" ${b.customerEmail?'':'disabled'} onclick="emailCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-mail" style="font-size:15px;color:#6b7280"></i>Email${b.customerEmail?'':' (no email)'}</button>
+          <button class="action-menu-item" onclick="openInPOS('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-cash-register" style="font-size:15px;color:#6b7280"></i>Go to POS</button>
+          <button class="action-menu-item" onclick="cancelHire('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:#dc2626;cursor:pointer;font-family:inherit"><i class="ti ti-circle-x" style="font-size:15px"></i>Cancel this hire</button>
+        </div>
+      </span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${gamePills}</div>
+    <div style="font-size:17px;font-weight:700;color:#111827">${escapeHtml(b.customer)||'—'}</div>
+    ${row('📍',escapeHtml(b.venueAddress))}
+    ${row('📞',[b.customerPhone?'Customer '+escapeHtml(b.customerPhone):'',b.venuePhone?'Venue '+escapeHtml(b.venuePhone):''].filter(Boolean).join(' · '))}
+    ${row('🎮',gmLine)}
+    ${gmChips?`<div class="gm-chip-row" style="margin:4px 0 0 26px">${gmChips}</div>`:''}
+    ${row('➡️',dropTxt)}
+    ${row('⬅️',pickTxt)}
+    ${notes.map(n=>row('📝',escapeHtml(n))).join('')}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e9d5ff;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:12px;color:#6b7280">${extras?'Includes '+extras:'Total'}</span>
+      <span style="font-size:20px;font-weight:800;color:#111827">${money(total)}</span>
+    </div>`;
+  return el;
+}
+function toggleHireGM(id,pid){
+  const first=bookings.find(x=>x.id===id);if(!first)return;
+  const members=hireMembersOf(first);
+  const add=!(first.gms||[]).includes(pid);
+  members.forEach(m=>{m.gms=m.gms||[];const i=m.gms.indexOf(pid);if(add&&i===-1)m.gms.push(pid);else if(!add&&i!==-1)m.gms.splice(i,1);saveBooking(m.id)});
+  renderActiveView();
+}
+async function cancelHire(id){
+  closeBookingActions();
+  const first=bookings.find(x=>x.id===id);if(!first)return;
+  const members=hireMembersOf(first);
+  if(!confirm(`Cancel this hire for ${first.customer||'this customer'} (${members.map(m=>m.name).join(', ')})? The bookings will be marked cancelled.`))return;
+  try{
+    for(const m of members){
+      const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${m.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'cancelled',updated_at:new Date().toISOString()})});
+      if(!r.ok)throw new Error(await r.text());
+    }
+  }catch(e){alert('Could not cancel the hire: '+e.message);return}
+  const ids=new Set(members.map(m=>m.id));
+  bookings=bookings.filter(b=>!ids.has(b.id));
+  buildCalendar();renderActiveView();updateHeader();
+}
 function renderEvents(){
   const list=document.getElementById('eventList');list.innerHTML='';
   let filtered=bookings.filter(b=>b.date===selectedDate&&b.month===viewMonth&&b.year===viewYear&&!b.isEnquiry);
@@ -1603,11 +1687,26 @@ function renderEvents(){
   renderQuickBookRow();
   if(!filtered.length){list.innerHTML='<div class="empty-state">No bookings for this day.</div>';return}
 const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  // Hire bookings become one card per hire (a package of several games = one card)
+  const hireMap={},units=[],inhouse=[];
+  sorted.forEach(b=>{
+    if(b.playLocation==='hire'){
+      const k=b.groupId||('single_'+b.id);
+      if(!hireMap[k]){hireMap[k]={time:b.time,type:'hire',members:[]};units.push(hireMap[k])}
+      hireMap[k].members.push(b);
+    }else inhouse.push(b);
+  });
   let i=0;
-  while(i<sorted.length){
+  while(i<inhouse.length){
     let j=i;
-    while(j<sorted.length&&sorted[j].time===sorted[i].time)j++;
-    const grp=sorted.slice(i,j);
+    while(j<inhouse.length&&inhouse[j].time===inhouse[i].time)j++;
+    units.push({time:inhouse[i].time,type:'std',grp:inhouse.slice(i,j)});
+    i=j;
+  }
+  units.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  units.forEach(u=>{
+    if(u.type==='hire'){list.appendChild(buildHireCard(u.members));return}
+    const grp=u.grp;
     if(grp.length>1){
       const wrap=document.createElement('div');
       wrap.className='time-group-wrapper';
@@ -1620,8 +1719,7 @@ const sorted=filtered.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
     }else{
       list.appendChild(buildCard(grp[0]));
     }
-    i=j;
-  }
+  });
 }
 function renderActiveView(){if(calView==='sched')renderSchedule();else renderEvents()}
 
@@ -3401,7 +3499,8 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.61'; // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
+const BUILD_VERSION = '16.4.62'; // v16.4.62: Hire bookings now show as ONE clearly marked "HIRED OUT" card on the calendar (a hire package of several games is one card) — game colour chips with each game's price, customer/venue/GM/drop-off/pick-up details once, and a single total + owing badge. Replaces "1 player · walkin". Actions: call, email, POS, cancel this hire.
+// Previous build: 16.4.61 — // v16.4.61: Hire package can be started from a client — opened via ?book_client=<id>&package=1 from the clients pages; the client's name/phone/email are pre-filled and the package is linked to that client.
 // Previous build: 16.4.60 — // v16.4.60: New "Hire package" button on the calendar — pick several hireable games, date, venue, GM/fee, drop-off/pick-up and travel in one form; saves one booking per game sharing a group_booking_id so POS combines them into one invoice.
 // Previous build: 16.4.59 — // v16.4.59: Hire bookings — optional game master fee, drop-off and pick-up options (we do it / customer does it) with optional times; total = hire + GM fee + travel. "Dropped off" wording for no-GM hires renamed to "No GM — they run it themselves".
 // Previous build: 16.4.58 — // v16.4.58: Hire-out games — games can be flagged "Can be hired out" (play-time range, hire price/period) in Settings > Games; new bookings can be Played here or Hired out (venue address/phone, GM goes or drop-off, hire price + travel fee). A GM-attended hire requires an assigned staff member. Needs games.hireable/hire_* and game_bookings.play_location/venue_*/travel_fee/gm_attends columns.
