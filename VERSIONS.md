@@ -201,6 +201,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.40 — 2026-11-23 — My Week for everyone: casual staff see their own week only — add/change/remove their own free times (usual week or one date), confirm their week, see their own shifts (blue band), their own bookings, and other bookings as plain grey "Booked" blocks (no customer details, can't change GMs). Owners now see every active staff member (not just calendar-mode) and the selected person's shifts. Booking page not changed — casual free times are not used for bookings yet. Nothing removed.
 - v1.9.39 — 2026-11-23 — Phone layout: ☰ menu opens over the page and closes after choosing; compact header; Shifts admin stacks; timesheet/clock tables scroll sideways.
 - v1.9.38 — 2026-11-22 — My Week shows BtB meetings; "Jobs & problems" notification setting.
 - v1.9.37 — 2026-11-22 — Timesheets: approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button, and staff can put in the real finish time (before it was invisible and couldn't be closed), and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC) and quotes staff names. Nothing removed.
@@ -419,4 +420,4 @@ Newest entry per file goes at the top of that file's list.
 
 ## invoice_render.js / invoice_letterhead.png
 - v1.1.0 — 2026-11-23 — Deposit-due-now box.
-- v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.
+- v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.

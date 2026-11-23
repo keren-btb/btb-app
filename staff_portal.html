@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="weekViewLegend" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:#6b7280;margin-bottom:10px"></div>
     <div id="weekViewWrap" style="overflow-x:auto"></div>
     <div id="weekViewDetail" style="margin-top:10px;font-size:13px;color:#374151;min-height:20px">Tap or hover a block for details. Tap a booking to choose who is running it. Tap an empty spot or a green block to change free time.</div>
-    <div style="margin-top:6px;font-size:11px;color:#9ca3af">You can assign GMs to bookings here. Nothing else can be changed from this tab yet. Personal calendar items only show from now onwards.</div>
+    <div id="weekViewFootNote" style="margin-top:6px;font-size:11px;color:#9ca3af">You can assign GMs to bookings here. Nothing else can be changed from this tab yet. Personal calendar items only show from now onwards.</div>
 
     <!-- Calendar-mode staff only: recurring events found on their synced calendar,
          waiting on a yes/no about whether they count as unavailable for GM shifts -->
@@ -1194,7 +1194,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.39'; // v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+const BUILD_VERSION = '1.9.40'; // v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
 
 // Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
@@ -1587,7 +1587,7 @@ function getRosterWeekDates() {
 }
 
 // ============================================================
-// MY WEEK (owners only, view-only) — v1.9.26
+// MY WEEK — v1.9.26 (owners), v1.9.40 everyone: casuals see only their own row
 // Shows bookings (coloured by assigned GM; dashed = no GM yet) and the
 // selected owner's personal calendar items (titles come from the private
 // staff_calendar_busy_details table). Nothing is saved from here.
@@ -1601,6 +1601,8 @@ const WEEK_FALLBACK_COLOUR = '#0d9488';
 let weekSelectedBookingId = null;
 let weekBookingsCache = [];
 let weekMeetings = []; // v1.9.38
+let weekShifts = [];   // v1.9.40: selected person's shifts for the shown week
+let weekIsOwnerView = false; // v1.9.40
 
 // Hired-out bookings: show it clearly, with venue and drop-off / pick-up, instead of a player count.
 function weekHireOrPlayers(b) {
@@ -1834,6 +1836,10 @@ function weekShowBooking(bid) {
   const out = document.getElementById('weekViewDetail');
   const b = weekBookingsCache.find(x => x.id === bid);
   if (!out || !b) return;
+  if (!weekIsOwnerView) { // v1.9.40: casuals can see their own booking but not change who runs it
+    out.innerHTML = `<div style="margin-bottom:8px">${escapeHtml(weekBookingDetail(b))}</div><div style="margin-top:8px"><button class="btn-secondary btn-sm" onclick="weekScrollToTop()">↑ Back to the week</button></div>`;
+    return;
+  }
   const ids = weekParseIds(b.assigned_staff_ids);
   const chips = allStaff.filter(st => st.active !== false).map(st => {
     const on = ids.includes(st.id);
@@ -1896,11 +1902,18 @@ function weekParseIds(v) {
 async function loadWeekView(silent) {
   const wrap = document.getElementById('weekViewWrap');
   if (!wrap) return;
-  if (!(myStaffRecord && myStaffRecord.is_owner)) { wrap.innerHTML = '<div class="empty-state">This tab is for owners only.</div>'; return; }
+  if (!myStaffRecord) { wrap.innerHTML = '<div class="empty-state">Please log in again.</div>'; return; }
+  const isOwnerView = !!myStaffRecord.is_owner;
 
-  // Owners see everyone who uses free times (all active calendar-mode staff); fall back to owners if none are set up
-  let owners = allStaff.filter(s => s.availability_mode === 'calendar' && s.active !== false);
-  if (owners.length === 0) owners = allStaff.filter(s => s.is_owner && s.active !== false);
+  // v1.9.40: owners see every active staff member (calendar-mode people first); everyone else sees only themselves
+  let owners;
+  if (isOwnerView) {
+    const act = allStaff.filter(s => s.active !== false);
+    owners = [...act.filter(s => s.availability_mode === 'calendar'), ...act.filter(s => s.availability_mode !== 'calendar')];
+    if (owners.length === 0) owners = [myStaffRecord];
+  } else {
+    owners = [allStaff.find(s => s.id === myStaffRecord.id) || myStaffRecord];
+  }
   if (!weekViewPersonId || !owners.find(o => o.id === weekViewPersonId)) weekViewPersonId = (owners.find(o => o.id === myStaffRecord.id) || owners[0] || myStaffRecord).id;
 
   const now = nzNow();
@@ -1928,6 +1941,12 @@ async function loadWeekView(silent) {
       fetch(`${SB_URL}/rest/v1/staff_free_day_overrides?free_date=gte.${fromStr}&free_date=lte.${toStr}&select=staff_id,free_date`, {headers:H()}),
       fetch(`${SB_URL}/rest/v1/staff_week_confirmations?week_start=eq.${fromStr}&select=staff_id,stage,confirmed_at,free_snapshot`, {headers:H()})
     ]);
+    // v1.9.40: the selected person's shifts this week (taken shifts only — open ones belong to nobody yet)
+    try {
+      const sr = await fetch(`${SB_URL}/rest/v1/assigned_shifts?staff_id=eq.${P}&shift_date=gte.${fromStr}&shift_date=lte.${toStr}&status=neq.open&select=shift_date,custom_start_time,custom_end_time,status`, {headers:H()});
+      weekShifts = sr.ok ? await sr.json() : [];
+      if (!Array.isArray(weekShifts)) weekShifts = [];
+    } catch (e) { weekShifts = []; }
     // v1.9.38: meetings from the BtB app calendar (cal_events) — shown like calendar items for the people going
     try {
       const mr = await fetch(`${SB_URL}/rest/v1/cal_events?event_date=gte.${fromStr}&event_date=lte.${toStr}&cancelled=eq.false&select=title,event_date,start_time,end_time,attendee_staff_ids`, {headers:H()});
@@ -1952,17 +1971,33 @@ async function loadWeekView(silent) {
   }
 
   // Person buttons
+  weekIsOwnerView = isOwnerView;
   const peopleEl = document.getElementById('weekViewPeople');
-  if (peopleEl) {
+  if (peopleEl && !isOwnerView) {
+    const hasAny = weekFreeAll.usual.some(r => r.staff_id === weekViewPersonId) || weekFreeAll.date.some(r => r.staff_id === weekViewPersonId);
+    peopleEl.innerHTML = '<span style="font-size:13px;color:#374151">Tap an empty spot on a day to add a time you <b>can work</b>. Choose "every weekday" for your usual week, or "just this date" for a one-off change. Remove a green block to mark that time off.</span>'
+      + (hasAny ? '' : '<div style="width:100%;margin-top:6px;padding:8px 10px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px">You haven\'t added any free times yet, so we don\'t know when you can work.</div>');
+  } else if (peopleEl) {
     peopleEl.innerHTML = '<span style="font-size:12px;color:#6b7280;align-self:center">Calendar items and free times for:</span>' + owners.map(o => {
       const on = o.id === weekViewPersonId;
       const c = weekStaffColour(o);
       return `<button class="btn-secondary btn-sm" style="${on ? `background:${c};color:#fff;border-color:${c}` : ''}" onclick="weekViewPersonId='${o.id}'; loadWeekView()">${escapeHtml(o.name)}</button>`;
     }).join('');
   }
+  const foot = document.getElementById('weekViewFootNote');
+  if (foot) foot.textContent = isOwnerView
+    ? 'You can assign GMs to bookings and change anyone\'s free times here. Personal calendar items only show from now onwards.'
+    : 'Only you and the owners can see your free times. Shifts are claimed on the Shifts tab.';
+  const shiftKey = '<span><span style="display:inline-block;width:10px;height:10px;background:rgba(37,99,235,.12);box-shadow:inset 3px 0 0 #2563eb;vertical-align:-1px"></span> Shift</span>';
   const legendEl = document.getElementById('weekViewLegend');
-  if (legendEl) {
-    legendEl.innerHTML = owners.map(o => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${weekStaffColour(o)};vertical-align:-1px"></span> ${escapeHtml(o.name)}'s booking</span>`).join('')
+  if (legendEl && !isOwnerView) {
+    legendEl.innerHTML = `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${weekStaffColour(owners[0])};vertical-align:-1px"></span> Your booking</span>`
+      + '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e5e7eb;vertical-align:-1px"></span> Other booking</span>'
+      + '<span><span style="display:inline-block;width:10px;height:10px;background:#dcfce7;box-shadow:inset 3px 0 0 #22c55e;vertical-align:-1px"></span> Free (can work)</span>'
+      + shiftKey
+      + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #d97706;background:#fef3c7;vertical-align:-1px"></span> Personal calendar item</span>';
+  } else if (legendEl) {
+    legendEl.innerHTML = shiftKey + owners.map(o => `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${weekStaffColour(o)};vertical-align:-1px"></span> ${escapeHtml(o.name)}'s booking</span>`).join('')
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#dcfce7;box-shadow:inset 3px 0 0 #22c55e;vertical-align:-1px"></span> Free</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #6b7280;vertical-align:-1px"></span> No GM yet</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #d97706;background:#fef3c7;vertical-align:-1px"></span> Personal calendar item</span>';
@@ -2048,6 +2083,14 @@ async function loadWeekView(silent) {
       if (botF <= topF) return;
       html += `<div style="position:absolute;left:0;right:0;top:${topF}px;height:${botF - topF}px;background:#dcfce7;box-shadow:inset 3px 0 0 #22c55e;pointer-events:none"></div>`;
     });
+    // v1.9.40: shifts (blue band, behind bookings; taps go through to the free-time editor)
+    weekShifts.filter(sh => sh.shift_date === toDateStr(d)).forEach(sh => {
+      const sM = weekMins(sh.custom_start_time), eM = weekMins(sh.custom_end_time);
+      const topS = Math.max(0, (sM - WEEK_HOUR_START * 60) / 60 * WEEK_PX);
+      const botS = Math.min(gridH, (eM - WEEK_HOUR_START * 60) / 60 * WEEK_PX);
+      if (botS <= topS) return;
+      html += `<div style="position:absolute;left:0;right:0;top:${topS}px;height:${botS - topS}px;background:rgba(37,99,235,.12);box-shadow:inset 3px 0 0 #2563eb;pointer-events:none;z-index:1"><div style="position:absolute;bottom:1px;right:3px;font-size:9px;color:#1d4ed8;font-weight:600">Shift ${weekMinsLabel(sM)}–${weekMinsLabel(eM)}</div></div>`;
+    });
     // personal calendar items (right side)
     itemsByDay[i].timed.forEach(r => {
       const top = yOf(r.s), bottom = yOf(r.e);
@@ -2064,6 +2107,12 @@ async function loadWeekView(silent) {
       const top = yOf(x.startMs), bottom = yOf(x.endMs);
       const laneW = 58 / x.lanes;
       const lenTxt = x.len ? `${x.len} min` : 'length not set';
+      // v1.9.40: casual view — own bookings in their colour, everything else a plain grey "Booked" block
+      if (!isOwnerView && !ids.includes(myStaffRecord.id)) {
+        const od = `Booked: ${b.game_name || 'Game'} — ${fmt12((b.slot_time||'').slice(0,5))}${x.len ? ' (' + x.len + ' min)' : ''}`;
+        html += `<div data-detail="${escapeHtml(od)}" title="${escapeHtml(od)}" style="cursor:pointer;position:absolute;left:calc(2px + ${x.lane * laneW}%);width:calc(${laneW}% - 3px);top:${top}px;height:${Math.max(18, bottom - top - 1)}px;border-radius:4px;padding:1px 3px;font-size:10px;line-height:1.25;overflow:hidden;z-index:2;background:#e5e7eb;color:#374151"><b>Booked</b><br>${escapeHtml(b.game_name || '')}</div>`;
+        return;
+      }
       const detail = weekBookingDetail(b);
       html += `<div data-bid="${b.id}" data-detail="${escapeHtml(detail)}" title="${escapeHtml(detail)}" style="cursor:pointer;position:absolute;left:calc(2px + ${x.lane * laneW}%);width:calc(${laneW}% - 3px);top:${top}px;height:${Math.max(18, bottom - top - 1)}px;border-radius:4px;padding:1px 3px;font-size:10px;line-height:1.25;overflow:hidden;z-index:2;${noGm ? `border:1px dashed ${col};background:#f3f4f6;color:#374151` : `background:${col};color:#fff`}">`
         + `<b>${escapeHtml(b.game_name || 'Game')}</b><br>${noGm ? 'No GM' : escapeHtml(gms.map(weekStaffInitial).join('/'))}${x.len ? '' : ' ⚠ length?'}</div>`;
@@ -2362,7 +2411,7 @@ async function initApp() {
   renderTimeOffTypeOptions();
   await Promise.all([loadAllStaff(), loadMyTraining()]);
   await findMyStaffRecord();
-  { const wkBtn = document.getElementById('navWeekBtn'); if (wkBtn) wkBtn.style.display = (myStaffRecord && myStaffRecord.is_owner) ? '' : 'none'; }
+  { const wkBtn = document.getElementById('navWeekBtn'); if (wkBtn) wkBtn.style.display = myStaffRecord ? '' : 'none'; } // v1.9.40: everyone (casuals see only their own week)
   await Promise.all([loadMyShifts(), loadMyTimesheets()]);
 
    renderClockWidget();
