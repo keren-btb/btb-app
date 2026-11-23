@@ -769,7 +769,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.16'; // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+const BUILD_VERSION = '1.9.17'; // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
 
 // Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
@@ -1517,8 +1517,9 @@ ${(()=>{
   if(!depPaid&&!payments.length) return balance>0?`<div style="margin-top:8px;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:'';
   return `<div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
     ${depPaid?`<div class="pay-hist-row"><span class="pay-hist-label">Deposit${b.deposit_method?' · '+(methodLabels[b.deposit_method]||b.deposit_method):''}${b.deposit_paid_at?' · '+new Date(b.deposit_paid_at).toLocaleDateString('en-NZ',{timeZone:'Pacific/Auckland',day:'numeric',month:'short'}):''}${b.deposit_ref?' · ref '+escapeHtml(b.deposit_ref):''}</span><span class="pay-hist-amt collected">-$${dep.toFixed(0)}</span><button class="pay-undo-btn" onclick="toggleDepositPaid('${b.id}',false)" title="Undo">↩</button></div>`:''}
-    ${payments.map((p,i)=>{const dateStr=fmtDate(p.at);return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}${p.splitPerson?` <span style="color:#9ca3af">(${p.splitPerson})</span>`:''}${p.invoice_email?`<span style="color:#9ca3af;font-size:11px"> · ${p.invoice_email}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="removePayment('${b.id}',${i})" title="Undo">↩</button></div>`}).join('')}
+    ${payments.map((p,i)=>{const dateStr=fmtDate(p.at);return`<div class="pay-hist-row"><span class="pay-hist-label">${p.refund?'↩ Refund'+(p.reason?' ('+escapeHtml(p.reason)+')':'')+' · ':''}${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}${p.splitPerson?` <span style="color:#9ca3af">(${p.splitPerson})</span>`:''}${p.invoice_email?`<span style="color:#9ca3af;font-size:11px"> · ${p.invoice_email}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}${parseFloat(p.amount)<0?'+$'+Math.abs(parseFloat(p.amount)).toFixed(2).replace(/\.00$/,''):'-$'+parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="removePayment('${b.id}',${i})" title="Undo">↩</button></div>`}).join('')}
     ${balance>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid #f3f4f6;font-size:12px;color:#ef9f27;font-weight:600;">Balance owing: $${balance.toFixed(0)}</div>`:''}
+    ${refundFormHtml(b)}
   </div>`;
 })()}
 <div class="pos-receipt-email" style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
@@ -1857,7 +1858,7 @@ function buildGroupCartSummaryHTML(members){
     ${allPayments.map(p=>{
       const dateStr=fmtDate(p.at);
       const undo=p.isDeposit?`toggleDepositPaid('${p.memberId}',false)`:`removePayment('${p.memberId}',${p.idx})`;
-      return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}-$${parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="${undo}" title="Undo">↩</button></div>`;
+      return`<div class="pay-hist-row"><span class="pay-hist-label">${methodLabels[p.method]||p.method}${dateStr?` · <span style="color:#9ca3af">${dateStr}</span>`:''}</span><span class="pay-hist-amt ${p.method==='invoice'&&p.status==='pending'?'pending':'collected'}">${p.method==='invoice'&&p.status==='pending'?'⏳ ':''}${parseFloat(p.amount)<0?'+$'+Math.abs(parseFloat(p.amount)).toFixed(2).replace(/\.00$/,''):'-$'+parseFloat(p.amount).toFixed(0)}</span><button class="pay-undo-btn" onclick="${undo}" title="Undo">↩</button></div>`;
     }).join('')}
   </div>`:'';
   const hireFirst=[...members].sort((a,b)=>(a.time||'').localeCompare(b.time||''))[0];
@@ -2286,6 +2287,48 @@ async function applyDiscount(id){
    const paidSoFar=(b.deposit_paid?dp:0)+(b.payments?JSON.parse(b.payments):[]).reduce((x,p)=>x+(Number(p.amount)||0),0);
    if(paidSoFar>t+0.005){alert(`Heads up: this customer has now paid $${(paidSoFar-t).toFixed(2)} more than the new total.\n\nIf you give it back, remove or change the payment so the records match.`);return}}
   setTimeout(()=>closePanelSect(id),700);
+}
+
+// v1.9.17: REFUNDS — money given back is recorded as a negative payment with a reason (and how it was given back),
+// so totals, reports and the payment history all match what was actually kept.
+const refundOpen=new Set();
+function refundFormHtml(b){
+  if(!refundOpen.has(b.id))return `<div style="margin-top:8px"><button onclick="refundOpen.add('${b.id}');refreshPanel()" style="font-size:12px;color:#b45309;font-weight:600;background:none;border:none;cursor:pointer;padding:0">↩ Give a refund</button></div>`;
+  const inp='font-size:13px;border:1px solid #d1d5db;border-radius:8px;padding:6px 8px;font-family:inherit;box-sizing:border-box;width:100%';
+  return `<div style="margin-top:8px;padding:10px;border:1px solid #fcd34d;background:#fffbeb;border-radius:10px">
+    <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:6px">↩ Refund</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <input id="refAmt-${b.id}" type="number" step="0.01" min="0" placeholder="Amount $" style="${inp}">
+      <select id="refMethod-${b.id}" style="${inp}"><option value="cash">Cash</option><option value="eftpos">Eftpos</option><option value="bank_transfer">Bank transfer</option><option value="stripe">Card</option></select>
+    </div>
+    <input id="refReason-${b.id}" type="text" placeholder="Reason (e.g. one player didn't come)" style="${inp};margin-bottom:6px">
+    <div style="display:flex;gap:6px"><button onclick="recordRefund('${b.id}')" style="flex:1;padding:8px;font-size:13px;background:#b45309;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Record refund</button>
+    <button onclick="refundOpen.delete('${b.id}');refreshPanel()" style="padding:8px 12px;font-size:13px;background:#fff;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;font-family:inherit">Cancel</button></div>
+    <div id="refMsg-${b.id}" style="font-size:12px;color:#b91c1c;margin-top:6px"></div></div>`;
+}
+async function recordRefund(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const msg=document.getElementById('refMsg-'+id);
+  const amt=Math.round((parseFloat(document.getElementById('refAmt-'+id).value)||0)*100)/100;
+  const method=document.getElementById('refMethod-'+id).value;
+  const reason=document.getElementById('refReason-'+id).value.trim();
+  if(!(amt>0)){msg.textContent='Enter the amount given back.';return}
+  if(!reason){msg.textContent='Please give a reason.';return}
+  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
+  const total=b.total_amount??calcPrice(b.game_id,players);const dep=b.deposit_amount??calcDeposit(total);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const paid=(b.deposit_paid?dep:0)+payments.filter(p=>p.method!=='invoice'||p.status!=='pending').reduce((s,p)=>s+(Number(p.amount)||0),0);
+  if(amt>paid+0.005){msg.textContent=`That's more than has been paid ($${paid.toFixed(2)}).`;return}
+  // money paid over the total is just given back; anything more also comes off the booking's price, so nothing shows as owing
+  const overpaid=Math.max(0,Math.round((paid-total)*100)/100);
+  const lower=Math.round((amt-Math.min(amt,overpaid))*100)/100;
+  if(!confirm(`Record a refund of $${amt.toFixed(2)} by ${method.replace('_',' ')}?\n\nReason: ${reason}`+(lower>0?`\n\nThis also takes $${lower.toFixed(2)} off the booking's price (new total $${Math.max(0,total-lower).toFixed(2)}).`:'')))return;
+  payments.push({amount:-amt,method,at:new Date().toISOString(),refund:true,reason,by:currentUser?.name||null});
+  b.payments=JSON.stringify(payments);
+  if(lower>0){const addons=b.addons?JSON.parse(b.addons):[];addons.push({label:`Refund: ${reason}`,amount:-lower,at:new Date().toISOString()});b.addons=JSON.stringify(addons);b.total_amount=Math.max(0,total-lower)}
+  msg.style.color='#6b7280';msg.textContent='Saving…';
+  if(!(await savePOSData(id))){refreshPanel();return}
+  refundOpen.delete(id);refreshPanel();
 }
 
 async function removePayment(id,idx){
