@@ -1194,7 +1194,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.40'; // v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+const BUILD_VERSION = '1.9.41'; // v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
 
 // Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
@@ -1992,7 +1992,7 @@ async function loadWeekView(silent) {
   const legendEl = document.getElementById('weekViewLegend');
   if (legendEl && !isOwnerView) {
     legendEl.innerHTML = `<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${weekStaffColour(owners[0])};vertical-align:-1px"></span> Your booking</span>`
-      + '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e5e7eb;vertical-align:-1px"></span> Other booking</span>'
+      + '<span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#e5e7eb;vertical-align:-1px"></span> Other booking during your shift</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#dcfce7;box-shadow:inset 3px 0 0 #22c55e;vertical-align:-1px"></span> Free (can work)</span>'
       + shiftKey
       + '<span><span style="display:inline-block;width:10px;height:10px;border:1px dashed #d97706;background:#fef3c7;vertical-align:-1px"></span> Personal calendar item</span>';
@@ -2109,6 +2109,10 @@ async function loadWeekView(silent) {
       const lenTxt = x.len ? `${x.len} min` : 'length not set';
       // v1.9.40: casual view — own bookings in their colour, everything else a plain grey "Booked" block
       if (!isOwnerView && !ids.includes(myStaffRecord.id)) {
+        // v1.9.41: only show other bookings that overlap one of their own shifts that day
+        const bS = x.startMs / 60000, bE = x.endMs / 60000;
+        const onShift = weekShifts.some(sh => sh.shift_date === b.booking_date && bS < weekMins(sh.custom_end_time) && bE > weekMins(sh.custom_start_time));
+        if (!onShift) return;
         const od = `Booked: ${b.game_name || 'Game'} — ${fmt12((b.slot_time||'').slice(0,5))}${x.len ? ' (' + x.len + ' min)' : ''}`;
         html += `<div data-detail="${escapeHtml(od)}" title="${escapeHtml(od)}" style="cursor:pointer;position:absolute;left:calc(2px + ${x.lane * laneW}%);width:calc(${laneW}% - 3px);top:${top}px;height:${Math.max(18, bottom - top - 1)}px;border-radius:4px;padding:1px 3px;font-size:10px;line-height:1.25;overflow:hidden;z-index:2;background:#e5e7eb;color:#374151"><b>Booked</b><br>${escapeHtml(b.game_name || '')}</div>`;
         return;

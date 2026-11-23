@@ -4325,7 +4325,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.47'; // v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.48'; // v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4421,6 +4421,7 @@ let bookingConfig = {
     g4: { min: 1, max: 6 }, g5: { min: 2, max: 20 },
   },
   callToBookCutoffHours: 3,
+  shiftOverrunCallMinutes: 60, // v1.7.48: how far past a casual's shift end a game may run and still show 'Call us' (0 = off)
   depositAmount: 35,
 };
 
@@ -4956,7 +4957,7 @@ function getSlotStatus(gameId, dateStr, slotTime) {
 // Time Off tab) can still exclude someone in either mode.
 function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   const fullyAvailable = [];
-  const maybeAvailable = []; // kept for compatibility with getSlotStatus's cutoff logic — always empty now the roster/calendar checks decide
+  const maybeAvailable = []; // v1.7.48: casuals whose shift ends during the game (within the overrun limit) — these give 'Call us', never 'available'
 
   // v1.7.44: the shift must cover the whole game (start to finish), not just the start time
   const gameMins = gameLength(gameId);
@@ -5039,9 +5040,39 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
     let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
     return ids.length === 0 && (canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot)(b, gameId, dateStr, slotTime);
   }).length;
+  // v1.7.48: casuals on a shift that covers the start but ends during the game (by up to the overrun limit) — ask them to stay on
+  const overrunMax = Number(bookingConfig.shiftOverrunCallMinutes ?? 60) || 0;
+  if (overrunMax > 0) {
+    const sMin = hmToMins(slotTime), eMin = sMin + gameMins;
+    const seen = new Set(fullyAvailable);
+    rosterShifts.forEach(r => {
+      const sid = r.staff_id;
+      if (r.shift_date !== dateStr || seen.has(sid) || staffMode[sid] === 'calendar') return;
+      const shS = hmToMins((r.custom_start_time || '').slice(0, 5)), shE = hmToMins((r.custom_end_time || '').slice(0, 5));
+      if (!(sMin >= shS && sMin < shE && eMin > shE && eMin - shE <= overrunMax)) return;
+      const training = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
+      const statusObj = training ? trainingStatuses.find(s => s.id === training.status) : null;
+      if (!statusObj || !statusObj.qualifies) return;
+      if ((staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable') return;
+      if (inMeeting(sid, dateStr, sMin, eMin)) return;
+      const overlaps = canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot;
+      const taken = existingBookings.some(b => {
+        let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
+        return ids.includes(sid) && overlaps(b, gameId, dateStr, slotTime);
+      });
+      if (taken) return;
+      seen.add(sid);
+      maybeAvailable.push(sid);
+    });
+  }
+
   if (noGmCount > 0 && fullyAvailable.length > 0) {
     fullyAvailable.sort((a, b) => (staffFlags[b] === true ? 1 : 0) - (staffFlags[a] === true ? 1 : 0));
+    const usedUp = Math.min(noGmCount, fullyAvailable.length);
     fullyAvailable.splice(0, noGmCount);
+    if (noGmCount > usedUp) maybeAvailable.splice(0, noGmCount - usedUp); // v1.7.48: leftover no-GM bookings use up stay-on casuals too
+  } else if (noGmCount > 0) {
+    maybeAvailable.splice(0, noGmCount); // v1.7.48
   }
 
   return { fullyAvailable, maybeAvailable };

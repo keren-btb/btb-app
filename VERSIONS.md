@@ -119,6 +119,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.81 — 2026-11-23 — Settings > Booking Configuration: new "Casual shift overrun" minutes field (default 60, 0 = off) used by the booking page. Nothing removed.
 - v16.4.80 — 2026-11-23 — Settings: new 🧾 Receipts button next to Invoices (admins and managers, which includes Keren and Joolz) opens receipt_capture.html. Nothing removed. CSS unchanged (still ?v=16.4.79).
 - v16.4.79 — 2026-11-23 — At-BtB packages show as one PACKAGE card (header with customer, total, owing, package ⋯ menu; games inside). CSS ?v=16.4.79.
 - v16.4.78 — 2026-11-23 — ⋯ > Confirmation email: preview + Send (works with 'don't send' ticked; can re-send).
@@ -201,6 +202,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.41 — 2026-11-23 — Casual My Week shows only the bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are hidden. Nothing removed.
 - v1.9.40 — 2026-11-23 — My Week for everyone: casual staff see their own week only — add/change/remove their own free times (usual week or one date), confirm their week, see their own shifts (blue band), their own bookings, and other bookings as plain grey "Booked" blocks (no customer details, can't change GMs). Owners now see every active staff member (not just calendar-mode) and the selected person's shifts. Booking page not changed — casual free times are not used for bookings yet. Nothing removed.
 - v1.9.39 — 2026-11-23 — Phone layout: ☰ menu opens over the page and closes after choosing; compact header; Shifts admin stacks; timesheet/clock tables scroll sideways.
 - v1.9.38 — 2026-11-22 — My Week shows BtB meetings; "Jobs & problems" notification setting.
@@ -287,6 +289,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.48 — 2026-11-23 — "Call us" when a rostered casual's shift covers the start of a game but ends before it finishes, by no more than the Casual shift overrun setting (default 60 min, 0 = off). Only applies when nobody is free for the whole game; no-GM bookings use these casuals up too. Nothing removed.
 - v1.7.47 — 2026-11-23 — 'Invoice me' for every booking; private booking link token; invoice details button on the confirmation screen.
 - v1.7.46 — 2026-11-23 — Voucher redeem result checked; if the code had already been used, it's logged in Settings > Errors with the booking id.
 - v1.7.45 — 2026-11-22 — Staff in a BtB meeting count as busy.
@@ -420,4 +423,4 @@ Newest entry per file goes at the top of that file's list.
 
 ## invoice_render.js / invoice_letterhead.png
 - v1.1.0 — 2026-11-23 — Deposit-due-now box.
-- v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.
+- v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.
