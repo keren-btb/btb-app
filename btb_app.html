@@ -3460,6 +3460,13 @@ async function refreshAuthToken() {
     localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
   } catch(e) {
+    // v16.4.84: no internet for a moment (e.g. laptop waking up) — don't sign out, try again in a minute
+    if (e instanceof TypeError) {
+      console.warn('Token refresh could not reach the server — will try again in 1 minute:', e.message);
+      clearTimeout(tokenRefreshTimer);
+      tokenRefreshTimer = setTimeout(refreshAuthToken, 60000);
+      return;
+    }
     console.error('Token refresh failed — signing out:', e);
     doLogout();
   }
@@ -4209,7 +4216,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.83'; // v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.84'; // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
@@ -4335,6 +4342,18 @@ console.log(`%cBtB App — build v${BUILD_VERSION}`, 'color:#07b4c5;font-weight:
         }
       }
       if(currentUser){
+        // v16.4.84: some pages (Task Hub, Invoices, Receipts) save the shared login without page permissions or
+        // staff id — fill them in before showing the app, instead of crashing and signing out
+        if(!Array.isArray(currentUser.allowedTabs)||!currentUser.role){
+          const rd=await callEdgeFunction('get_my_role',{},currentUser.token);
+          currentUser.allowedTabs=parseAllowedTabs(rd&&rd.allowed_tabs);
+          currentUser.role=(rd&&rd.role)||currentUser.role;
+          currentUser.name=(rd&&rd.name)||currentUser.name;
+        }
+        if(!currentUser.staffId){
+          try{const sr=await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${currentUser.id}&active=eq.true&select=id`,{headers:H()});const srows=await sr.json();if(srows[0])currentUser.staffId=srows[0].id}catch(e){}
+        }
+        localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         scheduleTokenRefresh();
         // Reload with the real staff token now that we're authenticated — the initial
         // DOMContentLoaded load ran on the anon key, and RLS on settings only allows anon

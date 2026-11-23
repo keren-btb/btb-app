@@ -119,6 +119,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.84 — 2026-11-23 — Login fixes from the error log: opening the BtB app after logging in on Task Hub/Invoices/Receipts no longer crashes and signs you out (missing page permissions are fetched first); a short internet drop while renewing the login no longer signs you out (retries in 1 minute). Nothing removed.
 - v16.4.83 — 2026-11-23 — Calendar shows requested bookings with a purple "🙋 REQUEST — finding a GM" badge and dashed purple border. Nothing removed.
 - v16.4.82 — 2026-11-23 — Profile menu (tap your initial, top right) now opens (it was placed off-screen inside the transformed header; it now moves to the page body when opened). Staff Portal quick button shows for every login; the staff portal itself still hides admin/owner-only parts. Nothing removed.
 - v16.4.81 — 2026-11-23 — Settings > Booking Configuration: new "Casual shift overrun" minutes field (default 60, 0 = off) used by the booking page. Nothing removed.
