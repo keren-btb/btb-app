@@ -1,0 +1,32 @@
+# Nightly Supabase database backup for BtB — goes in a PRIVATE repo (keren-btb/btb-backups) at
+# .github/workflows/nightly-db-backup.yml. NEVER put this in the public btb-app repo: the backups contain
+# customer details. Needs one repo secret: SUPABASE_DB_URL (Supabase > Connect > "Session pooler" URI,
+# with the database password filled in). Each night it saves the whole database (roles, structure, data)
+# as a download kept for 30 days (Actions tab > a run > "btb-db-backup"). "Run workflow" makes one now.
+name: Nightly database backup
+on:
+  schedule:
+    - cron: '17 13 * * *'   # 2:17am NZ daylight time (1:17am in winter)
+  workflow_dispatch:
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Dump the database
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          d=$(date -u +%Y-%m-%d)
+          supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$DB_URL" -f schema.sql
+          supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only
+          tar czf "btb-db-$d.tar.gz" roles.sql schema.sql data.sql
+          ls -la "btb-db-$d.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: btb-db-backup
+          path: btb-db-*.tar.gz
+          retention-days: 30
