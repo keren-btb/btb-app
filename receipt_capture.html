@@ -71,6 +71,13 @@ textarea.in{min-height:56px;resize:vertical}
 .b-stock{background:#ede9fe;color:var(--purple)}
 .empty{text-align:center;color:var(--muted);padding:26px}
 .toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.tabs button{padding:9px 6px}.tabn{background:var(--purple);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;margin-left:4px}.tabn:empty{display:none}
+.ck-head{display:flex;gap:8px;align-items:flex-start}.ck-head .t{font-weight:700;font-size:16px;flex:1}
+.ck-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.match{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:6px;display:flex;align-items:center;gap:8px;font-size:13px}
+.match .main{flex:1}
+details.more summary{cursor:pointer;font-size:13px;color:var(--teal);font-weight:600;margin-top:10px}
+.b-added{background:#dcfce7;color:var(--green)}.b-merged{background:#dbeafe;color:#1d4ed8}.b-not_selling{background:#f3f4f6;color:#6b7280}
 .chip{display:inline-block;background:#f3f4f6;border-radius:6px;padding:2px 7px;font-size:12px;margin:2px 4px 0 0}
 </style>
 </head>
@@ -91,11 +98,13 @@ textarea.in{min-height:56px;resize:vertical}
   </header>
   <div class="content">
     <div class="tabs">
-      <button id="tabNew" class="on" onclick="showTab('new')"><i class="ti ti-camera-plus"></i> New receipt</button>
+      <button id="tabNew" class="on" onclick="showTab('new')"><i class="ti ti-camera-plus"></i> New</button>
       <button id="tabList" onclick="showTab('list')"><i class="ti ti-list"></i> Receipts</button>
+      <button id="tabCheck" onclick="showTab('check')"><i class="ti ti-dice"></i> Check<span class="tabn" id="checkN"></span></button>
     </div>
     <div id="viewNew"></div>
     <div id="viewList" style="display:none"></div>
+    <div id="viewCheck" style="display:none"></div>
   </div>
 </div>
 <input type="file" id="fileIn" accept="image/*" style="display:none" onchange="onPhoto(this)">
@@ -125,7 +134,7 @@ textarea.in{min-height:56px;resize:vertical}
 // Lines tagged "For resale" are the board games etc. that will go to the Check & price list (next step, not built yet).
 // Nothing is ever deleted: removed lines are marked removed, mistaken receipts are marked Void.
 // Admin / manager / owner only (enforced by the database).
-const BUILD_VERSION='1.0.0'; // v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
+const BUILD_VERSION='1.1.0'; // v1.1.0: Check tab — For resale items waiting to be checked; Add to stock (new product with cost, sell price, condition, who checked it), Add to an existing product (stock +qty), or Not selling (undo-able); similar product names shown to avoid duplicates. Previous build: 1.0.0 — v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -168,17 +177,20 @@ function newReceipt(){rec=blankForm();lines=[blankLine()];photoBlob=null;if(phot
 function showTab(t){
   document.getElementById('tabNew').classList.toggle('on',t==='new');
   document.getElementById('tabList').classList.toggle('on',t==='list');
+  document.getElementById('tabCheck').classList.toggle('on',t==='check');
   document.getElementById('viewNew').style.display=t==='new'?'block':'none';
   document.getElementById('viewList').style.display=t==='list'?'block':'none';
+  document.getElementById('viewCheck').style.display=t==='check'?'block':'none';
   document.getElementById('saveBar').style.display=t==='new'&&rec&&rec.status!=='void'?'flex':'none';
   if(t==='list')loadList();
+  if(t==='check')loadCheck();
   window.scrollTo(0,0);
 }
 
 // ───────── receipt form ─────────
 function renderForm(){
   const f=rec,editing=!!f.id,isVoid=f.status==='void';
-  document.getElementById('tabNew').innerHTML=editing?'<i class="ti ti-edit"></i> Edit receipt':'<i class="ti ti-camera-plus"></i> New receipt';
+  document.getElementById('tabNew').innerHTML=editing?'<i class="ti ti-edit"></i> Edit':'<i class="ti ti-camera-plus"></i> New';
   const photo=photoURL?`<img src="${esc(photoURL)}" alt="receipt photo"><div class="hint" style="margin-top:8px">Tap to retake / choose another</div>`
     :(f.photo_path?`<div class="hint">Loading photo…</div>`:`<i class="ti ti-camera"></i><div style="font-weight:700;margin-top:6px">Take or choose a photo</div><div class="hint">Camera or photo library</div>`);
   const basisOpts=GST_BASES.map(([v,l])=>`<option value="${v}" ${f.gst_basis===v?'selected':''}>${l}</option>`).join('');
@@ -256,14 +268,14 @@ function renderLines(){
   <div class="line">
     <div class="line-top">
       <input class="in" value="${esc(l.description)}" placeholder="${l.line_type==='stock'?'Game name, e.g. Catan':'What was it?'}" oninput="lines[${i}].description=this.value">
-      <button class="x" onclick="removeLine(${i})" title="Remove item"><i class="ti ti-x"></i></button>
+      ${l.stock_outcome?`<span class="badge b-${l.stock_outcome}" title="Already checked on the Check tab">✓ checked</span>`:`<button class="x" onclick="removeLine(${i})" title="Remove item"><i class="ti ti-x"></i></button>`}
     </div>
     <div class="line-row">
       <div><label>Qty</label><input class="in" inputmode="numeric" value="${l.quantity}" oninput="lines[${i}].quantity=Math.max(1,parseInt(this.value)||1);updSum()"></div>
       <div><label>Cost each $</label><input class="in" inputmode="decimal" value="${l.unit_cost??''}" placeholder="0.00" oninput="lines[${i}].unit_cost=num(this.value);updSum()"></div>
       <div><label>Line total</label><div style="padding:9px 2px;font-weight:700" id="lt${i}">${l.unit_cost==null?'—':money(l.unit_cost*l.quantity)}</div></div>
     </div>
-    <div class="types">${LINE_TYPES.map(([v,lab])=>`<button class="${v} ${l.line_type===v?'on':''}" onclick="lines[${i}].line_type='${v}';renderLines()">${lab}</button>`).join('')}</div>
+    <div class="types">${LINE_TYPES.map(([v,lab])=>`<button class="${v} ${l.line_type===v?'on':''}" ${l.stock_outcome?'disabled':''} onclick="lines[${i}].line_type='${v}';renderLines()">${lab}</button>`).join('')}</div>
   </div>`).join(''):'<div class="hint" style="margin-bottom:8px">No items yet — fine for a simple expense. Add items for anything bought to resell.</div>';
   updSum();
 }
@@ -361,7 +373,7 @@ async function saveReceipt(status){
     lines=lines.filter(l=>l.id&&!l.removed||!l.id&&!l.removed);
     const stock=act.filter(l=>l.line_type==='stock').length;
     toast(status==='draft'?'Draft saved':'Receipt saved ✓');
-    receipts=[];
+    receipts=[];loadReceipts().catch(()=>{});
     if(status==='confirmed'){newReceipt();msg.textContent='';const m=document.getElementById('saveMsg');
       m.className='msg ok';m.textContent=`Saved. ${stock?stock+' item'+(stock>1?'s':'')+' marked for resale. ':''}Ready for the next receipt.`}
     else{renderForm();const m=document.getElementById('saveMsg');m.className='msg ok';m.textContent='Draft saved — find it under Receipts → Drafts.'}
@@ -384,9 +396,10 @@ async function unvoidReceipt(){
 
 // ───────── list ─────────
 async function loadReceipts(){
-  receipts=await api('receipts?select=*,receipt_lines(id,description,quantity,unit_cost,line_type,removed,sort_order)&order=receipt_date.desc.nullslast,created_at.desc&limit=300');
+  receipts=await api('receipts?select=*,receipt_lines(id,description,quantity,unit_cost,line_type,removed,sort_order,stock_outcome,stock_note,product_id,checked_by_name,checked_at)&order=receipt_date.desc.nullslast,created_at.desc&limit=300');
   const seen=new Set(),opts=[];receipts.forEach(r=>{const k=shopKey(r.shop);if(k&&!seen.has(k)){seen.add(k);opts.push(r.shop)}});
   document.getElementById('shopList').innerHTML=opts.map(s=>`<option value="${esc(s)}">`).join('');
+  updCheckCount();
 }
 async function loadList(){
   const v=document.getElementById('viewList');
@@ -419,9 +432,142 @@ function openReceipt(id){
     gst_basis:r.gst_basis||'unknown',gst_number:r.gst_number||'',gst_amount:r.gst_amount==null?null:Number(r.gst_amount),notes:r.notes||'',
     photo_path:r.photo_path,status:r.status,created_by_name:r.created_by_name};
   lines=(r.receipt_lines||[]).filter(l=>!l.removed).sort((a,b)=>a.sort_order-b.sort_order)
-    .map(l=>({id:l.id,description:l.description,quantity:l.quantity,unit_cost:l.unit_cost==null?null:Number(l.unit_cost),line_type:l.line_type,removed:false}));
+    .map(l=>({id:l.id,description:l.description,quantity:l.quantity,unit_cost:l.unit_cost==null?null:Number(l.unit_cost),line_type:l.line_type,removed:false,stock_outcome:l.stock_outcome||null}));
   photoBlob=null;photoURL=null;gstAuto=false;
   showTab('new');renderForm();
+}
+
+// ───────── check & price (For resale items → products) ─────────
+// A For resale line on any receipt that isn't void waits here until someone checks the game and either adds it to
+// stock (new product), adds it to an existing product (stock +qty), or marks it Not selling. Products are only made
+// once checked, so unchecked games never appear in the POS or the shop.
+let checkMode='todo',categories=null,ckOpen=null;
+function stockLines(){
+  const out=[];receipts.filter(r=>r.status!=='void').forEach(r=>(r.receipt_lines||[]).forEach(l=>{if(!l.removed&&l.line_type==='stock')out.push({...l,receipt:r})}));
+  return out;
+}
+function updCheckCount(){const n=stockLines().filter(l=>!l.stock_outcome).length;const el=document.getElementById('checkN');if(el)el.textContent=n?String(n):''}
+async function loadCheck(){
+  const v=document.getElementById('viewCheck');
+  if(!receipts.length){v.innerHTML='<div class="empty">Loading…</div>';try{await loadReceipts()}catch(e){v.innerHTML=`<div class="card err">Could not load: ${esc(e.message)}</div>`;return}}
+  if(!categories){try{const c=await api('products?select=category&limit=2000');categories=[...new Set(c.map(x=>x.category).filter(Boolean))].sort()}catch(e){categories=['Boardgame','Other']}}
+  renderCheck();
+}
+function renderCheck(){
+  const v=document.getElementById('viewCheck'),all=stockLines();
+  const todo=all.filter(l=>!l.stock_outcome),done=all.filter(l=>l.stock_outcome).sort((a,b)=>String(b.checked_at).localeCompare(String(a.checked_at)));
+  const chip=(k,l,n)=>`<button class="btn btn-sm ${checkMode===k?'btn-primary':''}" onclick="checkMode='${k}';ckOpen=null;renderCheck()">${l} (${n})</button>`;
+  const rows=checkMode==='todo'?todo:done.slice(0,60);
+  v.innerHTML=`<div style="display:flex;gap:6px;margin-bottom:10px">${chip('todo','To check',todo.length)}${chip('done','Done',done.length)}</div>
+   ${rows.length?rows.map(l=>checkMode==='todo'?ckCard(l):doneCard(l)).join(''):`<div class="empty">${checkMode==='todo'?'Nothing waiting. Items marked 🎲 For resale on a receipt show up here.':'Nothing checked yet.'}</div>`}`;
+  if(ckOpen){const l=todo.find(x=>x.id===ckOpen);if(l)findMatches(l.id,document.getElementById('ckName_'+l.id).value)}
+}
+function ckCard(l){
+  const r=l.receipt,open=ckOpen===l.id,unit=l.unit_cost==null?null:Number(l.unit_cost);
+  const head=`<div class="ck-head"><div style="flex:1"><div class="t">${esc(l.description)}${l.quantity>1?` <span class="badge b-stock">×${l.quantity}</span>`:''}</div>
+     <div class="ck-meta">${esc(r.shop||'')} · ${fmtD(r.receipt_date)} · cost ${unit==null?'not entered':money(unit)+(l.quantity>1?' each':'')}${r.status==='draft'?' · receipt is a draft':''}</div></div>
+     ${open?'':`<button class="btn btn-sm btn-primary" onclick="ckOpen='${l.id}';renderCheck()">Check</button>`}</div>`;
+  if(!open)return`<div class="card">${head}</div>`;
+  const catOpts=(categories||['Boardgame']).map(c=>`<option ${c==='Boardgame'?'selected':''}>${esc(c)}</option>`).join('');
+  return`<div class="card" style="border-color:var(--purple)">${head}
+    <label class="f">Name in the shop</label>
+    <input class="in" id="ckName_${l.id}" value="${esc(l.description)}" oninput="findMatches('${l.id}',this.value)">
+    <div id="ckMatch_${l.id}"></div>
+    <div class="grid2">
+      <div><label class="f">Sell price $</label><input class="in" id="ckSell_${l.id}" inputmode="decimal" placeholder="0.00"></div>
+      <div><label class="f">Cost price $ (each)</label><input class="in" id="ckCost_${l.id}" inputmode="decimal" value="${unit==null?'':unit.toFixed(2)}"></div>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Category</label><select class="in" id="ckCat_${l.id}">${catOpts}</select></div>
+      <div><label class="f">How many</label><input class="in" id="ckQty_${l.id}" inputmode="numeric" value="${l.quantity}"></div>
+    </div>
+    <label class="f">Condition / what was checked</label>
+    <textarea class="in" id="ckCond_${l.id}" placeholder="e.g. All pieces counted, box corner worn"></textarea>
+    <details class="more"><summary>More details (optional)</summary>
+      <div class="grid2"><div><label class="f">Players min</label><input class="in" id="ckPmin_${l.id}" inputmode="numeric"></div>
+        <div><label class="f">Players max</label><input class="in" id="ckPmax_${l.id}" inputmode="numeric"></div></div>
+      <div class="grid2"><div><label class="f">Age</label><input class="in" id="ckAge_${l.id}" placeholder="e.g. 8+"></div>
+        <div><label class="f">RRP new $</label><input class="in" id="ckRrp_${l.id}" inputmode="decimal"></div></div>
+      <label class="f">Notes (staff only)</label><input class="in" id="ckNotes_${l.id}" placeholder="e.g. Vintage, could ask up to $110">
+    </details>
+    <div id="ckMsg_${l.id}" class="msg"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-green" style="flex:1" onclick="ckAdd('${l.id}')"><i class="ti ti-check"></i> Checked — add to stock</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-sm" onclick="ckNotSelling('${l.id}')"><i class="ti ti-ban"></i> Not selling</button>
+      <button class="btn btn-sm" onclick="ckOpen=null;renderCheck()">Cancel</button>
+    </div></div>`;
+}
+function doneCard(l){
+  const lab={added:'Added to stock',merged:'Added to existing',not_selling:'Not selling'}[l.stock_outcome];
+  return`<div class="card"><div class="ck-head"><div style="flex:1"><div class="t">${esc(l.description)}${l.quantity>1?' ×'+l.quantity:''}</div>
+    <div class="ck-meta">${esc(l.receipt.shop||'')} · ${fmtD(l.receipt.receipt_date)}${l.checked_by_name?' · checked by '+esc(l.checked_by_name):''}${l.checked_at?' '+new Date(l.checked_at).toLocaleDateString('en-NZ',{timeZone:'Pacific/Auckland',day:'numeric',month:'short'}):''}</div>
+    ${l.stock_note?`<div class="ck-meta">${esc(l.stock_note)}</div>`:''}</div>
+    <div style="text-align:right"><span class="badge b-${l.stock_outcome}">${lab}</span>
+    ${l.stock_outcome==='not_selling'?`<div style="margin-top:6px"><button class="btn btn-sm" onclick="ckUndoNotSelling('${l.id}')">Undo</button></div>`:''}</div></div></div>`;
+}
+let matchTimer=null;
+function findMatches(id,name){
+  clearTimeout(matchTimer);matchTimer=setTimeout(async()=>{
+    const box=document.getElementById('ckMatch_'+id);if(!box)return;
+    const words=String(name||'').trim().split(/\s+/).filter(w=>w.length>=3).slice(0,3);
+    if(!words.length){box.innerHTML='';return}
+    try{
+      const q=words.map(w=>`name.ilike.*${encodeURIComponent(w.replace(/[*,().]/g,''))}*`).join(',');
+      const m=await api(`products?select=id,name,sub_name,category,sell_price,purchase_price,stock_qty,active&or=(${q})&order=name&limit=8`);
+      box.innerHTML=m.length?`<div class="hint" style="margin-top:6px">Already in products — is it one of these? (Avoids duplicates like "Bandido" / "Bandidi")</div>`+m.map(p=>`<div class="match"><div class="main"><b>${esc(p.name)}</b>${p.sub_name?' — '+esc(p.sub_name):''}<div class="ck-meta">${esc(p.category)} · sells ${money(p.sell_price)} · in stock ${p.stock_qty??0}${p.active?'':' · inactive'}</div></div>
+        <button class="btn btn-sm" onclick="ckMerge('${id}','${p.id}')">Add to this</button></div>`).join(''):'';
+    }catch(e){box.innerHTML=''}
+  },300);
+}
+function ckVals(id){
+  const g=k=>document.getElementById(`ck${k}_${id}`);
+  return{name:g('Name').value.trim(),sell:num(g('Sell').value),cost:num(g('Cost').value),cat:g('Cat').value,qty:Math.max(1,parseInt(g('Qty').value)||1),
+    cond:g('Cond').value.trim(),pmin:parseInt(g('Pmin').value)||null,pmax:parseInt(g('Pmax').value)||null,age:g('Age').value.trim()||null,rrp:num(g('Rrp').value),notes:g('Notes').value.trim()||null};
+}
+function ckErr(id,t){const m=document.getElementById('ckMsg_'+id);if(m){m.className='msg err';m.textContent=t}}
+async function ckMarkLine(id,patch){
+  await api(`receipt_lines?id=eq.${id}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({...patch,checked_by:currentUser.id,checked_by_name:currentUser.name||currentUser.email,checked_at:new Date().toISOString()})});
+}
+async function ckAdd(id){
+  const v=ckVals(id);
+  if(!v.name)return ckErr(id,'Please give it a name.');
+  if(v.sell==null||v.sell<=0)return ckErr(id,'Please enter the sell price.');
+  const btns=document.querySelectorAll('#viewCheck .card .btn');btns.forEach(b=>b.disabled=true);
+  try{
+    const now=new Date().toISOString();
+    const prod={name:v.name,category:v.cat||'Boardgame',sell_price:r2(v.sell),purchase_price:v.cost==null?null:r2(v.cost),stock_qty:v.qty,active:true,
+      players_min:v.pmin,players_max:v.pmax,age_recommendation:v.age,rrp:v.rrp==null?null:r2(v.rrp),notes:v.notes,condition_notes:v.cond||null,
+      needs_check:false,receipt_line_id:id,checked_by:currentUser.id,checked_by_name:currentUser.name||currentUser.email,checked_at:now};
+    const d=await api('products',{method:'POST',body:JSON.stringify(prod)});
+    await ckMarkLine(id,{stock_outcome:'added',product_id:d[0].id,stock_note:`${v.qty} × ${v.name} at ${money(v.sell)}`+(v.cond?` — ${v.cond}`:'')});
+    toast(`${v.name} added to stock ✓`);ckOpen=null;receipts=[];await loadReceipts();renderCheck();
+  }catch(e){if(window.btbLogError)btbLogError('ckAdd',e);ckErr(id,'Could not add: '+e.message);btns.forEach(b=>b.disabled=false)}
+}
+async function ckMerge(id,productId){
+  const v=ckVals(id);
+  try{
+    const p=(await api(`products?id=eq.${productId}&select=id,name,stock_qty,purchase_price,active,condition_notes`))[0];
+    const cost=v.cost==null?'':` Its cost price stays ${p.purchase_price==null?'blank':money(p.purchase_price)} (this copy cost ${money(v.cost)}).`;
+    if(!confirm(`Add ${v.qty} to "${p.name}"? Stock goes from ${p.stock_qty??0} to ${(p.stock_qty||0)+v.qty}.${cost}${p.active?'':' It is inactive and will be made active.'}`))return;
+    const patch={stock_qty:(p.stock_qty||0)+v.qty,active:true,updated_at:new Date().toISOString()};
+    if(v.cond)patch.condition_notes=(p.condition_notes?p.condition_notes+' | ':'')+v.cond;
+    await api(`products?id=eq.${productId}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(patch)});
+    await ckMarkLine(id,{stock_outcome:'merged',product_id:productId,stock_note:`+${v.qty} to ${p.name}`+(v.cond?` — ${v.cond}`:'')});
+    toast(`Added to ${p.name} ✓`);ckOpen=null;receipts=[];await loadReceipts();renderCheck();
+  }catch(e){if(window.btbLogError)btbLogError('ckMerge',e);ckErr(id,'Could not add: '+e.message)}
+}
+async function ckNotSelling(id){
+  const why=prompt('Why is it not being sold? (e.g. pieces missing, keeping for the cafe, used for parts)');
+  if(why===null)return;
+  try{await ckMarkLine(id,{stock_outcome:'not_selling',stock_note:why.trim()||null});toast('Marked not selling');ckOpen=null;receipts=[];await loadReceipts();renderCheck()}
+  catch(e){if(window.btbLogError)btbLogError('ckNotSelling',e);ckErr(id,'Could not save: '+e.message)}
+}
+async function ckUndoNotSelling(id){
+  try{await api(`receipt_lines?id=eq.${id}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({stock_outcome:null,stock_note:null,checked_by:null,checked_by_name:null,checked_at:null})});
+    toast('Back on the To check list');receipts=[];await loadReceipts();renderCheck()}
+  catch(e){if(window.btbLogError)btbLogError('ckUndo',e);alert('Could not undo: '+e.message)}
 }
 
 // ───────── login (same as other pages) ─────────
