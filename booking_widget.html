@@ -4337,7 +4337,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.55'; // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.56'; // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4759,18 +4759,18 @@ function calcPrice(gameId, players) {
   const type = g.pricingType || 'per_person_tiered';
   if (type === 'per_hour_flat') {
     const p = (bookingConfig.gameFlatPrice || {})[gameId] ?? 0;
-    return { label: `$${p}`, total: p, breakdown: 'Flat rate per session' };
+    return { label: money(p), total: p, breakdown: 'Flat rate per session' };
   }
   if (type === 'per_person_per_hour') {
     const rate = (bookingConfig.gamePerPersonPerHour || {})[gameId] ?? 0;
     const total = rate * players;
-    return { label: `$${total}`, total, breakdown: `$${rate}pp/hr × ${players} player${players !== 1 ? 's' : ''}` };
+    return { label: money(total), total, breakdown: `${money(rate)}pp/hr × ${players} player${players !== 1 ? 's' : ''}` };
   }
   const tiers = (bookingConfig.gamePriceTiers || {})[gameId] || [{ min: 1, max: 99, pp: 35 }];
   const tier = tiers.find(t => players >= t.min && players <= t.max) || tiers[tiers.length - 1];
   const pp = tier ? tier.pp : 35;
   const total = pp * players;
-  return { label: `$${total}`, total, breakdown: `$${pp} per person × ${players}` };
+  return { label: money(total), total, breakdown: `${money(pp)} per person × ${players}` };
 }
 
 function calcDeposit(total) {
@@ -4780,21 +4780,24 @@ function calcDeposit(total) {
   return Math.min(amt, total);
 }
 
+// v1.7.56: money shows as $35 or $52.50 (never $52.5)
+function money(n) { const v = Number(n) || 0; return '$' + (Number.isInteger(Math.round(v * 100) / 100) ? String(Math.round(v)) : v.toFixed(2)); }
+
 function gamePriceLabel(g) {
   const type = g.pricingType || 'per_person_tiered';
   if (type === 'per_hour_flat') {
     const p = (bookingConfig.gameFlatPrice || {})[g.id] ?? 0;
-    return `$${p} per session`;
+    return `${money(p)} per session`;
   }
   if (type === 'per_person_per_hour') {
     const r = (bookingConfig.gamePerPersonPerHour || {})[g.id] ?? 0;
-    return `$${r} per person / hr`;
+    return `${money(r)} per person / hr`;
   }
   const tiers = (bookingConfig.gamePriceTiers || {})[g.id] || [];
   if (!tiers.length) return '$35 per person';
   const mn = Math.min(...tiers.map(t => t.pp));
   const mx = Math.max(...tiers.map(t => t.pp));
-  return mn === mx ? `$${mn} per person` : `$${mn}–$${mx} per person`;
+  return mn === mx ? `${money(mn)} per person` : `${money(mn)}–${money(mx)} per person`;
 }
 
 // ── v1.7.40 helpers: free times, game length + buffer, overlapping bookings ──

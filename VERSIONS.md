@@ -302,6 +302,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.56 — 2026-11-24 — Prices show as $52.50 instead of $52.5 (game list, price breakdown). Nothing removed.
 - v1.7.55 — 2026-11-24 — The date on the ticket stub now shows the chosen date (or today) instead of a fixed 27-Jul-26. Nothing removed.
 - v1.7.54 — 2026-11-24 — Board Game Cafe now takes up to 5 bookings at the same time (setting cafeMaxTables in the booking config, default 5), and one staff member hosts all the cafe tables at once. The database double-booking check was updated to match. Nothing removed.
 - v1.7.53 — 2026-11-24 — Staff marked inactive (people who have left) are never offered on the booking page. Needs sql/2026-11-24_public_staff_mode_active.sql to be run; until then it works exactly as before. Nothing removed.
