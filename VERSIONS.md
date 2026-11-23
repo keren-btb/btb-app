@@ -446,3 +446,6 @@ Newest entry per file goes at the top of that file's list.
 ## invoice_render.js / invoice_letterhead.png
 - v1.1.0 — 2026-11-23 — Deposit-due-now box.
 - v1.0.0 — 2026-11-23 — Shared TAX INVOICE layout (matches the Xero template: date, number, reference, GST number 132-864-330, address, lines with quantity / unit price / GST / amount, subtotal, GST, total, payments, amount due, due date, how to pay). Letterhead image from the Xero template.
+
+## booking-request (edge function)
+- v1.1.0 — 2026-11-24 — Second reminder to the owners 6 hours after the first "needs you" alert (requestReminderHours). A request still unanswered 6 hours before the game (requestAutoCancelBeforeGameHours) is cancelled automatically: note on the booking, the customer is emailed to call to rebook (and a to-do is added on their client record), and the owners are told. No early false "nobody could be asked" alerts for requests saved in the last 15 minutes. Busy check counts a GM going out with a hire from drop-off to pick-up. Deployed as Supabase version 2; source in edge-functions/booking-request.
