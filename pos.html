@@ -769,7 +769,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.15'; // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+const BUILD_VERSION = '1.9.16'; // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
 
 // Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
@@ -929,6 +929,7 @@ async function loadBookingsForRange(fromDateStr, toDateStr){
         splitMode:false,splitPersons:null,_currentMethod:'',
       };
     });
+    bookings.forEach((b,i)=>{b._srv=posSrvOf(rows[i])});
   }catch(e){console.error('Bookings load:',e);bookings=[];}
 }
 
@@ -1248,6 +1249,7 @@ async function loadEarlier(){
       const d=new Date(row.booking_date+'T12:00');
       return{id:row.id,date:d.getDate(),month:d.getMonth()+1,year:d.getFullYear(),dateStr:row.booking_date,name:row.game_name,game_id:row.game_id,clientId:row.client_id||null,customer:(()=>{if(row.clients){const c=row.clients;return[c.first_name,c.last_name].filter(Boolean).join(' ')}return row.notes_when_booked?.split('·')[0]?.trim()||''})(),customerPhone:row.clients?.phone||'',customerEmail:row.clients?.email||'',time:(row.slot_time||'').slice(0,5),duration:games.find(g=>g.id===row.game_id)?.duration||60,meta:`${row.players_booked} player${row.players_booked!==1?'s':''}`,players_booked:row.players_booked,play_location:row.play_location||'in_house',venue_address:row.venue_address||'',venue_contact_phone:row.venue_contact_phone||'',gm_attends:row.gm_attends,gm_fee:parseFloat(row.gm_fee)||0,travel_fee:parseFloat(row.travel_fee)||0,hire_extras:Array.isArray(row.hire_extras)?row.hire_extras:[],dropoff_method:row.dropoff_method||null,dropoff_time:(row.dropoff_time||'').slice(0,5),pickup_method:row.pickup_method||null,pickup_time:(row.pickup_time||'').slice(0,5),status:row.status,source:row.source||'',total_amount:row.total_amount||null,deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,deposit_method:row.deposit_method||null,deposit_paid_at:row.deposit_paid_at||null,deposit_ref:row.deposit_ref||null,payments:row.payments||null,addons:row.addons||null,group_booking_id:row.group_booking_id||null,isEnquiry:row.status==='enquiry',splitMode:false,splitPersons:null,_currentMethod:''};
     });
+    earlier.forEach((b,i)=>{b._srv=posSrvOf(rows[i])});
     bookings=[...earlier,...bookings];
   }catch(e){console.error('Load earlier error:',e);}
   renderBookingRows(bookings.filter(b=>!b.isEnquiry&&b.status!=='cancelled'));
@@ -2017,7 +2019,7 @@ async function recordGroupPayment(gid){
       if(method==='invoice')entry.status='pending';
       d.payments.push(entry);
       d.m.payments=JSON.stringify(d.payments);
-      await savePOSData(d.m.id);
+      if(!(await savePOSData(d.m.id))){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent=`Stopped — $${(toRecord-remaining-share).toFixed(2)} was saved before the error. Check the payments list before trying again.`}await renderPOS();return}
     }
   }
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
@@ -2114,9 +2116,61 @@ function calcDeposit(total){
 }
 function calcPriceNum(gameId,players){return calcPrice(gameId,players);}
 
-async function savePOSData(id){
+// v1.9.16: saves are checked, and only what this screen changed is saved — on top of the latest
+// saved booking — so a deposit or payment recorded elsewhere (Invoices, another device) is never undone.
+// b._srv = the booking as it was last loaded/saved; anything different in b is "our change".
+function posArr(v){if(Array.isArray(v))return v;if(typeof v==='string'&&v.trim()){try{const p=JSON.parse(v);return typeof p==='string'?posArr(p):(Array.isArray(p)?p:[])}catch(e){return[]}}return[]}
+function posSrvOf(row){return{payments:row.payments??null,addons:row.addons??null,total_amount:row.total_amount??null,players_booked:row.players_booked??null}}
+// apply what changed between base and mine (items added / removed) onto latest
+function posMergeList(base,mine,latest){
+  const k=e=>JSON.stringify(e),cnt=a=>{const m=new Map();a.forEach(e=>m.set(k(e),(m.get(k(e))||0)+1));return m};
+  const bc=cnt(base),mc=cnt(mine),out=latest.slice();
+  for(const [key,n] of bc){const extra=n-(mc.get(key)||0);for(let i=0;i<extra;i++){const j=out.findIndex(e=>k(e)===key);if(j>-1)out.splice(j,1)}}
+  const seen=new Map();
+  for(const e of mine){const key=k(e);seen.set(key,(seen.get(key)||0)+1);if(seen.get(key)>(bc.get(key)||0))out.push(e)}
+  return out;
+}
+async function reloadPOSBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
-  try{await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({total_amount:b.total_amount,deposit_amount:b.deposit_amount,deposit_paid:b.deposit_paid||false,deposit_method:b.deposit_method||null,payments:b.payments||null,addons:b.addons||null,players_booked:b.players_booked,updated_at:new Date().toISOString()})})}catch(e){console.error('POS save error:',e)}
+  try{const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}&select=payments,addons,total_amount,players_booked,deposit_paid,deposit_amount,deposit_method,deposit_paid_at,deposit_ref`,{headers:H()});
+    if(!r.ok)return;const row=(await r.json())[0];if(!row)return;
+    Object.assign(b,{payments:row.payments??null,addons:row.addons??null,total_amount:row.total_amount??null,players_booked:row.players_booked,deposit_paid:row.deposit_paid||false,deposit_amount:row.deposit_amount??null,deposit_method:row.deposit_method||null,deposit_paid_at:row.deposit_paid_at||null,deposit_ref:row.deposit_ref||null});
+    if(row.players_booked!=null)b.meta=`${row.players_booked} player${row.players_booked!==1?'s':''}`;
+    b._srv=posSrvOf(row);
+  }catch(e){}
+}
+async function savePOSData(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return false;
+  const base=b._srv||{payments:null,addons:null,total_amount:null,players_booked:b.players_booked??null};
+  try{
+    const lr=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}&select=payments,addons,total_amount,players_booked,deposit_paid,deposit_amount,deposit_method,deposit_paid_at,deposit_ref`,{headers:H()});
+    if(!lr.ok)throw new Error(await lr.text());
+    const latest=(await lr.json())[0];if(!latest)throw new Error('booking not found');
+    const body={updated_at:new Date().toISOString()};
+    const listChanged=f=>JSON.stringify(posArr(b[f]))!==JSON.stringify(posArr(base[f]));
+    if(listChanged('payments'))body.payments=JSON.stringify(posMergeList(posArr(base.payments),posArr(b.payments),posArr(latest.payments)));
+    if(listChanged('addons'))body.addons=JSON.stringify(posMergeList(posArr(base.addons),posArr(b.addons),posArr(latest.addons)));
+    const basePlayers=base.players_booked??b.players_booked??1;
+    if((b.players_booked??null)!==(base.players_booked??null))body.players_booked=b.players_booked;
+    const n=v=>v==null?null:Number(v);
+    if(n(b.total_amount)!==n(base.total_amount)){
+      // move the latest saved total by the same amount this screen changed it
+      const baseEff=n(base.total_amount)??calcPrice(b.game_id,basePlayers);
+      const latestEff=n(latest.total_amount)??baseEff;
+      body.total_amount=Math.max(0,Math.round((latestEff+(n(b.total_amount)??baseEff)-baseEff)*100)/100);
+    }
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(body)});
+    if(!r.ok)throw new Error(await r.text());
+    const row=(await r.json())[0];if(!row)throw new Error('not saved (no permission?)');
+    Object.assign(b,{payments:row.payments??null,addons:row.addons??null,total_amount:row.total_amount??null,players_booked:row.players_booked,deposit_paid:row.deposit_paid||false,deposit_amount:row.deposit_amount??null,deposit_method:row.deposit_method||null,deposit_paid_at:row.deposit_paid_at||null,deposit_ref:row.deposit_ref||null});
+    b._srv=posSrvOf(row);
+    return true;
+  }catch(e){
+    console.error('POS save error:',e);
+    await reloadPOSBooking(id);
+    alert('⚠️ Not saved: '+(e.message||e)+'\n\nNothing was changed on this booking. Please check your connection (or log in again) and try once more.');
+    return false;
+  }
 }
 
 async function addProductToBooking(bookingId,productId){
@@ -2140,7 +2194,15 @@ async function removeAddon(bookingId,idx){
   const removed=addons.splice(idx,1)[0];
   if(removed.amount)b.total_amount=(b.total_amount??calcPrice(b.game_id,players))-removed.amount;
   b.addons=JSON.stringify(addons);
-  await savePOSData(bookingId);refreshPanel();
+  if(!(await savePOSData(bookingId))){refreshPanel();return}
+  // v1.9.16: a product taken off the booking goes back into stock; a voucher taken off can be used again
+  try{
+    if(removed.productId){const p=products.find(x=>x.id===removed.productId);
+      if(p&&p.stock_qty!=null){const r=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}&select=stock_qty`,{headers:H()});const cur=r.ok?(await r.json())[0]?.stock_qty:null;
+        if(cur!=null){const nq=cur+1;const u=await fetch(`${SB_URL}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({stock_qty:nq})});if(!u.ok)throw new Error(await u.text());p.stock_qty=nq}}}
+    if(removed.voucherId){const u=await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${removed.voucherId}&used_on_booking=eq.${bookingId}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',used_at:null,used_on_booking:null})});if(!u.ok)throw new Error(await u.text())}
+  }catch(e){alert('Removed from the booking, but '+(removed.voucherId?'the voucher could not be made usable again':'the stock count was not updated')+': '+e.message)}
+  refreshPanel();
 }
 
 async function adjustPOSPlayers(id,delta){
@@ -2192,9 +2254,10 @@ async function recordPayment(id){
   if(invoiceEmail)payEntry.invoice_email=invoiceEmail;
   if(method==='invoice')payEntry.status='pending';
   payments.push(payEntry);b.payments=JSON.stringify(payments);
+  if(msgEl){msgEl.style.color='#6b7280';msgEl.textContent='Saving…'}
+  if(!(await savePOSData(id))){refreshPanel();return}
   if(amtEl)amtEl.value='';
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
-  await savePOSData(id);
   setTimeout(()=>refreshPanel(),600);
 }
 
@@ -2212,11 +2275,16 @@ async function applyDiscount(id){
   if(!amt||amt<=0){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an amount greater than $0.'}return}
   const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
   const addons=b.addons?JSON.parse(b.addons):[];
+  const curTotal=b.total_amount??calcPrice(b.game_id,players);
+  if(Math.abs(amt)>curTotal){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent=`The most you can take off is $${Number(curTotal).toFixed(2)}.`}return}
   addons.push({label:`Discount: ${reason}`,amount:-Math.abs(amt),at:new Date().toISOString()});
   b.addons=JSON.stringify(addons);
-  b.total_amount=Math.max(0,(b.total_amount??calcPrice(b.game_id,players))-Math.abs(amt));
-  await savePOSData(id);
+  b.total_amount=Math.max(0,curTotal-Math.abs(amt));
+  if(!(await savePOSData(id))){refreshPanel();return}
   if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ $${amt.toFixed(2)} taken off`}
+  {const t=b.total_amount??calcPrice(b.game_id,players),dp=b.deposit_amount??calcDeposit(t);
+   const paidSoFar=(b.deposit_paid?dp:0)+(b.payments?JSON.parse(b.payments):[]).reduce((x,p)=>x+(Number(p.amount)||0),0);
+   if(paidSoFar>t+0.005){alert(`Heads up: this customer has now paid $${(paidSoFar-t).toFixed(2)} more than the new total.\n\nIf you give it back, remove or change the payment so the records match.`);return}}
   setTimeout(()=>closePanelSect(id),700);
 }
 
@@ -2303,27 +2371,45 @@ function refreshPanel(){
 }
 
 // ── SPLIT PAYMENTS ─────────────────────────────────
-function buildSplitView(b){
+// v1.9.16: the split is worked out from what is actually still owed (the booking's total less the deposit and
+// any payments already made, so discounts, vouchers, hire prices and typed prices all count), shared evenly
+// between the players not yet paid for, after taking out the extras that haven't been paid for yet.
+function splitPricing(b){
   const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
   const addons=b.addons?JSON.parse(b.addons):[];
-  const gamePrice=calcPrice(b.game_id,players);
-  const ppPrice=players>0?gamePrice/players:gamePrice;
-  const sel=b._splitSel||{players:0,addonIdxs:[],method:'',personName:''};
   const state=b.splitState||{playersPaid:0,addonsPaid:[],personNum:1};
-  const remainingPlayers=players-state.playersPaid;
+  const total=b.total_amount??calcPrice(b.game_id,players);
+  const dep=b.deposit_amount??calcDeposit(total);
+  const payments=b.payments?JSON.parse(b.payments):[];
+  const covered=(b.deposit_paid?dep:0)+payments.reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const balance=Math.max(0,Math.round((total-covered)*100)/100);
+  const unpaidAddons=addons.reduce((s,a,i)=>s+(a.amount>0&&!state.addonsPaid.includes(i)?Number(a.amount):0),0);
+  const remainingPlayers=Math.max(0,players-state.playersPaid);
+  const playerPool=Math.max(0,Math.round((balance-unpaidAddons)*100)/100);
+  const pp=remainingPlayers>0?playerPool/remainingPlayers:0;
+  return{players,addons,state,balance,remainingPlayers,playerPool,pp};
+}
+function splitPlayersAmount(sp,n){if(!n)return 0;return n>=sp.remainingPlayers?sp.playerPool:Math.round(n*sp.pp*100)/100}
+function splitSelAmount(b,sel){const sp=splitPricing(b);return Math.round((splitPlayersAmount(sp,sel.players)+sel.addonIdxs.reduce((s,i)=>s+(Number(sp.addons[i]?.amount)||0),0))*100)/100}
+function buildSplitView(b){
+  const sp=splitPricing(b);
+  const players=sp.players,addons=sp.addons;
+  const sel=b._splitSel||{players:0,addonIdxs:[],method:'',personName:''};
+  const state=sp.state;
+  const remainingPlayers=sp.remainingPlayers;
   const personNum=state.personNum||1;
   const colorMap={cash:['Cash','#374151','#f8fafc','#cbd5e1'],eftpos:['Eftpos','#0369a1','#f0f9ff','#bae6fd'],stripe:['Stripe','#6d28d9','#f5f3ff','#ddd6fe'],bank_transfer:['Bank','#15803d','#f0fdf4','#bbf7d0'],invoice:['Invoice','#be185d','#fdf2f8','#fbcfe8']};
 
-  // Player buttons — deposit already paid counts as 1 player for person 1 silently
+  // Player buttons — each shows that many players' share of what is still owed
   let playerBtns='';
-  if(remainingPlayers>0){
+  if(remainingPlayers>0&&sp.playerPool>0){
     playerBtns=`<div style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:4px">Players (${remainingPlayers} remaining)</div>
     <div id="split-player-btns-${b.id}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
     for(let n=1;n<=remainingPlayers;n++){
       const active=sel.players===n;
       playerBtns+=`<button data-players="${n}" onclick="splitTogglePlayers('${b.id}',${n})"
         style="padding:5px 12px;border-radius:8px;border:2px solid ${active?'#07b4c5':'#e5e7eb'};background:${active?'#07b4c5':'#fff'};color:${active?'#fff':'#374151'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
-        ${n}p · $${(n*ppPrice).toFixed(0)}
+        ${n}p · $${splitPlayersAmount(sp,n).toFixed(2).replace(/\.00$/,'')}
       </button>`;
     }
     playerBtns+='</div>';
@@ -2348,7 +2434,7 @@ function buildSplitView(b){
   }
 
   // Running total for this person's selection
-  const selTotal=(sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i]?.amount||0),0);
+  const selTotal=splitSelAmount(b,sel);
 
   // Method buttons — inline styles so highlighting works without class dependency
   const methodBtns=Object.entries(colorMap).map(([m,[label,col,bg,bdr]])=>{
@@ -2383,9 +2469,8 @@ function toggleSplitView(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   b.splitMode=!b.splitMode;
   if(b.splitMode){
-    // If deposit already paid, silently count it as 1 player covered
-    const depAlreadyPaid=b.deposit_paid||false;
-    b.splitState={playersPaid:depAlreadyPaid?1:0,addonsPaid:[],personNum:1};
+    // The deposit (and any earlier payments) are already taken off what is owed — see splitPricing
+    b.splitState={playersPaid:0,addonsPaid:[],personNum:1};
     b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
   } else {
     b.splitState=null;
@@ -2451,12 +2536,8 @@ function splitUpdateName(id,val){
 }
 function splitUpdateTotal(id){
   const b=bookings.find(x=>x.id===id);if(!b||!b._splitSel)return;
-  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
-  const addons=b.addons?JSON.parse(b.addons):[];
-  const gamePrice=calcPrice(b.game_id,players);
-  const ppPrice=players>0?gamePrice/players:gamePrice;
   const sel=b._splitSel;
-  const selTotal=(sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i]?.amount||0),0);
+  const selTotal=splitSelAmount(b,sel);
   const el=document.getElementById('split-total-'+id);
   if(el)el.textContent='$'+selTotal.toFixed(2);
 }
@@ -2464,26 +2545,27 @@ async function recordSplitPaymentNew(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   const sel=b._splitSel||{players:0,addonIdxs:[],method:'',personName:''};
   const msgEl=document.getElementById('split-msg-'+id);
-  const players=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
-  const addons=b.addons?JSON.parse(b.addons):[];
-  const gamePrice=calcPrice(b.game_id,players);
-  const ppPrice=players>0?gamePrice/players:gamePrice;
+  const sp=splitPricing(b);
+  const players=sp.players,addons=sp.addons;
   if(!sel.players&&!sel.addonIdxs.length){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select at least one item.'}return}
   if(!sel.method){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Select a payment method.'}return}
   let invoiceEmail=null;
   if(sel.method==='invoice'){invoiceEmail=document.getElementById('split-invoice-email-'+id)?.value.trim();if(!invoiceEmail){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Enter an email for the invoice.'}return}}
-  const amt=parseFloat(((sel.players*ppPrice)+sel.addonIdxs.reduce((s,i)=>s+(addons[i].amount||0),0)).toFixed(2));
+  const amt=splitSelAmount(b,sel);
+  if(!(amt>0)){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Nothing left to pay for that.'}return}
   const payments=b.payments?JSON.parse(b.payments):[];
   const personLabel=sel.personName?.trim()||(b.splitState?.personNum?`Person ${b.splitState.personNum}`:'Person 1');
   const entry={amount:amt,method:sel.method,at:new Date().toISOString(),splitPerson:personLabel};
   if(invoiceEmail)entry.invoice_email=invoiceEmail;
+  if(sel.method==='invoice')entry.status='pending';
+  const before={payments:b.payments,state:JSON.stringify(b.splitState||null),sel:b._splitSel};
   payments.push(entry);b.payments=JSON.stringify(payments);
   if(!b.splitState)b.splitState={playersPaid:0,addonsPaid:[],personNum:1};
   b.splitState.playersPaid+=sel.players;
   sel.addonIdxs.forEach(i=>b.splitState.addonsPaid.push(i));
   b.splitState.personNum++;
   b._splitSel={players:0,addonIdxs:[],method:'',personName:''};
-  await savePOSData(id);
+  if(!(await savePOSData(id))){b.splitState=JSON.parse(before.state);b._splitSel=before.sel;refreshPanel();return}
   const remPlayers=players-b.splitState.playersPaid;
   const remAddons=addons.filter((_,i)=>!b.splitState.addonsPaid.includes(i)&&addons[i].amount>0);
   if(remPlayers===0&&remAddons.length===0){
@@ -2557,6 +2639,7 @@ async function applyVoucher(bookingId){
     const v=rows[0];
     if(v.status==='used'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already used.'}return}
     if(v.status==='expired'||v.status==='cancelled'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Voucher is '+v.status+'.'}return}
+    if(v.status!=='active'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent=v.status==='requested'?'This voucher hasn\'t been paid for yet — mark it paid in Vouchers first.':'This voucher isn\'t active.'}return}
     let discount=0,label='';
     if(v.type==='amount'){discount=parseFloat(v.value)||0;label=`Voucher ${code} ($${discount} off)`}
     else{const pl=parseInt(v.players)||1;discount=parseFloat(v.value)||calcPrice(v.game_id,pl)||0;label=`Voucher ${code} (${pl}p${v.game_name?' — '+v.game_name:''})`}
@@ -2566,8 +2649,13 @@ async function applyVoucher(bookingId){
     const curPlayers=b.players_booked||parseInt((b.meta||'').split(' ')[0])||1;
     b.total_amount=Math.max(0,(b.total_amount??calcPrice(b.game_id,curPlayers))-discount);
     if(input)input.value='';
-    await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${v.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'used',used_at:new Date().toISOString(),used_on_booking:bookingId})});
-    await savePOSData(bookingId);
+    const vr=await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${v.id}&status=eq.active`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({status:'used',used_at:new Date().toISOString(),used_on_booking:bookingId})});
+    if(!vr.ok)throw new Error(await vr.text());
+    if(!(await vr.json()).length){await reloadPOSBooking(bookingId);refreshPanel();if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='This voucher has just been used — not applied.'}return}
+    if(!(await savePOSData(bookingId))){
+      // booking didn't save, so put the voucher back the way it was
+      await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${v.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'active',used_at:null,used_on_booking:null})}).catch(()=>{});
+      if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Not saved — the voucher has not been used. Please try again.'}return}
     if(msgEl){msgEl.style.color='#15803d';msgEl.textContent=`✓ ${label}`}
     setTimeout(()=>refreshPanel(),600);
   }catch(e){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}console.error(e)}
@@ -2962,6 +3050,7 @@ async function applyProdSaleVoucher(){
     const v=rows[0];
     if(v.status==='used'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Already used.'}return}
     if(v.status==='expired'||v.status==='cancelled'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent='Voucher is '+v.status+'.'}return}
+    if(v.status!=='active'){if(msgEl){msgEl.style.color='#dc2626';msgEl.textContent=v.status==='requested'?'This voucher hasn\'t been paid for yet — mark it paid in Vouchers first.':'This voucher isn\'t active.'}return}
     let discount=0,label='';
     if(v.type==='amount'){discount=parseFloat(v.value)||0;label=`Voucher ${code} ($${discount} off)`}
     else{const pl=parseInt(v.players)||1;discount=parseFloat(v.value)||calcPrice(v.game_id,pl)||0;label=`Voucher ${code} (${pl}p${v.game_name?' — '+v.game_name:''})`}
@@ -3045,7 +3134,7 @@ async function completeProdSale(){
     }
     const voucherFailures=[];
     for(const item of voucherLines){
-      try{const vr=await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${item.voucherId}`,{method:'PATCH',headers:H(),body:JSON.stringify({status:'used',used_at:new Date().toISOString()})});if(!vr.ok)throw new Error(await vr.text())}catch(e){voucherFailures.push(item.voucherCode)}
+      try{const vr=await fetch(`${SB_URL}/rest/v1/vouchers?id=eq.${item.voucherId}&status=eq.active`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({status:'used',used_at:new Date().toISOString()})});if(!vr.ok)throw new Error(await vr.text());if(!(await vr.json()).length)throw new Error('already used')}catch(e){voucherFailures.push(item.voucherCode)}
     }
     msgEl.style.color=(stockFailures.length||voucherFailures.length)?'#d97706':'#1d9e75';
     msgEl.textContent=(prodSaleMethod==='invoice'?`✓ Invoice recorded — $${total.toFixed(2)} awaiting payment`:`✓ Sale complete — $${total.toFixed(2)}`)
