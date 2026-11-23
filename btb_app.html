@@ -259,7 +259,7 @@
       <!-- v16.4.70: one-tap buttons for the pages people open most -->
       <div class="settings-quick">
         <button class="sq-btn gated-btn" data-tab="reports" onclick="window.open('reports.html','_blank')"><i class="ti ti-chart-bar"></i> Reports</button>
-        <button class="sq-btn gated-btn" data-tab="staff_portal" onclick="window.open('staff_portal.html','_blank')"><i class="ti ti-users"></i> Staff Portal</button>
+        <button class="sq-btn" onclick="window.open('staff_portal.html','_blank')"><i class="ti ti-users"></i> Staff Portal</button>
         <button class="sq-btn" onclick="window.open('task_hub.html','_blank')"><i class="ti ti-checklist"></i> Task Hub</button>
         <button class="sq-btn gated-btn" data-tab="control_room" onclick="window.open('control_room.html','_blank')"><i class="ti ti-device-gamepad-2"></i> Control Room</button>
         <button class="sq-btn" onclick="window.open('clients.html','_blank')"><i class="ti ti-address-book"></i> Clients</button>
@@ -3526,6 +3526,8 @@ function toggleProfileMenu(e){
   const dd=document.getElementById('profileMenuDropdown');
   const willOpen=(dd.style.display==='none'||!dd.style.display);
   if(willOpen){
+    // v16.4.82: a fixed-position menu inside a transformed parent is positioned off-screen — move it to <body> first
+    if(dd.parentNode!==document.body)document.body.appendChild(dd);
     const btn=document.getElementById('profileAvatarBtn');
     const r=btn.getBoundingClientRect();
     dd.style.top=(r.bottom+8)+'px';
@@ -3541,7 +3543,8 @@ function closeProfileMenu(){
 }
 document.addEventListener('click',(e)=>{
   const wrap=document.getElementById('profileMenuWrap');
-  if(wrap&&!wrap.contains(e.target))closeProfileMenu();
+  const dd=document.getElementById('profileMenuDropdown');
+  if(wrap&&!wrap.contains(e.target)&&!(dd&&dd.contains(e.target)))closeProfileMenu();
 });
 function showApp(){
   document.getElementById('loginScreen').classList.remove('active');document.getElementById('mainApp').style.display='';
@@ -4205,7 +4208,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.81'; // v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.82'; // v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).

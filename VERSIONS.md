@@ -119,6 +119,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.82 — 2026-11-23 — Profile menu (tap your initial, top right) now opens (it was placed off-screen inside the transformed header; it now moves to the page body when opened). Staff Portal quick button shows for every login; the staff portal itself still hides admin/owner-only parts. Nothing removed.
 - v16.4.81 — 2026-11-23 — Settings > Booking Configuration: new "Casual shift overrun" minutes field (default 60, 0 = off) used by the booking page. Nothing removed.
 - v16.4.80 — 2026-11-23 — Settings: new 🧾 Receipts button next to Invoices (admins and managers, which includes Keren and Joolz) opens receipt_capture.html. Nothing removed. CSS unchanged (still ?v=16.4.79).
 - v16.4.79 — 2026-11-23 — At-BtB packages show as one PACKAGE card (header with customer, total, owing, package ⋯ menu; games inside). CSS ?v=16.4.79.
