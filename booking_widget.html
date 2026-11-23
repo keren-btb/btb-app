@@ -4337,7 +4337,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.50'; // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.51'; // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4731,14 +4731,20 @@ function getSlotsForDay(dayIdx) {
   return [...slots].sort();
 }
 
-async function loadExistingBookings() {
+// v1.7.51: requests (waiting for a GM) and games already finished today count too, so a request keeps holding
+// its slot after the page is reloaded (matches the database's double-booking check).
+// keepOnFail: used for the re-check just before booking — if the reload fails, keep what we had.
+async function loadExistingBookings(keepOnFail) {
   try {
     const today = nzToday();
     const r = await fetch(
-      `${SB_URL}/rest/v1/public_booking_slots?booking_date=gte.${today}&status=eq.confirmed&select=game_id,booking_date,slot_time,assigned_staff_ids,play_location,gm_attends,dropoff_time,pickup_time`, { headers: SB_H }
+      `${SB_URL}/rest/v1/public_booking_slots?booking_date=gte.${today}&status=in.(confirmed,requested,completed)&select=game_id,booking_date,slot_time,status,assigned_staff_ids,play_location,gm_attends,dropoff_time,pickup_time`, { headers: SB_H }
     );
-    existingBookings = await r.json();
-  } catch (e) { existingBookings = []; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = await r.json();
+    if (!Array.isArray(rows)) throw new Error('bad data');
+    existingBookings = rows;
+  } catch (e) { if (!keepOnFail) existingBookings = []; }
 }
 
 function calcPrice(gameId, players) {
@@ -4955,9 +4961,9 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   const pool = getQualifiedStaffPool(gameId, dateStr, slotTime);
   // v1.7.49: nobody free/rostered for the whole game, but a trained casual has marked themselves free -> 'Request'
   if (pool.fullyAvailable.length === 0 && (d - now) >= (Number(bookingConfig.requestMinHoursAhead ?? 24) || 24) * 3600000 &&
-      requestCandidateCount(gameId, dateStr, slotTime) > 0) return 'request';
+      requestCandidateCount(gameId, dateStr, slotTime, pool.noGmLeft) > 0) return 'request';
   // ...but within the request window (too soon for someone to accept) a free casual means 'Call us'
-  if (pool.fullyAvailable.length === 0 && requestCandidateCount(gameId, dateStr, slotTime) > 0) return 'call';
+  if (pool.fullyAvailable.length === 0 && requestCandidateCount(gameId, dateStr, slotTime, pool.noGmLeft) > 0) return 'call';
   if (pool.fullyAvailable.length === 0 && pool.maybeAvailable.length === 0) return 'booked';
 
   const withinCutoff = (d - now) < cut;
@@ -5084,21 +5090,27 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
     });
   }
 
+  let noGmLeft = noGmCount; // v1.7.51: no-GM bookings not covered by anyone in this pool
   if (noGmCount > 0 && fullyAvailable.length > 0) {
     fullyAvailable.sort((a, b) => (staffFlags[b] === true ? 1 : 0) - (staffFlags[a] === true ? 1 : 0));
     const usedUp = Math.min(noGmCount, fullyAvailable.length);
     fullyAvailable.splice(0, noGmCount);
-    if (noGmCount > usedUp) maybeAvailable.splice(0, noGmCount - usedUp); // v1.7.48: leftover no-GM bookings use up stay-on casuals too
+    noGmLeft -= usedUp;
+    if (noGmLeft > 0) { const m = Math.min(noGmLeft, maybeAvailable.length); maybeAvailable.splice(0, noGmLeft); noGmLeft -= m; } // v1.7.48: leftover no-GM bookings use up stay-on casuals too
   } else if (noGmCount > 0) {
+    const m = Math.min(noGmCount, maybeAvailable.length);
     maybeAvailable.splice(0, noGmCount); // v1.7.48
+    noGmLeft -= m;
   }
 
-  return { fullyAvailable, maybeAvailable };
+  return { fullyAvailable, maybeAvailable, noGmLeft };
 }
 
 // v1.7.49: how many casual (roster-mode) staff are free (My Week free times) and trained for the whole game, not busy,
 // minus bookings with no GM yet (incl. other requests) overlapping it — each of those uses up one person.
-function requestCandidateCount(gameId, dateStr, slotTime) {
+// v1.7.51: noGmLeft (from the staff pool) = no-GM bookings NOT already covered by rostered/free staff, so they
+// aren't counted twice (before, a slot could show Full when a casual could still be asked).
+function requestCandidateCount(gameId, dateStr, slotTime, noGmLeft) {
   if (!freeTimesLoaded) return 0;
   const sMin = hmToMins(slotTime), eMin = sMin + gameLength(gameId);
   const [y, mo, da] = dateStr.split('-').map(Number);
@@ -5124,7 +5136,7 @@ function requestCandidateCount(gameId, dateStr, slotTime) {
     let a = []; try { a = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { a = []; }
     return a.length === 0 && overlaps(b, gameId, dateStr, slotTime);
   }).length;
-  return n - noGm;
+  return n - (typeof noGmLeft === 'number' ? noGmLeft : noGm);
 }
 
 function getAvailableGMs(gameId, dateStr, slotTime) {
@@ -6211,6 +6223,7 @@ async function submitBooking() {
     return;
   }
 
+  await loadExistingBookings(true); // v1.7.51: re-check against the latest bookings before saving
   const slotCheck = getSlotStatus(selGame.id, selDate, selSlot);
   if (slotCheck === 'past') {
     showErr('This slot has already passed. Please choose another time.');
