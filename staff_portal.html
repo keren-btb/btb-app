@@ -783,15 +783,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ══ ADMIN: ROSTER OVERVIEW TAB ══ -->
   <div id="tabRoster" class="section">
-    <div class="sec-title">Roster Overview</div>
+    <div class="sec-title">Roster</div>
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset--; loadRosterOverview()">← Prev week</button>
       <span id="rosterWeekLabel" style="font-weight:600;font-size:13px;color:#1f2937"></span>
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset++; loadRosterOverview()">Next week →</button>
       <button class="btn-secondary btn-sm" onclick="rosterWeekOffset=0; loadRosterOverview()">This week</button>
       <button class="btn-secondary btn-sm" id="rosterHideClosedBtn" onclick="rosterHideClosed=!rosterHideClosed; loadRosterOverview()">Hide closed days</button>
+      <button class="btn-secondary btn-sm" id="rosterOldBtn" onclick="rosterShowOld=!rosterShowOld; this.textContent=rosterShowOld?'Back to new roster':'Old routine grid'; loadRosterOverview()">Old routine grid</button>
     </div>
-<div id="rosterGridWrap" style="overflow-x:auto"></div>
+<div id="rosterEditor" style="display:none"></div>
+<div id="rosterGridWrap"></div>
     <div class="divider"></div>
     <div class="sec-title" style="font-size:14px" id="rosterMonthlyLabel">Hours rostered this month</div>
     <div id="rosterMonthlyHours"></div>
@@ -1194,7 +1196,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.41'; // v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+const BUILD_VERSION = '1.9.42'; // v1.9.42: New Roster tab — whole week on a computer, one day on a phone: each person's free times (green, owners only) and shifts (blue), bookings and open shifts per day, 'Needs cover' list of bookings with no GM and who is free/on shift and trained; tap to give a shift (confirmed straight away, phone notification), tap a shift to change/unassign/delete; can also make someone the GM. Old Morning/Midday/Evening grid still available via 'Old routine grid'. Previous build: 1.9.41 — v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
 
 // Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
@@ -2146,7 +2148,7 @@ async function loadWeekView(silent) {
   else weekSelectedBookingId = null;
 }
 
-async function loadRosterOverview() {
+async function loadRosterOverviewOldRoutine() { // v1.9.42: the old Morning/Midday/Evening routine grid, kept behind the 'Old routine grid' button
   const dates = getRosterWeekDates();
   const label = document.getElementById('rosterWeekLabel');
   if (label) {
@@ -2236,6 +2238,338 @@ html += `</table>`;
 
   await loadRosterMonthlyHours(dates[0]);
 }
+
+// ============================================================
+// ROSTER (v1.9.42) — plan shifts from free times and bookings.
+// Whole week on a computer, one day at a time on a phone.
+// Green = free (can work), blue = shift, red = booking with no GM.
+// Tap green/empty to give a shift (confirmed straight away + phone notification),
+// tap a shift to change / unassign / delete it. "Needs cover" lists bookings with
+// no GM and who is free (or on shift) and trained for that game.
+// The old Morning/Midday/Evening routine grid is still available from the button.
+// ============================================================
+let rosterShowOld = false;
+let rosterDayIdx = null;   // phone: which day (0..6) is shown
+let rosterEdit = null;     // open editor state
+let RD = null;             // loaded roster data for the shown week
+const ROSTER_PHONE_W = 760;
+
+function rosterIsPhone() { return window.innerWidth < ROSTER_PHONE_W; }
+function rMins(t) { const a = String(t || '').slice(0, 5).split(':').map(Number); return (a[0] || 0) * 60 + (a[1] || 0); }
+function rHM(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function rLbl(m) { return fmt12(rHM(m)); }
+function rShortDay(ds) { const d = new Date(ds + 'T12:00:00'); return d.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' }); }
+
+async function loadRosterOverview() {
+  if (rosterShowOld) return loadRosterOverviewOldRoutine();
+  const dates = getRosterWeekDates();
+  const ds = dates.map(d => toDateStr(d));
+  const label = document.getElementById('rosterWeekLabel');
+  if (label) label.textContent = `${dates[0].getDate()} ${MONTHS[dates[0].getMonth()]} – ${dates[6].getDate()} ${MONTHS[dates[6].getMonth()]}`;
+  const hideBtn = document.getElementById('rosterHideClosedBtn');
+  if (hideBtn) hideBtn.textContent = rosterHideClosed ? 'Show all days' : 'Hide closed days';
+  const oldBtn = document.getElementById('rosterOldBtn');
+  if (oldBtn) oldBtn.textContent = 'Old routine grid';
+  const wrap = document.getElementById('rosterGridWrap');
+  if (!wrap) return;
+  if (!RD || RD.from !== ds[0]) wrap.innerHTML = '<div class="empty-state">Loading…</div>';
+  const fromStr = ds[0], toStr = ds[6];
+  try {
+    const bufFrom = new Date(Date.UTC(dates[0].getFullYear(), dates[0].getMonth(), dates[0].getDate() - 1)).toISOString();
+    const bufTo = new Date(Date.UTC(dates[6].getFullYear(), dates[6].getMonth(), dates[6].getDate() + 2)).toISOString();
+    const get = async (path) => { const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: H() }); const j = await r.json(); if (!r.ok) throw new Error(path.split('?')[0] + ': ' + JSON.stringify(j)); return Array.isArray(j) ? j : []; };
+    const soft = async (path) => { try { return await get(path); } catch (e) { console.warn('Roster optional load:', e.message); return []; } };
+    const [shifts, bookings, usual, dated, ovs, training, busy, confs] = await Promise.all([
+      get(`assigned_shifts?shift_date=gte.${fromStr}&shift_date=lte.${toStr}&order=shift_date,custom_start_time`),
+      get(`game_bookings?booking_date=gte.${fromStr}&booking_date=lte.${toStr}&status=neq.cancelled&order=slot_time&select=id,game_id,game_name,booking_date,slot_time,players_booked,assigned_staff_ids,play_location,gm_attends,status`),
+      soft(`staff_free_times?scope=eq.usual&select=staff_id,day_of_week,start_time,end_time`),
+      soft(`staff_free_times?scope=eq.date&free_date=gte.${fromStr}&free_date=lte.${toStr}&select=staff_id,free_date,start_time,end_time`),
+      soft(`staff_free_day_overrides?free_date=gte.${fromStr}&free_date=lte.${toStr}&select=staff_id,free_date`),
+      soft(`staff_game_training?select=staff_id,game_id,status`),
+      soft(`staff_calendar_busy?busy_end=gt.${bufFrom}&busy_start=lt.${bufTo}&select=staff_id,busy_start,busy_end`),
+      soft(`staff_week_confirmations?week_start=eq.${fromStr}&select=staff_id,stage,confirmed_at,free_snapshot`)
+    ]);
+    const staff = allStaff.filter(s => s.active !== false);
+    staff.sort((a, b) => (a.availability_mode === 'calendar' ? 0 : 1) - (b.availability_mode === 'calendar' ? 0 : 1) || String(a.name).localeCompare(String(b.name)));
+    RD = { from: fromStr, ds, shifts, bookings, usual, dated, ovs: new Set(ovs.map(o => o.staff_id + '|' + o.free_date)), training, busy, confs, staff,
+      canSeeFree: !!(myStaffRecord && myStaffRecord.is_owner) };
+  } catch (e) {
+    console.error('Roster load:', e);
+    wrap.innerHTML = '<div class="empty-state">Could not load the roster. Please try again.</div>';
+    return;
+  }
+  if (rosterDayIdx === null) { const t = RD.ds.indexOf(nzToday()); rosterDayIdx = t >= 0 ? t : 0; }
+  renderRoster();
+  loadRosterMonthlyHours(dates[0]);
+}
+
+// ---- helpers over the loaded week ----
+function rFree(sid, dateStr, i) {
+  const rows = RD.ovs.has(sid + '|' + dateStr) ? RD.dated.filter(r => r.staff_id === sid && r.free_date === dateStr)
+    : RD.usual.filter(r => r.staff_id === sid && r.day_of_week === i + 1);
+  return weekMerge(rows.map(r => ({ s: rMins(r.start_time), e: rMins(r.end_time) })));
+}
+function rShifts(sid, dateStr) { return RD.shifts.filter(s => s.staff_id === sid && s.shift_date === dateStr && s.status !== 'open'); }
+function rBookLen(b) { return weekBookingLengthMin(b) || 60; }
+function rNeedsGm(b) { return weekParseIds(b.assigned_staff_ids).length === 0 && !(b.play_location === 'hire' && b.gm_attends === false); }
+function rTrained(sid, gameId) {
+  const t = RD.training.find(x => x.staff_id === sid && x.game_id === gameId);
+  const st = t ? trainingStatuses.find(s => s.id === t.status) : null;
+  return !!(st && st.qualifies);
+}
+function rCalBusy(sid, dateStr, s, e) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const base = Date.UTC(y, mo - 1, d);
+  return RD.busy.some(b => b.staff_id === sid && base + s * 60000 < weekNzWall(b.busy_end) && base + e * 60000 > weekNzWall(b.busy_start));
+}
+function rBookedElsewhere(sid, b) {
+  const s = rMins(b.slot_time), e = s + rBookLen(b);
+  return RD.bookings.some(o => o.id !== b.id && o.booking_date === b.booking_date && weekParseIds(o.assigned_staff_ids).includes(sid) &&
+    rMins(o.slot_time) < e && rMins(o.slot_time) + rBookLen(o) > s);
+}
+// who could run this booking: 'shift' (already on a shift covering it) or 'free' (free time covers it)
+function rCandidates(b) {
+  const i = RD.ds.indexOf(b.booking_date), s = rMins(b.slot_time), e = s + rBookLen(b);
+  const out = [];
+  RD.staff.forEach(st => {
+    if (!rTrained(st.id, b.game_id)) return;
+    if (rBookedElsewhere(st.id, b)) return;
+    if (rShifts(st.id, b.booking_date).some(sh => rMins(sh.custom_start_time) <= s && e <= rMins(sh.custom_end_time))) { out.push({ st, how: 'shift' }); return; }
+    if (rFree(st.id, b.booking_date, i).some(r => r.s <= s && e <= r.e) && !rCalBusy(st.id, b.booking_date, s, e)) out.push({ st, how: 'free' });
+  });
+  return out;
+}
+function rConfirmText(sid) {
+  const stage = (() => { const t = new Date(nzToday() + 'T00:00:00'); const n = Math.round((new Date(RD.from + 'T00:00:00') - t) / 86400000); return n >= 1 && n <= 7 ? 'next' : n >= 8 && n <= 14 ? 'following' : null; })();
+  if (!stage || !RD.canSeeFree) return '';
+  const snap = RD.ds.map((d, i) => d + '=' + rFree(sid, d, i).map(r => rHM(r.s) + '-' + rHM(r.e)).join(',')).join('|');
+  const mine = RD.confs.filter(c => c.staff_id === sid);
+  const ok = mine.some(c => c.free_snapshot === snap && (c.stage === 'next' || stage === 'following'));
+  return ok ? '<span title="Confirmed this week" style="color:#15803d">✓</span>' : '<span title="Not confirmed yet" style="color:#b45309">•</span>';
+}
+
+// ---- rendering ----
+function rChip(bg, fg, border, txt, onclick, title) {
+  return `<button type="button" onclick="${onclick}" title="${escapeHtml(title || txt)}" style="display:block;width:100%;text-align:left;margin:2px 0;padding:3px 6px;border-radius:6px;border:1px solid ${border};background:${bg};color:${fg};font-size:11px;line-height:1.3;cursor:pointer;font-family:inherit">${txt}</button>`;
+}
+function rCell(st, dateStr, i) {
+  const past = dateStr < nzToday();
+  let h = '';
+  rShifts(st.id, dateStr).forEach(sh => {
+    h += rChip('#dbeafe', '#1d4ed8', '#93c5fd', `<b>Shift ${rLbl(rMins(sh.custom_start_time))}–${rLbl(rMins(sh.custom_end_time))}</b>${sh.status === 'claimed' ? ' (claimed)' : ''}`, `rosterOpenShift('${sh.id}')`);
+  });
+  if (RD.canSeeFree) rFree(st.id, dateStr, i).forEach(r => {
+    h += rChip('#dcfce7', '#15803d', '#86efac', `Free ${rLbl(r.s)}–${rLbl(r.e)}`, past ? '' : `rosterNewShift('${st.id}','${dateStr}',${r.s},${r.e})`, past ? 'Past day' : 'Tap to give a shift in this time');
+  });
+  RD.bookings.filter(b => b.booking_date === dateStr && weekParseIds(b.assigned_staff_ids).includes(st.id)).forEach(b => {
+    h += `<div style="font-size:11px;color:#374151;margin:2px 0;padding:2px 6px;border-left:3px solid ${weekStaffColour(st)}">${fmt12(String(b.slot_time).slice(0, 5))} ${escapeHtml(b.game_name || '')}</div>`;
+  });
+  if (!past) h += `<button type="button" onclick="rosterNewShift('${st.id}','${dateStr}',null,null)" style="margin-top:2px;border:1px dashed #d1d5db;background:none;color:#9ca3af;font-size:11px;border-radius:6px;padding:1px 6px;cursor:pointer;font-family:inherit">+ shift</button>`;
+  return h;
+}
+function rBookingsCell(dateStr) {
+  const list = RD.bookings.filter(b => b.booking_date === dateStr);
+  let h = list.map(b => {
+    const ids = weekParseIds(b.assigned_staff_ids);
+    const names = ids.map(id => (allStaff.find(s => s.id === id) || {}).name).filter(Boolean).join(', ');
+    const need = rNeedsGm(b);
+    return `<div style="font-size:11px;margin:2px 0;padding:2px 6px;border-radius:6px;${need ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5' : 'background:#f3f4f6;color:#374151'}">${fmt12(String(b.slot_time).slice(0, 5))} ${escapeHtml(b.game_name || '')}<br><span style="opacity:.8">${need ? 'No GM' : escapeHtml(names || (b.play_location === 'hire' ? 'Self-run hire' : ''))}</span></div>`;
+  }).join('');
+  RD.shifts.filter(s => s.shift_date === dateStr && s.status === 'open').forEach(sh => {
+    h += rChip('#fff', '#4338ca', '#a5b4fc', `Open shift ${rLbl(rMins(sh.custom_start_time))}–${rLbl(rMins(sh.custom_end_time))}`, `rosterOpenShift('${sh.id}')`, 'Not taken yet — tap to give it to someone');
+  });
+  return h || '<span style="color:#9ca3af;font-size:11px">—</span>';
+}
+
+function renderRoster() {
+  const wrap = document.getElementById('rosterGridWrap');
+  if (!wrap || !RD) return;
+  const allIdx = RD.ds.map((d, i) => i);
+  const dates = getRosterWeekDates();
+  const visIdx = rosterHideClosed ? allIdx.filter(i => isDayOpen(dates[i])) : allIdx;
+  const phone = rosterIsPhone();
+  const today = nzToday();
+  const head = i => { const d = new Date(RD.ds[i] + 'T12:00:00'); return `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} ${d.getDate()}`; };
+
+  // Needs cover
+  const cover = RD.bookings.filter(b => b.booking_date >= today && rNeedsGm(b));
+  let coverHtml = '';
+  if (cover.length) {
+    coverHtml = `<div style="border:1px solid #fca5a5;background:#fff7f7;border-radius:10px;padding:10px 12px;margin-bottom:12px">`
+      + `<div style="font-weight:700;color:#b91c1c;margin-bottom:6px">Needs cover (${cover.length})</div>`
+      + cover.map(b => {
+        const c = rCandidates(b);
+        const s = rMins(b.slot_time), e = s + rBookLen(b);
+        const chips = c.map(x => x.how === 'shift'
+          ? `<button class="btn-secondary btn-sm" onclick="rosterAssignGm('${b.id}','${x.st.id}')" title="Already on a shift — make them the GM">${escapeHtml(x.st.name)} (on shift) → GM</button>`
+          : `<button class="btn-secondary btn-sm" onclick="rosterNewShift('${x.st.id}','${b.booking_date}',${s},${e},'${b.id}')" title="Free and trained — give them a shift and make them the GM">${escapeHtml(x.st.name)} (free) → shift + GM</button>`).join(' ');
+        return `<div style="padding:5px 0;border-top:1px solid #fde2e2;font-size:13px"><b>${escapeHtml(rShortDay(b.booking_date))} ${fmt12(String(b.slot_time).slice(0, 5))}</b> ${escapeHtml(b.game_name || '')} <span style="color:#6b7280">(${rLbl(s)}–${rLbl(e)})</span>`
+          + `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${chips || '<span style="color:#b45309;font-size:12px">Nobody free and trained for this' + (RD.canSeeFree ? '' : ' (free times are only visible to owners)') + '</span>'}</div></div>`;
+      }).join('') + `</div>`;
+  }
+
+  let grid = '';
+  if (phone) {
+    if (!visIdx.includes(rosterDayIdx)) rosterDayIdx = visIdx[0] ?? 0;
+    const i = rosterDayIdx, dStr = RD.ds[i];
+    grid += `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">` + visIdx.map(j => `<button class="btn-secondary btn-sm" style="${j === i ? 'background:#07b4c5;color:#fff;border-color:#07b4c5' : ''}${RD.ds[j] === today ? ';font-weight:700' : ''}" onclick="rosterDayIdx=${j};renderRoster()">${head(j)}</button>`).join('') + `</div>`;
+    grid += `<div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:8px 10px;margin-bottom:8px"><div style="font-weight:700;font-size:12px;color:#6b7280;margin-bottom:4px">Bookings &amp; open shifts</div>${rBookingsCell(dStr)}</div>`;
+    RD.staff.forEach(st => {
+      grid += `<div style="border:1px solid #e5e7eb;border-radius:10px;background:#fff;padding:8px 10px;margin-bottom:6px"><div style="font-weight:700;margin-bottom:4px;color:${weekStaffColour(st)}">${escapeHtml(st.name)} ${rConfirmText(st.id)}</div>${rCell(st, dStr, i)}</div>`;
+    });
+  } else {
+    grid += `<table style="border-collapse:collapse;font-size:12px;width:100%;min-width:${120 + visIdx.length * 120}px;table-layout:fixed;background:#fff">`
+      + `<tr><th style="width:120px;text-align:left;padding:6px;border-bottom:2px solid #e5e7eb">Staff</th>`
+      + visIdx.map(i => `<th style="padding:6px;border-bottom:2px solid #e5e7eb;text-align:left;${RD.ds[i] === today ? 'color:#07b4c5' : ''};background:${i % 2 ? '#f8fafc' : '#fff'}">${head(i)}</th>`).join('') + `</tr>`
+      + `<tr><td style="padding:6px;vertical-align:top;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb">Bookings &amp; open shifts</td>`
+      + visIdx.map(i => `<td style="padding:4px;vertical-align:top;border-bottom:1px solid #e5e7eb;background:${i % 2 ? '#f8fafc' : '#fff'}">${rBookingsCell(RD.ds[i])}</td>`).join('') + `</tr>`
+      + RD.staff.map(st => `<tr><td style="padding:6px;vertical-align:top;font-weight:700;border-bottom:1px solid #f1f5f9;color:${weekStaffColour(st)}">${escapeHtml(st.name)} ${rConfirmText(st.id)}</td>`
+        + visIdx.map(i => `<td style="padding:4px;vertical-align:top;border-bottom:1px solid #f1f5f9;background:${i % 2 ? '#f8fafc' : '#fff'}">${rCell(st, RD.ds[i], i)}</td>`).join('') + `</tr>`).join('')
+      + `</table>`;
+  }
+  const note = RD.canSeeFree ? '' : '<div style="font-size:12px;color:#6b7280;margin-bottom:8px">Free times and confirmations are only visible to owners for now.</div>';
+  const legend = '<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:#6b7280;margin:6px 0 10px">'
+    + '<span><span style="display:inline-block;width:10px;height:10px;background:#dcfce7;border:1px solid #86efac;vertical-align:-1px"></span> Free (tap to give a shift)</span>'
+    + '<span><span style="display:inline-block;width:10px;height:10px;background:#dbeafe;border:1px solid #93c5fd;vertical-align:-1px"></span> Shift (tap to change)</span>'
+    + '<span><span style="display:inline-block;width:10px;height:10px;background:#fee2e2;border:1px solid #fca5a5;vertical-align:-1px"></span> Booking with no GM</span>'
+    + (RD.canSeeFree ? '<span><span style="color:#15803d">✓</span> week confirmed &nbsp;<span style="color:#b45309">•</span> not confirmed</span>' : '')
+    + '</div>';
+  wrap.innerHTML = coverHtml + note + legend + `<div style="overflow-x:auto">${grid}</div>`;
+  rosterRenderEditor();
+}
+
+// ---- shift editor ----
+function rosterNewShift(sid, dateStr, s, e, bookingId) {
+  if (!RD) return;
+  if (s === null || s === undefined) { s = 10 * 60; e = 14 * 60; }
+  rosterEdit = { mode: 'new', sid: sid || '', date: dateStr, s, e, bookingId: bookingId || null, notes: '' };
+  rosterRenderEditor(true);
+}
+function rosterOpenShift(id) {
+  const sh = RD && RD.shifts.find(x => x.id === id);
+  if (!sh) return;
+  rosterEdit = { mode: 'edit', id, sid: sh.staff_id || '', date: sh.shift_date, s: rMins(sh.custom_start_time), e: rMins(sh.custom_end_time), notes: sh.notes || '', status: sh.status, group: sh.slot_group_id };
+  rosterRenderEditor(true);
+}
+function rosterCloseEditor() { rosterEdit = null; rosterRenderEditor(); }
+function rosterRenderEditor(scroll) {
+  let box = document.getElementById('rosterEditor');
+  if (!box) return;
+  const E = rosterEdit;
+  if (!E) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  const opts = sel => { let h = ''; for (let m = 7 * 60; m <= 23 * 60; m += 15) h += `<option value="${rHM(m)}"${m === sel ? ' selected' : ''}>${rLbl(m)}</option>`; return h; };
+  const staffOpts = `<option value="">Open — anyone can claim</option>` + RD.staff.map(st => `<option value="${st.id}"${st.id === E.sid ? ' selected' : ''}>${escapeHtml(st.name)}</option>`).join('');
+  const b = E.bookingId ? RD.bookings.find(x => x.id === E.bookingId) : null;
+  const sty = 'padding:8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;background:#fff';
+  box.style.display = '';
+  box.innerHTML = `<div style="border:2px solid #07b4c5;border-radius:10px;background:#fff;padding:12px;margin-bottom:12px">`
+    + `<div style="font-weight:700;margin-bottom:8px">${E.mode === 'new' ? 'New shift' : 'Change shift'}${E.status === 'claimed' ? ' <span style="font-weight:400;color:#6b7280">(claimed by them)</span>' : ''}</div>`
+    + `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">`
+    + `<label style="font-size:12px;color:#6b7280">Who<br><select id="rEdStaff" style="${sty}">${staffOpts}</select></label>`
+    + `<label style="font-size:12px;color:#6b7280">Date<br><input type="date" id="rEdDate" value="${E.date}" style="${sty}"></label>`
+    + `<label style="font-size:12px;color:#6b7280">From<br><select id="rEdFrom" style="${sty}">${opts(E.s)}</select></label>`
+    + `<label style="font-size:12px;color:#6b7280">To<br><select id="rEdTo" style="${sty}">${opts(E.e)}</select></label></div>`
+    + `<label style="font-size:12px;color:#6b7280;display:block;margin-bottom:8px">Notes<br><input type="text" id="rEdNotes" value="${escapeHtml(E.notes)}" style="${sty};width:100%;box-sizing:border-box"></label>`
+    + (b ? `<label style="display:block;font-size:13px;margin-bottom:8px"><input type="checkbox" id="rEdGm" checked> Also make them the GM for ${escapeHtml(b.game_name || 'this booking')} at ${fmt12(String(b.slot_time).slice(0, 5))}</label>` : '')
+    + `<div style="font-size:12px;color:#6b7280;margin-bottom:8px">A shift given to someone is confirmed straight away and they get a phone notification (if they've turned notifications on).</div>`
+    + `<div style="display:flex;gap:8px;flex-wrap:wrap">`
+    + `<button class="btn-primary btn-sm" onclick="rosterSaveShift()">${E.mode === 'new' ? 'Create shift' : 'Save changes'}</button>`
+    + (E.mode === 'edit' && E.sid ? `<button class="btn-secondary btn-sm" onclick="rosterUnassign()">Unassign (make it open)</button>` : '')
+    + (E.mode === 'edit' ? `<button class="btn-danger btn-sm" onclick="rosterDeleteShift()">Delete shift</button>` : '')
+    + `<button class="btn-secondary btn-sm" onclick="rosterCloseEditor()">Cancel</button></div>`
+    + `<div id="rEdMsg" style="font-size:12px;color:#b91c1c;margin-top:6px"></div></div>`;
+  if (scroll && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function rosterNotify(staffId, title, body) {
+  if (!staffId) return;
+  fetch(`${SB_URL}/functions/v1/btb-notify`, { method: 'POST', headers: H(), body: JSON.stringify({ staffIds: [staffId], title, body, url: 'staff_portal.html' }) }).catch(() => {});
+}
+async function rosterAssignGm(bookingId, sid) {
+  const b = RD && RD.bookings.find(x => x.id === bookingId);
+  if (!b) return;
+  const ids = weekParseIds(b.assigned_staff_ids);
+  if (!ids.includes(sid)) ids.push(sid);
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${bookingId}`, { method: 'PATCH', headers: H(), body: JSON.stringify({ assigned_staff_ids: JSON.stringify(ids), updated_at: new Date().toISOString() }) });
+    if (!r.ok) throw new Error(await r.text());
+    rosterNotify(sid, '🎮 You are running a game', `${b.game_name || 'Game'} — ${rShortDay(b.booking_date)} ${fmt12(String(b.slot_time).slice(0, 5))}`);
+    await loadRosterOverview();
+  } catch (e) { alert('Could not assign the GM: ' + e.message); }
+}
+async function rosterSaveShift() {
+  const E = rosterEdit; if (!E) return;
+  const msg = document.getElementById('rEdMsg');
+  const sid = document.getElementById('rEdStaff').value || null;
+  const date = document.getElementById('rEdDate').value;
+  const start = document.getElementById('rEdFrom').value, end = document.getElementById('rEdTo').value;
+  const notes = document.getElementById('rEdNotes').value.trim() || null;
+  const makeGm = !!(document.getElementById('rEdGm') && document.getElementById('rEdGm').checked && E.bookingId);
+  if (!date) { msg.textContent = 'Please choose a date.'; return; }
+  if (rMins(end) <= rMins(start)) { msg.textContent = '"To" must be after "From".'; return; }
+  if (makeGm && !sid) { msg.textContent = 'Choose who, or untick "make them the GM".'; return; }
+  // they can't have two shifts that overlap (same rule as claiming)
+  if (sid) {
+    const clash = RD.shifts.find(x => x.id !== E.id && x.staff_id === sid && x.shift_date === date && x.status !== 'open' && rMins(x.custom_start_time) < rMins(end) && rMins(start) < rMins(x.custom_end_time));
+    if (clash) { msg.textContent = `They already have a shift ${rLbl(rMins(clash.custom_start_time))}–${rLbl(rMins(clash.custom_end_time))} that day. Change that one instead.`; return; }
+  }
+  msg.style.color = '#6b7280'; msg.textContent = 'Saving…';
+  try {
+    const now = new Date().toISOString();
+    const prevSid = E.mode === 'edit' ? (E.sid || null) : null;
+    if (E.mode === 'new') {
+      const row = { shift_date: date, custom_start_time: start, custom_end_time: end, staff_id: sid, notes, status: sid ? 'assigned' : 'open',
+        created_by: currentUser?.name || null, assigned_at: sid ? now : null, shift_type: 'custom', is_standby: false };
+      const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts`, { method: 'POST', headers: { ...H(), 'Prefer': 'return=minimal' }, body: JSON.stringify(row) });
+      if (!r.ok) throw new Error(await r.text());
+    } else {
+      const patch = { shift_date: date, custom_start_time: start, custom_end_time: end, notes, staff_id: sid };
+      if (sid && sid !== prevSid) { patch.status = 'assigned'; patch.assigned_at = now; }
+      if (!sid) { patch.status = 'open'; patch.claimed_at = null; patch.assigned_at = null; }
+      const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${E.id}`, { method: 'PATCH', headers: H(), body: JSON.stringify(patch) });
+      if (!r.ok) throw new Error(await r.text());
+    }
+    if (makeGm) {
+      const b = RD.bookings.find(x => x.id === E.bookingId);
+      const ids = weekParseIds(b.assigned_staff_ids); if (!ids.includes(sid)) ids.push(sid);
+      const r2 = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, { method: 'PATCH', headers: H(), body: JSON.stringify({ assigned_staff_ids: JSON.stringify(ids), updated_at: now }) });
+      if (!r2.ok) throw new Error('Shift saved, but the GM could not be set: ' + await r2.text());
+    }
+    const when = `${rShortDay(date)} ${rLbl(rMins(start))}–${rLbl(rMins(end))}`;
+    if (sid && sid !== prevSid) rosterNotify(sid, '📅 New shift', when + (makeGm ? ' (you are running a game)' : ''));
+    else if (sid && E.mode === 'edit') rosterNotify(sid, '📅 Shift changed', when);
+    if (prevSid && prevSid !== sid) rosterNotify(prevSid, '📅 Shift removed', `${rShortDay(E.date)} ${rLbl(E.s)}–${rLbl(E.e)} is no longer yours`);
+    rosterEdit = null;
+    await loadShifts();
+    await loadRosterOverview();
+  } catch (e) { msg.style.color = '#b91c1c'; msg.textContent = (e && e.message && e.message.length < 200) ? e.message : 'Could not save. Please try again.'; }
+}
+async function rosterUnassign() {
+  const E = rosterEdit; if (!E || E.mode !== 'edit') return;
+  if (!confirm('Take this shift off them and make it open for anyone to claim?')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${E.id}`, { method: 'PATCH', headers: H(), body: JSON.stringify({ staff_id: null, status: 'open', claimed_at: null, assigned_at: null, unclaim_reason: null }) });
+    if (!r.ok) throw new Error(await r.text());
+    rosterNotify(E.sid, '📅 Shift removed', `${rShortDay(E.date)} ${rLbl(E.s)}–${rLbl(E.e)} is no longer yours`);
+    rosterEdit = null; await loadShifts(); await loadRosterOverview();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+async function rosterDeleteShift() {
+  const E = rosterEdit; if (!E || E.mode !== 'edit') return;
+  if (!confirm('Delete this shift permanently?')) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${E.id}`, { method: 'DELETE', headers: H() });
+    if (!r.ok) throw new Error(await r.text());
+    if (E.sid) rosterNotify(E.sid, '📅 Shift cancelled', `${rShortDay(E.date)} ${rLbl(E.s)}–${rLbl(E.e)}`);
+    rosterEdit = null; await loadShifts(); await loadRosterOverview();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+(function () {
+  let wasPhone = null, t = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { const p = rosterIsPhone(); if (wasPhone !== null && p !== wasPhone && RD && !rosterShowOld) renderRoster(); wasPhone = p; }, 200);
+  });
+})();
 
 function hoursBetween(startStr, endStr) {
   const [sh, sm] = startStr.split(':').map(Number);
