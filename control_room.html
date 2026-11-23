@@ -420,7 +420,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 21; // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+        const BUILD_VERSION = 22; // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
 
 
         // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
@@ -647,10 +647,10 @@ let allRunningTimers = [];
         async function resetTimerForBooking(id){
             if (!confirm("Reset this room's timer to 0?")) return;
             try {
-                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
+                {const _ck=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
                     method:'PATCH', headers:H(),
                     body: JSON.stringify({ timer_running:false, timer_sec:0, timer_started_at:null })
-                });
+                });if(!_ck.ok)throw new Error(await _ck.text());}
                 await loadAllRunningTimers();
                 if (currentBooking && currentBooking.id === id) checkActiveBooking();
             } catch(e) {
@@ -662,13 +662,13 @@ let allRunningTimers = [];
             const b = allRunningTimers.find(x => x.id === id);
             const elapsedSec = b ? getElapsed(b) : 0;
             try {
-                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
+                {const _ck=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${id}`, {
                     method:'PATCH', headers:H(),
                     body: JSON.stringify({
                         timer_running:false, timer_sec:elapsedSec, timer_started_at:null,
                         status:'completed', updated_at:new Date().toISOString()
                     })
-                });
+                });if(!_ck.ok)throw new Error(await _ck.text());}
                 await loadAllRunningTimers();
                 if (currentBooking && currentBooking.id === id) checkActiveBooking();
             } catch(e) {
@@ -981,7 +981,7 @@ async function resetTimer(){
         }
         async function saveTimerState(b){
             try{
-                await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, {
+                {const _ck=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, {
                     method:'PATCH', headers:H(),
                     body: JSON.stringify({
                         timer_running: b.timer_running,
@@ -989,7 +989,7 @@ async function resetTimer(){
                         timer_started_at: b.timer_started_at,
                         updated_at: new Date().toISOString()
                     })
-                });
+                });if(!_ck.ok)throw new Error(await _ck.text());}
             }catch(e){ console.error('Timer save failed:', e); }
         }
 

@@ -536,7 +536,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.11'; // v1.5.11: Profile opens in its own tab (Profile & bookings). Open to-dos show once at the top (with when/how they came in) instead of also in the history. Saves are checked (to-do tick/edit/assign, status, log a call). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
+const BUILD_VERSION = '1.5.12'; // v1.5.12: 'Abandoned booking' to-dos can't be made twice when two Clients pages are open, and a to-do that fails to save is tried again next time; a new client's enquiry note says so if it couldn't be saved. // v1.5.11: Profile opens in its own tab (Profile & bookings). Open to-dos show once at the top (with when/how they came in) instead of also in the history. Saves are checked (to-do tick/edit/assign, status, log a call). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
 
 // Previous build: 1.5.10 — // v1.5.10: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
 // Previous build: 1.5.9 — // v1.5.9: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
@@ -718,13 +718,16 @@ async function reconcileAbandonedDrafts(){
         const nc=await nr.json();clientId=nc[0]?.id;
       }
       if(!clientId)continue;
-      // Backfill so this draft is never picked up again
-      await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${row.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({client_id:clientId})});
+      // v1.5.12: claim the draft first (only if nobody else has), so two open Clients pages can't both make a to-do
+      const cl=await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${row.id}&client_id=is.null`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({client_id:clientId})});
+      if(!cl.ok||!(await cl.json()).length)continue;
       const summary=`Abandoned booking: ${row.game_name||'a game'}${row.players_booked?` for ${row.players_booked} players`:''}${row.booking_date?` on ${row.booking_date}`:''}${row.occasion?` (${row.occasion})`:''} — started but didn't finish.`;
-      await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+      const ir=await fetch(`${SB_URL}/rest/v1/client_interactions`,{
         method:'POST',headers:H(),
         body:JSON.stringify({client_id:clientId,type:'abandoned_booking',direction:'inbound',content:summary,to_do:true,to_do_done:false})
       });
+      // to-do not saved -> let it go back to waiting, so it is picked up again next time
+      if(!ir.ok)await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${row.id}`,{method:'PATCH',headers:H(),body:JSON.stringify({client_id:null})});
     }
   }catch(e){console.error('Abandoned draft reconciliation:',e)}
 }
@@ -938,10 +941,10 @@ async function submitNewClient(){
     // visible in their history — same summary format enquiries.html used.
     if(newClientId&&(gameId||date||players||occasion||experience||detail)){
       const summary=`New enquiry: ${gameName||'Any game'}${players?` for ${players} players`:''}${date?` on ${date}`:''}${occasion?` (${occasion})`:''}${experience?` — experience: ${experience}`:''}${detail?' — '+detail:''}`;
-      await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+      {const _ck=await fetch(`${SB_URL}/rest/v1/client_interactions`,{
         method:'POST',headers:H(),
         body:JSON.stringify({client_id:newClientId,staff_id:currentUser?.staffId||null,type:'enquiry',direction:'inbound',content:summary,to_do:true,to_do_done:false})
-      });
+      });if(!_ck.ok)alert('The client was saved, but the enquiry details could not be added to their history. Please add them as a note.');}
     }
     closeNewClientForm();
     await loadClients();await loadInteractions();buildClientGroups();

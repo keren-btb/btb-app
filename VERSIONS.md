@@ -264,6 +264,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.19 — 2026-11-24 — Booking requests still waiting for a GM, waitlist entries and group placeholders no longer count as revenue or bookings (same as cancelled/enquiry/abandoned). No-shows are now recognised by the no-show tick, so they don't show as owing. Nothing removed.
 - v1.0.18 — 2026-11-23 — Deposits listed on the date received, with bank reference, when recorded.
 - v1.0.17 — 2026-11-23 — Phone layout: menu is a slim icon bar that opens over the page and closes after choosing.
 - v1.0.16 — 2026-11-22 — New "Today" button at the start of the date buttons: shows today's totals (today's bookings, plus shop sales and gift vouchers paid today, NZ time). "This month" is still the default when the page opens. Nothing removed.
@@ -282,6 +283,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v22 — 2026-11-24 — All Timers reset/complete buttons now show an error if the save fails; timer saves that fail are written to the error log. Nothing removed.
 - v21 — 2026-11-23 — NOT RESET warning also shows for rooms sent back as not reset in Task Hub, with the reason.
 - v20 — 2026-11-22 — Reset hand-over sends a phone notification.
 - v19 — 2026-11-22 — After "Save & Complete Session", if the room has a reset checklist, asks who's resetting it: "I'll reset it now" (opens the checklist in Task Hub), "Someone else" (a person or Anyone), or "Later". Opening a game whose room wasn't reset after the previous game shows a big red "NOT RESET" warning with a button to open the reset checklist. Never blocks the game or timer.
@@ -373,6 +375,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.12 — 2026-11-24 — "Abandoned booking" to-dos can't be made twice when two Clients pages are open at once, and one that fails to save is tried again next time. If a new client's enquiry details can't be added to their history, it now says so. Nothing removed.
 - v1.5.11 — 2026-11-23 — "Profile & bookings" opens in a new tab. Open to-dos shown once (top list, with when/how they arrived), not repeated in History; done to-dos marked in History. Saves checked (to-do tick/edit/assign, status, log a call — the box isn't cleared if it didn't save). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
 - v1.5.10 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.
 - v1.5.9 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
@@ -387,6 +390,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.8 — 2026-11-24 — Ticking a to-do, assigning it, editing a note and quick-adding a note now show an error if the save fails (a failed quick-add used to vanish silently). Nothing removed.
 - v1.3.7 — 2026-11-23 — "Clear to-dos" (was Mark resolved) only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
 - v1.3.6 — 2026-11-22 — Bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), same as every other page.
 - v1.3.5 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for the selected client.
@@ -419,6 +423,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.6.1 — 2026-11-24 — A deposit invoice paid in more than one go now adds up on the booking (before, only the last part was kept as the deposit). Asks before recording a payment that takes the invoice over its total. Nothing removed.
 - v1.6.0 — 2026-11-23 — 'Invoice' from a booking that already has one opens it (or lists them with 'Make another'), so duplicates aren't made by accident. (Removed an accidental duplicate draft INV-1176 for Chris Harrison; numbering reset so INV-1176 is next.)
 - v1.5.0 — 2026-11-23 — Invoice request for a booking with an existing unpaid invoice → offer to update that invoice with the customer's details.
 - v1.4.0 — 2026-11-23 — 'Deposit due now' amount (auto $35 × games on full invoices for upcoming bookings) printed as 'Deposit of $X due now… Balance … due by …'.

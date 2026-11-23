@@ -465,7 +465,11 @@ const H = (k) => {
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.0.18'; // v1.0.18: Payments list shows a deposit on the date it was received (and its bank reference) when that was recorded.
+// v1.0.19: only real bookings count — requests still waiting for a GM, waitlist entries and group placeholders are left out
+// (like cancelled/enquiry/abandoned); a no-show is the no-show tick (the status 'no_show' is still honoured too).
+function isRealBooking(b){return !['cancelled','enquiry','abandoned','waitlist','requested','group_request'].includes(b.status)}
+function isNoShow(b){return !!b.no_show||b.status==='no_show'}
+const BUILD_VERSION = '1.0.19'; // v1.0.19: requests (not yet confirmed), waitlist entries and group placeholders no longer count as revenue or bookings; no-shows are recognised by the no-show tick. // v1.0.18: Payments list shows a deposit on the date it was received (and its bank reference) when that was recorded.
 
 // Previous build: 1.0.17 — // v1.0.17: Phone layout — menu is a slim icon bar that opens over the page.
 
@@ -767,10 +771,10 @@ function renderReport(id){
 
 // ── REVENUE ───────────────────────────────────────────────────
 function renderRevenue(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b));
   const bookingRevenue=confirmed.reduce((s,b)=>s+(parseFloat(b.total_amount)||0),0);
   const bookingCollected=confirmed.reduce((s,b)=>s+calcCollected(b),0);
-  const bookingCount=confirmed.filter(b=>b.status!=='no_show').length;
+  const bookingCount=confirmed.filter(b=>!isNoShow(b)).length;
   const bookingOwingCount=confirmed.filter(b=>{const c=calcCollected(b);const t=parseFloat(b.total_amount)||0;return t>0&&c<t}).length;
 
   const qs=allQuickSales;
@@ -854,7 +858,7 @@ function renderRevenue(){
 
 // ── OUTSTANDING ───────────────────────────────────────────────
 function renderOutstanding(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b)&&!isNoShow(b));
   const owing=confirmed.filter(b=>{const t=parseFloat(b.total_amount)||0;return t>0&&calcCollected(b)<t});
   const totalOwing=owing.reduce((s,b)=>s+Math.max(0,(parseFloat(b.total_amount)||0)-calcCollected(b)),0);
   const depositUnpaid=confirmed.filter(b=>!b.deposit_paid&&b.status==='confirmed').length;
@@ -889,7 +893,7 @@ function renderOutstanding(){
 
 // ── PAYMENTS ──────────────────────────────────────────────────
 function renderPayments(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b));
   const txns=[];
   confirmed.forEach(b=>{
     const dep=depositPaidAmount(b);
@@ -991,7 +995,7 @@ function renderBookingsTable(){
 
 // ── BY DAY ────────────────────────────────────────────────────
 function renderByDay(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b)&&!isNoShow(b));
   const DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const byDay=Array(7).fill(null).map(()=>({count:0,players:0,revenue:0,noShows:0}));
   confirmed.forEach(b=>{
@@ -1030,7 +1034,7 @@ function renderByDay(){
 
 // ── BY SLOT ───────────────────────────────────────────────────
 function renderBySlot(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='no_show'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b)&&!isNoShow(b));
   const bySlot={};
   confirmed.forEach(b=>{
     const t=(b.slot_time||'').slice(0,5);if(!t)return;
@@ -1064,7 +1068,7 @@ function renderBySlot(){
 
 // ── OCCASIONS ─────────────────────────────────────────────────
 function renderOccasions(){
-  const confirmed=allBookings.filter(b=>b.status!=='cancelled'&&b.status!=='enquiry'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b));
   const byOcc={};
   confirmed.forEach(b=>{
     const o=b.occasion||'No occasion';
@@ -1170,7 +1174,7 @@ function renderCustomersTable(){
 
 // ── SOURCES ───────────────────────────────────────────────────
 function renderSources(){
-  const confirmed=allBookings.filter(b=>b.status!=='enquiry'&&b.status!=='cancelled'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b));
   const bySrc={};
   confirmed.forEach(b=>{
     const s=b.source||'unknown';
@@ -1199,7 +1203,7 @@ function renderSources(){
 
 // ── STAFF BOOKINGS ────────────────────────────────────────────
 function renderStaffBookings(){
-  const confirmed=allBookings.filter(b=>b.status!=='enquiry'&&b.status!=='cancelled'&&b.status!=='abandoned');
+  const confirmed=allBookings.filter(b=>isRealBooking(b));
   const byStaff={};
   allStaff.forEach(s=>{byStaff[s.id]={name:s.name,count:0,players:0,games:{}}});
 

@@ -270,7 +270,7 @@ async function callEdgeFunction(action,params={},token=null){
 // resolved" button, matching clients.html's new per-client checklist. No
 // global cross-client To-Dos view here (kept to the desktop hub) and no new
 // client-creation change — this page stays view/reply/log-note only.
-const BUILD_VERSION = '1.3.7'; // v1.3.7: Same as desktop — 'Clear to-dos' only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
+const BUILD_VERSION = '1.3.8'; // v1.3.8: to-do ticks, assigning, note edits and quick-added notes now show an error if they don't save. // v1.3.7: Same as desktop — 'Clear to-dos' only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
 
 // Previous build: 1.3.6 — // v1.3.6: The bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), the same as every other page.
 // Previous build: 1.3.5 — // v1.3.5: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
@@ -344,7 +344,7 @@ async function quickAssignTodo(interactionId,val){
   const assignedStaffId=val.startsWith('role:')?null:(val||null);
   const assignedRole=val.startsWith('role:')?val.slice(5):null;
   try{
-    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({assigned_staff_id:assignedStaffId,assigned_role:assignedRole})});
+    {const _ck=await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({assigned_staff_id:assignedStaffId,assigned_role:assignedRole})});if(!_ck.ok)throw new Error(await _ck.text());}
     await loadInteractions();buildClientGroups();
     if(activeClientId)renderThread();
   }catch(e){alert('Error assigning to-do: '+e.message)}
@@ -557,7 +557,7 @@ function renderThreadTodos(g){
 }
 async function toggleTodoDone(interactionId,checked){
   try{
-    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:checked})});
+    {const _ck=await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${interactionId}`,{method:'PATCH',headers:H(),body:JSON.stringify({to_do_done:checked})});if(!_ck.ok)throw new Error(await _ck.text());}
     await loadInteractions();buildClientGroups();
     renderFilters();renderQueue();updateHeader();
     if(activeClientId)renderThread();
@@ -587,10 +587,10 @@ async function saveTodoEdit(){
   const errEl=document.getElementById('teError');
   if(!content){errEl.textContent='Note can\'t be empty.';return}
   try{
-    await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${todoEditingId}`,{
+    {const _ck=await fetch(`${SB_URL}/rest/v1/client_interactions?id=eq.${todoEditingId}`,{
       method:'PATCH',headers:H(),
       body:JSON.stringify({content,assigned_staff_id:assignedStaffId,assigned_role:assignedRole,due_date:dueDate})
-    });
+    });if(!_ck.ok)throw new Error(await _ck.text());}
     closeTodoEdit();
     await loadInteractions();buildClientGroups();
     renderFilters();renderQueue();updateHeader();
@@ -665,7 +665,7 @@ async function submitQuickAdd(){
   const needsFollowup=document.getElementById('qaNeedsFollowup').checked;
   if(!content){document.getElementById('qaContent').focus();return}
   try{
-    await fetch(`${SB_URL}/rest/v1/client_interactions`,{
+    {const _ck=await fetch(`${SB_URL}/rest/v1/client_interactions`,{
       method:'POST',headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({
         client_id:activeClientId,
@@ -676,7 +676,7 @@ async function submitQuickAdd(){
         to_do:needsFollowup,
         to_do_done:!needsFollowup,
       })
-    });
+    });if(!_ck.ok)throw new Error(await _ck.text());}
     document.getElementById('qaContent').value='';
     document.getElementById('qaNeedsFollowup').checked=false;
     await loadInteractions();buildClientGroups();
