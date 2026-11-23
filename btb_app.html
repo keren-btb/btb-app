@@ -264,6 +264,7 @@
         <button class="sq-btn gated-btn" data-tab="control_room" onclick="window.open('control_room.html','_blank')"><i class="ti ti-device-gamepad-2"></i> Control Room</button>
         <button class="sq-btn" onclick="window.open('clients.html','_blank')"><i class="ti ti-address-book"></i> Clients</button>
         <button class="sq-btn" id="sqInvoices" style="display:none" onclick="window.open('invoices.html','_blank')"><i class="ti ti-file-invoice"></i> Invoices<span id="sqInvCount" class="sq-count"></span></button>
+        <button class="sq-btn" id="sqReceipts" style="display:none" onclick="window.open('receipt_capture.html','_blank')"><i class="ti ti-receipt"></i> Receipts</button>
         <button class="sq-btn" id="sqTemplates" style="display:none" onclick="window.open('clients.html?templates=1','_blank')"><i class="ti ti-mail"></i> Email templates</button>
         <button class="sq-btn" id="sqErrors" style="display:none" onclick="openPanel('pErrors')"><i class="ti ti-bug"></i> Errors<span id="sqErrCount"></span></button>
       </div>
@@ -3555,6 +3556,7 @@ function showApp(){
   if(canErr)countOpenErrors();
   const gInv=document.getElementById('sqInvoices');if(gInv)gInv.style.display=canErr?'':'none';
   if(canErr)countInvoiceTodos();
+  const gRec=document.getElementById('sqReceipts');if(gRec)gRec.style.display=canErr?'':'none';
   const gTpl=document.getElementById('sqTemplates');if(gTpl)gTpl.style.display=isAdmin?'':'none';
   document.querySelectorAll('.gated-btn').forEach(b=>{b.style.display=currentUser.allowedTabs.includes(b.getAttribute('data-tab'))?'':'none'});
   document.getElementById('cardConfig').style.display=isAdmin?'':'none';
@@ -4201,7 +4203,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.79'; // v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.80'; // v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).

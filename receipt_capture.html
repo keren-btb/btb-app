@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BtB Receipts</title>
+<link rel="manifest" href="manifest_receipts.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="BtB Receipts">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1035">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#15803d;--red:#dc2626;--amber:#b45309;--purple:#7c3aed;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:15px;color:var(--text);min-height:100vh;min-height:100dvh}
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-input{width:100%;font-size:16px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:inherit}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.wrap{display:none;max-width:720px;margin:0 auto;padding:0 0 calc(90px + env(safe-area-inset-bottom))}
+header.topbar{background:var(--navy);padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.topbar a{color:#8a9bb5;font-size:13px;text-decoration:none;white-space:nowrap}
+.topbar-title{color:#fff;font-size:17px;font-weight:700;flex:1}
+.who{color:#8a9bb5;font-size:12px;cursor:pointer}
+.content{padding:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;border:1px solid var(--border);background:#fff;border-radius:99px;padding:9px 10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.card h3{font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff}
+.btn-danger{color:var(--red)}
+.btn-sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.5}
+label.f{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.in{width:100%;font-size:16px;font-family:inherit;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.in:focus{outline:none;border-color:var(--teal)}
+textarea.in{min-height:56px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.photo-box{border:2px dashed #cbd5e1;border-radius:12px;padding:18px;text-align:center;background:#f8fafc;cursor:pointer}
+.photo-box i{font-size:34px;color:var(--teal)}
+.photo-box img{max-width:100%;max-height:340px;border-radius:8px;display:block;margin:0 auto}
+.line{border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff}
+.line-top{display:flex;gap:8px;align-items:center}
+.line-top .in{flex:1}
+.line-row{display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;margin-top:8px;align-items:end}
+.line-row label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.types{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.types button{border:1px solid var(--border);background:#fff;border-radius:99px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.types button.on.stock{background:#ede9fe;border-color:var(--purple);color:var(--purple)}
+.types button.on.props{background:#fef3c7;border-color:var(--amber);color:var(--amber)}
+.types button.on.expense{background:#e0f2fe;border-color:#0284c7;color:#0369a1}
+.types button.on.other{background:#f3f4f6;border-color:#6b7280;color:#374151}
+.x{background:none;border:none;color:#9ca3af;font-size:20px;cursor:pointer;padding:0 4px}
+.sumbar{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-top:6px;gap:8px;flex-wrap:wrap}
+.warn{color:var(--amber);font-weight:600}.okc{color:var(--green);font-weight:600}
+.savebar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;z-index:20}
+.savebar .btn{flex:1;max-width:340px}
+.msg{font-size:14px;margin-top:8px}.err{color:var(--red)}.ok{color:var(--green)}
+.item{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.item .main{flex:1;min-width:0}.item .t{font-weight:700}.item .m{font-size:12px;color:var(--muted);margin-top:2px}
+.amt{font-weight:700;white-space:nowrap}
+.badge{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.b-draft{background:#fef3c7;color:var(--amber)}.b-confirmed{background:#dcfce7;color:var(--green)}.b-reconciled{background:#dbeafe;color:#1d4ed8}.b-void{background:#f3f4f6;color:#9ca3af;text-decoration:line-through}
+.b-stock{background:#ede9fe;color:var(--purple)}
+.empty{text-align:center;color:var(--muted);padding:26px}
+.toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.chip{display:inline-block;background:#f3f4f6;border-radius:6px;padding:2px 7px;font-size:12px;margin:2px 4px 0 0}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div style="color:var(--teal);font-size:22px;font-weight:800;margin-bottom:20px"><i class="ti ti-receipt"></i> BtB Receipts</div>
+  <div class="login-card">
+    <input class="login-input" id="loginEmail" placeholder="firstname" autocapitalize="off">
+    <input class="login-input" id="loginPass" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button><div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <a href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <div class="topbar-title"><i class="ti ti-receipt"></i> Receipts <span id="ver" style="font-size:10px;color:#8a9bb5;font-weight:400"></span></div>
+    <span class="who" id="who" onclick="if(confirm('Sign out?'))doLogout()"></span>
+  </header>
+  <div class="content">
+    <div class="tabs">
+      <button id="tabNew" class="on" onclick="showTab('new')"><i class="ti ti-camera-plus"></i> New receipt</button>
+      <button id="tabList" onclick="showTab('list')"><i class="ti ti-list"></i> Receipts</button>
+    </div>
+    <div id="viewNew"></div>
+    <div id="viewList" style="display:none"></div>
+  </div>
+</div>
+<input type="file" id="fileIn" accept="image/*" style="display:none" onchange="onPhoto(this)">
+<div class="savebar" id="saveBar" style="display:none">
+  <button class="btn" onclick="saveReceipt('draft')"><i class="ti ti-device-floppy"></i> Save draft</button>
+  <button class="btn btn-green" onclick="saveReceipt('confirmed')"><i class="ti ti-check"></i> Save receipt</button>
+</div>
+<datalist id="shopList"></datalist>
+
+<script>
+// BtB error logger (same as the other pages) — handled errors and failure pop-ups go to Settings > Errors
+(function(){
+  var PAGE='receipt_capture.html',EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0,seen={};
+  function send(level,source,msg,stack){try{msg=String(msg||'').slice(0,2000);var k=source+'|'+msg;if(seen[k]||sent>=20)return;seen[k]=1;sent++;
+    var tok=KEY;try{if(currentUser&&currentUser.token)tok=currentUser.token}catch(e){}
+    fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:JSON.stringify({level:level,source:source,message:msg,stack:stack?String(stack).slice(0,8000):null,page:PAGE,url:location.origin+location.pathname,context:{},user_agent:navigator.userAgent.slice(0,400),app_version:(typeof BUILD_VERSION!=='undefined'?BUILD_VERSION:null)}),keepalive:true}).catch(function(){})}catch(e){}}
+  window.addEventListener('error',function(e){send('error','window.onerror',e.message,e.error&&e.error.stack)});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;send('error','promise',(r&&r.message)||String(r),r&&r.stack)});
+  window.btbLogError=function(s,err){send('error',s,(err&&err.message)||String(err),err&&err.stack)};
+  try{var ce=console.error;console.error=function(){try{ce.apply(console,arguments)}catch(x){}try{var p=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:(typeof x==='string'?x:'')}).filter(Boolean);if(p.length)send('error','console.error',p.join(' '))}catch(x){}}}catch(x){}
+})();
+</script>
+<script>
+// receipt_capture.html — BtB receipt capture (replaces EasyExpense). Photo + shop/date/total/GST + what was bought.
+// Saves to Supabase tables receipts / receipt_lines and the private 'receipts' photo bucket.
+// Lines tagged "For resale" are the board games etc. that will go to the Check & price list (next step, not built yet).
+// Nothing is ever deleted: removed lines are marked removed, mistaken receipts are marked Void.
+// Admin / manager / owner only (enforced by the database).
+const BUILD_VERSION='1.0.0'; // v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+let currentUser=null,tokenTimer=null;
+const H=()=>({'Content-Type':'application/json','Authorization':`Bearer ${currentUser?.token||SB_ANON}`,'apikey':SB_ANON});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'$'+(Number(n)||0).toLocaleString('en-NZ',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2=n=>Math.round((Number(n)||0)*100)/100;
+const num=v=>{if(v===''||v===null||v===undefined)return null;const n=Number(String(v).replace(/[$,\s]/g,''));return isFinite(n)?n:null};
+const nzToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+const fmtD=d=>d?new Date(String(d).slice(0,10)+'T12:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):'';
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),'Prefer':'return=representation',...(opts.headers||{})}});
+  const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||t||('Error '+r.status));return d;
+}
+async function edge(action,params){
+  const r=await fetch(`${SB_URL}/functions/v1/btb-admin`,{method:'POST',headers:H(),body:JSON.stringify({action,...params})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('Error '+r.status));return d;
+}
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+
+// ───────── constants ─────────
+const PAY_METHODS=['Business card / EFTPOS','Cash','Own money (pay back)','Bank transfer','Other'];
+const GST_BASES=[
+  ['tax_invoice','Tax invoice — shop is GST registered'],
+  ['secondhand','Second-hand — no GST shown (can claim)'],
+  ['none','No GST to claim'],
+  ['unknown','Not sure yet']];
+const LINE_TYPES=[['stock','🎲 For resale'],['props','🎭 Props / room'],['expense','🧾 Expense'],['other','Other']];
+
+// ───────── state ─────────
+let receipts=[],listFilter='recent',listSearch='';
+let rec=null,lines=[],photoBlob=null,photoURL=null,gstAuto=true;
+function blankForm(){return{id:null,receipt_date:nzToday(),shop:'',total_amount:null,payment_method:PAY_METHODS[0],gst_basis:'unknown',gst_number:'',gst_amount:null,notes:'',photo_path:null,status:'draft',created_by_name:null}}
+function blankLine(){return{id:null,description:'',quantity:1,unit_cost:null,line_type:'stock',removed:false}}
+function newReceipt(){rec=blankForm();lines=[blankLine()];photoBlob=null;if(photoURL&&photoURL.startsWith('blob:'))URL.revokeObjectURL(photoURL);photoURL=null;gstAuto=true;renderForm()}
+
+// ───────── tabs ─────────
+function showTab(t){
+  document.getElementById('tabNew').classList.toggle('on',t==='new');
+  document.getElementById('tabList').classList.toggle('on',t==='list');
+  document.getElementById('viewNew').style.display=t==='new'?'block':'none';
+  document.getElementById('viewList').style.display=t==='list'?'block':'none';
+  document.getElementById('saveBar').style.display=t==='new'&&rec&&rec.status!=='void'?'flex':'none';
+  if(t==='list')loadList();
+  window.scrollTo(0,0);
+}
+
+// ───────── receipt form ─────────
+function renderForm(){
+  const f=rec,editing=!!f.id,isVoid=f.status==='void';
+  document.getElementById('tabNew').innerHTML=editing?'<i class="ti ti-edit"></i> Edit receipt':'<i class="ti ti-camera-plus"></i> New receipt';
+  const photo=photoURL?`<img src="${esc(photoURL)}" alt="receipt photo"><div class="hint" style="margin-top:8px">Tap to retake / choose another</div>`
+    :(f.photo_path?`<div class="hint">Loading photo…</div>`:`<i class="ti ti-camera"></i><div style="font-weight:700;margin-top:6px">Take or choose a photo</div><div class="hint">Camera or photo library</div>`);
+  const basisOpts=GST_BASES.map(([v,l])=>`<option value="${v}" ${f.gst_basis===v?'selected':''}>${l}</option>`).join('');
+  const payOpts=PAY_METHODS.map(p=>`<option ${f.payment_method===p?'selected':''}>${esc(p)}</option>`).join('')+(f.payment_method&&!PAY_METHODS.includes(f.payment_method)?`<option selected>${esc(f.payment_method)}</option>`:'');
+  document.getElementById('viewNew').innerHTML=`
+  ${editing?`<div class="card" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+     <span class="badge b-${f.status}">${statusLabel(f.status)}</span>
+     <span class="hint" style="margin:0;flex:1">Entered${f.created_by_name?' by '+esc(f.created_by_name):''}</span>
+     <button class="btn btn-sm" onclick="newReceipt()"><i class="ti ti-plus"></i> New</button>
+     ${isVoid?`<button class="btn btn-sm" onclick="unvoidReceipt()">Restore</button>`:`<button class="btn btn-sm btn-danger" onclick="voidReceipt()"><i class="ti ti-ban"></i> Void</button>`}
+   </div>`:''}
+  <div class="card">
+    <div class="photo-box" onclick="document.getElementById('fileIn').click()" id="photoBox">${photo}</div>
+  </div>
+  <div class="card">
+    <h3>Receipt</h3>
+    <div class="grid2">
+      <div><label class="f">Date</label><input class="in" type="date" value="${esc(f.receipt_date||'')}" onchange="rec.receipt_date=this.value"></div>
+      <div><label class="f">Total paid $</label><input class="in" inputmode="decimal" value="${f.total_amount??''}" placeholder="0.00" oninput="rec.total_amount=num(this.value);updGst();updSum()" onblur="this.value=rec.total_amount==null?'':r2(rec.total_amount).toFixed(2)"></div>
+    </div>
+    <label class="f">Shop</label>
+    <input class="in" list="shopList" value="${esc(f.shop||'')}" placeholder="e.g. Hospice Shop Napier" oninput="rec.shop=this.value" onchange="shopChosen()">
+    <label class="f">Paid with</label>
+    <select class="in" onchange="rec.payment_method=this.value">${payOpts}</select>
+    <label class="f">GST</label>
+    <select class="in" onchange="rec.gst_basis=this.value;gstAuto=true;updGst();renderForm()">${basisOpts}</select>
+    ${f.gst_basis==='tax_invoice'?`<label class="f">Shop's GST number</label><input class="in" inputmode="numeric" value="${esc(f.gst_number||'')}" placeholder="e.g. 123-456-789" oninput="rec.gst_number=this.value">`:''}
+    ${f.gst_basis==='tax_invoice'||f.gst_basis==='secondhand'?`<label class="f">GST to claim $</label>
+      <input class="in" id="gstIn" inputmode="decimal" value="${f.gst_amount??''}" oninput="rec.gst_amount=num(this.value);gstAuto=false">
+      <div class="hint">Worked out as 3/23 of the total. Change it if the receipt shows a different GST amount.</div>`:''}
+    <div id="shopMemo" class="hint"></div>
+  </div>
+  <div class="card">
+    <h3>What was bought</h3>
+    <div id="lines"></div>
+    <div class="sumbar">
+      <button class="btn btn-sm" onclick="addLine()"><i class="ti ti-plus"></i> Add item</button>
+      <button class="btn btn-sm" onclick="splitEvenly()" title="Share the receipt total across the items"><i class="ti ti-arrows-split"></i> Split total evenly</button>
+    </div>
+    <div class="sumbar" id="sumbar"></div>
+    <div class="hint">Op-shop receipt with just a total? Add each game as an item, then tap <b>Split total evenly</b> or type each cost. Items marked <b>For resale</b> will go to the Check &amp; price list once that screen is built.</div>
+  </div>
+  <div class="card">
+    <label class="f" style="margin-top:0">Notes</label>
+    <textarea class="in" placeholder="Anything worth remembering" oninput="rec.notes=this.value">${esc(f.notes||'')}</textarea>
+    <div id="saveMsg" class="msg"></div>
+  </div>`;
+  renderLines();updSum();
+  document.getElementById('saveBar').style.display=document.getElementById('viewNew').style.display!=='none'&&!isVoid?'flex':'none';
+  if(f.photo_path&&!photoURL)loadPhoto(f.photo_path);
+}
+function statusLabel(s){return{draft:'Draft',confirmed:'Saved',reconciled:'Matched to bank',void:'Void'}[s]||s}
+function updGst(){
+  if(!gstAuto)return;
+  const t=rec.total_amount;
+  rec.gst_amount=(rec.gst_basis==='tax_invoice'||rec.gst_basis==='secondhand')&&t!=null?r2(t*3/23):null;
+  const el=document.getElementById('gstIn');if(el)el.value=rec.gst_amount==null?'':rec.gst_amount.toFixed(2);
+}
+function shopKey(s){return String(s||'').trim().toLowerCase()}
+function shopChosen(){
+  const k=shopKey(rec.shop);if(!k)return;
+  const prev=receipts.find(r=>r.id!==rec.id&&r.status!=='void'&&shopKey(r.shop)===k);
+  const memo=document.getElementById('shopMemo');
+  if(!prev){if(memo)memo.textContent='';return}
+  if(rec.gst_basis==='unknown'&&prev.gst_basis&&prev.gst_basis!=='unknown'){
+    rec.gst_basis=prev.gst_basis;if(prev.gst_number)rec.gst_number=prev.gst_number;gstAuto=true;updGst();renderForm();
+    const m=document.getElementById('shopMemo');if(m)m.innerHTML=`<i class="ti ti-history"></i> GST filled in from the last ${esc(prev.shop)} receipt (${fmtD(prev.receipt_date)}).`;
+  }
+}
+
+// ───────── lines ─────────
+function renderLines(){
+  const vis=lines.map((l,i)=>[l,i]).filter(([l])=>!l.removed);
+  document.getElementById('lines').innerHTML=vis.length?vis.map(([l,i])=>`
+  <div class="line">
+    <div class="line-top">
+      <input class="in" value="${esc(l.description)}" placeholder="${l.line_type==='stock'?'Game name, e.g. Catan':'What was it?'}" oninput="lines[${i}].description=this.value">
+      <button class="x" onclick="removeLine(${i})" title="Remove item"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="line-row">
+      <div><label>Qty</label><input class="in" inputmode="numeric" value="${l.quantity}" oninput="lines[${i}].quantity=Math.max(1,parseInt(this.value)||1);updSum()"></div>
+      <div><label>Cost each $</label><input class="in" inputmode="decimal" value="${l.unit_cost??''}" placeholder="0.00" oninput="lines[${i}].unit_cost=num(this.value);updSum()"></div>
+      <div><label>Line total</label><div style="padding:9px 2px;font-weight:700" id="lt${i}">${l.unit_cost==null?'—':money(l.unit_cost*l.quantity)}</div></div>
+    </div>
+    <div class="types">${LINE_TYPES.map(([v,lab])=>`<button class="${v} ${l.line_type===v?'on':''}" onclick="lines[${i}].line_type='${v}';renderLines()">${lab}</button>`).join('')}</div>
+  </div>`).join(''):'<div class="hint" style="margin-bottom:8px">No items yet — fine for a simple expense. Add items for anything bought to resell.</div>';
+  updSum();
+}
+function addLine(){const last=lines.filter(l=>!l.removed).slice(-1)[0];const n=blankLine();if(last)n.line_type=last.line_type;lines.push(n);renderLines();
+  const ins=document.querySelectorAll('#lines .line-top .in');if(ins.length)ins[ins.length-1].focus()}
+function removeLine(i){const l=lines[i];if(l.description&&!confirm(`Remove "${l.description}" from this receipt?`))return;
+  if(l.id)l.removed=true;else lines.splice(i,1);renderLines()}
+function linesSum(){return r2(lines.filter(l=>!l.removed&&l.unit_cost!=null).reduce((s,l)=>s+l.unit_cost*l.quantity,0))}
+function updSum(){
+  lines.forEach((l,i)=>{const el=document.getElementById('lt'+i);if(el)el.textContent=l.unit_cost==null?'—':money(l.unit_cost*l.quantity)});
+  const sb=document.getElementById('sumbar');if(!sb)return;
+  const act=lines.filter(l=>!l.removed);if(!act.length){sb.innerHTML='';return}
+  const s=linesSum(),t=rec.total_amount;
+  let st='';
+  if(t!=null){const d=r2(t-s);st=Math.abs(d)<0.005?`<span class="okc"><i class="ti ti-check"></i> Matches total</span>`:`<span class="warn">${d>0?money(d)+' not given to an item yet':money(-d)+' more than the total'}</span>`}
+  sb.innerHTML=`<span>Items add up to <b>${money(s)}</b></span>${st}`;
+}
+function splitEvenly(){
+  const act=lines.filter(l=>!l.removed);const t=rec.total_amount;
+  if(t==null){alert('Enter the receipt total first.');return}
+  if(!act.length){alert('Add the items first.');return}
+  const units=act.reduce((s,l)=>s+l.quantity,0);
+  const cents=Math.round(t*100),each=Math.floor(cents/units);let rem=cents-each*units;
+  act.forEach(l=>l.unit_cost=each/100);
+  // put any leftover cents on a single-quantity item so it adds up exactly
+  const one=act.find(l=>l.quantity===1);
+  if(rem){if(one)one.unit_cost=(each+rem)/100;else act[act.length-1].unit_cost=r2((each*act[act.length-1].quantity+rem)/act[act.length-1].quantity/100)}
+  renderLines();
+}
+
+// ───────── photo ─────────
+async function onPhoto(inp){
+  const file=inp.files&&inp.files[0];inp.value='';if(!file)return;
+  const box=document.getElementById('photoBox');if(box)box.innerHTML='<div class="hint">Preparing photo…</div>';
+  try{photoBlob=await shrinkImage(file,1800,0.82)}catch(e){console.error('Photo shrink failed, using original:',e);photoBlob=file}
+  if(photoURL&&photoURL.startsWith('blob:'))URL.revokeObjectURL(photoURL);
+  photoURL=URL.createObjectURL(photoBlob);renderForm();
+}
+function shrinkImage(file,maxSide,q){
+  return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);
+    img.onload=()=>{try{let w=img.naturalWidth,h=img.naturalHeight;const sc=Math.min(1,maxSide/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(u);
+      c.toBlob(b=>b?res(b):rej(new Error('Could not compress photo')),'image/jpeg',q)}catch(e){rej(e)}};
+    img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Could not read photo'))};img.src=u});
+}
+async function uploadPhoto(blob){
+  const d=new Date(),path=`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${crypto.randomUUID()}.jpg`;
+  const r=await fetch(`${SB_URL}/storage/v1/object/receipts/${path}`,{method:'POST',headers:{'Authorization':`Bearer ${currentUser.token}`,'apikey':SB_ANON,'Content-Type':blob.type||'image/jpeg','x-upsert':'false'},body:blob});
+  if(!r.ok){const t=await r.text();throw new Error('Photo upload failed: '+t)}
+  return path;
+}
+async function signedUrl(path){
+  const r=await fetch(`${SB_URL}/storage/v1/object/sign/receipts/${path}`,{method:'POST',headers:H(),body:JSON.stringify({expiresIn:3600})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.signedURL)throw new Error(d.message||'Could not open photo');
+  return `${SB_URL}/storage/v1${d.signedURL}`;
+}
+async function loadPhoto(path){
+  try{const u=await signedUrl(path);if(rec&&rec.photo_path===path&&!photoBlob){photoURL=u;renderForm()}}
+  catch(e){console.error('Receipt photo load failed:',e);const b=document.getElementById('photoBox');if(b)b.innerHTML='<div class="hint err">Could not load the photo. Tap to add a new one.</div>'}
+}
+
+// ───────── save ─────────
+async function saveReceipt(status){
+  const msg=document.getElementById('saveMsg');msg.className='msg';msg.textContent='';
+  const f=rec,act=lines.filter(l=>!l.removed&&(l.description.trim()||l.unit_cost!=null));
+  if(status==='confirmed'){
+    const miss=[];if(!f.receipt_date)miss.push('date');if(!f.shop.trim())miss.push('shop');if(f.total_amount==null)miss.push('total');
+    if(act.some(l=>!l.description.trim()))miss.push('a name for every item');
+    if(miss.length){msg.className='msg err';msg.textContent='Please fill in: '+miss.join(', ')+'. (Or use Save draft to finish later.)';return}
+    if(act.length&&Math.abs(r2(f.total_amount-linesSum()))>=0.005&&!confirm(`The items add up to ${money(linesSum())} but the receipt total is ${money(f.total_amount)}. Save anyway?`))return;
+    if(!f.photo_path&&!photoBlob&&!confirm('There is no photo of this receipt. Save anyway?'))return;
+  }
+  const btns=document.querySelectorAll('#saveBar .btn');btns.forEach(b=>b.disabled=true);
+  msg.textContent='Saving…';
+  try{
+    if(photoBlob){f.photo_path=await uploadPhoto(photoBlob);photoBlob=null}
+    const reg={tax_invoice:true,secondhand:false,none:false}[f.gst_basis];
+    const row={receipt_date:f.receipt_date||null,shop:f.shop.trim()||null,total_amount:f.total_amount==null?null:r2(f.total_amount),
+      payment_method:f.payment_method||null,gst_basis:f.gst_basis,gst_registered:reg===undefined?null:reg,
+      gst_number:f.gst_basis==='tax_invoice'?(f.gst_number||'').trim()||null:null,
+      gst_amount:f.gst_basis==='none'?0:(f.gst_amount==null?null:r2(f.gst_amount)),
+      notes:(f.notes||'').trim()||null,photo_path:f.photo_path,status,updated_at:new Date().toISOString()};
+    if(f.id){await api(`receipts?id=eq.${f.id}`,{method:'PATCH',body:JSON.stringify(row)})}
+    else{row.created_by_name=currentUser.name||currentUser.email;const d=await api('receipts',{method:'POST',body:JSON.stringify(row)});f.id=d[0].id;f.created_by_name=row.created_by_name}
+    f.status=status;
+    // lines: update existing, mark removed ones, add new ones
+    let order=0;
+    for(const l of lines){
+      const blank=!l.description.trim()&&l.unit_cost==null;
+      const lr={description:l.description.trim()||'(no name)',quantity:l.quantity||1,unit_cost:l.unit_cost==null?null:r2(l.unit_cost),
+        line_total:l.unit_cost==null?null:r2(l.unit_cost*(l.quantity||1)),line_type:l.line_type,sort_order:order++};
+      if(l.id){await api(`receipt_lines?id=eq.${l.id}`,{method:'PATCH',body:JSON.stringify(l.removed||blank?{removed:true}:lr),headers:{'Prefer':'return=minimal'}});if(blank)l.removed=true}
+      else if(!l.removed&&!blank){const d=await api('receipt_lines',{method:'POST',body:JSON.stringify({...lr,receipt_id:f.id})});l.id=d[0].id}
+    }
+    lines=lines.filter(l=>l.id&&!l.removed||!l.id&&!l.removed);
+    const stock=act.filter(l=>l.line_type==='stock').length;
+    toast(status==='draft'?'Draft saved':'Receipt saved ✓');
+    receipts=[];
+    if(status==='confirmed'){newReceipt();msg.textContent='';const m=document.getElementById('saveMsg');
+      m.className='msg ok';m.textContent=`Saved. ${stock?stock+' item'+(stock>1?'s':'')+' marked for resale. ':''}Ready for the next receipt.`}
+    else{renderForm();const m=document.getElementById('saveMsg');m.className='msg ok';m.textContent='Draft saved — find it under Receipts → Drafts.'}
+  }catch(e){
+    if(window.btbLogError)btbLogError('saveReceipt',e);
+    msg.className='msg err';msg.textContent='Could not save: '+e.message+(/permission|policy|row-level/i.test(e.message)?' (Receipts are for owners, admins and managers.)':'');
+  }finally{btns.forEach(b=>b.disabled=false)}
+}
+async function voidReceipt(){
+  if(!rec.id||!confirm('Mark this receipt as VOID? It stays on record but won\'t be counted. You can restore it later.'))return;
+  try{await api(`receipts?id=eq.${rec.id}`,{method:'PATCH',body:JSON.stringify({status:'void',updated_at:new Date().toISOString()})});
+    toast('Receipt voided');receipts=[];newReceipt();showTab('list')}
+  catch(e){if(window.btbLogError)btbLogError('voidReceipt',e);alert('Could not void: '+e.message)}
+}
+async function unvoidReceipt(){
+  try{await api(`receipts?id=eq.${rec.id}`,{method:'PATCH',body:JSON.stringify({status:'draft',updated_at:new Date().toISOString()})});
+    rec.status='draft';toast('Restored as a draft');receipts=[];renderForm()}
+  catch(e){if(window.btbLogError)btbLogError('unvoidReceipt',e);alert('Could not restore: '+e.message)}
+}
+
+// ───────── list ─────────
+async function loadReceipts(){
+  receipts=await api('receipts?select=*,receipt_lines(id,description,quantity,unit_cost,line_type,removed,sort_order)&order=receipt_date.desc.nullslast,created_at.desc&limit=300');
+  const seen=new Set(),opts=[];receipts.forEach(r=>{const k=shopKey(r.shop);if(k&&!seen.has(k)){seen.add(k);opts.push(r.shop)}});
+  document.getElementById('shopList').innerHTML=opts.map(s=>`<option value="${esc(s)}">`).join('');
+}
+async function loadList(){
+  const v=document.getElementById('viewList');
+  if(!receipts.length){v.innerHTML='<div class="empty">Loading…</div>';
+    try{await loadReceipts()}catch(e){v.innerHTML=`<div class="card err">Could not load receipts: ${esc(e.message)}</div>`;return}}
+  renderList();
+}
+function renderList(){
+  const v=document.getElementById('viewList'),q=listSearch.trim().toLowerCase();
+  const counts={recent:0,draft:0,void:0};receipts.forEach(r=>{if(r.status==='void')counts.void++;else{counts.recent++;if(r.status==='draft')counts.draft++}});
+  let rows=receipts.filter(r=>listFilter==='void'?r.status==='void':listFilter==='draft'?r.status==='draft':r.status!=='void');
+  if(q)rows=rows.filter(r=>(r.shop||'').toLowerCase().includes(q)||(r.notes||'').toLowerCase().includes(q)||(r.receipt_lines||[]).some(l=>!l.removed&&l.description.toLowerCase().includes(q)));
+  const chip=(k,l)=>`<button class="btn btn-sm ${listFilter===k?'btn-primary':''}" onclick="listFilter='${k}';renderList()">${l} (${counts[k]})</button>`;
+  v.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${chip('recent','All')}${chip('draft','Drafts')}${chip('void','Void')}</div>
+    <input class="in" placeholder="Search shop, item or note" value="${esc(listSearch)}" oninput="listSearch=this.value;renderList();const i=document.querySelector('#viewList input');i.focus();i.setSelectionRange(i.value.length,i.value.length)" style="margin-bottom:10px">
+    ${rows.length?rows.map(r=>{const ls=(r.receipt_lines||[]).filter(l=>!l.removed).sort((a,b)=>a.sort_order-b.sort_order),st=ls.filter(l=>l.line_type==='stock').length;
+      return`<div class="item" onclick="openReceipt('${r.id}')">
+        <i class="ti ${r.photo_path?'ti-photo':'ti-photo-off'}" style="font-size:22px;color:${r.photo_path?'var(--teal)':'#cbd5e1'}"></i>
+        <div class="main"><div class="t">${esc(r.shop||'(no shop)')}</div>
+          <div class="m">${fmtD(r.receipt_date)}${r.payment_method?' · '+esc(r.payment_method):''}${r.created_by_name?' · '+esc(r.created_by_name):''}</div>
+          ${ls.length?`<div>${ls.slice(0,4).map(l=>`<span class="chip">${esc(l.description)}</span>`).join('')}${ls.length>4?`<span class="chip">+${ls.length-4} more</span>`:''}</div>`:''}
+        </div>
+        <div style="text-align:right"><div class="amt">${r.total_amount==null?'—':money(r.total_amount)}</div>
+          <span class="badge b-${r.status}">${statusLabel(r.status)}</span>${st?`<div style="margin-top:3px"><span class="badge b-stock">🎲 ${st}</span></div>`:''}</div>
+      </div>`}).join(''):'<div class="empty">No receipts here yet.</div>'}`;
+}
+function openReceipt(id){
+  const r=receipts.find(x=>x.id===id);if(!r)return;
+  rec={id:r.id,receipt_date:r.receipt_date,shop:r.shop||'',total_amount:r.total_amount==null?null:Number(r.total_amount),payment_method:r.payment_method,
+    gst_basis:r.gst_basis||'unknown',gst_number:r.gst_number||'',gst_amount:r.gst_amount==null?null:Number(r.gst_amount),notes:r.notes||'',
+    photo_path:r.photo_path,status:r.status,created_by_name:r.created_by_name};
+  lines=(r.receipt_lines||[]).filter(l=>!l.removed).sort((a,b)=>a.sort_order-b.sort_order)
+    .map(l=>({id:l.id,description:l.description,quantity:l.quantity,unit_cost:l.unit_cost==null?null:Number(l.unit_cost),line_type:l.line_type,removed:false}));
+  photoBlob=null;photoURL=null;gstAuto=false;
+  showTab('new');renderForm();
+}
+
+// ───────── login (same as other pages) ─────────
+function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)return;tokenTimer=setTimeout(refreshToken,Math.max(10000,currentUser.expiresAt-Date.now()-300000))}
+async function refreshToken(){
+  if(!currentUser?.refreshToken)return;
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
+  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();if(!r.ok){err.textContent=d.error_description||'Login failed.';return}
+    currentUser={id:d.user.id,email,token:d.access_token,refreshToken:d.refresh_token,expiresAt:Date.now()+(d.expires_in||3600)*1000};
+    const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));start()}
+  catch(e){err.textContent='Connection error.'}
+}
+function doLogout(){clearTimeout(tokenTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('saveBar').style.display='none';document.getElementById('loginScreen').classList.add('active')}
+async function start(){
+  if(!currentUser.name){const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}}
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  document.getElementById('ver').textContent='v'+BUILD_VERSION;
+  document.getElementById('who').textContent=currentUser.name||'';
+  scheduleRefresh();newReceipt();showTab('new');
+  loadReceipts().catch(e=>console.error('Could not load receipts:',e));
+}
+window.addEventListener('beforeunload',e=>{if(photoBlob||(rec&&!rec.id&&(rec.shop||rec.total_amount!=null||lines.some(l=>l.description)))){e.preventDefault();e.returnValue=''}});
+window.addEventListener('DOMContentLoaded',async()=>{
+  const s=localStorage.getItem('btb_staff_session');if(!s)return;
+  try{currentUser=JSON.parse(s);if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<300000){await refreshToken();if(!currentUser)return}
+    start()}catch(e){doLogout()}
+});
+</script>
+</body>
+</html>
