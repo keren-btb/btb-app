@@ -1465,7 +1465,7 @@ function gameWindow(gameId,timeStr,hire){
 // Returns the first clashing booking {time,customer,hired} or null. hire = {dropoff,pickup} for a hire, else null.
 async function findGameClash(gameId,dateStr,timeStr,hire,excludeId){
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(gameId)}&booking_date=eq.${dateStr}&status=in.(confirmed,completed)&select=id,slot_time,play_location,dropoff_time,pickup_time,notes_when_booked,clients(first_name,last_name)`,{headers:H()});
+    const r=await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(gameId)}&booking_date=eq.${dateStr}&status=in.(confirmed,completed,requested)&select=id,slot_time,play_location,dropoff_time,pickup_time,notes_when_booked,clients(first_name,last_name)`,{headers:H()});
     if(!r.ok)throw new Error(await r.text());
     const rows=await r.json();
     const[ns,ne]=gameWindow(gameId,timeStr,hire);
@@ -2373,6 +2373,22 @@ async function toggleTag(bid,tid){
 async function toggleGM(bid,pid){
   const b=bookings.find(x=>x.id===bid);if(!b)return;
   const add=!(b.gms||[]).includes(pid);
+  // v16.4.85: a booking REQUEST is accepted properly (confirmed, rostered, customer emailed) instead of just
+  // getting a GM ticked — before, it stayed a request forever and the customer never heard back.
+  if(b.isRequest&&add){
+    const nm=staff.find(s=>s.id===pid)?.name||'this person';
+    if(!confirm(`This is a booking request waiting for a game master.\n\nAccept it for ${nm}?\n\nThat confirms the booking, puts ${nm} on the roster for it, and emails the customer their confirmation.`))return;
+    try{
+      const r=await fetch(`${SB_URL}/rest/v1/rpc/respond_booking_request`,{method:'POST',headers:H(),body:JSON.stringify({p_booking:bid,p_accept:true,p_staff:pid})});
+      if(!r.ok)throw new Error(await r.text());
+      const res=await r.json();
+      const why={accepted:null,already_done:'it has already been answered',not_allowed:'only an owner can accept a request for someone else',not_staff:'your login is not linked to a staff member',not_found:'the booking could not be found'};
+      if(res!=='accepted'&&why[res]!==undefined)alert('Not accepted: '+why[res]+'.');
+      else if(res!=='accepted')alert('Not accepted: '+res);
+    }catch(e){alert('Not accepted: '+e.message)}
+    await updateBooking(bid,()=>null);openPanels.add(bid);renderActiveView();
+    return;
+  }
   b.gms=setInList(b.gms||[],pid,add);openPanels.add(bid);renderActiveView();
   if(await updateBooking(bid,cur=>{cur.gms=setInList(cur.gms,pid,add);return{assigned_staff_ids:JSON.stringify(cur.gms)}}))renderActiveView();
 }
@@ -2939,8 +2955,10 @@ async function toggleTrustedOpener(id){
   const p=staff.find(x=>x.id===id);if(!p)return;
   const next=!(p.trusted_opener===true);
   p.trusted_opener=next;renderPersonList();
-  try{await fetch(`${SB_URL}/rest/v1/staff?id=eq.${id}`,{method:'PATCH',headers:H(),body:JSON.stringify({trusted_opener:next})})}
-  catch(e){console.error('Trusted opener save failed:',e);p.trusted_opener=!next;renderPersonList()}
+  try{const r=await fetch(`${SB_URL}/rest/v1/staff?id=eq.${id}`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({trusted_opener:next})});
+    if(!r.ok)throw new Error(await r.text());
+    if(!(await r.json()).length)throw new Error('you may not have permission to change this'); // v16.4.85: a refused save used to look like it worked
+  }catch(e){console.error('Trusted opener save failed:',e);p.trusted_opener=!next;renderPersonList();alert('Trusted opener not saved: '+e.message)}
 }
 async function addPerson(){
   const input=document.getElementById('newPersonInput');const val=input.value.trim();if(!val)return;input.value='';
@@ -4216,7 +4234,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.84'; // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.85'; // v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
