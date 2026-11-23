@@ -204,6 +204,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.44 — 2026-11-23 — Step 6 tidy-up, HIDDEN only (nothing deleted, all code and data kept): Home "My availability this week" card (old routine), Staff panel's old Availability grid + "Fine-tune individual slots" + "Recurring away blocks" (replaced by a note pointing to My Week/Roster), and Roster's "Old routine grid" button.
 - v1.9.43 — 2026-11-23 — Booking requests: Home shows "🙋 Booking requests" to anyone asked (Accept / Decline; first to accept gets a shift, becomes GM, customer gets their confirmation). Owners see all waiting requests, who was asked and answers, answer-by time, and can accept for anyone. Roster shows requests and offers "accept for them". Nothing removed.
 - v1.9.42 — 2026-11-23 — New Roster tab (admins/managers): whole week on a computer, one day at a time on a phone. Shows each person's free times (green, owners only for now) and shifts (blue), each day's bookings (red = no GM) and open shifts, and a 'Needs cover' list naming who is free or on shift and trained for each booking with no GM. Tap green or '+ shift' to give a shift (confirmed straight away, phone notification); tap a shift to change, unassign or delete it; can make someone the GM in the same step. Old Morning/Midday/Evening grid kept behind 'Old routine grid'. Hours rostered this month unchanged. Nothing removed.
 - v1.9.41 — 2026-11-23 — Casual My Week shows only the bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are hidden. Nothing removed.
@@ -293,6 +294,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.50 — 2026-11-23 — If the database's new double-booking check turns a booking away (someone took the room or game master moments earlier), the customer sees "Sorry — someone has just booked this time" and the times refresh, instead of a general error.
 - v1.7.49 — 2026-11-23 — "🙋 Request" slots: nobody free or rostered for the whole game but a trained casual has marked themselves free, and the game is 24+ hours away (setting requestMinHoursAhead) — the customer books as normal, saved as status "requested", no deposit tick; confirmation screen says we are finding a game master. Within 24 hours the same situation shows "Call us". Requests hold the slot and use up one free person each. Nothing removed.
 - v1.7.48 — 2026-11-23 — "Call us" when a rostered casual's shift covers the start of a game but ends before it finishes, by no more than the Casual shift overrun setting (default 60 min, 0 = off). Only applies when nobody is free for the whole game; no-GM bookings use these casuals up too. Nothing removed.
 - v1.7.47 — 2026-11-23 — 'Invoice me' for every booking; private booking link token; invoice details button on the confirmation screen.
