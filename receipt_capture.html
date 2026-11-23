@@ -134,7 +134,7 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--teal);font-weight
 // Lines tagged "For resale" are the board games etc. that will go to the Check & price list (next step, not built yet).
 // Nothing is ever deleted: removed lines are marked removed, mistaken receipts are marked Void.
 // Admin / manager / owner only (enforced by the database).
-const BUILD_VERSION='1.1.0'; // v1.1.0: Check tab — For resale items waiting to be checked; Add to stock (new product with cost, sell price, condition, who checked it), Add to an existing product (stock +qty), or Not selling (undo-able); similar product names shown to avoid duplicates. Previous build: 1.0.0 — v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
+const BUILD_VERSION='1.1.1'; // v1.1.1: 'Add to this' averages the cost price (weighted by stock) and warns if the sell price entered differs; adding a new product with the same name as an existing one asks for a label (e.g. 'worn box') so the two are told apart in the POS. Previous build: 1.1.0 — v1.1.0: Check tab — For resale items waiting to be checked; Add to stock (new product with cost, sell price, condition, who checked it), Add to an existing product (stock +qty), or Not selling (undo-able); similar product names shown to avoid duplicates. Previous build: 1.0.0 — v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -507,7 +507,7 @@ function doneCard(l){
     <div style="text-align:right"><span class="badge b-${l.stock_outcome}">${lab}</span>
     ${l.stock_outcome==='not_selling'?`<div style="margin-top:6px"><button class="btn btn-sm" onclick="ckUndoNotSelling('${l.id}')">Undo</button></div>`:''}</div></div></div>`;
 }
-let matchTimer=null;
+let matchTimer=null,lastMatches={};
 function findMatches(id,name){
   clearTimeout(matchTimer);matchTimer=setTimeout(async()=>{
     const box=document.getElementById('ckMatch_'+id);if(!box)return;
@@ -515,7 +515,7 @@ function findMatches(id,name){
     if(!words.length){box.innerHTML='';return}
     try{
       const q=words.map(w=>`name.ilike.*${encodeURIComponent(w.replace(/[*,().]/g,''))}*`).join(',');
-      const m=await api(`products?select=id,name,sub_name,category,sell_price,purchase_price,stock_qty,active&or=(${q})&order=name&limit=8`);
+      const m=await api(`products?select=id,name,sub_name,category,sell_price,purchase_price,stock_qty,active&or=(${q})&order=name&limit=8`);lastMatches[id]=m;
       box.innerHTML=m.length?`<div class="hint" style="margin-top:6px">Already in products — is it one of these? (Avoids duplicates like "Bandido" / "Bandidi")</div>`+m.map(p=>`<div class="match"><div class="main"><b>${esc(p.name)}</b>${p.sub_name?' — '+esc(p.sub_name):''}<div class="ck-meta">${esc(p.category)} · sells ${money(p.sell_price)} · in stock ${p.stock_qty??0}${p.active?'':' · inactive'}</div></div>
         <button class="btn btn-sm" onclick="ckMerge('${id}','${p.id}')">Add to this</button></div>`).join(''):'';
     }catch(e){box.innerHTML=''}
@@ -534,6 +534,14 @@ async function ckAdd(id){
   const v=ckVals(id);
   if(!v.name)return ckErr(id,'Please give it a name.');
   if(v.sell==null||v.sell<=0)return ckErr(id,'Please enter the sell price.');
+  let same=(lastMatches[id]||[]).find(p=>p.name.trim().toLowerCase()===v.name.toLowerCase());
+  if(!same){try{same=(await api(`products?select=id,name,sell_price&name=ilike.${encodeURIComponent(v.name.replace(/[*,()]/g,''))}&limit=1`))[0]}catch(e){}}
+  if(same){
+    const lab=prompt(`"${same.name}" is already a product (sells ${money(same.sell_price)}).\n\nTo keep this copy separate (e.g. different condition or price), add a label so they're told apart in the POS — e.g. worn box, older edition.\n\nLabel:`,'');
+    if(lab===null)return;
+    if(!lab.trim())return ckErr(id,'Add a label, or use "Add to this" on the existing product instead.');
+    v.name=`${v.name} (${lab.trim()})`;document.getElementById('ckName_'+id).value=v.name;
+  }
   const btns=document.querySelectorAll('#viewCheck .card .btn');btns.forEach(b=>b.disabled=true);
   try{
     const now=new Date().toISOString();
@@ -549,9 +557,14 @@ async function ckMerge(id,productId){
   const v=ckVals(id);
   try{
     const p=(await api(`products?id=eq.${productId}&select=id,name,stock_qty,purchase_price,active,condition_notes`))[0];
-    const cost=v.cost==null?'':` Its cost price stays ${p.purchase_price==null?'blank':money(p.purchase_price)} (this copy cost ${money(v.cost)}).`;
-    if(!confirm(`Add ${v.qty} to "${p.name}"? Stock goes from ${p.stock_qty??0} to ${(p.stock_qty||0)+v.qty}.${cost}${p.active?'':' It is inactive and will be made active.'}`))return;
-    const patch={stock_qty:(p.stock_qty||0)+v.qty,active:true,updated_at:new Date().toISOString()};
+    const p2=(await api(`products?id=eq.${productId}&select=sell_price`))[0]||{};
+    if(v.sell!=null&&Number(p2.sell_price)!==r2(v.sell)&&!confirm(`"${p.name}" sells at ${money(p2.sell_price)} but you entered ${money(v.sell)}.\n\nOK = add to it anyway (it keeps selling at ${money(p2.sell_price)}).\nCancel = go back, then use "Checked — add to stock" to make it a separate product with a label.`))return;
+    const oldQty=Math.max(0,p.stock_qty||0),oldCost=p.purchase_price==null?null:Number(p.purchase_price);
+    let newCost=oldCost;
+    if(v.cost!=null)newCost=(oldCost==null||oldQty===0)?r2(v.cost):r2((oldQty*oldCost+v.qty*v.cost)/(oldQty+v.qty));
+    const costTxt=newCost===oldCost?` Cost price stays ${oldCost==null?'blank':money(oldCost)}.`:` Cost price ${oldCost==null?'blank':money(oldCost)} → ${money(newCost)} (average).`;
+    if(!confirm(`Add ${v.qty} to "${p.name}"? Stock goes from ${p.stock_qty??0} to ${oldQty+v.qty}.${costTxt}${p.active?'':' It is inactive and will be made active.'}`))return;
+    const patch={stock_qty:oldQty+v.qty,purchase_price:newCost,active:true,updated_at:new Date().toISOString()};
     if(v.cond)patch.condition_notes=(p.condition_notes?p.condition_notes+' | ':'')+v.cond;
     await api(`products?id=eq.${productId}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(patch)});
     await ckMarkLine(id,{stock_outcome:'merged',product_id:productId,stock_note:`+${v.qty} to ${p.name}`+(v.cond?` — ${v.cond}`:'')});
