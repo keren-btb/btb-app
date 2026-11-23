@@ -1201,7 +1201,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.44'; // v1.9.44: Step 6 tidy-up (hidden, nothing deleted): Home 'My availability this week' card (old Morning/Midday/Evening routine), the Staff panel's old Availability grid, 'Fine-tune individual slots' and 'Recurring away blocks', and Roster's 'Old routine grid' button. Free times now live only in My Week. Previous build: 1.9.43 — v1.9.43: Booking requests — Home shows '🙋 Booking requests' for anyone asked to run a requested game (Accept / Decline; first to accept gets the shift and the customer gets their confirmation). Owners see every waiting request, who was asked and their answers, the answer-by time, and can accept for anyone. Roster: requested bookings show as 'Request' and Needs cover offers 'accept for' buttons. Previous build: 1.9.42 — v1.9.42: New Roster tab — whole week on a computer, one day on a phone: each person's free times (green, owners only) and shifts (blue), bookings and open shifts per day, 'Needs cover' list of bookings with no GM and who is free/on shift and trained; tap to give a shift (confirmed straight away, phone notification), tap a shift to change/unassign/delete; can also make someone the GM. Old Morning/Midday/Evening grid still available via 'Old routine grid'. Previous build: 1.9.41 — v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+const BUILD_VERSION = '1.9.45'; // v1.9.45: GM ticks on booking requests (My Week, Roster) accept them properly; 'Accept for' lists people trained for the game first and asks before accepting for someone untrained; claiming a shift someone has just taken says so. // v1.9.44: Step 6 tidy-up (hidden, nothing deleted): Home 'My availability this week' card (old Morning/Midday/Evening routine), the Staff panel's old Availability grid, 'Fine-tune individual slots' and 'Recurring away blocks', and Roster's 'Old routine grid' button. Free times now live only in My Week. Previous build: 1.9.43 — v1.9.43: Booking requests — Home shows '🙋 Booking requests' for anyone asked to run a requested game (Accept / Decline; first to accept gets the shift and the customer gets their confirmation). Owners see every waiting request, who was asked and their answers, the answer-by time, and can accept for anyone. Roster: requested bookings show as 'Request' and Needs cover offers 'accept for' buttons. Previous build: 1.9.42 — v1.9.42: New Roster tab — whole week on a computer, one day on a phone: each person's free times (green, owners only) and shifts (blue), bookings and open shifts per day, 'Needs cover' list of bookings with no GM and who is free/on shift and trained; tap to give a shift (confirmed straight away, phone notification), tap a shift to change/unassign/delete; can also make someone the GM. Old Morning/Midday/Evening grid still available via 'Old routine grid'. Previous build: 1.9.41 — v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
 
 // Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
@@ -1865,6 +1865,10 @@ async function weekToggleGM(bid, sid) {
   if (!b) return;
   const before = weekParseIds(b.assigned_staff_ids);
   const after = before.includes(sid) ? before.filter(x => x !== sid) : [...before, sid];
+  if (b.status === 'requested' && !before.includes(sid)) {
+    if (await acceptRequestFor(bid, sid, b.game_id)) { weekSelectedBookingId = bid; await loadWeekView(true); }
+    return;
+  }
   const chipsEl = document.getElementById('weekGmChips');
   if (chipsEl) chipsEl.style.opacity = '0.5';
   try {
@@ -2494,6 +2498,7 @@ function rosterNotify(staffId, title, body) {
 async function rosterAssignGm(bookingId, sid) {
   const b = RD && RD.bookings.find(x => x.id === bookingId);
   if (!b) return;
+  if (b.status === 'requested') { if (await acceptRequestFor(bookingId, sid, b.game_id)) await loadRosterOverview(); return; }
   const ids = weekParseIds(b.assigned_staff_ids);
   if (!ids.includes(sid)) ids.push(sid);
   try {
@@ -2535,7 +2540,12 @@ async function rosterSaveShift() {
       const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${E.id}`, { method: 'PATCH', headers: H(), body: JSON.stringify(patch) });
       if (!r.ok) throw new Error(await r.text());
     }
-    if (makeGm) {
+    const reqB = makeGm ? RD.bookings.find(x => x.id === E.bookingId) : null;
+    if (reqB && reqB.status === 'requested') {
+      // v1.9.45: a request is accepted through the proper step (it also gives them a shift for the game itself)
+      const ok = await acceptRequestFor(reqB.id, sid, reqB.game_id);
+      if (!ok) { msg.style.color = '#b45309'; msg.textContent = 'Shift saved. The request was not accepted.'; await loadRosterOverview(); return; }
+    } else if (makeGm) {
       const b = RD.bookings.find(x => x.id === E.bookingId);
       const ids = weekParseIds(b.assigned_staff_ids); if (!ids.includes(sid)) ids.push(sid);
       const r2 = await fetch(`${SB_URL}/rest/v1/game_bookings?id=eq.${b.id}`, { method: 'PATCH', headers: H(), body: JSON.stringify({ assigned_staff_ids: JSON.stringify(ids), updated_at: now }) });
@@ -2625,7 +2635,12 @@ function renderBookingRequests() {
       actions += `<span style="font-size:12px;color:#6b7280">You said no.</span> <button class="btn-secondary btn-sm" onclick="respondRequest('${b.id}',true)">Changed my mind — accept</button>`;
     }
     if (owner) {
-      const opts = allStaff.filter(s => s.active !== false).map(s => `<option value="${s.id}"${s.id === me ? ' selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+      // v1.9.45: people trained for this game first; anyone else is listed separately as not trained
+      const act = allStaff.filter(s => s.active !== false);
+      const tr = act.filter(s => spTrainedFor(s.id, b.game_id)), un = act.filter(s => !spTrainedFor(s.id, b.game_id));
+      const pick = tr.some(s => s.id === me) ? me : (tr[0] && tr[0].id);
+      const opts = tr.map(s => `<option value="${s.id}"${s.id === pick ? ' selected' : ''}>${escapeHtml(s.name)}</option>`).join('')
+        + (un.length ? `<optgroup label="Not trained for this game">${un.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (not trained)</option>`).join('')}</optgroup>` : '');
       actions += `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:#6b7280">Accept for</span><select id="reqFor-${b.id}" style="padding:5px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px">${opts}</select><button class="btn-secondary btn-sm" onclick="respondRequest('${b.id}',true,document.getElementById('reqFor-${b.id}').value)">Accept</button></div>`;
       const asked = offers.length
         ? offers.map(o => `${escapeHtml(nameOf(o.staff_id))}: ${o.response === 'declined' ? '<span style="color:#b91c1c">no</span>' : o.response ? escapeHtml(o.response) : '<span style="color:#b45309">waiting</span>'}`).join(' · ')
@@ -2639,9 +2654,29 @@ function renderBookingRequests() {
     + `<div style="font-size:12px;color:#6b7280;margin-bottom:4px">A customer has asked for this time and we need a game master. The first person to accept gets a shift for it and the customer is sent their confirmation.</div>${cards}</div>`;
 }
 
-async function respondRequest(bookingId, accept, forStaffId) {
+// v1.9.45: trained = their training for this game counts as qualified
+function spTrainedFor(sid, gameId) {
+  const t = (staffTraining || []).find(x => x.staff_id === sid && x.game_id === gameId);
+  const st = t ? trainingStatuses.find(s => s.id === t.status) : null;
+  return !!(st && st.qualifies);
+}
+// v1.9.45: ticking/assigning a GM on a booking REQUEST accepts it properly (confirm + shift + customer email)
+async function acceptRequestFor(bookingId, sid, gameId) {
+  const nm = (allStaff.find(s => s.id === sid) || {}).name || 'this person';
+  if (gameId && !spTrainedFor(sid, gameId) && !confirm(`${nm} isn't marked as trained for this game. Accept the request for them anyway?`)) return false;
+  if (!confirm(`This is a booking request waiting for a game master.\n\nAccept it for ${nm}? That confirms the booking, gives ${nm} a shift for it and emails the customer their confirmation.`)) return false;
+  await respondRequest(bookingId, true, sid === (myStaffRecord && myStaffRecord.id) ? undefined : sid, true);
+  return true;
+}
+
+async function respondRequest(bookingId, accept, forStaffId, skipTrainedCheck) {
   const msg = document.getElementById('reqMsg-' + bookingId);
   if (!accept && !confirm('Say no to this request?')) return;
+  if (accept && forStaffId && !skipTrainedCheck) {
+    const rb = reqData.bookings.find(x => x.id === bookingId);
+    const nm = (allStaff.find(s => s.id === forStaffId) || {}).name || 'They';
+    if (rb && !spTrainedFor(forStaffId, rb.game_id) && !confirm(`${nm} isn't marked as trained for ${rb.game_name || 'this game'}. Accept it for them anyway?`)) return;
+  }
   try {
     const body = { p_booking: bookingId, p_accept: !!accept };
     if (forStaffId) body.p_staff = forStaffId;
@@ -6011,11 +6046,12 @@ async function claimShift(id) {
   if (conflict) { alert(`You already have a shift that day from ${fmt12(conflict.custom_start_time)} to ${fmt12(conflict.custom_end_time)}, which overlaps this one — you can't claim it.`); return; }
   try 
   {
-    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}`, {
-      method:'PATCH', headers:H(),
+    const r = await fetch(`${SB_URL}/rest/v1/assigned_shifts?id=eq.${id}&status=eq.open`, {
+      method:'PATCH', headers:{...H(), 'Prefer':'return=representation'},
       body: JSON.stringify({staff_id: myStaffRecord.id, status:'claimed', claimed_at: new Date().toISOString()})
     });
     if (!r.ok) throw new Error(await r.text());
+    if (!(await r.json()).length) { alert('Sorry — someone has just taken this shift.'); await loadMyShifts(); renderStaffShifts(); updateShiftBadge(); return; } // v1.9.45
     const s = allShifts.find(x=>x.id===id);
     if (s) { s.staff_id=myStaffRecord.id; s.status='claimed'; s.claimed_at=new Date().toISOString(); }
     renderStaffShifts();
