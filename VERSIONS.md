@@ -119,6 +119,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.83 — 2026-11-23 — Calendar shows requested bookings with a purple "🙋 REQUEST — finding a GM" badge and dashed purple border. Nothing removed.
 - v16.4.82 — 2026-11-23 — Profile menu (tap your initial, top right) now opens (it was placed off-screen inside the transformed header; it now moves to the page body when opened). Staff Portal quick button shows for every login; the staff portal itself still hides admin/owner-only parts. Nothing removed.
 - v16.4.81 — 2026-11-23 — Settings > Booking Configuration: new "Casual shift overrun" minutes field (default 60, 0 = off) used by the booking page. Nothing removed.
 - v16.4.80 — 2026-11-23 — Settings: new 🧾 Receipts button next to Invoices (admins and managers, which includes Keren and Joolz) opens receipt_capture.html. Nothing removed. CSS unchanged (still ?v=16.4.79).
@@ -203,6 +204,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.1 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## staff_portal.html
+- v1.9.43 — 2026-11-23 — Booking requests: Home shows "🙋 Booking requests" to anyone asked (Accept / Decline; first to accept gets a shift, becomes GM, customer gets their confirmation). Owners see all waiting requests, who was asked and answers, answer-by time, and can accept for anyone. Roster shows requests and offers "accept for them". Nothing removed.
 - v1.9.42 — 2026-11-23 — New Roster tab (admins/managers): whole week on a computer, one day at a time on a phone. Shows each person's free times (green, owners only for now) and shifts (blue), each day's bookings (red = no GM) and open shifts, and a 'Needs cover' list naming who is free or on shift and trained for each booking with no GM. Tap green or '+ shift' to give a shift (confirmed straight away, phone notification); tap a shift to change, unassign or delete it; can make someone the GM in the same step. Old Morning/Midday/Evening grid kept behind 'Old routine grid'. Hours rostered this month unchanged. Nothing removed.
 - v1.9.41 — 2026-11-23 — Casual My Week shows only the bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are hidden. Nothing removed.
 - v1.9.40 — 2026-11-23 — My Week for everyone: casual staff see their own week only — add/change/remove their own free times (usual week or one date), confirm their week, see their own shifts (blue band), their own bookings, and other bookings as plain grey "Booked" blocks (no customer details, can't change GMs). Owners now see every active staff member (not just calendar-mode) and the selected person's shifts. Booking page not changed — casual free times are not used for bookings yet. Nothing removed.
@@ -291,6 +293,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.49 — 2026-11-23 — "🙋 Request" slots: nobody free or rostered for the whole game but a trained casual has marked themselves free, and the game is 24+ hours away (setting requestMinHoursAhead) — the customer books as normal, saved as status "requested", no deposit tick; confirmation screen says we are finding a game master. Within 24 hours the same situation shows "Call us". Requests hold the slot and use up one free person each. Nothing removed.
 - v1.7.48 — 2026-11-23 — "Call us" when a rostered casual's shift covers the start of a game but ends before it finishes, by no more than the Casual shift overrun setting (default 60 min, 0 = off). Only applies when nobody is free for the whole game; no-GM bookings use these casuals up too. Nothing removed.
 - v1.7.47 — 2026-11-23 — 'Invoice me' for every booking; private booking link token; invoice details button on the confirmation screen.
 - v1.7.46 — 2026-11-23 — Voucher redeem result checked; if the code had already been used, it's logged in Settings > Errors with the booking id.

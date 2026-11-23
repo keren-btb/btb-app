@@ -1771,6 +1771,18 @@ body {
   cursor: default;
 }
 
+.slot-btn.request {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.07);
+}
+.slot-btn.request:hover {
+  border-color: #7c3aed;
+  transform: scale(1.04);
+}
+.slot-btn.request .slot-time,
+.slot-btn.request .slot-status {
+  color: #7c3aed;
+}
 .slot-btn.booked {
   cursor: not-allowed;
 }
@@ -4325,7 +4337,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.48'; // v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.49'; // v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4491,6 +4503,7 @@ let appliedVoucher = null; // { code, discount, label } once validated — see a
 let escapeView = 'game';
 let enqType = null;
 let draftSaved = false;
+let selIsRequest = false; // v1.7.49: the chosen slot is a 'Request' slot
 let lockedBooking = false; // true when this page was opened via a staff-generated locked slot link
 
 // === INIT ===
@@ -4940,6 +4953,11 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   if (!anyStaffData) return 'call';
 
   const pool = getQualifiedStaffPool(gameId, dateStr, slotTime);
+  // v1.7.49: nobody free/rostered for the whole game, but a trained casual has marked themselves free -> 'Request'
+  if (pool.fullyAvailable.length === 0 && (d - now) >= (Number(bookingConfig.requestMinHoursAhead ?? 24) || 24) * 3600000 &&
+      requestCandidateCount(gameId, dateStr, slotTime) > 0) return 'request';
+  // ...but within the request window (too soon for someone to accept) a free casual means 'Call us'
+  if (pool.fullyAvailable.length === 0 && requestCandidateCount(gameId, dateStr, slotTime) > 0) return 'call';
   if (pool.fullyAvailable.length === 0 && pool.maybeAvailable.length === 0) return 'booked';
 
   const withinCutoff = (d - now) < cut;
@@ -5076,6 +5094,37 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
   }
 
   return { fullyAvailable, maybeAvailable };
+}
+
+// v1.7.49: how many casual (roster-mode) staff are free (My Week free times) and trained for the whole game, not busy,
+// minus bookings with no GM yet (incl. other requests) overlapping it — each of those uses up one person.
+function requestCandidateCount(gameId, dateStr, slotTime) {
+  if (!freeTimesLoaded) return 0;
+  const sMin = hmToMins(slotTime), eMin = sMin + gameLength(gameId);
+  const [y, mo, da] = dateStr.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, mo - 1, da)).getUTCDay();
+  const base = new Date(dateStr + 'T00:00:00').getTime();
+  const overlaps = canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot;
+  const ids = [...new Set([...staffFreeUsual, ...staffFreeDates].map(r => r.staff_id))].filter(sid => staffMode[sid] !== 'calendar');
+  let n = ids.filter(sid => {
+    const training = staffTraining.find(t => t.staff_id === sid && t.game_id === gameId);
+    const st = training ? trainingStatuses.find(x => x.id === training.status) : null;
+    if (!st || !st.qualifies) return false;
+    if ((staffAvailStatus[sid] || {})[dateStr + '_' + slotTime] === 'unavailable') return false;
+    if (inMeeting(sid, dateStr, sMin, eMin)) return false;
+    if (!isInsideFreeTime(sid, dateStr, sMin, eMin, dow)) return false;
+    if (staffCalendarBusy.some(b => b.staff_id === sid && base + sMin * 60000 < toNzNaive(b.busy_end).getTime() && base + eMin * 60000 > toNzNaive(b.busy_start).getTime())) return false;
+    return !existingBookings.some(b => {
+      let a = []; try { a = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { a = []; }
+      return a.includes(sid) && overlaps(b, gameId, dateStr, slotTime);
+    });
+  }).length;
+  const noGm = existingBookings.filter(b => {
+    if (isHireBooking(b) && b.gm_attends === false) return false;
+    let a = []; try { a = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { a = []; }
+    return a.length === 0 && overlaps(b, gameId, dateStr, slotTime);
+  }).length;
+  return n - noGm;
 }
 
 function getAvailableGMs(gameId, dateStr, slotTime) {
@@ -5546,8 +5595,8 @@ function selectCafeDate(ds, el) {
 
 function slotBtnHtml(gameId, dateStr, slotTime, withGame = false) {
   const status = getSlotStatus(gameId, dateStr, slotTime);
-  const labels = { available: 'Available', call: '📞 Call us', booked: 'Full', past: 'Past' };
-  const clickable = status === 'available';
+  const labels = { available: 'Available', request: '🙋 Request', call: '📞 Call us', booked: 'Full', past: 'Past' };
+  const clickable = status === 'available' || status === 'request'; // v1.7.49
   const gname = withGame ? games.find(g => g.id === gameId)?.name || '' : '';
   const notify = (status === 'call' || status === 'booked')
     ? `<div class="slot-notify" onclick="event.stopPropagation();openWaitlist('${gameId}','${dateStr}','${slotTime}')">🔔 Notify me</div>`
@@ -5575,6 +5624,7 @@ function selectSlot(gameId, dateStr, slotTime) {
   selGame = games.find(g => g.id === gameId);
   selDate = dateStr;
   selSlot = slotTime;
+  selIsRequest = getSlotStatus(gameId, dateStr, slotTime) === 'request'; // v1.7.49
   const trackPlayers = selGame.trackPlayers !== false;
   if (trackPlayers) {
     const limits = (bookingConfig.gamePlayerLimits || {})[gameId] || { min: 2, max: 8 };
@@ -5597,7 +5647,8 @@ function showIntakeForm() {
       </div>
       ${lockedBooking
         ? `<div class="summary-change" style="opacity:.55;cursor:default" title="This time was reserved for you — contact us if you need a different slot">Reserved</div>`
-        : `<div class="summary-change" onclick="goBack()">Change</div>`}`;
+        : `<div class="summary-change" onclick="goBack()">Change</div>`}`
+    + (selIsRequest ? `<div style="flex-basis:100%;margin-top:8px;font-size:13px;line-height:1.4;color:#7c3aed">🙋 This time is a <b>request</b>: we'll check a game master can run it and email you to confirm, usually within a day. No deposit until it's confirmed.</div>` : '');
   const trackPlayers = selGame.trackPlayers !== false;
   const playersFieldLabelEl = document.getElementById('playersFieldLabel');
   if (trackPlayers) {
@@ -5736,7 +5787,7 @@ function updatePriceDisplay() {
   const tickText = document.getElementById('depositTickText');
   if (tickText) tickText.textContent = `I will pay the $${dep} deposit as soon as I can`;
   const tickWrap = document.getElementById('depositTickWrap');
-  if (tickWrap) tickWrap.style.display = dep > 0 ? 'flex' : 'none';
+  if (tickWrap) tickWrap.style.display = (dep > 0 && !selIsRequest) ? 'flex' : 'none'; // v1.7.49: no deposit promise for requests
   document.getElementById('priceBox').innerHTML = `
       <div class="price-row"><span class="price-lbl">${selGame.name}</span><span class="price-val">${p.breakdown}</span></div>
       ${expRowsHtml}
@@ -6066,6 +6117,7 @@ function showReviewScreen() {
 
   document.getElementById('reviewPriceBox').innerHTML = document.getElementById('priceBox').innerHTML;
 
+  { const fb = document.getElementById('btnFinalConfirm'); if (fb) fb.textContent = selIsRequest ? 'Send Request →' : 'Confirm Booking →'; } // v1.7.49
   goTo('s3review', 4);
   playTicketHighlight();
 }
@@ -6168,6 +6220,8 @@ async function submitBooking() {
     showErr('This slot now needs a phone call to confirm — please call us.');
     return;
   }
+  if (slotCheck === 'booked') { showErr('Sorry, this slot was just taken. Please choose another time.'); return; } // v1.7.49
+  const isRequest = slotCheck === 'request'; // v1.7.49: if someone has since been rostered it becomes a normal booking
 
   const pricing = calcPrice(selGame.id, playerCount);
   const expRows = getSelectedExpRows();
@@ -6182,7 +6236,7 @@ async function submitBooking() {
 
   try {
     const takenCheck = await fetch(
-      `${SB_URL}/rest/v1/public_booking_slots?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=eq.confirmed&select=game_id`, { headers: SB_H }
+      `${SB_URL}/rest/v1/public_booking_slots?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=in.(confirmed,requested)&select=game_id`, { headers: SB_H }
     );
     const takenRows = await takenCheck.json();
     if (Array.isArray(takenRows) && takenRows.length > 0) {
@@ -6237,9 +6291,9 @@ async function submitBooking() {
         ...expRows.map(e => ({ label: e.label, amount: parseFloat(e.price) || 0, at: new Date().toISOString() })),
         ...(appliedVoucher ? [{ label: `Voucher ${appliedVoucher.code}`, amount: -voucherDiscount, at: new Date().toISOString() }] : []),
       ]) : null,
-      status: 'confirmed',
+      status: isRequest ? 'requested' : 'confirmed', // v1.7.49
       source: 'online',
-assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
+assigned_staff_ids: isRequest ? JSON.stringify([]) : JSON.stringify(avail.slice(0, 1)),
       tags: JSON.stringify(autoTagsForOccasion(occasion)),
       staff_notes: JSON.stringify([]),
       notes_when_booked: `${first} ${last} · ${ref}` + (companyName ? ` · Company: ${companyName}` : '') + (schoolName ? ` · School: ${schoolName}${schoolAgeGroup ? ' (' + schoolAgeGroup + ')' : ''}` : ''),
@@ -6271,7 +6325,8 @@ assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
       game_id: selGame.id,
       booking_date: selDate,
       slot_time: selSlot + ':00',
-      assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
+      assigned_staff_ids: isRequest ? JSON.stringify([]) : JSON.stringify(avail.slice(0, 1)),
+      status: isRequest ? 'requested' : 'confirmed',
     });
 
     // Mark the voucher used now that the booking is actually confirmed —
@@ -6297,6 +6352,7 @@ assigned_staff_ids: JSON.stringify(avail.slice(0, 1)),
       }
     }
 
+    selIsRequest = isRequest; // v1.7.49
     showConfirmation(first, last, email, grandTotal, dep, ref, expRows, depositPref);
 
   } catch (e) {
@@ -6330,12 +6386,17 @@ function showConfirmation(first, last, email, grandTotal, dep, ref, expRows, dep
   if (expRows && expRows.length) rows.push(['Add-ons', expRows.map(e => e.label).join(', ')]);
   if (appliedVoucher) rows.push(['Voucher', `${appliedVoucher.code} (-$${appliedVoucher.discount})`]);
   rows.push(['Total', `$${grandTotal} NZD`]);
-  rows.push(['Deposit due', `$${dep} NZD`]);
+  if (!selIsRequest) rows.push(['Deposit due', `$${dep} NZD`]); // v1.7.49: no deposit until a request is confirmed
   if (depositPref) rows.push(['Deposit payment', depositLabels[depositPref] || depositPref]);
+  { const ttl = document.querySelector('#s4 .confirm-title'), ic = document.querySelector('#s4 .confirm-icon');
+    if (ttl) ttl.textContent = selIsRequest ? 'Request sent!' : "You're booked in!";
+    if (ic) ic.textContent = selIsRequest ? '🙋' : '🎉'; }
   document.getElementById('confirmCard').innerHTML = rows.map(([l, v]) => `<div class="confirm-row"><span class="confirm-lbl">${l}</span><span class="confirm-val">${v}</span></div>`).join('');
   document.getElementById('confirmRef').textContent = ref;
   const cs = document.getElementById('confirmSub');
-  if (cs) {
+  if (cs && selIsRequest) {
+    cs.textContent = `Thanks! We've got your request and we're checking game master availability for this time. We'll email you to confirm, usually within a day. No deposit is needed until your booking is confirmed.`;
+  } else if (cs) {
     if (dep > 0) {
       let t = `Your booking is made. Please pay your $${dep} deposit as soon as you can.`;
       if (depositPref === 'stripe' || depositPref === 'cash') t += ` Please call us to see when you can pop in and pay (we're always open Saturdays 10am to 2pm).`;

@@ -914,7 +914,7 @@ async function loadBookings(month,year){
           addons:row.addons||null,
           timerSec:row.timer_sec||0,timerRunning:row.timer_running||false,
           timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
-          timerInterval:null,isEnquiry:row.status==='enquiry',isWaitlist:row.status==='waitlist',source:row.source||'',
+          timerInterval:null,isEnquiry:row.status==='enquiry',isWaitlist:row.status==='waitlist',isRequest:row.status==='requested',source:row.source||'',
           payments:row.payments||null,
           deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,
         });
@@ -954,7 +954,7 @@ async function updateBooking(id,change){
     const occTag=b.occasion?tags.find(x=>x.label.toLowerCase()===b.occasion.toLowerCase()||x.label.toLowerCase().includes(b.occasion.toLowerCase().split(' ')[0])):null;
     b.tags=cur.tags.slice();if(occTag&&!b.tags.includes(occTag.id))b.tags.push(occTag.id);
     b.notes=cur.notes;b.gms=cur.gms;b.no_show=cur.no_show;
-    b.status=cur.status;b.isEnquiry=cur.status==='enquiry';b.isWaitlist=cur.status==='waitlist';
+    b.status=cur.status;b.isEnquiry=cur.status==='enquiry';b.isWaitlist=cur.status==='waitlist';b.isRequest=cur.status==='requested';
     return !!body;
   }catch(e){
     console.error('Booking save:',e);
@@ -1679,11 +1679,12 @@ function buildCard(b,hideTime){
   const isDone = b.status==='completed';
   card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'')+(b.isWaitlist?' waitlist':'');
   card.style.backgroundColor = b.isWaitlist?'#fde68a':getGameColor(b.name);
+  if(b.isRequest){card.style.outline='3px dashed #7c3aed';card.style.outlineOffset='-3px';} // v16.4.83
   card.innerHTML=`
     <div class="booking-top" onclick="togglePanel('${b.id}')">
       <div class="booking-col-left">
 <div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
-${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}
+${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}${b.isRequest?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#7c3aed;padding:2px 7px;border-radius:99px">🙋 REQUEST — finding a GM</span></div>`:''}
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
 ${resetChipHtml(b)}
         <div class="booking-meta">${b.meta||''}</div>
@@ -4208,7 +4209,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.82'; // v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.83'; // v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
