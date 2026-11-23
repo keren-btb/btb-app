@@ -449,3 +449,6 @@ Newest entry per file goes at the top of that file's list.
 
 ## booking-request (edge function)
 - v1.1.0 — 2026-11-24 — Second reminder to the owners 6 hours after the first "needs you" alert (requestReminderHours). A request still unanswered 6 hours before the game (requestAutoCancelBeforeGameHours) is cancelled automatically: note on the booking, the customer is emailed to call to rebook (and a to-do is added on their client record), and the owners are told. No early false "nobody could be asked" alerts for requests saved in the last 15 minutes. Busy check counts a GM going out with a hire from drop-off to pick-up. Deployed as Supabase version 2; source in edge-functions/booking-request.
+
+## calcom-booking-intake (edge function)
+- v1.3.0 — 2026-11-24 — cal.com cancellations and reschedules are handled automatically: a cancelled cal.com booking is marked cancelled (note + to-do on the client to check the deposit); a moved one gets its new date/time (note + to-do to check the GM is still free). The same cal.com booking can never be saved twice (cal.com's booking id is stored in game_bookings.calcom_uid). Other cal.com messages are ignored. The log no longer prints customer details. Needs "Booking cancelled" and "Booking rescheduled" ticked on the cal.com webhook. Deployed as Supabase version 9; source in edge-functions/calcom-booking-intake.
