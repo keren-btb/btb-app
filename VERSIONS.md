@@ -301,6 +301,7 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## booking_widget.html
+- v1.7.54 — 2026-11-24 — Board Game Cafe now takes up to 5 bookings at the same time (setting cafeMaxTables in the booking config, default 5), and one staff member hosts all the cafe tables at once. The database double-booking check was updated to match. Nothing removed.
 - v1.7.53 — 2026-11-24 — Staff marked inactive (people who have left) are never offered on the booking page. Needs sql/2026-11-24_public_staff_mode_active.sql to be run; until then it works exactly as before. Nothing removed.
 - v1.7.52 — 2026-11-24 — A GM going out with a hire now counts as busy from drop-off to pick-up (it was only the game time), so they aren't offered for games here while they're away. Nothing removed.
 - v1.7.51 — 2026-11-24 — Requests (waiting for a GM) and games already finished today are now loaded, so a request keeps holding its slot after the page is reloaded and today's finished games still count for resets. Slots where a casual could take a request no longer show Full by mistake (a no-GM booking was being counted twice). Just before saving, the page reloads the latest bookings and re-checks the slot. Nothing removed.

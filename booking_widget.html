@@ -4337,7 +4337,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.53'; // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.54'; // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4853,6 +4853,19 @@ function bookingStaffIds(b) {
   try { const a = JSON.parse(b.assigned_staff_ids || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
 }
 
+// v1.7.54: Board Game Cafe — up to bookingConfig.cafeMaxTables (default 5) bookings at once, and one
+// staff member can host every cafe table at the same time (cafe bookings don't use each other's host up).
+function isCafeGame(gameId) { const g = games.find(x => x.id === gameId); return !!(g && g.category === 'cafe'); }
+function cafeMaxTables() { return Math.max(1, Number(bookingConfig.cafeMaxTables ?? 5) || 5); }
+function sharesCafeHost(b, gameId) { return isCafeGame(gameId) && isCafeGame(b.game_id); }
+// no-GM bookings overlapping a slot: each uses up one person, except cafe tables, which together need one host
+function countNoGm(list, gameId) {
+  const cafe = list.filter(b => isCafeGame(b.game_id));
+  const other = list.length - cafe.length;
+  if (isCafeGame(gameId)) return other;       // the new cafe table can share the cafe host
+  return other + (cafe.length ? 1 : 0);
+}
+
 // Does this game need a reset after each booking? (not the shared cafe, and only if it has a buffer)
 function gameNeedsReset(gameId) {
   const g = games.find(x => x.id === gameId);
@@ -4953,7 +4966,9 @@ function getSlotStatus(gameId, dateStr, slotTime) {
   const cut = (bookingConfig.callToBookCutoffHours || 3) * 3600000;
   if (d < now) return 'past';
   const thisGame = games.find(g => g.id === gameId);
-  const alreadyBooked = existingBookings.some(b =>
+  const alreadyBooked = isCafeGame(gameId)
+    ? existingBookings.filter(b => b.game_id === gameId && bookingGameOverlap(b, gameId, dateStr, slotTime)).length >= cafeMaxTables() // v1.7.54
+    : existingBookings.some(b =>
     b.game_id === gameId &&
     b.booking_date === dateStr &&
     ((b.slot_time || '').slice(0, 5) === slotTime ||
@@ -5053,7 +5068,7 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
     const overlaps = canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot;
     const taken = existingBookings.some(b => {
       let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
-      return ids.includes(sid) && overlaps(b, gameId, dateStr, slotTime);
+      return ids.includes(sid) && !sharesCafeHost(b, gameId) && overlaps(b, gameId, dateStr, slotTime);
     });
     if (taken) return;
 
@@ -5065,12 +5080,12 @@ function getQualifiedStaffPool(gameId, dateStr, slotTime) {
 
   // v1.7.40: bookings with no GM yet (e.g. from cal.com) still take up one person each while they overlap this slot.
   // Conservative: they use up trusted openers first.
-  const noGmCount = existingBookings.filter(b => {
+  const noGmCount = countNoGm(existingBookings.filter(b => {
     // v1.7.43: a self-run hire (no GM goes with it) never needs a staff member
     if (isHireBooking(b) && b.gm_attends === false) return false;
     let ids = []; try { ids = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { ids = []; }
     return ids.length === 0 && (canResetLoaded ? bookingGameOverlap : bookingOverlapsSlot)(b, gameId, dateStr, slotTime);
-  }).length;
+  }), gameId);
   // v1.7.48: casuals on a shift that covers the start but ends during the game (by up to the overrun limit) — ask them to stay on
   const overrunMax = Number(bookingConfig.shiftOverrunCallMinutes ?? 60) || 0;
   if (overrunMax > 0) {
@@ -5135,14 +5150,14 @@ function requestCandidateCount(gameId, dateStr, slotTime, noGmLeft) {
     if (staffCalendarBusy.some(b => b.staff_id === sid && base + sMin * 60000 < toNzNaive(b.busy_end).getTime() && base + eMin * 60000 > toNzNaive(b.busy_start).getTime())) return false;
     return !existingBookings.some(b => {
       let a = []; try { a = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { a = []; }
-      return a.includes(sid) && overlaps(b, gameId, dateStr, slotTime);
+      return a.includes(sid) && !sharesCafeHost(b, gameId) && overlaps(b, gameId, dateStr, slotTime);
     });
   }).length;
-  const noGm = existingBookings.filter(b => {
+  const noGm = countNoGm(existingBookings.filter(b => {
     if (isHireBooking(b) && b.gm_attends === false) return false;
     let a = []; try { a = JSON.parse(b.assigned_staff_ids || '[]'); } catch (e) { a = []; }
     return a.length === 0 && overlaps(b, gameId, dateStr, slotTime);
-  }).length;
+  }), gameId);
   return n - (typeof noGmLeft === 'number' ? noGmLeft : noGm);
 }
 
@@ -6259,7 +6274,7 @@ async function submitBooking() {
       `${SB_URL}/rest/v1/public_booking_slots?game_id=eq.${selGame.id}&booking_date=eq.${selDate}&slot_time=eq.${selSlot}:00&status=in.(confirmed,requested)&select=game_id`, { headers: SB_H }
     );
     const takenRows = await takenCheck.json();
-    if (Array.isArray(takenRows) && takenRows.length > 0) {
+    if (Array.isArray(takenRows) && takenRows.length >= (isCafeGame(selGame.id) ? cafeMaxTables() : 1)) { // v1.7.54: cafe takes several tables
       showErr('Sorry, this slot was just taken. Please choose another time.');
       btn.classList.remove('btn-loading');
       btn.disabled = false;
