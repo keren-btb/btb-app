@@ -254,7 +254,7 @@ table.ans td{padding:7px 6px;border-top:1px solid var(--border);vertical-align:t
 })();
 </script>
 <script>
-const BUILD_VERSION = '2.2.0'; // v2.2.0: Room board shows every in-house escape room (not just ones with a reset checklist), with 'Add reset checklist' for rooms that have none. 'Not reset' button on a ready room: say what's wrong and who should fix it (they get a notification) — the room goes back to NEEDS RESET. Finished checklists can be reopened to edit answers (Edit answers on the record).
+const BUILD_VERSION = '2.2.1'; // v2.2.1: green 'Fixed' button on issue cards (Issues list and Today) — asks for optional comments and cost, then marks the issue fixed. v2.2.0: Room board shows every in-house escape room (not just ones with a reset checklist), with 'Add reset checklist' for rooms that have none. 'Not reset' button on a ready room: say what's wrong and who should fix it (they get a notification) — the room goes back to NEEDS RESET. Finished checklists can be reopened to edit answers (Edit answers on the record).
 // Previous build: 2.1.0 — // v2.1.0: Phase 2. Issues show as maintenance jobs on Today and have their own steps (tick off, notes, reorder; first step = Being fixed, all done = offer Fixed). Owners tab (owners only): jobs/renewals with due dates, repeats and reminders N days before. Health & safety: incident/accident register (WorkSafe flag), hazard register with review dates, safety checks. Cash-up vs today's POS takings. Battery & readings history chart. Phone notifications via btb-notify (jobs given to you, problems, incidents, owners' reminders). Editor: show N days before due.
 // Previous build: 2.0.0 — // v2.0.0: Task Hub rebuilt (Phase 1). One kind of checklist for room reset / set-up / opening / closing / maintenance / owners / health & safety, with tick, OK/Not OK, dropdown, number (e.g. battery %), note and photo items, follow-up questions, a Quick reset (short list) for experienced GMs, and every completed checklist kept as a record. Today screen: room board (Needs reset / Ready), Today's jobs open to anyone, jobs assigned to you. History, Issues (raised from Not OK / maintenance needed / low battery answers, or reported directly), checklist editor and Areas settings. New tables cl_*; the old task tables are untouched.
 // Previous build: 1.7.5 — // v1.7.5: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
@@ -863,7 +863,30 @@ function issueJobHtml(i){
   const badge=`<span class="badge ${i.status==='fixed'?'b-green':i.status==='in_progress'?'b-amber':'b-red'}">${ISSUE_STATUS[i.status].toUpperCase()}</span>`;
   const bits=[escapeHtml(areaName(i.area_id)||'No area'),stepProgress(i.id),i.assigned_staff_id?escapeHtml(staffName(i.assigned_staff_id)):'',`reported ${fmtDate(String(i.reported_at).slice(0,10))}`].filter(Boolean);
   return`<div class="job" onclick="openIssue('${i.id}')"><div class="job-icon" style="background:#fee2e2;color:#b91c1c"><i class="ti ti-tool"></i></div>
-    <div class="job-body"><div class="job-name">${escapeHtml(i.title)}</div><div class="job-meta">${bits.join(' · ')}</div></div>${badge}</div>`;
+    <div class="job-body"><div class="job-name">${escapeHtml(i.title)}</div><div class="job-meta">${bits.join(' · ')}</div></div>${badge}${i.status!=='fixed'?`<button class="btn btn-green btn-sm" style="flex:0 0 auto" onclick="event.stopPropagation();quickFixIssue('${i.id}')"><i class="ti ti-check"></i> Fixed</button>`:''}</div>`;
+}
+// v2.2.1: quick "Fixed" button on issue cards — optional comments + cost, then marks the issue fixed
+async function quickFixIssue(id){
+  let i;
+  try{const rows=await api(`cl_issues?id=eq.${id}&select=*`);i=rows&&rows[0]}catch(e){alert('Could not open it: '+e.message);return}
+  if(!i){alert('That issue could not be found.');return}
+  if(i.status==='fixed'){alert('This one is already marked fixed.');if(activeTab==='issues')renderIssues();return}
+  showOverlay('Mark as fixed',`<div class="card"><div style="font-weight:700;margin-bottom:10px">Mark "${escapeHtml(i.title)}" as fixed?</div>
+      <div class="form-row"><label class="form-label">What was done / comments (optional)</label><textarea class="form-textarea" id="qfNote">${escapeHtml(i.fix_note||'')}</textarea></div>
+      <div class="form-row"><label class="form-label">Cost $ (optional)</label><input class="form-input" style="max-width:140px" type="number" id="qfCost" value="${escapeHtml(i.cost??'')}"></div>
+      <div class="msg" id="qfMsg"></div></div>`,
+    `<div style="display:flex;gap:8px"><button class="btn btn-secondary btn-big" onclick="closeOverlay()">Cancel</button><button class="btn btn-green btn-big" id="qfSave" onclick="confirmQuickFix('${i.id}')"><i class="ti ti-check"></i> Mark fixed</button></div>`);
+}
+async function confirmQuickFix(id){
+  const m=document.getElementById('qfMsg'),b=document.getElementById('qfSave');
+  const costV=document.getElementById('qfCost').value;
+  const body={status:'fixed',fixed_by:me(),fixed_at:new Date().toISOString(),fix_note:document.getElementById('qfNote').value.trim()||null,cost:costV===''?null:Number(costV)};
+  if(b)b.disabled=true;
+  try{
+    await patch('cl_issues',`id=eq.${id}`,body);
+    await loadOpenIssues();
+    closeOverlay();if(activeTab==='issues')renderIssues();
+  }catch(e){if(b)b.disabled=false;m.className='msg err';m.textContent='Not saved: '+e.message}
 }
 async function renderIssues(){
   const c=document.getElementById('content');
