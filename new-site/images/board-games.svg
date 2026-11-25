@@ -1,67 +1,146 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" role="img" aria-label="Illustration of board game pieces: dice, meeples, cards and a game board">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" role="img" aria-label="Playful illustration of board game pieces with faces: a jumping meeple, a winking die, cheeky cards and a game board">
   <defs>
     <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
       <path d="M60 0H0V60" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
     <filter id="sh" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#000" flood-opacity="0.35"/>
     </filter>
+    <path id="meeple" d="M50 0c16 0 26 12 26 26 0 8-3 14-8 19l30 12c8 3 10 13 4 19-5 5-13 4-18 1l-10-6 16 52c2 8-4 15-12 15H64l-14-30-14 30H22c-8 0-14-7-12-15l16-52-10 6c-5 3-13 4-18-1-6-6-4-16 4-19l30-12c-5-5-8-11-8-19C24 12 34 0 50 0z"/>
   </defs>
 
   <rect width="1200" height="380" fill="#20342b"/>
   <rect width="1200" height="380" fill="url(#grid)"/>
 
-  <!-- game board (chequered) -->
-  <g transform="translate(70 60) rotate(-8)" filter="url(#sh)">
-    <rect width="250" height="250" rx="10" fill="#e8ddc7"/>
+  <!-- confetti -->
+  <g opacity="0.9">
+    <rect x="360" y="30" width="14" height="6" rx="3" fill="#c6a05b" transform="rotate(30 367 33)"/>
+    <rect x="610" y="40" width="14" height="6" rx="3" fill="#07b4c5" transform="rotate(-25 617 43)"/>
+    <rect x="890" y="335" width="14" height="6" rx="3" fill="#c75539" transform="rotate(40 897 338)"/>
+    <rect x="1140" y="60" width="14" height="6" rx="3" fill="#faf7f0" transform="rotate(-40 1147 63)"/>
+    <rect x="40" y="330" width="14" height="6" rx="3" fill="#07b4c5" transform="rotate(20 47 333)"/>
+    <circle cx="560" cy="345" r="5" fill="#c6a05b"/>
+    <circle cx="1100" cy="330" r="5" fill="#c75539"/>
+    <circle cx="560" cy="25" r="4" fill="#faf7f0"/>
+    <circle cx="700" cy="25" r="4" fill="#c75539"/>
+  </g>
+  <!-- sparkles -->
+  <g fill="#c6a05b">
+    <path d="M1010 40l5 14 14 5-14 5-5 14-5-14-14-5 14-5z"/>
+    <path d="M330 120l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/>
+    <path d="M655 175l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#faf7f0"/>
+  </g>
+
+  <!-- game board, tipped up with a pawn sliding off -->
+  <g transform="translate(60 75) rotate(-10)" filter="url(#sh)">
+    <rect width="230" height="230" rx="12" fill="#e8ddc7"/>
     <g fill="#c6a05b" fill-opacity="0.55">
-      <rect x="15" y="15" width="44" height="44"/><rect x="103" y="15" width="44" height="44"/><rect x="191" y="15" width="44" height="44"/>
-      <rect x="59" y="59" width="44" height="44"/><rect x="147" y="59" width="44" height="44"/>
-      <rect x="15" y="103" width="44" height="44"/><rect x="103" y="103" width="44" height="44"/><rect x="191" y="103" width="44" height="44"/>
-      <rect x="59" y="147" width="44" height="44"/><rect x="147" y="147" width="44" height="44"/>
-      <rect x="15" y="191" width="44" height="44"/><rect x="103" y="191" width="44" height="44"/><rect x="191" y="191" width="44" height="44"/>
+      <rect x="15" y="15" width="40" height="40"/><rect x="95" y="15" width="40" height="40"/><rect x="175" y="15" width="40" height="40"/>
+      <rect x="55" y="55" width="40" height="40"/><rect x="135" y="55" width="40" height="40"/>
+      <rect x="15" y="95" width="40" height="40"/><rect x="95" y="95" width="40" height="40"/><rect x="175" y="95" width="40" height="40"/>
+      <rect x="55" y="135" width="40" height="40"/><rect x="135" y="135" width="40" height="40"/>
+      <rect x="15" y="175" width="40" height="40"/><rect x="95" y="175" width="40" height="40"/><rect x="175" y="175" width="40" height="40"/>
     </g>
-    <rect x="15" y="15" width="220" height="220" fill="none" stroke="#24251f" stroke-opacity="0.35" stroke-width="2"/>
-    <!-- pawns on board -->
-    <circle cx="81" cy="81" r="15" fill="#c75539"/><circle cx="169" cy="169" r="15" fill="#07b4c5"/>
+    <rect x="15" y="15" width="200" height="200" fill="none" stroke="#24251f" stroke-opacity="0.3" stroke-width="2"/>
+    <!-- pawn with face -->
+    <g transform="translate(75 75)">
+      <circle r="17" fill="#c75539"/>
+      <circle cx="-6" cy="-3" r="3.2" fill="#24251f"/><circle cx="6" cy="-3" r="3.2" fill="#24251f"/>
+      <path d="M-6 6q6 5 12 0" stroke="#24251f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+  <!-- escaping pawn with motion lines -->
+  <g>
+    <path d="M262 92h-26M266 104h-34M260 116h-22" stroke="#faf7f0" stroke-opacity="0.5" stroke-width="4" stroke-linecap="round"/>
+    <g transform="translate(290 100)" filter="url(#sh)">
+      <circle r="19" fill="#07b4c5"/>
+      <circle cx="-7" cy="-4" r="6" fill="#faf7f0"/><circle cx="7" cy="-4" r="6" fill="#faf7f0"/>
+      <circle cx="-5" cy="-3" r="3" fill="#24251f"/><circle cx="9" cy="-3" r="3" fill="#24251f"/>
+      <ellipse cx="1" cy="8" rx="5" ry="4" fill="#24251f"/>
+    </g>
   </g>
 
-  <!-- playing cards fan -->
-  <g transform="translate(400 70)" filter="url(#sh)">
-    <g transform="rotate(-16 70 220)">
+  <!-- cards fan: one wearing sunglasses, one blushing -->
+  <g transform="translate(395 72)" filter="url(#sh)">
+    <g transform="rotate(-18 70 220)">
       <rect width="140" height="200" rx="12" fill="#faf7f0"/><rect x="10" y="10" width="120" height="180" rx="8" fill="none" stroke="#c75539" stroke-width="3"/>
-      <path d="M70 70c-18-24-48-6-30 20l30 32 30-32c18-26-12-44-30-20z" fill="#c75539"/>
+      <path d="M70 62c-18-24-48-6-30 20l30 32 30-32c18-26-12-44-30-20z" fill="#c75539"/>
+      <circle cx="58" cy="80" r="3.5" fill="#faf7f0"/><circle cx="82" cy="80" r="3.5" fill="#faf7f0"/>
+      <path d="M62 92q8 6 16 0" stroke="#faf7f0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="48" cy="92" rx="6" ry="3.5" fill="#faf7f0" opacity="0.45"/><ellipse cx="92" cy="92" rx="6" ry="3.5" fill="#faf7f0" opacity="0.45"/>
     </g>
-    <g transform="rotate(2 70 220) translate(40 -6)">
+    <g transform="rotate(0 70 220) translate(40 -8)">
       <rect width="140" height="200" rx="12" fill="#faf7f0"/><rect x="10" y="10" width="120" height="180" rx="8" fill="none" stroke="#20342b" stroke-width="3"/>
-      <path d="M70 52l30 48-30 48-30-48z" fill="#07b4c5"/>
+      <path d="M70 46l32 52-32 52-32-52z" fill="#07b4c5"/>
+      <!-- sunglasses -->
+      <rect x="45" y="80" width="22" height="13" rx="5" fill="#24251f"/><rect x="73" y="80" width="22" height="13" rx="5" fill="#24251f"/>
+      <path d="M67 85h6" stroke="#24251f" stroke-width="3"/>
+      <path d="M60 108q10 8 20 0" stroke="#24251f" stroke-width="3" fill="none" stroke-linecap="round"/>
     </g>
-    <g transform="rotate(18 70 220) translate(80 0)">
+    <g transform="rotate(20 70 220) translate(82 2)">
       <rect width="140" height="200" rx="12" fill="#c6a05b"/><rect x="10" y="10" width="120" height="180" rx="8" fill="none" stroke="#faf7f0" stroke-opacity="0.7" stroke-width="3"/>
-      <text x="70" y="118" text-anchor="middle" font-family="Georgia, serif" font-size="54" fill="#faf7f0">?</text>
+      <text x="70" y="120" text-anchor="middle" font-family="Georgia, serif" font-size="64" fill="#faf7f0">?</text>
     </g>
   </g>
 
-  <!-- dice -->
-  <g transform="translate(720 70) rotate(12)" filter="url(#sh)">
-    <rect width="110" height="110" rx="20" fill="#faf7f0"/>
-    <g fill="#24251f"><circle cx="28" cy="28" r="10"/><circle cx="82" cy="28" r="10"/><circle cx="55" cy="55" r="10"/><circle cx="28" cy="82" r="10"/><circle cx="82" cy="82" r="10"/></g>
+  <!-- winking die -->
+  <g transform="translate(715 52) rotate(14)" filter="url(#sh)">
+    <rect width="118" height="118" rx="22" fill="#faf7f0"/>
+    <g fill="#24251f"><circle cx="26" cy="92" r="9"/><circle cx="92" cy="92" r="9"/><circle cx="92" cy="26" r="9"/></g>
+    <!-- face in the middle -->
+    <circle cx="44" cy="50" r="7" fill="#24251f"/>
+    <path d="M66 50q8-6 14 0" stroke="#24251f" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M44 70q15 14 32 0" stroke="#24251f" stroke-width="4" fill="#c75539" stroke-linecap="round"/>
   </g>
-  <g transform="translate(800 210) rotate(-14)" filter="url(#sh)">
-    <rect width="96" height="96" rx="18" fill="#c75539"/>
-    <g fill="#faf7f0"><circle cx="26" cy="26" r="9"/><circle cx="70" cy="26" r="9"/><circle cx="26" cy="48" r="9"/><circle cx="70" cy="48" r="9"/><circle cx="26" cy="70" r="9"/><circle cx="70" cy="70" r="9"/></g>
+  <!-- tumbling red die with surprised face + spin lines -->
+  <g>
+    <path d="M770 300q-30 10-40-12M760 318q-40 4-52-22" stroke="#faf7f0" stroke-opacity="0.45" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g transform="translate(790 205) rotate(-22)" filter="url(#sh)">
+      <rect width="100" height="100" rx="18" fill="#c75539"/>
+      <circle cx="34" cy="38" r="10" fill="#faf7f0"/><circle cx="66" cy="38" r="10" fill="#faf7f0"/>
+      <circle cx="36" cy="40" r="4.5" fill="#24251f"/><circle cx="68" cy="40" r="4.5" fill="#24251f"/>
+      <ellipse cx="50" cy="70" rx="9" ry="11" fill="#24251f"/>
+    </g>
   </g>
 
-  <!-- meeples -->
-  <g filter="url(#sh)">
-    <path transform="translate(960 80)" d="M50 0c16 0 26 12 26 26 0 8-3 14-8 19l30 12c8 3 10 13 4 19-5 5-13 4-18 1l-10-6 16 52c2 8-4 15-12 15H64l-14-30-14 30H22c-8 0-14-7-12-15l16-52-10 6c-5 3-13 4-18-1-6-6-4-16 4-19l30-12c-5-5-8-11-8-19C24 12 34 0 50 0z" fill="#07b4c5"/>
-    <path transform="translate(1040 190) scale(0.8)" d="M50 0c16 0 26 12 26 26 0 8-3 14-8 19l30 12c8 3 10 13 4 19-5 5-13 4-18 1l-10-6 16 52c2 8-4 15-12 15H64l-14-30-14 30H22c-8 0-14-7-12-15l16-52-10 6c-5 3-13 4-18-1-6-6-4-16 4-19l30-12c-5-5-8-11-8-19C24 12 34 0 50 0z" fill="#c6a05b"/>
-    <path transform="translate(935 245) scale(0.62) rotate(-10)" d="M50 0c16 0 26 12 26 26 0 8-3 14-8 19l30 12c8 3 10 13 4 19-5 5-13 4-18 1l-10-6 16 52c2 8-4 15-12 15H64l-14-30-14 30H22c-8 0-14-7-12-15l16-52-10 6c-5 3-13 4-18-1-6-6-4-16 4-19l30-12c-5-5-8-11-8-19C24 12 34 0 50 0z" fill="#faf7f0"/>
+  <!-- speech bubble -->
+  <g transform="translate(905 28)" filter="url(#sh)">
+    <rect width="150" height="56" rx="28" fill="#faf7f0"/>
+    <path d="M40 54l-6 22 24-20z" fill="#faf7f0"/>
+    <text x="75" y="36" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="24" fill="#c75539">Your turn!</text>
   </g>
 
-  <!-- small hex tile + token -->
-  <g transform="translate(640 250)" filter="url(#sh)">
-    <path d="M40 0l40 23v46L40 92 0 69V23z" fill="#879688"/>
-    <circle cx="40" cy="46" r="16" fill="#e8ddc7"/>
+  <!-- jumping teal meeple with arms up -->
+  <g transform="translate(930 112) rotate(-12)" filter="url(#sh)">
+    <use href="#meeple" fill="#07b4c5"/>
+    <circle cx="42" cy="22" r="4" fill="#24251f"/><circle cx="58" cy="22" r="4" fill="#24251f"/>
+    <path d="M40 32q10 10 20 0" stroke="#24251f" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  <ellipse cx="985" cy="300" rx="34" ry="7" fill="#000" fill-opacity="0.22"/>
+
+  <!-- gold meeple riding... well, sitting, looking smug -->
+  <g transform="translate(1060 190) scale(0.82)" filter="url(#sh)">
+    <use href="#meeple" fill="#c6a05b"/>
+    <path d="M36 20q6-4 12 0M54 20q6-4 12 0" stroke="#24251f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 32q10 6 18-2" stroke="#24251f" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- party hat -->
+    <path d="M36 4l14-34 14 34z" fill="#c75539"/><circle cx="50" cy="-30" r="5" fill="#faf7f0"/>
+  </g>
+
+  <!-- tiny cream meeple fallen over, dizzy -->
+  <g transform="translate(318 348) rotate(-80) scale(0.55)" filter="url(#sh)">
+    <use href="#meeple" fill="#faf7f0"/>
+    <path d="M36 16l10 10M46 16l-10 10M54 16l10 10M64 16l-10 10" stroke="#24251f" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g fill="#c6a05b"><path d="M352 268l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M372 284l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>
+
+  <!-- hex tile with sleepy token -->
+  <g transform="translate(625 248)" filter="url(#sh)">
+    <path d="M44 0l44 25v50L44 100 0 75V25z" fill="#879688"/>
+    <circle cx="44" cy="50" r="20" fill="#e8ddc7"/>
+    <path d="M34 48q4 4 8 0M46 48q4 4 8 0" stroke="#24251f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="44" cy="58" r="2.5" fill="#24251f"/>
+    <text x="70" y="24" font-family="Georgia, serif" font-size="18" fill="#faf7f0" opacity="0.8">z</text>
+    <text x="80" y="10" font-family="Georgia, serif" font-size="13" fill="#faf7f0" opacity="0.6">z</text>
   </g>
 </svg>
