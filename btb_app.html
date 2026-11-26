@@ -2310,43 +2310,71 @@ async function cancelMeeting(id){
 async function loadResetInfo(){
   try{
     const today=ymd(TODAY_Y,TODAY_M,TODAY);
-    const [tr,ar,rr]=await Promise.all([
-      fetch(`${SB_URL}/rest/v1/cl_templates?kind=eq.reset&active=eq.true&select=id,name,area_id`,{headers:H()}),
-      fetch(`${SB_URL}/rest/v1/cl_areas?game_id=not.is.null&select=id,game_id`,{headers:H()}),
-      fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&run_date=eq.${today}&select=id,booking_id,game_id,status,completed_by,completed_at,mode,note,created_at`,{headers:H()})]);
-    const [ts,as,rs]=[await tr.json(),await ar.json(),await rr.json()];
-    if(!Array.isArray(ts)||!Array.isArray(as)||!Array.isArray(rs))return;
+    // v16.4.87: look back up to 60 days (or to when the reset checklists were set up, if later) so a reset
+    // missed on an earlier day still shows on the room's next game — same rule as Control Room v23
+    const back=new Date(TODAY_Y,TODAY_M-1,TODAY-60),back60=ymd(back.getFullYear(),back.getMonth()+1,back.getDate());
+    const [tr,ar]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/cl_templates?kind=eq.reset&active=eq.true&select=id,name,area_id,created_at`,{headers:H()}),
+      fetch(`${SB_URL}/rest/v1/cl_areas?game_id=not.is.null&select=id,game_id`,{headers:H()})]);
+    const [ts,as]=[await tr.json(),await ar.json()];
+    if(!Array.isArray(ts)||!Array.isArray(as))return;
     const tbg={};ts.forEach(t=>{const a=as.find(x=>x.id===t.area_id);if(a&&!tbg[a.game_id])tbg[a.game_id]=t});
-    const rbb={},sb={};rs.forEach(r=>{if(r.booking_id)rbb[r.booking_id]=r;else if(r.status!=='done'&&r.status!=='skipped'&&r.game_id&&/^Sent back/.test(r.note||''))sb[r.game_id]=r});
-    resetInfo={templateByGame:tbg,runsByBooking:rbb,sentBackByGame:sb};
+    const created=ts.map(t=>t.created_at?new Date(t.created_at).toLocaleDateString('en-CA',{timeZone:'Pacific/Auckland'}):today).sort()[0]||today;
+    const since=created>back60?created:back60;
+    const gameIds=Object.keys(tbg);
+    const [rr,pr]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&run_date=gte.${since}&run_date=lte.${today}&select=id,booking_id,game_id,status,completed_by,completed_at,mode,note,created_at,run_date&order=run_date.desc`,{headers:H()}),
+      gameIds.length?fetch(`${SB_URL}/rest/v1/game_bookings?game_id=in.(${gameIds.map(encodeURIComponent).join(',')})&booking_date=gte.${since}&booking_date=lt.${today}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,booking_date,slot_time,status`,{headers:H()}):Promise.resolve(null)]);
+    const rs=await rr.json();if(!Array.isArray(rs))return;
+    const ps=pr?await pr.json():[];
+    const rbb={},sb={};rs.forEach(r=>{if(r.booking_id)rbb[r.booking_id]=r;else if(!sb[r.game_id]&&r.status!=='done'&&r.status!=='skipped'&&r.game_id&&/^Sent back/.test(r.note||''))sb[r.game_id]=r});
+    // past games (before today) of rooms with a reset checklist, only those since each room's checklist was set up
+    const pastGames=(Array.isArray(ps)?ps:[]).filter(g=>{const t=tbg[g.game_id];const c=t&&t.created_at?new Date(t.created_at).toLocaleDateString('en-CA',{timeZone:'Pacific/Auckland'}):since;return g.booking_date>=c})
+      .map(g=>{const[y,m,d]=g.booking_date.split('-').map(Number);return{id:g.id,game_id:g.game_id,year:y,month:m,date:d,time:String(g.slot_time||'').slice(0,5),status:g.status,playLocation:'in_house'}});
+    resetInfo={templateByGame:tbg,runsByBooking:rbb,sentBackByGame:sb,pastGames};
   }catch(e){console.error('Reset status load:',e)}
 }
-// The booking just before this one in the same room today, if it has finished
+// v16.4.87: the game just before this one in the same room — today or an earlier day — if it has finished.
+// Shown on today's and future games (before, only today's games and only the same day were checked).
+function bkKey(x){return ymd(x.year,x.month,x.date)+' '+(x.time||'00:00')}
+function isTodayBk(b){return b.date===TODAY&&b.month===TODAY_M&&b.year===TODAY_Y}
+function isPastDayBk(b){return ymd(b.year,b.month,b.date)<ymd(TODAY_Y,TODAY_M,TODAY)}
 function previousFinished(b){
-  if(b.playLocation==='hire'||b.date!==TODAY||b.month!==TODAY_M||b.year!==TODAY_Y)return null;
+  if(b.playLocation==='hire'||isPastDayBk(b))return null;
   const n=nzNow(),nowM=n.getHours()*60+n.getMinutes(),toM=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+m};
-  const prev=bookings.filter(x=>x.id!==b.id&&x.game_id===b.game_id&&x.date===b.date&&x.month===b.month&&x.year===b.year&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&(x.time||'')<(b.time||''))
-    .sort((x,y)=>(y.time||'').localeCompare(x.time||''))[0];
+  const key=bkKey(b),seen=new Set();
+  const cands=bookings.filter(x=>x.id!==b.id&&x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&x.status!=='cancelled')
+    .concat(resetInfo.pastGames||[]).filter(x=>x.game_id===b.game_id&&bkKey(x)<key&&!seen.has(x.id)&&seen.add(x.id));
+  const prev=cands.sort((x,y)=>bkKey(y).localeCompare(bkKey(x)))[0];
   if(!prev)return null;
-  const finished=prev.status==='completed'||toM(prev.time)+(prev.duration||60)<=nowM;
+  const finished=prev.status==='completed'||isPastDayBk(prev)||(isTodayBk(prev)&&toM(prev.time)+(prev.duration||60)<=nowM);
   return finished?prev:null;
+}
+// v16.4.87: is this the room's next game from now on (so a 'sent back' warning shows once, not on every future game)
+function isNextForRoom(b){
+  const n=nzNow(),nowKey=ymd(TODAY_Y,TODAY_M,TODAY)+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  const toM=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+m};
+  const live=x=>x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&x.status!=='cancelled'&&x.status!=='completed'&&!isPastDayBk(x)&&!(isTodayBk(x)&&toM(x.time)+(x.duration||60)<=toM(nowKey.slice(11)));
+  const next=bookings.filter(live).sort((x,y)=>bkKey(x).localeCompare(bkKey(y)))[0];
+  return !!next&&next.id===b.id;
 }
 function resetChipHtml(b){
   if(b.status==='completed'||!resetInfo.templateByGame[b.game_id])return'';
   // v16.4.70: room marked "not reset" in Task Hub (something was missed) — shows on today's upcoming games for that room
   const sbk=(resetInfo.sentBackByGame||{})[b.game_id];
-  if(sbk&&b.date===TODAY&&b.month===TODAY_M&&b.year===TODAY_Y)return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="window.open('task_hub.html?run=${sbk.id}','_blank')" title="${escapeHtml(sbk.note||'')}" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset — ${escapeHtml((sbk.note||'').replace(/^Sent back by [^:]*: /,'').slice(0,50))}</span></div>`;
+  if(sbk&&!isPastDayBk(b)&&isNextForRoom(b))return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="window.open('task_hub.html?run=${sbk.id}','_blank')" title="${escapeHtml(sbk.note||'')}" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset — ${escapeHtml((sbk.note||'').replace(/^Sent back by [^:]*: /,'').slice(0,50))}</span></div>`;
   const prev=previousFinished(b);if(!prev)return'';
   const run=resetInfo.runsByBooking[prev.id];
   if(run&&run.status==='done'){
+    if(!isTodayBk(b))return''; // v16.4.87: green 'Room ready' only on today's games
     const who=staff.find(s=>s.id===run.completed_by)?.name||'';
     const at=run.completed_at?new Date(run.completed_at).toLocaleTimeString('en-NZ',{timeZone:'Pacific/Auckland',hour:'numeric',minute:'2-digit'}):'';
     return`<div style="margin:4px 0"><span style="font-size:11px;font-weight:700;color:#15803d;background:#dcfce7;padding:3px 9px;border-radius:99px">✓ Room ready${who||at?` (${escapeHtml(who)}${who&&at?', ':''}${at})`:''}</span></div>`;
   }
-  return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="openResetFor('${prev.id}')" title="Open the reset checklist" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset since the ${fmt12(prev.time||'00:00')} game</span></div>`;
+  return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="openResetFor('${prev.id}')" title="Open the reset checklist" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset since the ${fmt12(prev.time||'00:00')}${(prev.date!==b.date||prev.month!==b.month||prev.year!==b.year)?' ('+new Date(prev.year,prev.month-1,prev.date).toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})+')':''} game</span></div>`;
 }
 async function openResetFor(prevId){
-  const prev=bookings.find(x=>x.id===prevId);const t=prev&&resetInfo.templateByGame[prev.game_id];if(!t)return;
+  const prev=bookings.find(x=>x.id===prevId)||(resetInfo.pastGames||[]).find(x=>x.id===prevId);const t=prev&&resetInfo.templateByGame[prev.game_id];if(!t)return;
   try{
     let run=resetInfo.runsByBooking[prevId];
     if(!run){
@@ -4250,7 +4278,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.86'; // v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.87'; // v16.4.87: the red 'Room not reset' chip now also checks the room's last game on an earlier day (up to 60 days back, only since its reset checklist was set up) and shows on future games too, like Control Room v23; a room 'sent back' as not reset shows on the room's next game; green 'Room ready' stays on today's games only. Previous build: 16.4.86 — v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
