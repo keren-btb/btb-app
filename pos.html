@@ -769,7 +769,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.17'; // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+const BUILD_VERSION = '1.9.18'; // v1.9.18: links from the calendar's 'owing' badge (?pay=1) open the booking with Ready to pay already open (whole package for group bookings); on phones a linked booking now opens its pop-up. // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
 
 // Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
@@ -1042,7 +1042,21 @@ function jumpToBookingFromURL(bookingId){
   posRangeStart=dateParam?new Date(dateParam+'T00:00:00'):nzNow();
   posRangeStart.setHours(0,0,0,0);
   posRangeEndOverride=dateParam?new Date(dateParam+'T00:00:00'):null;
-  renderPOS();
+  // v1.9.18: ?pay=1 (from tapping 'owing' on the calendar) opens the Ready to pay screen straight away.
+  // Also opens the booking pop-up on phones (before, phones only showed the list).
+  const openPay=new URLSearchParams(location.search).get('pay')==='1';
+  if(openPay){try{const u=new URL(location.href);u.searchParams.delete('pay');history.replaceState(null,'',u)}catch(e){}}
+  Promise.resolve(renderPOS()).then(()=>{
+    const b=bookings.find(x=>x.id===bookingId);if(!b)return;
+    // bookings in a package/group show as one row in POS, so pay for the whole group
+    const selId=b.group_booking_id?'GROUP:'+b.group_booking_id:b.id;
+    if(openPay){
+      if(b.group_booking_id)openGroupPanelSection[b.group_booking_id]='pay';
+      else openPanelSection[b.id]='pay';
+    }
+    if(openPay||window.innerWidth<=680)selectBooking(selId);
+    setTimeout(()=>{const row=document.querySelector(`.brow[data-bid="${selId}"]`);if(row)row.scrollIntoView({block:'center'})},120);
+  }).catch(e=>console.error('Open booking from link:',e));
 }
   
 
