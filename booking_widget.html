@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.58'; // v1.7.58: staff Slot checker (?check=1): next 7 open days, every game and time with the same status customers see, tap for who could run it and why. Customers see no change.
+const BUILD_VERSION = '1.7.59'; // v1.7.59: request-only times (booking config requestOnlyTimes, set for Tue–Fri 8pm): never a straight booking — Request if someone could run it (Call us inside the request window), Full if nobody can. Slot checker explains it.
+// Previous build: 1.7.58 — v1.7.58: staff Slot checker (?check=1): next 7 open days, every game and time with the same status customers see, tap for who could run it and why. Customers see no change.
 // Previous build: 1.7.57 — // v1.7.57: if the database can't be reached (12s timeout), the error screen shows a backup booking request form that emails the owners via Cloudflare (no Supabase needed). // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
@@ -5032,7 +5033,23 @@ function resetsStillCovered(gameId, dateStr, slotTime, candidateId) {
   return true;
 }
 
+// v1.7.59: 'request only' times (booking config requestOnlyTimes, e.g. {"2":["20:00"]} = Tuesdays 8pm):
+// never offered as a straight booking. If someone could run it, the customer can only REQUEST it
+// (owners + free casuals are asked to accept); inside the request window it says Call us; Full stays Full.
+function isRequestOnlyTime(dateStr, slotTime) {
+  const ro = bookingConfig.requestOnlyTimes || {};
+  const dow = new Date(dateStr + 'T12:00').getDay();
+  const list = ro[dow] || ro[String(dow)] || [];
+  return Array.isArray(list) && list.includes(slotTime);
+}
 function getSlotStatus(gameId, dateStr, slotTime) {
+  const st = getSlotStatusBase(gameId, dateStr, slotTime);
+  if (st === 'past' || st === 'booked' || st === 'request' || !isRequestOnlyTime(dateStr, slotTime)) return st;
+  const d = new Date(dateStr + 'T' + slotTime + ':00');
+  const minAhead = (Number(bookingConfig.requestMinHoursAhead ?? 24) || 24) * 3600000;
+  return (d - nzNow()) >= minAhead ? 'request' : 'call';
+}
+function getSlotStatusBase(gameId, dateStr, slotTime) {
   const d = new Date(dateStr + 'T' + slotTime + ':00');
   const now = nzNow();
   const cut = (bookingConfig.callToBookCutoffHours || 3) * 3600000;
@@ -5346,7 +5363,7 @@ function chkDetail(gameId, ds, t) {
   if (pool.maybeAvailable.length) lines.push('Shift ends during the game (gives Call us): ' + pool.maybeAvailable.map(i => escapeHtml(chkName(i))).join(', '));
   if (st === 'booked' && !roomBks.length) lines.push('Why: no trained game master is free for the whole game (free times, calendar, other bookings, meetings), or nobody could do a room reset in time.');
   if (st === 'call') lines.push('Why "Call us": either it is within ' + (bookingConfig.callToBookCutoffHours || 3) + ' hours and no trusted opener is free, someone is only partly free, or a casual could take it but it is too soon for a request.');
-  if (st === 'request') lines.push('Why "Request": nobody is rostered/free for sure, but a trained casual has marked themselves free — they would have to accept.');
+  if (st === 'request') lines.push(isRequestOnlyTime(ds, t) ? 'Why "Request": this is a request-only time — someone could run it, but you or a casual must accept it first.' : 'Why "Request": nobody is rostered/free for sure, but a trained casual has marked themselves free — they would have to accept.');
   box.innerHTML = `<div style="margin-top:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;line-height:1.5">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
 }
 
