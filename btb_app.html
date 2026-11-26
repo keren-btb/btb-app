@@ -1686,15 +1686,13 @@ function buildCard(b,hideTime){
 <div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
 ${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}${b.isRequest?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#7c3aed;padding:2px 7px;border-radius:99px">🙋 REQUEST — finding a GM</span></div>`:''}
 <div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
-${resetChipHtml(b)}
         <div class="booking-meta">${b.meta||''}</div>
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
-        ${(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${escapeHtml(n)}</div>`).join('')}</div>`:''}
       </div>
       <div class="booking-col-right" onclick="event.stopPropagation()">
         <div style="position:relative;align-self:flex-end;display:flex;align-items:center;gap:6px">
-          ${(()=>{const ps=getPaymentStatus(b);if(!ps)return'';return`<span class="pay-badge ${ps.owing>0?'owing':'paid'}"><i class="ti ti-${ps.owing>0?'alert-circle':'circle-check'}"></i> ${ps.label}</span>`})()}
+          ${(()=>{const ps=getPaymentStatus(b);if(!ps)return'';return ps.owing>0?`<span class="pay-badge owing" onclick="event.stopPropagation();openInPOS('${b.id}',true)" title="Take payment in POS" style="cursor:pointer"><i class="ti ti-alert-circle"></i> ${ps.label}</span>`:`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> ${ps.label}</span>`})()}
           <button class="icon-btn actions-btn" onclick="toggleBookingActions('${b.id}',this,event)" title="Actions" style="border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px"><i class="ti ti-dots-vertical"></i></button>
           <div id="actionsDD-${b.id}" style="display:none;position:fixed;background:#fff;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:200px;overflow:hidden;z-index:400;border:1px solid #eef0f2">
             <button class="action-menu-item" ${b.customerPhone?'':'disabled'} onclick="callCustomer('${b.id}')" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border:none;background:none;font-size:13px;color:#374151;cursor:pointer;font-family:inherit"><i class="ti ti-phone" style="font-size:15px;color:#6b7280"></i>Call${b.customerPhone?'':' (no phone)'}</button>
@@ -1720,6 +1718,7 @@ ${resetChipHtml(b)}
         <div class="gm-badge"><i class="ti ti-user"></i> ${gmName}</div>
         ${isDone?`<span style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid #4ade80;color:#15803d;background:#f0fdf8;display:flex;align-items:center;gap:3px;width:fit-content"><i class="ti ti-check"></i> Done</span>`:''}
       </div>
+      ${(()=>{const rc=resetChipHtml(b);const nt=(b.notes||[]).length>0?`<div class="notes-preview">${(b.notes||[]).map(n=>`<div class="note-line">📝 ${escapeHtml(n)}</div>`).join('')}</div>`:'';return(rc||nt)?`<div style="grid-column:1/-1;padding:0 13px 10px;border-top:1px solid #e5e7eb">${rc}${nt}</div>`:''})()}
     </div>
     <div class="booking-panel ${isOpen?'open':''}" id="panel-${b.id}">
 
@@ -1968,7 +1967,7 @@ function buildPackageCard(members){
   const times=[...new Set(members.map(m=>m.time))];
   const sameTime=times.length===1;
   const players=members.reduce((a,m)=>a+(m.players_booked||0),0);
-  const ps=owing>0?`<span class="pay-badge owing"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
+  const ps=owing>0?`<span class="pay-badge owing" onclick="event.stopPropagation();openInPOS('${b.id}',true)" title="Take payment in POS" style="cursor:pointer"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
   const mi=(icon,label,fn,color)=>`<button class="action-menu-item" onclick="closeBookingActions();${fn}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 13px;border-top:1px solid #f1f2f4;background:none;font-size:13px;color:${color||'#374151'};cursor:pointer;font-family:inherit"><i class="ti ${icon}" style="font-size:15px;color:${color||'#6b7280'}"></i>${label}</button>`;
   const el=document.createElement('div');
   el.className='pkg-card';
@@ -2016,7 +2015,7 @@ function buildHireCard(members){
   const extraLines=members.flatMap(m=>m.hireExtras||[]);
   const breakdown=[gmFee?['Game master fee',gmFee]:null,travel?['Travel',travel]:null,...extraLines.map(x=>[x.label||'Extra',parseFloat(x.amount)||0])].filter(Boolean)
     .map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;color:#374151;margin-top:3px"><span>+ ${escapeHtml(l)}</span><span>${money(v)}</span></div>`).join('');
-  const ps=owing>0?`<span class="pay-badge owing"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
+  const ps=owing>0?`<span class="pay-badge owing" onclick="event.stopPropagation();openInPOS('${b.id}',true)" title="Take payment in POS" style="cursor:pointer"><i class="ti ti-alert-circle"></i> ${money(owing)} owing</span>`:(total>0?`<span class="pay-badge paid"><i class="ti ti-circle-check"></i> Paid</span>`:'');
   const el=document.createElement('div');
   el.style.cssText='background:#faf5ff;border:2px solid #7c3aed;border-left-width:8px;border-radius:12px;padding:12px;margin-bottom:10px';
   el.innerHTML=`
@@ -2361,7 +2360,23 @@ async function openResetFor(prevId){
 }
 
 // BOOKING ACTIONS
-function togglePanel(id){if(openPanels.has(id))openPanels.delete(id);else openPanels.add(id);renderActiveView()}
+function togglePanel(id){
+  const opening=!openPanels.has(id);
+  if(opening)openPanels.add(id);else openPanels.delete(id);
+  renderActiveView();
+  if(opening)scrollDetailsIntoView(id);
+}
+// v16.4.86: after opening a booking's details, scroll so they're on screen (whole card if it fits, otherwise its top)
+function scrollDetailsIntoView(id){
+  requestAnimationFrame(()=>{
+    const panel=document.getElementById('panel-'+id);if(!panel)return;
+    const card=panel.closest('.booking-card')||panel;
+    let sc=card.parentElement;
+    while(sc&&sc!==document.body){const oy=getComputedStyle(sc).overflowY;if((oy==='auto'||oy==='scroll')&&sc.scrollHeight>sc.clientHeight)break;sc=sc.parentElement}
+    const viewH=(sc&&sc!==document.body)?sc.clientHeight:window.innerHeight;
+    card.scrollIntoView({behavior:'smooth',block:card.offsetHeight<viewH*0.9?'nearest':'start'});
+  });
+}
 // v16.4.66: each of these shows the change straight away, then saves only that one field on top of the
 // latest saved booking (see updateBooking), then redraws with what is really saved.
 async function toggleTag(bid,tid){
@@ -2475,11 +2490,12 @@ function openInControlRoom(id){
   const dateStr=`${b.year}-${String(b.month).padStart(2,'0')}-${String(b.date).padStart(2,'0')}`;
   window.open(`control_room.html?date=${dateStr}&booking=${encodeURIComponent(b.id)}`,'_blank');
 }
-function openInPOS(id){
+function openInPOS(id,pay){
   closeBookingActions();
   const b=bookings.find(x=>x.id===id);if(!b)return;
   const dateStr=`${b.year}-${String(b.month).padStart(2,'0')}-${String(b.date).padStart(2,'0')}`;
-  window.open(`pos.html?date=${dateStr}&booking=${encodeURIComponent(b.id)}`,'_blank');
+  // v16.4.86: pay=true (tapping the 'owing' badge) asks POS to open the Ready to pay screen straight away
+  window.open(`pos.html?date=${dateStr}&booking=${encodeURIComponent(b.id)}${pay?'&pay=1':''}`,'_blank');
 }  
 function openWishlistForm(id){
   closeBookingActions();
@@ -4234,7 +4250,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.85'; // v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.86'; // v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
