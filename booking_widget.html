@@ -3703,8 +3703,39 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
           <div class="screen" id="s0">
             <div class="confirm-icon" style="background:rgba(220,38,38,0.1);border-color:rgba(220,38,38,0.3)">⚠️</div>
             <div class="confirm-title">We're having trouble loading</div>
-            <div class="err-msg show" style="text-align:center">Something went wrong loading our current games and prices, so we can't take your booking right now — sorry about that. Please try refreshing the page in a moment, or call us on <a href="tel:0220537365" style="color:inherit;text-decoration:underline">0220 537 365</a>.</div>
-            <button class="btn btn-primary" onclick="location.reload()">Refresh page</button>
+            <div class="err-msg show" style="text-align:center">Our live booking calendar isn't loading right now — sorry about that. Leave your details below and we'll get back to you to confirm a time, or call us on <a href="tel:0220537365" style="color:inherit;text-decoration:underline">0220 537 365</a>.</div>
+            <!-- v1.7.57: backup request form. Sends to btb-app.pages.dev/api/booking-fallback (Cloudflare + Resend, no Supabase). -->
+            <div id="fbForm" style="margin-top:16px;text-align:left">
+              <div class="err-msg" id="fbErr"></div>
+              <div class="field"><div class="field-label">Your name <span style="color:var(--red)">*</span></div><input class="field-input" type="text" id="fbName" placeholder="Your name" autocomplete="name" maxlength="100"></div>
+              <div class="field-row" style="margin-bottom:16px">
+                <div class="field"><div class="field-label">Phone</div><input class="field-input" type="tel" id="fbPhone" placeholder="021 123 4567" autocomplete="tel" maxlength="40"></div>
+                <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="fbEmail" placeholder="you@example.com" autocomplete="email" maxlength="150"></div>
+              </div>
+              <div class="field"><div class="field-label">What would you like to book?</div>
+                <select class="field-select" id="fbWhat">
+                  <option value="Escape room">Escape room</option>
+                  <option value="VR">VR</option>
+                  <option value="Board Game Cafe">Board Game Cafe</option>
+                  <option value="Hire a portable game">Hire a portable game</option>
+                  <option value="Party or group event">Party or group event</option>
+                  <option value="Not sure yet">Not sure yet</option>
+                </select>
+              </div>
+              <div class="field-row" style="margin-bottom:16px">
+                <div class="field"><div class="field-label">Preferred date</div><input class="field-input" type="date" id="fbDate"></div>
+                <div class="field"><div class="field-label">Preferred time</div><input class="field-input" type="text" id="fbTime" placeholder="e.g. 2pm or afternoon" maxlength="40"></div>
+              </div>
+              <div class="field"><div class="field-label">How many players?</div><input class="field-input" type="number" id="fbPlayers" min="1" max="80" inputmode="numeric"></div>
+              <div class="field"><div class="field-label">Anything else?</div><textarea class="field-input" id="fbNotes" rows="3" maxlength="1000" placeholder="Which room, birthdays, anything we should know…" style="resize:none"></textarea></div>
+              <input type="text" id="fbWebsite" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+              <button class="btn btn-primary" id="fbSend" onclick="sendFallbackRequest()">Send booking request</button>
+              <button class="btn" style="margin-top:10px" onclick="location.reload()">Try loading again</button>
+            </div>
+            <div id="fbDone" style="display:none;text-align:center;margin-top:16px">
+              <div class="confirm-title">Request sent — thank you!</div>
+              <p>We've got your details and will be in touch to confirm a time. <b>Your booking isn't confirmed until we contact you.</b></p>
+            </div>
           </div>
 
           <!-- SCREEN 1: CATEGORY -->
@@ -4337,7 +4368,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.56'; // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.57'; // v1.7.57: if the database can't be reached (12s timeout), the error screen shows a backup booking request form that emails the owners via Cloudflare (no Supabase needed). // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4591,7 +4622,9 @@ function renderCafeInfoPanel() {
 
 async function loadSettings() {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/settings`, { headers: SB_H });
+    // v1.7.57: give up after 12s (was the browser default, which can be a minute or more) so the
+    // backup request form appears quickly when the database can't be reached.
+    const r = await fetch(`${SB_URL}/rest/v1/settings`, { headers: SB_H, signal: AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined });
     if (!r.ok) throw new Error('Settings fetch failed: ' + r.status);
     const rows = await r.json();
     let foundGames = false;
@@ -4626,6 +4659,38 @@ async function loadSettings() {
     document.getElementById('s1')?.classList.remove('active');
     document.getElementById('s0')?.classList.add('active');
     throw e;
+  }
+}
+
+// v1.7.57: backup booking request (shown on the load-error screen s0). Doesn't use Supabase — posts to a
+// Cloudflare Pages Function that emails the owners (and the customer). If that fails too, offers a
+// pre-filled email to info@ as a last resort.
+const FALLBACK_URL = 'https://btb-app.pages.dev/api/booking-fallback';
+async function sendFallbackRequest() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const errEl = document.getElementById('fbErr');
+  const btn = document.getElementById('fbSend');
+  const showErr = html => { errEl.innerHTML = html; errEl.classList.add('show'); };
+  errEl.classList.remove('show');
+  const d = { name: v('fbName'), phone: v('fbPhone'), email: v('fbEmail'), what: v('fbWhat'), date: v('fbDate'),
+    time: v('fbTime'), players: v('fbPlayers'), notes: v('fbNotes'), website: v('fbWebsite'), page: location.href.slice(0, 200) };
+  if (!d.name) return showErr('Please add your name.');
+  if (!d.phone && !d.email) return showErr('Please add a phone number or email so we can get back to you.');
+  if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return showErr('That email address doesn\'t look right.');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(FALLBACK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d),
+      signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    document.getElementById('fbForm').style.display = 'none';
+    document.getElementById('fbDone').style.display = '';
+  } catch (e) {
+    console.error('Backup request failed:', e);
+    const body = `Booking request\n\nName: ${d.name}\nPhone: ${d.phone}\nEmail: ${d.email}\nWants to book: ${d.what}\nDate: ${d.date}\nTime: ${d.time}\nPlayers: ${d.players}\nNotes: ${d.notes}`;
+    const mail = `mailto:info@btbescaperooms.co.nz?subject=${encodeURIComponent('Booking request — ' + d.name)}&body=${encodeURIComponent(body)}`;
+    showErr(`Sorry, we couldn't send that. Please <a href="${mail}" style="color:inherit;text-decoration:underline">email it to us</a> or call <a href="tel:0220537365" style="color:inherit;text-decoration:underline">0220 537 365</a>.`);
+    btn.disabled = false; btn.textContent = 'Send booking request';
   }
 }
 
