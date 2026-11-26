@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.57'; // v1.7.57: if the database can't be reached (12s timeout), the error screen shows a backup booking request form that emails the owners via Cloudflare (no Supabase needed). // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
+const BUILD_VERSION = '1.7.58'; // v1.7.58: staff Slot checker (?check=1): next 7 open days, every game and time with the same status customers see, tap for who could run it and why. Customers see no change.
+// Previous build: 1.7.57 — // v1.7.57: if the database can't be reached (12s timeout), the error screen shows a backup booking request form that emails the owners via Cloudflare (no Supabase needed). // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
 
 // Previous build: 1.7.46 — // v1.7.46: Voucher redeem answer is checked — if the code was used elsewhere in the meantime it's logged in Settings > Errors with the booking id.
 
@@ -4547,6 +4548,8 @@ async function init() {
   applyBookingText();
   await loadStaffData();
   await loadExistingBookings();
+  // v1.7.58: staff Slot checker (?check=1) — shows the next 7 open days using exactly the same rules as this page
+  if (new URLSearchParams(window.location.search).get('check') === '1') { runSlotCheck(); return; }
   populatePrevGameSelect();
   applyLockedLinkFromUrl();
   try { updateTicketPreview(); } catch (e) {} // v1.7.55: fills the ticket stub date
@@ -5257,6 +5260,94 @@ function getUpcomingDates(count = 30) {
     d.setDate(d.getDate() + 1);
   }
   return dates;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// v1.7.58: SLOT CHECKER (staff only, opened as booking_widget.html?check=1 from the BtB app's Settings).
+// Uses the very same functions customers' slots come from (getSlotStatus / getQualifiedStaffPool),
+// so what it shows is exactly what the booking page offers. Read-only — it never books or changes anything.
+// ═══════════════════════════════════════════════════════════════
+let chkStaffNames = {};
+async function runSlotCheck() {
+  const wrap = document.createElement('div');
+  wrap.id = 'slotCheck';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;background:#f8fafc;color:#111827;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;padding:14px;-webkit-overflow-scrolling:touch';
+  wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#6b7280">Working out slots…</div>';
+  document.body.appendChild(wrap);
+  // Staff names need a staff login (the public page only knows staff ids)
+  let loggedIn = false;
+  try {
+    const sess = JSON.parse(localStorage.getItem('btb_staff_session') || 'null');
+    if (sess && sess.token) {
+      const r = await fetch(`${SB_URL}/rest/v1/staff?select=id,name`, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + sess.token } });
+      if (r.ok) { (await r.json()).forEach(x => { chkStaffNames[x.id] = x.name; }); loggedIn = true; }
+    }
+  } catch (e) {}
+  renderSlotCheck(loggedIn);
+}
+function chkName(id) { return chkStaffNames[id] || ('Staff ' + String(id).slice(0, 4)); }
+function chkIds(b) { let ids = []; try { ids = typeof b.assigned_staff_ids === 'string' ? JSON.parse(b.assigned_staff_ids || '[]') : (b.assigned_staff_ids || []); } catch (e) {} return Array.isArray(ids) ? ids : []; }
+function chkGameName(id) { const g = games.find(x => x.id === id); return g ? g.name : id; }
+const CHK_COL = { available: ['#dcfce7', '#15803d', 'Available'], request: ['#ede9fe', '#6d28d9', 'Request'], call: ['#fef3c7', '#b45309', 'Call us'], booked: ['#e5e7eb', '#6b7280', 'Full'], past: ['#f3f4f6', '#9ca3af', 'Past'] };
+function renderSlotCheck(loggedIn) {
+  const el = document.getElementById('slotCheck');
+  const days = getUpcomingDates(7);
+  const shown = games.filter(g => g.bookable !== false && !g.hireOnly);
+  const legend = Object.entries(CHK_COL).filter(([k]) => k !== 'past').map(([k, c]) => `<span style="background:${c[0]};color:${c[1]};font-weight:700;padding:3px 9px;border-radius:99px;font-size:12px">${c[2]}</span>`).join(' ');
+  let html = `<div style="max-width:900px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-size:20px;font-weight:800">🔎 Slot checker <span style="font-size:11px;font-weight:400;color:#9ca3af">booking page v${BUILD_VERSION}</span></div>
+      <div style="display:flex;gap:8px"><button onclick="location.reload()" style="padding:7px 12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font:inherit">↻ Refresh</button><a href="btb_app.html" style="padding:7px 12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#111827;text-decoration:none">← BtB App</a></div>
+    </div>
+    <div style="color:#4b5563;margin-bottom:8px">The next 7 open days, exactly as the booking page offers them right now. Tap a time to see who could run it and why. Nothing here books or changes anything.</div>
+    <div style="margin-bottom:12px">${legend}</div>
+    ${loggedIn ? '' : '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:8px 10px;margin-bottom:12px">Staff names are hidden because you are not logged in on this device. Log in to the BtB app, then open this again.</div>'}`;
+  days.forEach(ds => {
+    const d = new Date(ds + 'T12:00');
+    const dayLbl = d.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'short' });
+    const dayBks = existingBookings.filter(b => b.booking_date === ds).sort((a, b) => (a.slot_time || '').localeCompare(b.slot_time || ''));
+    html += `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px">${escapeHtml(dayLbl)}</div>`;
+    shown.forEach(g => {
+      const slots = getSlotsForGame(g.id, d.getDay()).slice().sort();
+      if (!slots.length) return;
+      html += `<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapeHtml(g.name)}</div><div style="display:flex;flex-wrap:wrap;gap:5px">`;
+      slots.forEach(t => {
+        let st = 'booked'; try { st = getSlotStatus(g.id, ds, t); } catch (e) { console.error(e); }
+        const c = CHK_COL[st] || ['#fee2e2', '#b91c1c', st];
+        html += `<button onclick="chkDetail('${g.id}','${ds}','${t}')" style="background:${c[0]};color:${c[1]};border:1px solid ${c[1]}33;border-radius:8px;padding:6px 9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">${fmt12(t).replace(':00 ', ' ')} · ${c[2]}</button>`;
+      });
+      html += `</div><div id="chk-${g.id}-${ds}" style="display:none"></div></div>`;
+    });
+    html += `<details style="margin-top:6px"><summary style="cursor:pointer;color:#0e7490;font-weight:600">Bookings this day (${dayBks.length})</summary>
+      ${dayBks.length ? dayBks.map(b => { const ids = chkIds(b); return `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6">${fmt12((b.slot_time || '').slice(0, 5))} — ${escapeHtml(chkGameName(b.game_id))}${b.play_location === 'hire' ? ' 🚚 hired out' : ''}${b.status === 'requested' ? ' 🙋 request' : ''}${b.status === 'completed' ? ' ✓ done' : ''} · ${ids.length ? ids.map(i => escapeHtml(chkName(i))).join(', ') : '<span style="color:#dc2626">no GM yet</span>'}</div>`; }).join('') : '<div style="color:#9ca3af;padding:4px 0">None</div>'}
+    </details></div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+function chkDetail(gameId, ds, t) {
+  const box = document.getElementById(`chk-${gameId}-${ds}`); if (!box) return;
+  const key = gameId + ds + t;
+  if (box.style.display !== 'none' && box.dataset.key === key) { box.style.display = 'none'; return; }
+  box.dataset.key = key; box.style.display = '';
+  let st = 'booked', pool = { fullyAvailable: [], maybeAvailable: [], noGmLeft: 0 };
+  try { st = getSlotStatus(gameId, ds, t); } catch (e) {}
+  try { pool = getQualifiedStaffPool(gameId, ds, t); } catch (e) {}
+  const g = games.find(x => x.id === gameId);
+  const isCafe = g && g.category === 'cafe';
+  const roomBks = existingBookings.filter(b => b.game_id === gameId && b.booking_date === ds && ((b.slot_time || '').slice(0, 5) === t || (!isCafe && bookingOverlapsSlot(b, gameId, ds, t))));
+  const lines = [];
+  lines.push(`<b>${fmt12(t)} ${escapeHtml(g ? g.name : gameId)}</b> — shows as <b>${(CHK_COL[st] || [0, 0, st])[2]}</b>`);
+  if (st === 'past') lines.push('This time has already passed.');
+  if (roomBks.length && st === 'booked') lines.push('Why: the room is in use — ' + roomBks.map(b => `${fmt12((b.slot_time || '').slice(0, 5))} ${escapeHtml(chkGameName(b.game_id))}`).join(', ') + ` (game + ${((g && g.bufferMinutes) || 30)} min reset).`);
+  lines.push('Free for the whole game: ' + (pool.fullyAvailable.length ? pool.fullyAvailable.map(i => escapeHtml(chkName(i)) + (staffFlags[i] === true ? ' (trusted opener)' : '')).join(', ') : '<span style="color:#dc2626">nobody</span>'));
+  if (pool.maybeAvailable.length) lines.push('Shift ends during the game (gives Call us): ' + pool.maybeAvailable.map(i => escapeHtml(chkName(i))).join(', '));
+  if (st === 'booked' && !roomBks.length) lines.push('Why: no trained game master is free for the whole game (free times, calendar, other bookings, meetings), or nobody could do a room reset in time.');
+  if (st === 'call') lines.push('Why "Call us": either it is within ' + (bookingConfig.callToBookCutoffHours || 3) + ' hours and no trusted opener is free, someone is only partly free, or a casual could take it but it is too soon for a request.');
+  if (st === 'request') lines.push('Why "Request": nobody is rostered/free for sure, but a trained casual has marked themselves free — they would have to accept.');
+  box.innerHTML = `<div style="margin-top:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;line-height:1.5">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
 }
 
 function getSlotsForGame(gameId, dayIndex) {
