@@ -33,7 +33,9 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;font-family:-apple-sy
 #mainApp{display:none;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 .app-header{background:#1a1035;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
 .logo{font-size:15px;font-weight:700;color:#07b4c5;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.header-center{font-size:13px;color:#a0b0c8;flex:1;text-align:center}
+.header-center{font-size:13px;color:#a0b0c8;flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* v1.9.19: phone header on one tidy line */
+@media(max-width:680px){.app-header{padding:8px 10px;gap:8px}.app-header #buildVersionTag{display:none}.app-header #posClock{padding:4px 8px!important;font-size:12px!important}.app-header .back-app-link{white-space:nowrap}}
 .auth-badge{font-size:11px;color:#8a9bb5;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
 .auth-badge:hover{color:#07b4c5}
 .back-app-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#07b4c5;background:rgba(7,180,197,0.12);border:1px solid #07b4c5;border-radius:99px;padding:2px 10px;text-decoration:none;white-space:nowrap}
@@ -769,7 +771,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.18'; // v1.9.18: links from the calendar's 'owing' badge (?pay=1) open the booking with Ready to pay already open (whole package for group bookings); on phones a linked booking now opens its pop-up. // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+const BUILD_VERSION = '1.9.19'; // v1.9.19: Ready to pay tidied — amount box full width, bigger payment buttons, '↔ Split' sits next to Record; once a booking/package is fully paid it shows 'Fully paid' and goes back by itself (phone closes the pop-up); header fits on one line on phones. // v1.9.18: links from the calendar's 'owing' badge (?pay=1) open the booking with Ready to pay already open (whole package for group bookings); on phones a linked booking now opens its pop-up. // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
 
 // Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
@@ -1689,7 +1691,7 @@ if(sect==='pay'){
       <div style="margin-bottom:10px">
         <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to record ($)</label>
         <input type="number" id="pay-amt-${b.id}" class="pay-input" value="${balance>0?balance.toFixed(0):''}" min="0"
-          style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none;"
+          style="width:100%;box-sizing:border-box;font-size:22px;padding:10px 12px;border:2px solid #07b4c5;border-radius:10px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none;"
           placeholder="0">
       </div>
 
@@ -1698,7 +1700,7 @@ if(sect==='pay'){
       <div id="method-btns-${b.id}" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
         ${[['cash','Cash','#374151','#f8fafc','#cbd5e1'],['eftpos','Eftpos','#0369a1','#f0f9ff','#bae6fd'],['stripe','Stripe','#6d28d9','#f5f3ff','#ddd6fe'],['poli','PoLi','#c2410c','#fff7ed','#fed7aa'],['bank_transfer','Bank','#15803d','#f0fdf4','#bbf7d0'],['invoice','Invoice','#be185d','#fdf2f8','#fbcfe8']].map(([m,label,color,bg,border])=>`
           <button data-method="${m}" onclick="selectPayMethod('${b.id}','${m}')"
-            style="font-size:12px;padding:7px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:7px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
+            style="font-size:14px;padding:11px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:9px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
             ${label}
           </button>`).join('')}
       </div>
@@ -1707,7 +1709,11 @@ if(sect==='pay'){
 <input type="email" id="invoice-email-${b.id}" placeholder="Email for invoice..." value="${escapeHtml(b.customerEmail)||''}" style="width:100%;font-size:12px;font-family:inherit;border:1px solid #fbbf24;border-radius:8px;padding:7px 10px;background:#fffbeb">
 </div>
 
-      <button onclick="recordPayment('${b.id}')" style="width:100%;padding:11px;font-size:15px;background:#10b981;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Record →</button>
+      <!-- v1.9.18b: Split sits right next to Record (it used to be a small grey button further down) -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+        <button onclick="recordPayment('${b.id}')" style="width:100%;padding:13px;font-size:16px;background:#10b981;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit">Record →</button>
+        <button onclick="toggleSplitView('${b.id}')" style="width:100%;padding:13px 6px;font-size:14px;background:#fff;color:#0e7490;border:2px solid #07b4c5;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit">↔ Split</button>
+      </div>
       <div id="pay-msg-${b.id}" style="font-size:12px;margin-top:6px;min-height:18px;text-align:center;font-weight:500"></div>
     `;
 
@@ -1717,9 +1723,7 @@ if(sect==='pay'){
 
       ${singlePaymentUI}
 
-      <button onclick="toggleSplitView('${b.id}')" style="width:100%;margin-top:12px;font-size:12px;padding:7px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;font-family:inherit">
-        ${splitMode?'✕ Close split':'↔ Split between people'}
-      </button>
+      ${splitMode?`<button onclick="toggleSplitView('${b.id}')" style="width:100%;margin-top:4px;font-size:14px;font-weight:700;padding:11px 12px;border-radius:10px;border:2px solid #07b4c5;background:#fff;color:#0e7490;cursor:pointer;font-family:inherit">✕ Close split — pay as one</button>`:''}
       <div id="split-wrap-${b.id}" style="display:${splitMode?'block':'none'};margin-top:8px">${splitMode?buildSplitView(b):''}</div>
     </div>`;
   }
@@ -1946,12 +1950,12 @@ function buildGroupSectionHTML(members,sect){
       <div style="margin-bottom:10px">
         <label style="font-size:10px;font-weight:700;color:#07b4c5;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Amount to record ($)</label>
         <input type="number" id="gpay-amt-${gid}" value="${balance.toFixed(0)}" min="0"
-          style="width:60%;font-size:20px;padding:9px 12px;border:2px solid #07b4c5;border-radius:8px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none">
+          style="width:100%;box-sizing:border-box;font-size:22px;padding:10px 12px;border:2px solid #07b4c5;border-radius:10px;font-weight:700;background:#f0fafb;color:#0e7490;outline:none">
       </div>
       <div id="gmethod-btns-${gid}" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
         ${[['cash','Cash','#374151','#f8fafc','#cbd5e1'],['eftpos','Eftpos','#0369a1','#f0f9ff','#bae6fd'],['stripe','Stripe','#6d28d9','#f5f3ff','#ddd6fe'],['poli','PoLi','#c2410c','#fff7ed','#fed7aa'],['bank_transfer','Bank','#15803d','#f0fdf4','#bbf7d0'],['invoice','Invoice','#be185d','#fdf2f8','#fbcfe8']].map(([m,label,color,bg,border])=>`
           <button data-method="${m}" onclick="selectGroupPayMethod('${gid}','${m}')"
-            style="font-size:12px;padding:7px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:7px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
+            style="font-size:14px;padding:11px 4px;border:2px solid ${currentMethod===m?color:border};border-radius:9px;background:${currentMethod===m?color:bg};color:${currentMethod===m?'#fff':color};font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s">
             ${label}
           </button>`).join('')}
       </div>
@@ -2038,6 +2042,7 @@ async function recordGroupPayment(gid){
     }
   }
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
+  if(toRecord>=groupBalance-0.005){backAfterPaid(gid,msgEl,true);renderPOS();return} // v1.9.19
   await renderPOS();
 }
 
@@ -2273,7 +2278,18 @@ async function recordPayment(id){
   if(!(await savePOSData(id))){refreshPanel();return}
   if(amtEl)amtEl.value='';
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
+  if(toRecord>=maxAllowed){backAfterPaid(id,msgEl);return}
   setTimeout(()=>refreshPanel(),600);
+}
+// v1.9.19: once nothing is left owing, show 'Fully paid' briefly, then go back by itself
+// (phone: closes the pop-up; computer: back to the booking's buttons)
+function backAfterPaid(id,msgEl,isGroup){
+  if(msgEl){msgEl.style.color='#1d9e75';msgEl.style.fontSize='14px';msgEl.style.fontWeight='700';msgEl.textContent='✓ Fully paid — going back…'}
+  setTimeout(()=>{
+    if(isGroup)delete openGroupPanelSection[id];else delete openPanelSection[id];
+    try{if(isGroup)refreshGroupPanel(id);else refreshPanel()}catch(e){console.error(e)}
+    if(window.innerWidth<=680)closeDrawer();
+  },1300);
 }
 
 // Records a discount/adjustment as a negative-amount addon with a required
@@ -2399,7 +2415,8 @@ async function markFullBank(id){
   const alreadyCollected=(b.deposit_paid?dep:0)+payments.reduce((s,p)=>s+p.amount,0);
   const remaining=Math.max(0,total-alreadyCollected);if(remaining<=0){refreshPanel();return}
   payments.push({amount:remaining,method:'bank_transfer',at:new Date().toISOString()});b.payments=JSON.stringify(payments);
-  await savePOSData(id);refreshPanel();
+  if(!(await savePOSData(id))){refreshPanel();return}
+  refreshPanel();backAfterPaid(id,document.getElementById('pay-msg-'+id)); // v1.9.19
 }
 async function toggleDepositPaid(id,paid){
   const b=bookings.find(x=>x.id===id);if(!b)return;
@@ -2626,8 +2643,9 @@ async function recordSplitPaymentNew(id){
   const remPlayers=players-b.splitState.playersPaid;
   const remAddons=addons.filter((_,i)=>!b.splitState.addonsPaid.includes(i)&&addons[i].amount>0);
   if(remPlayers===0&&remAddons.length===0){
-    delete openPanelSection[id];
     b.splitMode=false;
+    refreshPanel();backAfterPaid(id,document.getElementById('pay-msg-'+id)||document.getElementById('split-msg-'+id)); // v1.9.19
+    return;
   }
   refreshPanel();
 }
