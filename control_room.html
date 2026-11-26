@@ -53,22 +53,23 @@
 
     <div id="mainApp" class="hidden flex-col flex-grow">
 
-    <header class="bg-[#110a24] border-b border-purple-900/40 px-6 py-4 flex justify-between items-center shadow-lg">
-        <div class="flex items-center gap-3">
-            <span class="text-2xl">🔮</span>
-            <h1 class="text-xl font-bold tracking-wider text-white">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
+    <!-- v23: header wraps neatly on phones (title + links on top, session badge on its own line) -->
+    <header class="bg-[#110a24] border-b border-purple-900/40 px-3 py-3 md:px-6 md:py-4 flex flex-wrap justify-between items-center gap-x-3 gap-y-2 shadow-lg">
+        <div class="flex items-center gap-2 md:gap-3 min-w-0">
+            <span class="text-xl md:text-2xl">🔮</span>
+            <h1 class="text-sm md:text-xl font-bold tracking-wide md:tracking-wider text-white whitespace-nowrap">BEYOND THE BOX <span class="accent-color font-light">CONTROL ROOM</span></h1>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 whitespace-nowrap">
             <a href="btb_app.html" class="text-xs text-gray-400 hover:text-accent transition">&larr; BtB App</a>
             <span id="buildVersionTag" class="text-[10px] text-gray-500"></span>
             <span id="authName" class="text-xs text-gray-400"></span>
             <button onclick="doLogout()" class="text-xs text-gray-400 hover:text-red-400 transition">Sign out</button>
         </div>
-<div id="active-room-display" class="hidden items-center gap-3">
-            <span class="px-3 py-1 rounded-full bg-purple-950 border border-purple-500 text-sm font-semibold tracking-wide" id="current-room-badge">No Booking</span>
-            <button onclick="exitRoom()" class="text-sm text-gray-400 hover:text-red-400 transition">&larr; Change Session</button>
+<div id="active-room-display" class="hidden flex items-center gap-3 min-w-0 max-w-full">
+            <span class="px-3 py-1 rounded-full bg-purple-950 border border-purple-500 text-sm font-semibold tracking-wide truncate min-w-0" id="current-room-badge">No Booking</span>
+            <button onclick="exitRoom()" class="text-sm text-gray-400 hover:text-red-400 transition whitespace-nowrap">&larr; Change Session</button>
         </div>
-        <button onclick="openTimersPinPrompt()" class="text-sm px-3 py-1.5 rounded-full bg-purple-950 border border-purple-700 hover:border-accent transition">⏱️ All Timers</button>
+        <button onclick="openTimersPinPrompt()" class="text-sm px-3 py-1.5 rounded-full bg-purple-950 border border-purple-700 hover:border-accent transition whitespace-nowrap">⏱️ All Timers</button>
     </header>
 
     <main class="flex-grow flex flex-col items-center justify-center p-4 md:p-6 max-w-7xl w-full mx-auto">
@@ -420,7 +421,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 22; // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+        const BUILD_VERSION = 23; // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
 
 
         // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
@@ -804,7 +805,7 @@ async function checkActiveBooking() {
             currentRoom = currentBooking.game_name;
             document.getElementById("room-selection-screen").classList.add("hidden");
             document.getElementById("active-room-display").classList.remove("hidden");
-            document.getElementById("current-room-badge").innerText = `${pickerDate} · ${currentRoom}`;
+            document.getElementById("current-room-badge").innerText = `${new Date(pickerDate+'T12:00:00').toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})} · ${currentRoom}`; // v23: 'Sat 28 Nov' instead of '2026-11-28'
             populateDashboard(currentBooking);
         }
 
@@ -1069,7 +1070,7 @@ async function resetTimer(){
             const ar = await fetch(`${SB_URL}/rest/v1/cl_areas?game_id=eq.${encodeURIComponent(gameId)}&active=eq.true&select=id`, {headers:H()});
             const areas = ar.ok ? await ar.json() : [];
             if (!areas.length) return null;
-            const tr = await fetch(`${SB_URL}/rest/v1/cl_templates?area_id=in.(${areas.map(a=>a.id).join(',')})&kind=eq.reset&active=eq.true&select=id,name,area_id&limit=1`, {headers:H()});
+            const tr = await fetch(`${SB_URL}/rest/v1/cl_templates?area_id=in.(${areas.map(a=>a.id).join(',')})&kind=eq.reset&active=eq.true&select=id,name,area_id,created_at&limit=1`, {headers:H()});
             const t = tr.ok ? await tr.json() : [];
             return t[0] || null;
         }
@@ -1125,7 +1126,8 @@ async function resetTimer(){
                 const t = await resetTemplateFor(booking.game_id);
                 if (!t || currentBooking !== booking) return;
                 // v21: a room sent back as "not reset" in Task Hub (something was missed) warns too
-                const sr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&run_date=eq.${booking.booking_date}&booking_id=is.null&auto=eq.false&note=like.Sent%20back*&status=in.(todo,in_progress)&select=id,note&limit=1`, {headers:H()});
+                // v23: also counts a 'sent back' from an earlier day that is still not done
+                const sr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&run_date=lte.${booking.booking_date}&order=run_date.desc&booking_id=is.null&auto=eq.false&note=like.Sent%20back*&status=in.(todo,in_progress)&select=id,note&limit=1`, {headers:H()});
                 const sent = sr.ok ? (await sr.json())[0] : null;
                 if (sent && currentBooking === booking) {
                     document.getElementById('reset-warning-title').textContent = `⚠ ${String(booking.game_name||'ROOM').toUpperCase()} NOT RESET`;
@@ -1134,7 +1136,10 @@ async function resetTimer(){
                     box.classList.remove('hidden');
                     return;
                 }
-                const br = await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(booking.game_id)}&booking_date=eq.${booking.booking_date}&slot_time=lt.${booking.slot_time}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,booking_date,slot_time&order=slot_time.desc&limit=1`, {headers:H()});
+                // v23: the room's last game before this one, even if it was on an earlier day
+                // (only games since this reset checklist was set up, so old games from before Task Hub don't count)
+                const since = t.created_at ? new Date(t.created_at).toLocaleDateString('en-CA', {timeZone:'Pacific/Auckland'}) : booking.booking_date;
+                const br = await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(booking.game_id)}&booking_date=gte.${since}&or=(booking_date.lt.${booking.booking_date},and(booking_date.eq.${booking.booking_date},slot_time.lt."${booking.slot_time}"))&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,booking_date,slot_time&order=booking_date.desc,slot_time.desc&limit=1`, {headers:H()});
                 const prev = br.ok ? (await br.json())[0] : null;
                 if (!prev || currentBooking !== booking) return;
                 const rr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&booking_id=eq.${prev.id}&select=id,status`, {headers:H()});
@@ -1142,7 +1147,9 @@ async function resetTimer(){
                 if (run && run.status === 'done') return;
                 const fmt = s => { const [h,m] = String(s).slice(0,5).split(':').map(Number); return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`; };
                 document.getElementById('reset-warning-title').textContent = `⚠ ${String(booking.game_name||'ROOM').toUpperCase()} NOT RESET`;
-                document.getElementById('reset-warning-sub').textContent = `The reset after the ${fmt(prev.slot_time)} game hasn't been done. This game starts at ${fmt(booking.slot_time)}.`;
+                const day = d => new Date(d+'T12:00:00').toLocaleDateString('en-NZ', {weekday:'short', day:'numeric', month:'short'});
+                const prevWhen = prev.booking_date === booking.booking_date ? fmt(prev.slot_time) : `${fmt(prev.slot_time)} (${day(prev.booking_date)})`;
+                document.getElementById('reset-warning-sub').textContent = `The reset after the ${prevWhen} game hasn't been done. This game starts at ${fmt(booking.slot_time)}.`;
                 document.getElementById('reset-warning-btn').onclick = async () => {
                     try { const r = await resetRunFor(prev, t); window.open(`task_hub.html?run=${r.id}`, '_blank'); } catch(e) { alert('Could not open the checklist: ' + e.message); }
                 };
@@ -1219,4 +1226,4 @@ async function resetTimer(){
         }
     </script>
 </body>
-</html>
+</html>

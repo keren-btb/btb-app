@@ -290,6 +290,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v23 — 2026-11-26 — The big NOT RESET warning now also checks the room's last game on an earlier day (e.g. Saturday's first game warns if Wednesday's reset was never done — only games since the reset checklist was set up count), and rooms 'sent back' as not reset on an earlier day. Top bar fits on a phone (title and links on top, session badge on its own line), and the badge shows 'Sat 28 Nov' instead of '2026-11-28'. Nothing removed.
 - v22 — 2026-11-24 — All Timers reset/complete buttons now show an error if the save fails; timer saves that fail are written to the error log. Nothing removed.
 - v21 — 2026-11-23 — NOT RESET warning also shows for rooms sent back as not reset in Task Hub, with the reason.
 - v20 — 2026-11-22 — Reset hand-over sends a phone notification.
