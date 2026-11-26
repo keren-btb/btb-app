@@ -771,7 +771,7 @@ async function callEdgeFunction(action,params={},token=null){
 
 // BUILD VERSION — bump this each time this file is shipped, so you can
 // confirm in the header (and browser console) which copy you're looking at.
-const BUILD_VERSION = '1.9.19'; // v1.9.19: Ready to pay tidied — amount box full width, bigger payment buttons, '↔ Split' sits next to Record; once a booking/package is fully paid it shows 'Fully paid' and goes back by itself (phone closes the pop-up); header fits on one line on phones. // v1.9.18: links from the calendar's 'owing' badge (?pay=1) open the booking with Ready to pay already open (whole package for group bookings); on phones a linked booking now opens its pop-up. // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
+const BUILD_VERSION = '1.9.20'; // v1.9.20: when a booking/package becomes fully paid, a green 'Fully paid' box offers to email the receipt (email filled in, can be changed); goes back after Send or No thanks. // v1.9.19: Ready to pay tidied — amount box full width, bigger payment buttons, '↔ Split' sits next to Record; once a booking/package is fully paid it shows 'Fully paid' and goes back by itself (phone closes the pop-up); header fits on one line on phones. // v1.9.18: links from the calendar's 'owing' badge (?pay=1) open the booking with Ready to pay already open (whole package for group bookings); on phones a linked booking now opens its pop-up. // v1.9.17: '↩ Give a refund' on a booking records money given back (amount, how, reason) as a negative payment, shown in the payment history. // v1.9.16: vouchers must be paid (active) to be used; booking saves are checked and only save what changed, on top of the latest saved booking (no more undoing deposits/payments recorded elsewhere); split payments share what is actually still owed; removing a product/voucher from a booking puts stock/voucher back; discounts can't exceed the total and warn if the customer has now overpaid. // v1.9.15: 'Deposit received' asks for the amount, the date it was received, how it was paid and the bank reference (saved as deposit_paid_at / deposit_ref / deposit_recorded_by) and shows them in the payment history; undoing a deposit asks first and clears those details; deposit saves are checked.
 
 // Previous build: 1.9.14 — // v1.9.14: Abandoned online checkouts no longer appear as bookings.
 
@@ -1588,8 +1588,10 @@ async function sendReceiptEmail(id){
     await callEdgeFunction('send_pos_receipt_email',{to,subject:'Your Beyond the Box receipt',htmlBody},currentUser?.token);
     msgEl.style.color='#1d9e75';msgEl.textContent=`✓ Sent to ${to}`;
     setTimeout(()=>{msgEl.textContent=''},4000);
+    return true;
   }catch(e){
     msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e);
+    return false;
   }
 }
 
@@ -1970,6 +1972,7 @@ function buildGroupSectionHTML(members,sect){
     <div class="action-panel-scroll" style="padding:14px 16px">
       <div style="font-size:15px;font-weight:700;color:${balance===0?'#1d9e75':'#ef9f27'};margin-bottom:10px">${balance===0?'✓ Fully paid':'$'+balance.toFixed(0)+' owing'}</div>
       ${payUI}
+      <div id="gpaid-${gid}"></div>
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f3f4f6">
         <button onclick="sendGroupReceiptEmail('${gid}')" style="width:100%;font-size:12px;font-weight:600;color:#07b4c5;background:none;border:1px solid #07b4c5;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:inherit">✉️ Email combined receipt</button>
         <div id="greceipt-msg-${gid}" style="font-size:12px;margin-top:6px;text-align:center"></div>
@@ -2042,7 +2045,7 @@ async function recordGroupPayment(gid){
     }
   }
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
-  if(toRecord>=groupBalance-0.005){backAfterPaid(gid,msgEl,true);renderPOS();return} // v1.9.19
+  if(toRecord>=groupBalance-0.005){await renderPOS();refreshGroupPanel(gid);backAfterPaid(gid,null,true);return} // v1.9.19/1.9.20
   await renderPOS();
 }
 
@@ -2116,7 +2119,8 @@ async function sendGroupReceiptEmail(gid){
   try{
     await callEdgeFunction('send_pos_receipt_email',{to,subject:'Your Beyond the Box receipt',htmlBody},currentUser?.token);
     msgEl.style.color='#1d9e75';msgEl.textContent='✓ Sent to '+to;
-  }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e)}
+    return true;
+  }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message;console.error(e);return false}
 }
 
 // ── Booking data mutations ──────────────────────────
@@ -2278,18 +2282,51 @@ async function recordPayment(id){
   if(!(await savePOSData(id))){refreshPanel();return}
   if(amtEl)amtEl.value='';
   if(msgEl){msgEl.style.color=method==='invoice'?'#d97706':'#1d9e75';msgEl.textContent=method==='invoice'?`⏳ Invoice $${toRecord.toFixed(0)} recorded`:`✓ $${toRecord.toFixed(0)} recorded`}
-  if(toRecord>=maxAllowed){backAfterPaid(id,msgEl);return}
+  if(toRecord>=maxAllowed){refreshPanel();backAfterPaid(id,null);return} // v1.9.20
   setTimeout(()=>refreshPanel(),600);
 }
-// v1.9.19: once nothing is left owing, show 'Fully paid' briefly, then go back by itself
-// (phone: closes the pop-up; computer: back to the booking's buttons)
+// v1.9.20: once nothing is left owing, show 'Fully paid' with an offer to email the receipt,
+// then go back (phone: closes the pop-up; computer: back to the booking's buttons) after Send or No thanks
+function visibleById(elId){const all=[...document.querySelectorAll('[id="'+elId+'"]')];return all.find(e=>e.offsetParent!==null)||all[all.length-1]||null}
 function backAfterPaid(id,msgEl,isGroup){
-  if(msgEl){msgEl.style.color='#1d9e75';msgEl.style.fontSize='14px';msgEl.style.fontWeight='700';msgEl.textContent='✓ Fully paid — going back…'}
-  setTimeout(()=>{
-    if(isGroup)delete openGroupPanelSection[id];else delete openPanelSection[id];
-    try{if(isGroup)refreshGroupPanel(id);else refreshPanel()}catch(e){console.error(e)}
-    if(window.innerWidth<=680)closeDrawer();
-  },1300);
+  const host=isGroup?visibleById('gpaid-'+id):(visibleById('pay-msg-'+id)||msgEl);
+  const members=isGroup?bookings.filter(m=>m.group_booking_id===id):[];
+  const b=isGroup?members[0]:bookings.find(x=>x.id===id);
+  if(!host||!b){paidDone(id,isGroup);return}
+  const email=(b.customerEmail||'').trim();
+  const btn='width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;cursor:pointer;font-family:inherit';
+  host.style.minHeight='';
+  host.innerHTML=`<div style="border:2px solid #10b981;border-radius:12px;padding:12px;text-align:left;background:#f0fdf8;margin-top:8px">
+    <div style="font-size:16px;font-weight:800;color:#15803d;margin-bottom:8px">✓ Fully paid</div>
+    ${isGroup
+      ?(email?`<div style="font-size:13px;color:#374151;margin-bottom:8px">Email the receipt to <b>${escapeHtml(email)}</b>?</div>`:`<div style="font-size:13px;color:#6b7280;margin-bottom:8px">No email on file for this package.</div>`)
+      :`<div style="font-size:13px;color:#374151;margin-bottom:6px">Email the receipt?</div>
+        <input type="email" id="paid-email-${id}" value="${escapeHtml(email)}" placeholder="Customer email" style="width:100%;box-sizing:border-box;font-size:15px;font-family:inherit;border:1px solid #a7f3d0;border-radius:8px;padding:9px 10px;margin-bottom:8px;background:#fff">`}
+    <div style="display:grid;grid-template-columns:${isGroup&&!email?'1fr':'1fr 1fr'};gap:8px">
+      ${isGroup&&!email?'':`<button onclick="paidSendReceipt('${id}',${!!isGroup})" style="${btn};background:#07b4c5;color:#fff;border:none">✉️ Send receipt</button>`}
+      <button onclick="paidDone('${id}',${!!isGroup})" style="${btn};background:#fff;color:#374151;border:1px solid #d1d5db">${isGroup&&!email?'Done':'No thanks'}</button>
+    </div>
+    <div id="paid-msg-${id}" style="font-size:13px;margin-top:6px;font-weight:600"></div>
+  </div>`;
+}
+async function paidSendReceipt(id,isGroup){
+  const m=visibleById('paid-msg-'+id);
+  let ok=false;
+  if(isGroup){ok=await sendGroupReceiptEmail(id)}
+  else{
+    const to=(visibleById('paid-email-'+id)?.value||'').trim();
+    if(!to){if(m){m.style.color='#dc2626';m.textContent='Enter an email address.'}return}
+    const inp=visibleById('receipt-email-'+id);if(inp)inp.value=to;
+    if(m){m.style.color='#6b7280';m.textContent='Sending…'}
+    ok=await sendReceiptEmail(id);
+  }
+  if(m){m.style.color=ok?'#15803d':'#dc2626';m.textContent=ok?'✓ Receipt sent':'Could not send — see the message above, or tap No thanks.'}
+  if(ok)setTimeout(()=>paidDone(id,isGroup),1200);
+}
+function paidDone(id,isGroup){
+  if(isGroup)delete openGroupPanelSection[id];else delete openPanelSection[id];
+  try{if(isGroup)refreshGroupPanel(id);else refreshPanel()}catch(e){console.error(e)}
+  if(window.innerWidth<=680)closeDrawer();
 }
 
 // Records a discount/adjustment as a negative-amount addon with a required

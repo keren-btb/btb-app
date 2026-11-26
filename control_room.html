@@ -190,13 +190,12 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Actual Players in Room</label>
-                        <div class="flex items-center gap-2 max-w-xs">
-                            <button type="button" onclick="adjustPlayers(-1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
-                            <input type="number" id="input-players" readonly class="w-full bg-[#110a24] border border-purple-900/60 rounded-xl px-4 py-3 text-white font-semibold text-center focus:outline-none" min="0">
-                            <button type="button" onclick="adjustPlayers(1)" class="px-4 py-3 rounded-xl font-bold text-lg bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
-                        </div>
+                    <!-- v24: players is just a final check, so it's one small line (pre-filled with the number booked) -->
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Players in room</span>
+                        <button type="button" onclick="adjustPlayers(-1)" class="px-2.5 py-1 rounded-lg font-bold bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">−</button>
+                        <input type="number" id="input-players" readonly class="w-12 bg-[#110a24] border border-purple-900/60 rounded-lg px-1 py-1 text-white font-semibold text-center focus:outline-none" min="0">
+                        <button type="button" onclick="adjustPlayers(1)" class="px-2.5 py-1 rounded-lg font-bold bg-purple-900 hover:bg-purple-800 border border-purple-700 transition">+</button>
                     </div>
 
                     <div class="pt-4 flex flex-col sm:flex-row gap-3">
@@ -367,6 +366,8 @@ let pickerDate = null;          // Currently selected date (YYYY-MM-DD) on the p
 const _deepLinkParams = new URLSearchParams(window.location.search);
 let deepLinkDate = _deepLinkParams.get('date') || null;
 let deepLinkBookingId = _deepLinkParams.get('booking') || null;
+// v24: opened on its own (no link)? Jump straight to the logged-in GM's game that's on now or next today (once only)
+let autoPickMine = !deepLinkBookingId && !deepLinkDate;
         let controlRoomPin = null;      // Loaded from settings (btb_control_room_pin)
         let staff = [];                 // Loaded once logged in — used to resolve assigned_staff_ids to names
 
@@ -421,7 +422,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 23; // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+        const BUILD_VERSION = 24; // v24: opening Control Room on its own jumps to your own game that's on now or next today (Change Session to pick another); 'Players in room' is one small line. // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
 
 
         // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
@@ -767,6 +768,9 @@ async function checkActiveBooking() {
                     deepLinkBookingId = null; // only auto-select once
                     if (idx > -1) selectBookingFromList(idx);
                     else console.warn('Deep-linked booking not found for this date — showing the picker instead.');
+                } else if (autoPickMine) {
+                    autoPickMine = false;
+                    if (pickerDate === todayStr()) await openMyNextGame();
                 }
 
             } catch (err) {
@@ -775,6 +779,22 @@ async function checkActiveBooking() {
                 document.getElementById("room-selection-screen").classList.remove("hidden");
                 alert("Error connecting to Supabase database: " + err.message);
             }
+        }
+
+        // v24: finds the logged-in person's own game today that's on now or next (not finished, not hired out)
+        async function openMyNextGame() {
+            try {
+                const r = await fetch(`${SB_URL}/rest/v1/staff?user_role_id=eq.${currentUser.id}&select=id`, {headers:H()});
+                const me = r.ok ? (await r.json())[0] : null;
+                if (!me) return;
+                const n = new Date(new Date().toLocaleString('en-US', {timeZone:'Pacific/Auckland'}));
+                const nowM = n.getHours()*60 + n.getMinutes();
+                const toM = t => { const [h,m] = String(t||'0:0').split(':').map(Number); return h*60+m; };
+                const mine = b => { try { const ids = b.assigned_staff_ids ? (typeof b.assigned_staff_ids==='string' ? JSON.parse(b.assigned_staff_ids) : b.assigned_staff_ids) : []; return Array.isArray(ids) && ids.includes(me.id); } catch(e) { return false; } };
+                // a game counts as 'on' until 75 minutes after its start, unless it has been completed
+                const idx = todaysRoomBookings.findIndex(b => mine(b) && b.status !== 'completed' && b.play_location !== 'hire' && toM(b.slot_time) + 75 > nowM);
+                if (idx > -1) selectBookingFromList(idx);
+            } catch(e) { console.error('Open my next game:', e); }
         }
 
         // Lists every booking for the picked date — click one to open its dashboard
@@ -1226,4 +1246,4 @@ async function resetTimer(){
         }
     </script>
 </body>
-</html>
+</html>
