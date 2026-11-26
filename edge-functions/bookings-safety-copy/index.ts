@@ -1,5 +1,5 @@
 // bookings-safety-copy
-// BUILD VERSION: v1.0.0 — 2026-11-26
+// BUILD VERSION: v1.1.0 — 2026-11-26
 //
 // Emails the owners a plain list of the next 7 days of bookings, so if Supabase (or the app) goes down,
 // the latest list is already sitting in everyone's inbox — including the BtB Gmail, in case the
@@ -8,12 +8,14 @@
 // Called hourly by pg_cron (job 'bookings-safety-copy'), but only sends at the NZ hours listed in the
 // booking config key safetyCopyHours (default [7, 13] = 7am and 1pm). { force: true } sends now;
 // { force: true, dry: true } builds the list and reports counts without sending.
-// Extra addresses: safetyCopyExtraTo in the booking config (default ['btbescaperooms@gmail.com']).
+// v1.1.0: sent ONLY to the BtB Gmail by default (Keren didn't want 2 emails a day in her inbox); a Gmail
+// filter files it under the label "BtB Safety Copy" and skips the inbox. Recipients: safetyCopyTo in the
+// booking config (default ['btbescaperooms@gmail.com']). Set safetyCopyIncludeOwners: true to add the owners again.
 // Needs the service role key as the bearer token (same as booking-request).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const BUILD_VERSION = 'v1.0.0'
+const BUILD_VERSION = 'v1.1.0'
 const NZ_TZ = 'Pacific/Auckland'
 const FROM = 'Beyond the Box <enquiries@mail.btbescaperooms.co.nz>'
 const SKIP_STATUSES = ['cancelled', 'abandoned', 'enquiry', 'waitlist']
@@ -47,7 +49,8 @@ Deno.serve(async (req) => {
     const { data: setRow } = await admin.from('settings').select('value').eq('key', 'btb_booking_config').maybeSingle()
     let cfg: any = {}; try { cfg = typeof setRow?.value === 'string' ? JSON.parse(setRow.value) : (setRow?.value || {}) } catch { cfg = {} }
     const hours: number[] = Array.isArray(cfg.safetyCopyHours) ? cfg.safetyCopyHours.map(Number) : [7, 13]
-    const extraTo: string[] = Array.isArray(cfg.safetyCopyExtraTo) ? cfg.safetyCopyExtraTo : ['btbescaperooms@gmail.com']
+    const extraTo: string[] = Array.isArray(cfg.safetyCopyTo) ? cfg.safetyCopyTo : ['btbescaperooms@gmail.com']
+    const includeOwners = cfg.safetyCopyIncludeOwners === true
     if (!body.force && !hours.includes(nzHour(now))) return json({ ok: true, version: BUILD_VERSION, skipped: 'not a send hour' })
 
     const from = nzDate(now), to = nzDate(now + 7 * 86400000)
@@ -64,7 +67,7 @@ Deno.serve(async (req) => {
     const { data: staff } = await admin.from('staff').select('id, name, email, is_owner, active')
     const sById = new Map((staff || []).map((s: any) => [String(s.id), s.name]))
     const ownerTo = (staff || []).filter((s: any) => s.is_owner && s.active && s.email).map((s: any) => s.email)
-    const recipients = [...new Set([...ownerTo, ...extraTo].map((e) => String(e).trim()).filter(Boolean))]
+    const recipients = [...new Set([...(includeOwners ? ownerTo : []), ...extraTo].map((e) => String(e).trim()).filter(Boolean))]
 
     const byDay = new Map<string, any[]>()
     for (const b of list) { if (!byDay.has(b.booking_date)) byDay.set(b.booking_date, []); byDay.get(b.booking_date)!.push(b) }
