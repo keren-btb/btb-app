@@ -128,6 +128,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.97 — 2026-11-28 — btb_app.html?date=…&booking=<id> opens that booking once it has loaded (time-request notifications and emails now link straight to it).
 - v16.4.96 — 2026-11-28 — "Ask for a time today" requests show on the calendar (light blue, ⏰ TIME REQUEST) with Accept / Suggest a time / Decline buttons on the card. Accept checks the room is free, confirms and emails the confirmation; Suggest emails another time (request stays open); Decline cancels and emails the customer. No email given → you're told to text/call them.
 - v16.4.95 — 2026-11-27 — Settings top cards: Staff Portal is back (v16.4.94 took it off by mistake — Keren meant Task Hub), and Task Hub is taken off because it is already a tab in the header. Nothing else changed.
 - v16.4.94 — 2026-11-27 — Settings tidied: the top buttons are now cards, 3 in a row like the POS group (Reports, Task Hub, Control Room, and for admins/managers Invoices, Receipts, Email templates, Errors). Staff Portal and Clients taken off the top buttons as Keren asked (both are still in the header). New pink "Website" group (admins/managers) with Reviews, Room pages, FAQs and Check booking slots, moved out of the top buttons. btb_app.css v16.4.94. Nothing else removed.
@@ -504,4 +505,5 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.0 — 2026-11-24 — cal.com cancellations and reschedules are handled automatically: a cancelled cal.com booking is marked cancelled (note + to-do on the client to check the deposit); a moved one gets its new date/time (note + to-do to check the GM is still free). The same cal.com booking can never be saved twice (cal.com's booking id is stored in game_bookings.calcom_uid). Other cal.com messages are ignored. The log no longer prints customer details. Needs "Booking cancelled" and "Booking rescheduled" ticked on the cal.com webhook. Deployed as Supabase version 9; source in edge-functions/calcom-booking-intake.
 
 ## edge-functions/today-request
+- v1.0.1 — 2026-11-28 — Phone notification and owners' email link open BtB App straight on the request.
 - v1.0.0 — 2026-11-28 — New. 'new' (from the database trigger): phone notification + email to the owners about a time request. 'reply' (owners/managers from BtB App): accept / decline / suggest, emails the customer.

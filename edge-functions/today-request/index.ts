@@ -1,5 +1,6 @@
 // today-request
-// BUILD VERSION: v1.0.0 — 2026-11-28
+// BUILD VERSION: v1.0.1 — 2026-11-28
+// v1.0.1: the phone notification and the owners' email link open BtB App straight on that request.
 // "Ask for a time today" requests from the public booking page (game_bookings.status = 'time_request').
 // { action: 'new', booking_id }  — called by the database trigger (service role key) when a request is saved:
 //   phone notification + email to the owners (Keren & Joolz).
@@ -14,7 +15,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
 
-const BUILD_VERSION = 'v1.0.0'
+const BUILD_VERSION = 'v1.0.1'
 const FROM = 'Beyond the Box <enquiries@mail.btbescaperooms.co.nz>'
 const APP_URL = 'https://www.btbescaperooms.co.nz/test/btb_app.html'
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
@@ -38,14 +39,14 @@ async function sendEmail(to: string, subject: string, html: string) {
   const d = await r.json().catch(() => ({}))
   return r.ok ? { ok: true } : { ok: false, error: d?.message || 'Resend error' }
 }
-async function pushTo(admin: any, staffIds: string[], title: string, body: string) {
+async function pushTo(admin: any, staffIds: string[], title: string, body: string, url = 'btb_app.html') {
   const ids = [...new Set(staffIds)]
   const pub = Deno.env.get('VAPID_PUBLIC_KEY'), priv = Deno.env.get('VAPID_PRIVATE_KEY')
   if (!ids.length || !pub || !priv) return 0
   webpush.setVapidDetails('mailto:info@btbescaperooms.co.nz', pub, priv)
   const { data: subs } = await admin.from('push_subscriptions').select('*').in('staff_id', ids)
   if (!subs || !subs.length) return 0
-  const payload = JSON.stringify({ title: title.slice(0, 80), body: body.slice(0, 200), url: 'btb_app.html', tag: 'btb-today-' + Date.now() })
+  const payload = JSON.stringify({ title: title.slice(0, 80), body: body.slice(0, 200), url, tag: 'btb-today-' + Date.now() })
   const res = await Promise.allSettled(subs.map((s: any) => webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload)))
   const dead: string[] = []
   res.forEach((r, i) => { if (r.status === 'rejected') { const c = (r.reason as any)?.statusCode; if (c === 404 || c === 410) dead.push(subs[i].endpoint) } })
@@ -82,7 +83,7 @@ Deno.serve(async (req) => {
       const who = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Someone'
       const what = `${b.game_name} today at ${fmtTime(b.slot_time)} for ${b.players_booked || '?'}`
       const { data: owners } = await admin.from('staff').select('id, name, email').eq('is_owner', true).eq('active', true)
-      const pushed = await pushTo(admin, (owners || []).map((o: any) => o.id), '⏰ Time request for today', `${who}: ${what}. Open BtB App to accept, decline or suggest a time.`)
+      const pushed = await pushTo(admin, (owners || []).map((o: any) => o.id), '⏰ Time request for today', `${who}: ${what}. Tap to accept, decline or suggest a time.`, `btb_app.html?date=${b.booking_date}&booking=${b.id}`)
       let emailed = 0
       for (const o of owners || []) {
         if (!o.email) continue
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
           <p><strong>${esc(who)}</strong> would like <strong>${esc(b.game_name)}</strong> today (${esc(fmtDate(b.booking_date))}) at <strong>${esc(fmtTime(b.slot_time))}</strong> for <strong>${b.players_booked || '?'}</strong> players.</p>
           <p>Phone: ${esc(c.phone || '—')}<br>Email: ${esc(c.email || '—')}</p>
           ${b.notes_when_booked ? `<p style="color:#4b5563">${esc(b.notes_when_booked)}</p>` : ''}
-          <p><a href="${APP_URL}" style="color:#07b4c5;font-weight:bold">Open BtB App</a> — it's on today's calendar with Accept / Suggest a time / Decline.</p></div>`)
+          <p><a href="${APP_URL}?date=${b.booking_date}&booking=${b.id}" style="color:#07b4c5;font-weight:bold">Open BtB App</a> — it's on today's calendar with Accept / Suggest a time / Decline.</p></div>`)
         if (r.ok) emailed++
       }
       return json({ ok: true, version: BUILD_VERSION, pushed, emailed })
