@@ -4947,7 +4947,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.69-theme-demo'; // v1.7.69: today's box no longer says 'not bookable online'; times start at opening + 30 min (booking config openPrepMinutes); new 'Ask for a time today' form (status time_request, owners notified). | v1.7.67: // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step) so the page can no longer be used to test whether an email or phone belongs to a customer. Nothing visible changes. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
+const BUILD_VERSION = '1.7.70-theme-demo'; // v1.7.70: games booked by enquiry only (booking config enquiryOnlyGames; The Cube by default) show 'Ask about this game' instead of times and open the enquiry form for that game. | v1.7.69: // v1.7.69: today's box no longer says 'not bookable online'; times start at opening + 30 min (booking config openPrepMinutes); new 'Ask for a time today' form (status time_request, owners notified). | v1.7.67: // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step) so the page can no longer be used to test whether an email or phone belongs to a customer. Nothing visible changes. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
 // Previous build: 1.7.64 — v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
 // Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
@@ -6291,8 +6291,9 @@ function selectDateFirst(ds, el) {
   const escapGames = games.filter(g => g.category === 'escape' && g.bookable !== false);
   const d = new Date(ds + 'T12:00');
   document.getElementById('dateGamesList').innerHTML = escapGames.map(g => {
-    const slots = getSlotsForGame(g.id, d.getDay()).filter(t => !isPastSlot(ds, t));
-    const tBox = tonightBoxHtml(g.id, ds);
+    const eo = isEnquiryOnly(g.id);
+    const slots = eo ? [] : getSlotsForGame(g.id, d.getDay()).filter(t => !isPastSlot(ds, t));
+    const tBox = eo ? enquiryOnlyBoxHtml(g.id) : tonightBoxHtml(g.id, ds);
     if (!slots.length && !tBox) return '';
     const slotBtns = slots.sort().map(t => slotBtnHtml(g.id, ds, t, true)).join('');
     return `<div class="dg-section">
@@ -6471,7 +6472,18 @@ function tonightFmt(m) { return fmt12(String(Math.floor(m / 60)).padStart(2, '0'
 
 // v1.7.63: times that have already started today are hidden everywhere (customers and Slot checker)
 function isPastSlot(dateStr, slotTime) { return new Date(dateStr + 'T' + slotTime + ':00') < nzNow(); }
+// v1.7.70: games booked by enquiry only (booking config enquiryOnlyGames; The Cube if not set) show an
+// "Ask about this game" box instead of times, which opens the enquiry form for that game.
+function isEnquiryOnly(gameId) { const l = bookingConfig.enquiryOnlyGames; return Array.isArray(l) ? l.includes(gameId) : gameId === 'g_hire_cube'; }
+function enquiryOnlyBoxHtml(gameId) {
+  const g = games.find(x => x.id === gameId); const nm = escapeHtml(g ? g.name : 'This game');
+  return `<div style="grid-column:1/-1;background:#ecfeff;border:2px solid #07b4c5;border-radius:12px;padding:12px 14px;margin-bottom:4px;line-height:1.45;color:#0e4f5c">
+    ✉️ <b>${nm} is booked by enquiry.</b> Tell us when you'd like to play and how many of you, and we'll get back to you to confirm.
+    <div style="margin-top:10px"><button type="button" class="btn btn-primary" style="width:auto;padding:10px 18px;margin:0" onclick="openEnquiry('game:${gameId}')">Ask about ${nm} →</button></div></div>`;
+}
+
 function renderSlots(gridId, gameId, dateStr) {
+  if (isEnquiryOnly(gameId)) { document.getElementById(gridId).innerHTML = gameNoteHtml(gameId) + enquiryOnlyBoxHtml(gameId); return; }
   const d = new Date(dateStr + 'T12:00');
   const allSlots = getSlotsForGame(gameId, d.getDay());
   const slots = allSlots.filter(t => !isPastSlot(dateStr, t));
@@ -7585,7 +7597,8 @@ async function submitGroupRequest() {
 
 function openEnquiry(type) {
   enqType = type;
-  const cfg = ENQ_CONFIG[type] || ENQ_CONFIG['general'];
+  const eg = String(type || '').startsWith('game:') ? games.find(x => x.id === type.slice(5)) : null;
+  const cfg = eg ? { title: `Ask about ${eg.name}`, sub: `Tell us when you'd like to play ${eg.name} and how many of you — we'll get back to you to confirm.` } : (ENQ_CONFIG[type] || ENQ_CONFIG['general']);
   document.getElementById('enqTitle').textContent = cfg.title;
   document.getElementById('enqSub').textContent = cfg.sub;
   const today = nzToday();
@@ -7616,6 +7629,8 @@ async function submitEnquiry() {
 
   const d = date ? new Date(date + 'T12:00') : nzNow();
   const typeLabels = { 'casual-vr': 'Casual VR', 'cafe': 'Cafe table hire', 'general': 'General' };
+  const enqGame = String(enqType || '').startsWith('game:') ? games.find(x => x.id === enqType.slice(5)) : null; // v1.7.70
+  if (enqGame) typeLabels[enqType] = enqGame.name;
   const noteText = [
     typeLabels[enqType] || 'Enquiry',
     players ? `${players} players` : '',
@@ -7650,7 +7665,7 @@ try {
       headers: { ...SB_H, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
         client_id: clientId,
-        game_id: enqType === 'casual-vr' ? 'g4' : 'g5',
+        game_id: enqGame ? enqGame.id : (enqType === 'casual-vr' ? 'g4' : 'g5'),
         game_name: typeLabels[enqType] || 'Enquiry',
         booking_date: date || nzToday(),
         slot_time: (time || '12:00') + ':00',
@@ -8015,9 +8030,10 @@ init();
   
 
 
-window.BTB_PARENT_ORIGIN = window.BTB_PARENT_ORIGIN || (function () { try { var o = new URL(document.referrer).origin; if (/^https:\/\/(www\.)?btbescaperooms\.co\.nz$/.test(o) || o === 'https://btb-app.pages.dev' || /^https:\/\/[a-z0-9-]+\.btb-app\.pages\.dev$/.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o)) return o; } catch (e) {} return location.origin; })(); // only our own site gets the widget's messages
 
 <script>
+window.BTB_PARENT_ORIGIN = window.BTB_PARENT_ORIGIN || (function () { try { var o = new URL(document.referrer).origin; if (/^https:\/\/(www\.)?btbescaperooms\.co\.nz$/.test(o) || o === 'https://btb-app.pages.dev' || /^https:\/\/[a-z0-9-]+\.btb-app\.pages\.dev$/.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o)) return o; } catch (e) {} return location.origin; })(); // only our own site gets the widget's messages
+
 // ============================================================
 // DEMO v1.8.0-demo additions (look + small helpers only — booking rules untouched)
 //  1. Room photo on the ticket stub (uses the game's photo from Settings > Games,
