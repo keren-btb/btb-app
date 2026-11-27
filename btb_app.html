@@ -929,7 +929,7 @@ async function loadBookings(month,year){
           addons:row.addons||null,
           timerSec:row.timer_sec||0,timerRunning:row.timer_running||false,
           timerStartedAt:row.timer_started_at?new Date(row.timer_started_at).getTime():null,
-          timerInterval:null,isEnquiry:row.status==='enquiry',isWaitlist:row.status==='waitlist',isRequest:row.status==='requested',source:row.source||'',
+          timerInterval:null,isEnquiry:row.status==='enquiry',isWaitlist:row.status==='waitlist',isRequest:row.status==='requested',isTimeReq:row.status==='time_request',source:row.source||'',
           payments:row.payments||null,
           deposit_amount:row.deposit_amount||null,deposit_paid:row.deposit_paid||false,
         });
@@ -969,7 +969,7 @@ async function updateBooking(id,change){
     const occTag=b.occasion?tags.find(x=>x.label.toLowerCase()===b.occasion.toLowerCase()||x.label.toLowerCase().includes(b.occasion.toLowerCase().split(' ')[0])):null;
     b.tags=cur.tags.slice();if(occTag&&!b.tags.includes(occTag.id))b.tags.push(occTag.id);
     b.notes=cur.notes;b.gms=cur.gms;b.no_show=cur.no_show;
-    b.status=cur.status;b.isEnquiry=cur.status==='enquiry';b.isWaitlist=cur.status==='waitlist';b.isRequest=cur.status==='requested';
+    b.status=cur.status;b.isEnquiry=cur.status==='enquiry';b.isWaitlist=cur.status==='waitlist';b.isRequest=cur.status==='requested';b.isTimeReq=cur.status==='time_request';
     return !!body;
   }catch(e){
     console.error('Booking save:',e);
@@ -1702,15 +1702,21 @@ function buildCard(b,hideTime){
   const card=document.createElement('div');
   const isDone = b.status==='completed';
   card.className = 'booking-card'+(isDone?' done':'')+(isOpen?' expanded':'')+(b.isWaitlist?' waitlist':'');
-  card.style.backgroundColor = b.isWaitlist?'#fde68a':getGameColor(b.name);
+  card.style.backgroundColor = b.isTimeReq?'#cffafe':b.isWaitlist?'#fde68a':getGameColor(b.name);
+  if(b.isTimeReq){card.style.outline='3px dashed #0891b2';card.style.outlineOffset='-3px';} // v16.4.96
   if(b.isRequest){card.style.outline='3px dashed #7c3aed';card.style.outlineOffset='-3px';} // v16.4.83
   card.innerHTML=`
     <div class="booking-top" onclick="togglePanel('${b.id}')">
       <div class="booking-col-left">
 <div class="booking-time">${hideTime?'':`<span class="booking-time-val">${fmt12(b.time||'00:00')}</span> `}<span class="booking-game">${escapeHtml(abbrevGameName(b.name))}</span></div>
 ${b.isWaitlist?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#e8920a;padding:2px 7px;border-radius:99px">🔔 WAITLIST</span></div>`:''}${b.isRequest?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#7c3aed;padding:2px 7px;border-radius:99px">🙋 REQUEST — finding a GM</span></div>`:''}
-<div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
+${b.isTimeReq?`<div style="margin:2px 0 4px"><span style="font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:#0891b2;padding:2px 7px;border-radius:99px">⏰ TIME REQUEST — needs an answer</span></div>`:''}<div class="booking-name">${escapeHtml(b.customer)||'—'}${b.occasion&&b.occasion.toLowerCase().includes('birthday')?' 🎂':''}</div>
         <div class="booking-meta">${b.meta||''}</div>
+        ${b.isTimeReq?`<div onclick="event.stopPropagation()" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px">
+          <button onclick="answerTimeRequest('${b.id}','accept')" style="border:none;background:#168a5a;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✓ Accept</button>
+          <button onclick="answerTimeRequest('${b.id}','suggest')" style="border:1px solid #0891b2;background:#fff;color:#0e7490;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🕑 Suggest a time</button>
+          <button onclick="answerTimeRequest('${b.id}','decline')" style="border:1px solid #dc2626;background:#fff;color:#dc2626;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Decline</button>
+        </div>`:''}
 
         ${tagHtml?`<div class="booking-tags">${tagHtml}</div>`:''}
       </div>
@@ -2369,7 +2375,7 @@ function previousFinished(b){
   if(b.playLocation==='hire'||isPastDayBk(b))return null;
   const n=nzNow(),nowM=n.getHours()*60+n.getMinutes(),toM=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+m};
   const key=bkKey(b),seen=new Set();
-  const cands=bookings.filter(x=>x.id!==b.id&&x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&x.status!=='cancelled')
+  const cands=bookings.filter(x=>x.id!==b.id&&x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&!x.isTimeReq&&x.status!=='cancelled')
     .concat(resetInfo.pastGames||[]).filter(x=>x.game_id===b.game_id&&bkKey(x)<key&&!seen.has(x.id)&&seen.add(x.id));
   const prev=cands.sort((x,y)=>bkKey(y).localeCompare(bkKey(x)))[0];
   if(!prev)return null;
@@ -2380,7 +2386,7 @@ function previousFinished(b){
 function isNextForRoom(b){
   const n=nzNow(),nowKey=ymd(TODAY_Y,TODAY_M,TODAY)+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
   const toM=t=>{const[h,m]=String(t||'0:0').split(':').map(Number);return h*60+m};
-  const live=x=>x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&x.status!=='cancelled'&&x.status!=='completed'&&!isPastDayBk(x)&&!(isTodayBk(x)&&toM(x.time)+(x.duration||60)<=toM(nowKey.slice(11)));
+  const live=x=>x.game_id===b.game_id&&x.playLocation!=='hire'&&!x.isEnquiry&&!x.isWaitlist&&!x.isRequest&&!x.isTimeReq&&x.status!=='cancelled'&&x.status!=='completed'&&!isPastDayBk(x)&&!(isTodayBk(x)&&toM(x.time)+(x.duration||60)<=toM(nowKey.slice(11)));
   const next=bookings.filter(live).sort((x,y)=>bkKey(x).localeCompare(bkKey(y)))[0];
   return !!next&&next.id===b.id;
 }
@@ -2415,7 +2421,7 @@ async function openResetFor(prevId){
 
 // v16.4.88: '▶ Run game' on today's cards, from 30 min before the start until the game ends (or is marked done)
 function runGameBtnHtml(b){
-  if(!isTodayBk(b)||b.playLocation==='hire'||b.status==='completed'||b.isEnquiry||b.isWaitlist||b.isRequest)return'';
+  if(!isTodayBk(b)||b.playLocation==='hire'||b.status==='completed'||b.isEnquiry||b.isWaitlist||b.isRequest||b.isTimeReq)return'';
   const n=nzNow(),nowM=n.getHours()*60+n.getMinutes(),[h,m]=String(b.time||'0:0').split(':').map(Number),start=h*60+m;
   const len=b.duration||(games.find(g=>g.id===b.game_id)||{}).duration||60;
   if(nowM<start-30||nowM>start+len)return'';
@@ -2629,6 +2635,40 @@ async function confirmCancelBooking(id){
   }
   cancelOpenIds.delete(id);
   bookings=bookings.filter(x=>x.id!==id);
+  renderActiveView();updateHeader();
+}
+
+// v16.4.96: TIME REQUESTS — "Ask for a time today" from the booking page (status time_request).
+// Accept confirms it and emails the customer their confirmation; Suggest emails another time (request stays open);
+// Decline cancels it and emails them. All done by the today-request function (owners/managers only).
+async function answerTimeRequest(id,decision,force){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const who=b.customer||'this customer';
+  let time=null,message='';
+  if(decision==='accept'&&!force&&!confirm(`Accept ${who}'s request for ${fmt12(b.time||'00:00')} today?\n\nThis confirms the booking${b.customerEmail?' and emails them their confirmation':''}.`))return;
+  if(decision==='suggest'){
+    const t=prompt(`What time could ${who} start instead? (e.g. 3:15pm or 15:15)`,'');if(!t)return;
+    const m=String(t).trim().toLowerCase().match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)?$/);
+    if(!m){alert('Please type a time like 3:15pm or 15:15.');return}
+    let h=+m[1];const mi=+(m[2]||0);if(m[3]==='pm'&&h<12)h+=12;if(m[3]==='am'&&h===12)h=0;
+    if(h>23||mi>59){alert('Please type a time like 3:15pm or 15:15.');return}
+    time=String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0');
+    message=prompt('Anything to add to the email? (optional)','')||'';
+  }
+  if(decision==='decline'){
+    const r=prompt(`Decline ${who}'s request? You can add a short note for their email (optional):`,'');if(r===null)return;message=r;
+  }
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/today-request`,{method:'POST',headers:H(),body:JSON.stringify({action:'reply',bookingId:id,decision,time,message,force:!!force})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||('Error '+r.status));
+    if(d.clash){if(confirm(d.message+'\n\nAccept anyway?'))return answerTimeRequest(id,'accept',true);return}
+    const phone=d.phone?` (${d.phone})`:'';
+    const done={accept:'Accepted',decline:'Declined',suggest:'Suggested '+fmt12(time||'00:00')}[decision];
+    alert(d.emailed?`${done} — ${who} has been emailed.`:`${done}. They didn't leave an email, so please text or call them${phone}.`);
+  }catch(e){alert('Could not send: '+e.message);return}
+  await updateBooking(id,()=>null);
+  if(decision==='decline')bookings=bookings.filter(x=>x.id!==id);else openPanels.add(id);
   renderActiveView();updateHeader();
 }
 
@@ -4319,7 +4359,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.95'; // v16.4.95: Settings top cards — Staff Portal back (was taken off by mistake), Task Hub taken off (it is already a header tab). Previous build: 16.4.94 — v16.4.94: Settings tidied — top buttons are cards 3 in a row (Staff Portal and Clients taken off, they are in the header); new Website group with Reviews, Room pages, FAQs and Check booking slots. Previous build: 16.4.93 — v16.4.93: Settings has a 'Website rooms' button (admin/manager) opening site_rooms.html. Previous build: 16.4.92 — v16.4.92: no longer signs you out when the internet drops or Supabase is down while opening the app or renewing the login — only when Supabase says the login itself is no good (400/401/403). Previous build: 16.4.91 — v16.4.91: Settings has a 'Website FAQs' button (admin/manager) opening site_faqs.html. Previous build: 16.4.90 — v16.4.90: Settings has a 'Website reviews' button (admin/manager) opening site_reviews.html. Previous build: 16.4.89 — v16.4.89: Settings has a 'Check booking slots' button (admin/manager) opening the booking page's Slot checker (booking_widget.html?check=1, needs v1.7.58). Previous build: 16.4.88 — v16.4.88: New booking heading shows the day it will be booked on (with '(today)' or a red '(past date!)'); grey sample text removed from the New booking and New package forms; '▶ Run game' button on today's booking cards from 30 min before the start until the game ends, opening it in Control Room. Previous build: 16.4.87 — v16.4.87: the red 'Room not reset' chip now also checks the room's last game on an earlier day (up to 60 days back, only since its reset checklist was set up) and shows on future games too, like Control Room v23; a room 'sent back' as not reset shows on the room's next game; green 'Room ready' stays on today's games only. Previous build: 16.4.86 — v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.96'; // v16.4.96: 'Ask for a time today' requests from the booking page show on the calendar (light blue, ⏰ TIME REQUEST) with Accept / Suggest a time / Decline — the customer is emailed each time. | // v16.4.95: Settings top cards — Staff Portal back (was taken off by mistake), Task Hub taken off (it is already a header tab). Previous build: 16.4.94 — v16.4.94: Settings tidied — top buttons are cards 3 in a row (Staff Portal and Clients taken off, they are in the header); new Website group with Reviews, Room pages, FAQs and Check booking slots. Previous build: 16.4.93 — v16.4.93: Settings has a 'Website rooms' button (admin/manager) opening site_rooms.html. Previous build: 16.4.92 — v16.4.92: no longer signs you out when the internet drops or Supabase is down while opening the app or renewing the login — only when Supabase says the login itself is no good (400/401/403). Previous build: 16.4.91 — v16.4.91: Settings has a 'Website FAQs' button (admin/manager) opening site_faqs.html. Previous build: 16.4.90 — v16.4.90: Settings has a 'Website reviews' button (admin/manager) opening site_reviews.html. Previous build: 16.4.89 — v16.4.89: Settings has a 'Check booking slots' button (admin/manager) opening the booking page's Slot checker (booking_widget.html?check=1, needs v1.7.58). Previous build: 16.4.88 — v16.4.88: New booking heading shows the day it will be booked on (with '(today)' or a red '(past date!)'); grey sample text removed from the New booking and New package forms; '▶ Run game' button on today's booking cards from 30 min before the start until the game ends, opening it in Control Room. Previous build: 16.4.87 — v16.4.87: the red 'Room not reset' chip now also checks the room's last game on an earlier day (up to 60 days back, only since its reset checklist was set up) and shows on future games too, like Control Room v23; a room 'sent back' as not reset shows on the room's next game; green 'Room ready' stays on today's games only. Previous build: 16.4.86 — v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).

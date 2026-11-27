@@ -4861,6 +4861,41 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
   </div>
 </div>
 
+<!-- v1.7.69: "Ask for a time today" -->
+<div class="enq-overlay" id="trOverlay">
+  <div class="enq-modal">
+    <div class="enq-modal-title">Ask for a time today</div>
+    <div class="enq-modal-sub" id="trSub">Tell us when you'd like to play. We'll check and get back to you to confirm — it isn't booked until we do.</div>
+    <div class="field">
+      <div class="field-label">Time you'd like <span class="req">*</span></div>
+      <select class="field-input" id="trTime"></select>
+    </div>
+    <div class="field">
+      <div class="field-label">Players <span class="req">*</span></div>
+      <select class="field-input" id="trPlayers"></select>
+    </div>
+    <div class="field">
+      <div class="field-label">Your name <span class="req">*</span></div>
+      <input class="field-input" type="text" id="trName" placeholder="Full name" autocomplete="name">
+    </div>
+    <div class="field">
+      <div class="field-label">Mobile <span class="req">*</span></div>
+      <input class="field-input" type="tel" id="trPhone" placeholder="021 123 4567" autocomplete="tel">
+    </div>
+    <div class="field">
+      <div class="field-label">Email</div>
+      <input class="field-input" type="email" id="trEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <div class="field-label">Anything else?</div>
+      <input class="field-input" type="text" id="trNotes" placeholder="e.g. could also do a bit later">
+    </div>
+    <div class="err-msg" id="trErr"></div>
+    <button class="btn btn-primary" id="btnTrSubmit" onclick="submitTodayRequest()">Send my request →</button>
+    <button class="btn btn-ghost" onclick="closeTodayRequest()">Cancel</button>
+  </div>
+</div>
+
 <!-- ============================================================ -->
 <!-- ============================================================ -->
 <!-- ====== SCRIPT ====== -->
@@ -4912,7 +4947,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.68-theme-demo'; // v1.7.68: messages to the page around the booking box only go to our own site. // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step). // DEMO copy — see top of file. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
+const BUILD_VERSION = '1.7.69-theme-demo'; // v1.7.69: today's box no longer says 'not bookable online'; times start at opening + 30 min (booking config openPrepMinutes); new 'Ask for a time today' form (status time_request, owners notified). | v1.7.67: // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step) so the page can no longer be used to test whether an email or phone belongs to a customer. Nothing visible changes. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
 // Previous build: 1.7.64 — v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
 // Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
@@ -6393,6 +6428,9 @@ function tonightWindows(gameId, dateStr) {
   let start = Math.ceil((nowMin + lead) / TONIGHT_STEP_MIN) * TONIGHT_STEP_MIN;
   const len = gameLength(gameId);
   const oh = (bookingConfig.openingHours || []).find(h => h.day === now.getDay());
+  // v1.7.69: never before opening time + setup time (default 30 min: open up, turn things on, reset rooms)
+  const prep = Number(bookingConfig.openPrepMinutes ?? 30);
+  if (oh && oh.open) start = Math.max(start, Math.ceil((hmToMins(oh.open) + (isNaN(prep) ? 30 : prep)) / TONIGHT_STEP_MIN) * TONIGHT_STEP_MIN);
   let closeMin = oh && oh.close ? hmToMins(oh.close) : 22 * 60;
   // v1.7.64: never later than the game's own last start time that day (e.g. Mini Escape Room stops before 5pm)
   const daySlots = getSlotsForGame(gameId, now.getDay());
@@ -6416,9 +6454,12 @@ function tonightBoxHtml(gameId, dateStr) {
   if (!r.length) return '';
   const g = games.find(x => x.id === gameId);
   const when = r.map(x => x.s === x.e ? `at ${tonightFmt(x.s)}` : `any time between ${tonightFmt(x.s)} and ${tonightFmt(x.e)}`).join(', or ');
+  // v1.7.69: no longer says "not bookable online" (the green times below ARE bookable) — offers "ask for a time" instead
   return `<div style="grid-column:1/-1;background:#ecfeff;border:2px solid #07b4c5;border-radius:12px;padding:12px 14px;margin-bottom:4px;line-height:1.45;color:#0e4f5c">
-    📞 <b>Still want to play today?</b> ${escapeHtml(g ? g.name : 'This game')} may be able to start ${when} — these times aren't bookable online, so just
-    <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">call us on 022 053 7365</a> to book.</div>`;
+    ⏰ <b>Want a different time today?</b> ${escapeHtml(g ? g.name : 'This game')} may be able to start ${when}.
+    Ask for the time that suits you and we'll check and get back to you to confirm — or
+    <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">call us on 022 053 7365</a>.
+    <div style="margin-top:10px"><button type="button" class="btn btn-primary" style="width:auto;padding:10px 18px;margin:0" onclick="openTodayRequest('${gameId}')">Ask for a time today →</button></div></div>`;
 }
 // v1.7.64: optional per-game note shown above that game's times (booking config gameNotes, e.g. the Mini Escape Room)
 function gameNoteHtml(gameId) {
@@ -7668,6 +7709,82 @@ function closeWaitlist() {
   waitlistCtx = null;
 }
 
+// v1.7.69: "Ask for a time today" — the customer picks a start time from today's possible times (not the normal
+// bookable slots, they can book those straight away), the request is saved as status 'time_request' and the owners
+// get a phone notification + email (database trigger -> today-request function). Staff accept / suggest / decline in BtB App.
+let todayReqGame = null;
+function openTodayRequest(gameId) {
+  const g = games.find(x => x.id === gameId); if (!g) return;
+  const today = nzToday();
+  const times = [];
+  tonightWindows(gameId, today).forEach(r => { for (let m = r.s; m <= r.e; m += TONIGHT_STEP_MIN) times.push(m); });
+  const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const bookable = new Set(getSlotsForGame(gameId, nzNow().getDay()).filter(t => { try { const st = getSlotStatus(gameId, today, t); return st === 'available' || st === 'request'; } catch (e) { return false; } }));
+  const opts = times.map(hm).filter(t => !bookable.has(t));
+  if (!opts.length) { alert('Those times can be booked straight away above — or call us on 022 053 7365.'); return; }
+  todayReqGame = g;
+  document.getElementById('trSub').textContent = `${g.name}, today. Tell us when you'd like to play and we'll check and get back to you to confirm — it isn't booked until we do.`;
+  document.getElementById('trTime').innerHTML = opts.map(t => `<option value="${t}">${fmt12(t)}</option>`).join('');
+  const mn = Math.max(1, Number(g.minPlayers) || 1), mx = Math.min(Number(g.maxPlayers) || 8, 30);
+  const pl = []; for (let n = mn; n <= Math.max(mn, mx); n++) pl.push(n);
+  document.getElementById('trPlayers').innerHTML = pl.map(n => `<option value="${n}"${n === Math.min(Math.max(mn, 4), mx) ? ' selected' : ''}>${n}</option>`).join('');
+  ['trName', 'trPhone', 'trEmail', 'trNotes'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('trErr').classList.remove('show');
+  document.getElementById('trOverlay').classList.add('open');
+}
+function closeTodayRequest() { document.getElementById('trOverlay').classList.remove('open'); todayReqGame = null; }
+async function submitTodayRequest() {
+  const g = todayReqGame; if (!g) { closeTodayRequest(); return; }
+  const time = document.getElementById('trTime').value;
+  const players = parseInt(document.getElementById('trPlayers').value, 10) || 1;
+  const name = document.getElementById('trName').value.trim();
+  const phone = document.getElementById('trPhone').value.trim();
+  const email = document.getElementById('trEmail').value.trim().toLowerCase();
+  const notes = document.getElementById('trNotes').value.trim().slice(0, 500);
+  const errEl = document.getElementById('trErr');
+  const err = m => { errEl.textContent = m; errEl.classList.add('show'); };
+  if (!name) return err('Please enter your name.');
+  if (phone.replace(/\D/g, '').length < 7) return err('Please enter a mobile number so we can text you back.');
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err('That email doesn\'t look right.');
+  const btn = document.getElementById('btnTrSubmit'); btn.disabled = true; btn.textContent = 'Sending…';
+  const parts = name.split(' '); const first = parts[0] || name; const last = parts.slice(1).join(' ') || null;
+  try {
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email || null, p_phone: phone, p_source: 'online' })
+    });
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+    const clientId = await cr.json();
+    const price = calcPrice(g.id, players).total || null;
+    const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
+      method: 'POST', headers: { ...SB_H, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({
+        client_id: clientId, game_id: g.id, game_name: g.name, booking_date: nzToday(), slot_time: time + ':00',
+        players_booked: players, total_amount: price, status: 'time_request', source: 'online', skip_confirmation_email: true,
+        notes_when_booked: `${name} · Asked for ${fmt12(time)} today · ${phone}${email ? ' · ' + email : ''}${notes ? ' · ' + notes : ''}`,
+        tags: JSON.stringify([]), staff_notes: JSON.stringify([]), assigned_staff_ids: JSON.stringify([]),
+      })
+    });
+    if (!br.ok) throw new Error('Request save failed: ' + await br.text());
+  } catch (e) {
+    console.error('Today request error:', e);
+    if (window.btbLogError) btbLogError('today-request', e, { game: g.id, time });
+    btn.disabled = false; btn.textContent = 'Send my request →';
+    return err('Something went wrong — please call us on 022 053 7365.');
+  }
+  btn.disabled = false; btn.textContent = 'Send my request →';
+  closeTodayRequest();
+  const thanks = document.createElement('div');
+  thanks.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  thanks.innerHTML = `<div style="background:var(--bg-card);border:var(--ticket-border);border-radius:var(--ticket-radius);padding:32px;width:100%;max-width:380px;text-align:center;box-shadow:var(--shadow)">
+      <div style="font-size:52px;margin-bottom:14px">⏰</div>
+      <div style="font-family:var(--head-font);font-size:30px;color:var(--text-primary);margin-bottom:8px">Request sent!</div>
+Thanks ${escapeHtml(first)}! We'll check ${escapeHtml(g.name)} at <strong style="color:var(--text-primary)">${escapeHtml(fmt12(time))}</strong> and get back to you on <strong style="color:var(--text-primary)">${escapeHtml(phone)}</strong>${email ? ' or by email' : ''} as soon as we can. It isn't booked until we confirm.
+<button class="btn btn-primary" id="trThanksDone">Done →</button>
+    </div>`;
+  document.body.appendChild(thanks);
+  document.getElementById('trThanksDone').onclick = () => thanks.remove();
+}
+
 async function submitWaitlist() {
   const name = document.getElementById('wlName').value.trim();
   const contact = document.getElementById('wlContact').value.trim();
@@ -7898,10 +8015,9 @@ init();
   
 
 
-
-<script>
 window.BTB_PARENT_ORIGIN = window.BTB_PARENT_ORIGIN || (function () { try { var o = new URL(document.referrer).origin; if (/^https:\/\/(www\.)?btbescaperooms\.co\.nz$/.test(o) || o === 'https://btb-app.pages.dev' || /^https:\/\/[a-z0-9-]+\.btb-app\.pages\.dev$/.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o)) return o; } catch (e) {} return location.origin; })(); // only our own site gets the widget's messages
 
+<script>
 // ============================================================
 // DEMO v1.8.0-demo additions (look + small helpers only — booking rules untouched)
 //  1. Room photo on the ticket stub (uses the game's photo from Settings > Games,
