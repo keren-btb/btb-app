@@ -128,6 +128,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.93 — 2026-11-27 — Settings has a "Website rooms" button (admins/managers) that opens the new site_rooms.html. Nothing removed.
 - v16.4.92 — 2026-11-27 — Error log fixes: opening the app with no internet (or while Supabase is down) no longer signs you out — the background login check only signs out if Supabase says the login is bad (401/403). Renewing the login while Supabase is down (5xx) now waits a minute and tries again, like a dropped connection (26 Nov outage signed people out). Nothing removed.
 - v16.4.91 — 2026-11-27 — Settings has a "Website FAQs" button (admins/managers) that opens the new site_faqs.html. Nothing removed.
 - v16.4.90 — 2026-11-27 — Settings has a "Website reviews" button (admins/managers) that opens the new site_reviews.html. Nothing removed.
@@ -317,6 +318,9 @@ Newest entry per file goes at the top of that file's list.
 - v12 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy); no behaviour change
 - v11 — 2026-07-29 — Security fix: escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+
+## site_rooms.html
+- v1.0.0 — 2026-11-27 — NEW page: the website's room pages (the "case file" that opens when you tap a room photo), edited here instead of in the website code. Per room: name, small line, story (paragraphs), tip, fact box (add/remove facts), Great for list, booking button (words + which game it opens) or a call-us button, main photo (upload, or use the website's own) and spoiler photos (upload several, captions, move left/right, take off the page). Photos are shrunk before upload and stored in the public 'site-photos' bucket; nothing is deleted from it. Page on/off switch. The website reads shown rooms via public_site_rooms() (sql/2026-11-27_site_rooms.sql, applied with Keren's OK). Admin / manager / owner only (enforced by the database). Nothing removed.
 
 ## site_faqs.html
 - v1.0.0 — 2026-11-27 — NEW page: the website's FAQs, edited here instead of in the website code. Add a question (question, answer, optional link words + address), Change, move Up/Down, Show/Hide switch, Delete (asks first). The website reads only shown ones, in this order, via public_site_faqs() (sql/2026-11-27_site_faqs.sql, applied with Keren's OK; started with the 11 FAQs already on the new site). Admin / manager / owner only (enforced by the database). Nothing removed.

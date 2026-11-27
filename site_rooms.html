@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Website rooms</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#07b4c5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#15803d;--red:#dc2626;--amber:#b45309;--gold:#f59e0b;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-input{width:100%;font-size:16px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:inherit}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.wrap{display:none;max-width:900px;margin:0 auto;padding:0 0 60px}
+header.topbar{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.topbar a{color:#8a9bb5;font-size:12px;text-decoration:none}
+.topbar-title{color:#fff;font-size:16px;font-weight:700;flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px}
+.btn:hover{border-color:var(--teal)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-danger{color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.content{padding:14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:4px}
+.help{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+label.f{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.in{width:100%;font-size:16px;font-family:inherit;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.in:focus{outline:none;border-color:var(--teal)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.45}
+.grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.grid3{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.msg{font-size:13px;margin-top:8px;min-height:18px}.err{color:var(--red)}.ok{color:var(--green)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.room{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;text-align:left;font:inherit;padding:0;display:flex;flex-direction:column}
+.room:hover{border-color:var(--teal)}
+.room img{width:100%;aspect-ratio:4/3;object-fit:cover;background:#e5e7eb;display:block}
+.room .b{padding:10px 12px}.room .n{font-weight:700}.room .s{font-size:12px;color:var(--muted)}
+.room.off{opacity:.6}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:700;user-select:none}
+.switch input{display:none}
+.switch .tr{width:44px;height:26px;border-radius:99px;background:#d1d5db;position:relative;transition:background .2s;flex:none}
+.switch .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.switch input:checked + .tr{background:var(--green)}
+.switch input:checked + .tr::after{left:21px}
+.ed{display:none}.ed.show{display:block}
+.sec{font-size:13px;font-weight:800;margin:18px 0 2px;color:var(--navy)}
+.fact{display:grid;grid-template-columns:120px 1fr 1.4fr auto;gap:6px;margin-bottom:6px}
+@media(max-width:640px){.fact{grid-template-columns:1fr 1fr}.fact .in:nth-child(3){grid-column:1/-1}}
+.mainph{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.mainph img{width:150px;aspect-ratio:673/1000;object-fit:cover;border-radius:8px;background:#e5e7eb}
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.sp{background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:8px}
+.sp img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block;background:#e5e7eb}
+.sp .in{margin-top:6px;font-size:14px;padding:6px 8px}
+.sp .small{display:flex;gap:4px;margin-top:6px}
+.sp .small .btn{min-height:32px;padding:4px 8px;font-size:12px;flex:1;justify-content:center}
+.upl{position:relative;overflow:hidden}
+.upl input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.sticky{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);margin:14px -14px -14px;padding:12px 14px;border-radius:0 0 12px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:26px}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div style="color:var(--teal);font-size:22px;font-weight:800;margin-bottom:20px"><i class="ti ti-door"></i> Website rooms</div>
+  <div class="login-card">
+    <input class="login-input" id="loginEmail" placeholder="firstname" autocapitalize="off">
+    <input class="login-input" id="loginPass" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button><div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <a href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <div class="topbar-title"><i class="ti ti-door"></i> Website rooms <span id="ver" style="font-size:10px;color:#8a9bb5;font-weight:400"></span></div>
+    <a class="btn" style="color:var(--text)" href="https://btb-app.pages.dev/test/new-site/demo/#rooms" target="_blank" rel="noreferrer"><i class="ti ti-external-link"></i> See on website</a>
+  </header>
+  <div class="content">
+    <div id="listView">
+      <p class="help">These are the pages that open when someone taps a room's photo on the website. Tap a room to change its words or photos. Changes show on the website straight away (refresh the page).</p>
+      <div class="rooms" id="rooms"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="ed card" id="ed"></div>
+  </div>
+</div>
+<script>
+// BtB error logger (same as the other pages) — handled errors and failure pop-ups go to Settings > Errors
+(function(){
+  var PAGE='site_rooms.html',EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0,seen={};
+  function send(level,source,msg,stack){try{msg=String(msg||'').slice(0,2000);var k=source+'|'+msg;if(seen[k]||sent>=20)return;seen[k]=1;sent++;
+    var tok=KEY;try{if(currentUser&&currentUser.token)tok=currentUser.token}catch(e){}
+    fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:JSON.stringify({level:level,source:source,message:msg,stack:stack?String(stack).slice(0,8000):null,page:PAGE,url:location.origin+location.pathname,context:{},user_agent:navigator.userAgent.slice(0,400),app_version:(typeof BUILD_VERSION!=='undefined'?BUILD_VERSION:null)}),keepalive:true}).catch(function(){})}catch(e){}}
+  window.addEventListener('error',function(e){send('error','window.onerror',e.message,e.error&&e.error.stack)});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;send('error','promise',(r&&r.message)||String(r),r&&r.stack)});
+  window.btbLogError=function(s,err){send('error',s,(err&&err.message)||String(err),err&&err.stack)};
+  try{var ce=console.error;console.error=function(){try{ce.apply(console,arguments)}catch(x){}try{var p=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:(typeof x==='string'?x:'')}).filter(Boolean);if(p.length)send('error','console.error',p.join(' '))}catch(x){}}}catch(x){}
+})();
+</script>
+<script>
+// site_rooms.html v1.0.0 — 2026-11-27: the website's room pages ("case files"), edited here instead of in code.
+// Words, facts, "Great for", booking button, main photo and spoiler photos (uploaded to the public 'site-photos'
+// bucket, shrunk first). Removing a photo just stops it showing — files are never deleted.
+// The website reads shown rooms via public_site_rooms() (sql/2026-11-27_site_rooms.sql). Admin / manager / owner only.
+const BUILD_VERSION='1.0.0';
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+const BUCKET='site-photos';
+// The website's own photos, used until a new main photo is uploaded here
+const SITE_PHOTO={sherlock:'sherlock.jpg',christmas:'christmas.jpg',gregg:'gregg.jpg',cube:'the-cube.jpg',pirates:'pirates-cove.jpg'};
+const sitePhoto=id=>SITE_PHOTO[id]?`new-site/images/${SITE_PHOTO[id]}`:'';
+const ICONS=[['time','⏱ Time'],['players','👥 Players'],['price','🎟 Price'],['level','🧩 Style'],['place','📍 Where']];
+let currentUser=null,tokenTimer=null,rooms=[],games=[],cur=null,dirty=false;
+const H=()=>({'Content-Type':'application/json','Authorization':`Bearer ${currentUser?.token||SB_ANON}`,'apikey':SB_ANON});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),'Prefer':'return=representation',...(opts.headers||{})}});
+  const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||t||('Error '+r.status));return d;
+}
+async function edge(action,params){
+  const r=await fetch(`${SB_URL}/functions/v1/btb-admin`,{method:'POST',headers:H(),body:JSON.stringify({action,...params})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('Error '+r.status));return d;
+}
+
+// ───────── PHOTOS: shrink in the browser, then upload ─────────
+function shrink(file,max=1600){return new Promise((res,rej)=>{
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?res(b):rej(new Error('Could not read that photo')),'image/jpeg',.85)};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('That file isn\'t a photo this browser can open (try a JPG or PNG)'))};img.src=url})}
+async function upload(file,room){
+  const blob=await shrink(file);
+  const path=`${room}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
+  const r=await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`,{method:'POST',headers:{'Authorization':`Bearer ${currentUser.token}`,'apikey':SB_ANON,'Content-Type':'image/jpeg','x-upsert':'false'},body:blob});
+  if(!r.ok){const t=await r.text();throw new Error('Upload failed: '+t.slice(0,200))}
+  return `${SB_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+// ───────── LIST ─────────
+async function load(){
+  try{
+    rooms=await api('site_rooms?select=*&order=sort_order,id')||[];
+    try{const s=await api('settings?key=eq.btb_games&select=value');games=JSON.parse(s?.[0]?.value||'[]').filter(g=>g.active!==false)}catch(e){games=[]}
+    renderList();
+  }catch(e){document.getElementById('rooms').innerHTML=`<div class="empty err">Couldn't load the rooms: ${esc(e.message)}</div>`;btbLogError('load rooms',e)}
+}
+function renderList(){
+  document.getElementById('rooms').innerHTML=rooms.map(r=>`
+    <button class="room ${r.show_page?'':'off'}" onclick="openRoom('${r.id}')">
+      <img src="${esc(r.main_photo_url||sitePhoto(r.id))}" alt="" loading="lazy">
+      <div class="b"><div class="n">${esc(r.name)}</div><div class="s">${r.show_page?'Page showing':'Page hidden'} · ${(r.spoilers||[]).length} spoiler photo${(r.spoilers||[]).length===1?'':'s'}</div></div>
+    </button>`).join('')||'<div class="empty">No rooms yet.</div>';
+}
+
+// ───────── EDITOR ─────────
+function openRoom(id){
+  const r=rooms.find(x=>x.id===id);if(!r)return;
+  cur=JSON.parse(JSON.stringify(r));cur.facts=cur.facts||[];cur.spoilers=cur.spoilers||[];dirty=false;
+  document.getElementById('listView').style.display='none';renderEd();document.getElementById('ed').classList.add('show');window.scrollTo(0,0);
+}
+function closeEd(){
+  if(dirty&&!confirm('You have changes that aren\'t saved. Leave without saving?'))return;
+  cur=null;document.getElementById('ed').classList.remove('show');document.getElementById('listView').style.display='';renderList();
+}
+const mark=()=>{dirty=true;const m=document.getElementById('edMsg');if(m)m.innerHTML='<span style="color:var(--amber)">Not saved yet</span>'};
+function bind(id,key,fn){const el=document.getElementById(id);el.addEventListener('input',()=>{cur[key]=fn?fn(el.value):el.value;mark()})}
+function renderEd(){
+  const r=cur,gOpts=['<option value="">— no game (opens the escape room list)</option>'].concat(games.filter(g=>g.bookable!==false).map(g=>`<option value="${esc(g.id)}" ${r.book_game_id===g.id?'selected':''}>${esc(g.name)}</option>`));
+  if(r.book_game_id&&!games.some(g=>g.id===r.book_game_id&&g.bookable!==false))gOpts.push(`<option value="${esc(r.book_game_id)}" selected>${esc(r.book_game_id)} (not bookable right now)</option>`);
+  document.getElementById('ed').innerHTML=`
+    <div class="row" style="margin-top:0"><button class="btn" onclick="closeEd()"><i class="ti ti-chevron-left"></i> All rooms</button><span style="flex:1"></span>
+      <label class="switch"><input type="checkbox" id="eShow" ${r.show_page?'checked':''}><span class="tr"></span> Page shows on website</label></div>
+    <h2 style="margin-top:12px">${esc(r.name)}</h2>
+    <div class="grid2">
+      <div><label class="f" for="eName">Room name</label><input class="in" id="eName" value="${esc(r.name)}" maxlength="60"></div>
+      <div><label class="f" for="eKicker">Small line above the name</label><input class="in" id="eKicker" value="${esc(r.kicker)}" maxlength="80" placeholder="e.g. A case left unfinished"></div>
+    </div>
+    <label class="f" for="eStory">The story (leave a blank line between paragraphs; the first one shows big)</label>
+    <textarea class="in" id="eStory" style="min-height:150px" maxlength="3000">${esc(r.story)}</textarea>
+    <label class="f" for="eTip">Tip (optional, shown in a box)</label>
+    <input class="in" id="eTip" value="${esc(r.tip)}" maxlength="240">
+
+    <div class="sec">Fact box</div>
+    <div id="facts"></div>
+    <button class="btn" onclick="cur.facts.push({icon:'level',label:'',value:''});mark();renderFacts()"><i class="ti ti-plus"></i> Add a fact</button>
+
+    <label class="f" for="eGood">Great for (one per line)</label>
+    <textarea class="in" id="eGood" maxlength="600">${esc((r.good_for||[]).join('\n'))}</textarea>
+
+    <div class="sec">Booking button</div>
+    <div class="grid2">
+      <div><label class="f" for="eBookLabel">Button words</label><input class="in" id="eBookLabel" value="${esc(r.book_label)}" maxlength="50" placeholder="e.g. Book Sherlock"></div>
+      <div><label class="f" for="eBookGame">Opens the booking page on</label><select class="in" id="eBookGame">${gOpts.join('')}</select></div>
+    </div>
+    <label class="f" for="eCall">…or a "call us" button instead (fill this in and leave the button words empty)</label>
+    <input class="in" id="eCall" value="${esc(r.call_label)}" maxlength="60" placeholder="e.g. Call to book Pirate’s Cove">
+
+    <div class="sec">Main photo</div>
+    <div class="mainph">
+      <img id="mainImg" src="${esc(r.main_photo_url||sitePhoto(r.id))}" alt="">
+      <div>
+        <p class="help" id="mainNote">${r.main_photo_url?'Your uploaded photo.':'Using the website\'s own photo.'} A tall (portrait) photo looks best, like a poster.</p>
+        <span class="btn upl"><i class="ti ti-upload"></i> Upload a new main photo<input type="file" accept="image/*" onchange="newMain(this)"></span>
+        ${r.main_photo_url&&sitePhoto(r.id)?`<button class="btn" style="margin-top:6px" onclick="cur.main_photo_url=null;mark();renderEd()">Use the website's own photo</button>`:''}
+      </div>
+    </div>
+
+    <div class="sec">Spoiler photos</div>
+    <p class="help">These sit under "Spoiler alert" tape until someone taps one. 3 looks best (it fills a row). Add a short caption for each.</p>
+    <div class="sp-grid" id="sps"></div>
+    <span class="btn upl" style="margin-top:10px"><i class="ti ti-photo-plus"></i> Add spoiler photos<input type="file" accept="image/*" multiple onchange="newSpoilers(this)"></span>
+    <div class="msg" id="upMsg"></div>
+
+    <div class="sticky"><button class="btn btn-primary" id="btnSave" onclick="save()"><i class="ti ti-device-floppy"></i> Save ${esc(r.name)}</button><button class="btn" onclick="closeEd()">Close</button><span class="msg" id="edMsg" style="margin:0"></span></div>`;
+  bind('eName','name');bind('eKicker','kicker');bind('eStory','story');bind('eTip','tip');
+  bind('eGood','good_for',v=>v.split('\n').map(s=>s.trim()).filter(Boolean));
+  bind('eBookLabel','book_label');bind('eCall','call_label');
+  document.getElementById('eBookGame').addEventListener('change',e=>{cur.book_game_id=e.target.value||null;mark()});
+  document.getElementById('eShow').addEventListener('change',e=>{cur.show_page=e.target.checked;mark()});
+  renderFacts();renderSpoilers();
+}
+function renderFacts(){
+  document.getElementById('facts').innerHTML=cur.facts.map((f,i)=>`
+    <div class="fact">
+      <select class="in" onchange="cur.facts[${i}].icon=this.value;mark()">${ICONS.map(([k,l])=>`<option value="${k}" ${f.icon===k?'selected':''}>${l}</option>`).join('')}</select>
+      <input class="in" value="${esc(f.label)}" placeholder="Label" maxlength="30" oninput="cur.facts[${i}].label=this.value;mark()">
+      <input class="in" value="${esc(f.value)}" placeholder="What it says" maxlength="60" oninput="cur.facts[${i}].value=this.value;mark()">
+      <button class="btn btn-danger" title="Remove this fact" onclick="cur.facts.splice(${i},1);mark();renderFacts()"><i class="ti ti-x"></i></button>
+    </div>`).join('')||'<p class="help">No facts yet.</p>';
+}
+function renderSpoilers(){
+  document.getElementById('sps').innerHTML=cur.spoilers.map((s,i)=>`
+    <div class="sp">
+      <img src="${esc(s.url)}" alt="">
+      <input class="in" value="${esc(s.caption)}" placeholder="Caption, e.g. The study" maxlength="80" oninput="cur.spoilers[${i}].caption=this.value;mark()">
+      <div class="small">
+        <button class="btn" title="Move left" ${i===0?'disabled':''} onclick="mv(${i},-1)"><i class="ti ti-arrow-left"></i></button>
+        <button class="btn" title="Move right" ${i===cur.spoilers.length-1?'disabled':''} onclick="mv(${i},1)"><i class="ti ti-arrow-right"></i></button>
+        <button class="btn btn-danger" title="Take off the page" onclick="if(confirm('Take this photo off the page?'))cur.spoilers.splice(${i},1),mark(),renderSpoilers()"><i class="ti ti-x"></i></button>
+      </div>
+    </div>`).join('')||'<p class="help">No spoiler photos yet. Until you add some, the website shows "coming soon" frames.</p>';
+}
+function mv(i,d){const j=i+d;[cur.spoilers[i],cur.spoilers[j]]=[cur.spoilers[j],cur.spoilers[i]];mark();renderSpoilers()}
+async function newMain(input){
+  const f=input.files[0];input.value='';if(!f)return;const note=document.getElementById('mainNote');note.textContent='Uploading…';
+  try{cur.main_photo_url=await upload(f,cur.id);mark();renderEd();document.getElementById('edMsg').innerHTML='<span style="color:var(--amber)">Photo uploaded. Press Save to put it on the website.</span>'}
+  catch(e){note.innerHTML=`<span class="err">${esc(e.message)}</span>`;btbLogError('upload main photo',e)}
+}
+async function newSpoilers(input){
+  const files=[...input.files];input.value='';if(!files.length)return;const m=document.getElementById('upMsg');
+  for(let k=0;k<files.length;k++){
+    m.innerHTML=`Uploading ${k+1} of ${files.length}…`;
+    try{const url=await upload(files[k],cur.id);cur.spoilers.push({url,caption:''});mark();renderSpoilers()}
+    catch(e){m.innerHTML=`<span class="err">${esc(files[k].name)}: ${esc(e.message)}</span>`;btbLogError('upload spoiler',e);return}
+  }
+  m.innerHTML='<span class="ok">Uploaded. Add captions, then press Save.</span>';
+}
+async function save(){
+  const m=document.getElementById('edMsg'),b=document.getElementById('btnSave');
+  if(!String(cur.name||'').trim()){m.innerHTML='<span class="err">The room needs a name.</span>';return}
+  const row={name:cur.name.trim(),kicker:(cur.kicker||'').trim()||null,story:(cur.story||'').trim(),tip:(cur.tip||'').trim()||null,
+    facts:cur.facts.filter(f=>String(f.label||'').trim()||String(f.value||'').trim()).map(f=>({icon:f.icon,label:String(f.label||'').trim(),value:String(f.value||'').trim()})),
+    good_for:cur.good_for||[],main_photo_url:cur.main_photo_url||null,spoilers:cur.spoilers.map(s=>({url:s.url,caption:String(s.caption||'').trim()})),
+    book_label:(cur.book_label||'').trim()||null,book_game_id:cur.book_game_id||null,call_label:(cur.call_label||'').trim()||null,show_page:!!cur.show_page};
+  b.disabled=true;m.textContent='Saving…';
+  try{const out=await api(`site_rooms?id=eq.${encodeURIComponent(cur.id)}`,{method:'PATCH',body:JSON.stringify(row)});
+    const i=rooms.findIndex(x=>x.id===cur.id);if(out&&out[0])rooms[i]=out[0];dirty=false;m.innerHTML='<span class="ok">Saved ✓ — refresh the website to see it</span>'}
+  catch(e){m.innerHTML=`<span class="err">Couldn't save: ${esc(e.message)}</span>`;btbLogError('save room',e)}
+  finally{b.disabled=false}
+}
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+
+// ───────── LOGIN (same shared session as the other staff pages) ─────────
+function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)return;tokenTimer=setTimeout(refreshToken,Math.max(5000,currentUser.expiresAt-Date.now()-120000))}
+async function refreshToken(){
+  if(!currentUser?.refreshToken)return;
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
+  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();if(!r.ok){err.textContent=d.error_description||'Login failed.';return}
+    currentUser={id:d.user.id,email,token:d.access_token,refreshToken:d.refresh_token,expiresAt:Date.now()+(d.expires_in||3600)*1000};
+    const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));start()}
+  catch(e){err.textContent='Connection error.'}
+}
+function doLogout(){clearTimeout(tokenTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active')}
+async function start(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  document.getElementById('ver').textContent='v'+BUILD_VERSION;scheduleRefresh();await load();
+}
+window.addEventListener('DOMContentLoaded',async()=>{
+  const s=localStorage.getItem('btb_staff_session');if(!s)return;
+  try{currentUser=JSON.parse(s);if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<300000){await refreshToken();if(!currentUser)return}
+    start()}catch(e){doLogout()}
+});
+</script>
+</body>
+</html>
