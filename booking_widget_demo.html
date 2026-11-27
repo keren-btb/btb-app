@@ -2536,7 +2536,8 @@ body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .c
 }
 @keyframes tc-point { 0%, 100% { transform: translate(0,0) rotate(0) } 50% { transform: translate(9px,-3px) rotate(-3deg) } }
 @media (max-width: 700px) {
-  .tc-row { justify-content: space-between; gap: 4px; }
+  .tc-row { justify-content: space-between; gap: 4px; width: 100%; }
+  .tc-line { left: 11.5% !important; right: 11.5% !important; }
   .tc-choice { width: 23%; }
   .tc-arrow { position: relative; left: auto; top: auto; width: auto; display: flex; align-items: center; gap: 8px; margin: 0 0 8px 4px; animation: tc-nudge 1.4s ease-in-out infinite; }
   .tc-arrow svg { width: 34px; transform: rotate(78deg); }
@@ -2544,14 +2545,21 @@ body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .c
   @keyframes tc-nudge { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(4px) } }
 }
 
-/* red line under the circles with a light running along it */
-.tc-line { height: 3px; margin: 12px 4px 0; background: #dc2626; border-radius: 3px; position: relative; overflow: hidden; }
+/* red line running BEHIND the circles, through their middles, with a light travelling along it */
+.tc-row { position: relative; width: max-content; max-width: 100%; }
+.tc-line { left: calc(clamp(64px, 9vw, 92px) / 2) !important; right: calc(clamp(64px, 9vw, 92px) / 2) !important; }
+body[data-screen="s2-escape"] #s2-escape > .sec-title { display: none; }
+.tc-line {
+  position: absolute; left: 8px; right: 8px; top: calc(clamp(58px, 8vw, 78px) / 2 - 2px); height: 4px; z-index: 0;
+  background: #dc2626; border-radius: 4px; overflow: hidden; margin: 0;
+}
+.tc-choice { position: relative; z-index: 1; }
 .tc-line::after {
-  content: ""; position: absolute; top: -3px; bottom: -3px; width: 90px; left: -90px;
+  content: ""; position: absolute; top: -4px; bottom: -4px; width: 110px; left: -110px;
   background: radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,220,220,.6) 35%, transparent 70%);
   animation: tc-run 2.2s cubic-bezier(.45,0,.55,1) infinite;
 }
-@keyframes tc-run { 0% { left: -90px } 70%, 100% { left: 100% } }
+@keyframes tc-run { 0% { left: -110px } 70%, 100% { left: 100% } }
 
 /* ===== after step 1 the ticket shrinks, so it can stay on screen with the next step ===== */
 body.compact-ticket .main-details, body.compact-ticket .barcode-vertical, body.compact-ticket .ticket-main > .main-asterisks { display: none; }
@@ -2561,6 +2569,23 @@ body.compact-ticket .ticket-stub { min-height: 0; }
 body.compact-ticket .main-seats { margin-top: 8px; }
 body.compact-ticket #mainSub { font-size: 90%; margin: 2px 0 0; }
 @media (max-width: 700px) { body.compact-ticket .ticket-stub { min-height: 120px; } }
+
+/* ===== Escape rooms: "By game" / "By date" sit on the ticket (where the address is) ===== */
+.tc-view { display: none; gap: 10px; margin: 10px 0 2px; }
+body[data-screen="s2-escape"] .tc-view { display: grid; grid-template-columns: 1fr 1fr; }
+body[data-screen="s2-escape"] #s2-escape .view-toggle { display: none; }
+.tc-view-opt {
+  appearance: none; font: inherit; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px;
+  background: transparent; border: 1.5px dashed rgba(36,37,31,.3); border-radius: 8px; padding: 10px 12px; color: var(--forest);
+  transition: transform .2s cubic-bezier(.2,.9,.3,1.4), border-color .2s, background .2s;
+}
+.tc-view-opt:hover { transform: translateY(-2px) rotate(-.6deg); border-color: var(--teal); }
+.tc-view-opt.active { border: 2px solid var(--teal); background: rgba(7,163,179,.09); }
+.tc-view-opt:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.tc-view-ico { font-size: 24px; line-height: 1; }
+.tc-view-opt strong { display: block; font-family: var(--head-font); font-weight: 400; font-size: 19px; line-height: 1.1; }
+.tc-view-opt small { display: block; font-size: 11px; color: var(--text-muted); letter-spacing: .04em; }
+.tc-view-opt.active small::before { content: "✓ "; color: var(--teal-ink); font-weight: 800; }
 
 /* ===== slim mini ticket that follows you (used when the booking page is on its own; the website draws its own) ===== */
 .mini-ticket {
@@ -2585,8 +2610,13 @@ html.embed .mini-ticket { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tc-choice, .tc-arrow, .tc-line::after { animation: none; }
+  .tc-view-opt:hover { transform: none; }
   .mini-ticket { transition: none; }
   .ticket-wrapper:hover { transform: translateY(-4px); }
+}
+@media (max-width: 700px) {
+  .tc-wrap .tc-row { width: 100%; }
+  .tc-wrap .tc-line { left: 11.5% !important; right: 11.5% !important; }
 }
 </style>
 
@@ -4004,12 +4034,16 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                 <span class="tc-arrow-label">Choose one!</span>
               </div>
               <div class="tc-row">
+                <div class="tc-line" aria-hidden="true"></div>
                 <button type="button" class="tc-choice" data-cat="escape" style="--i:0" onclick="selectCategory('escape')"><span class="tc-dot">🚪</span><span class="tc-name">Escape Rooms</span></button>
                 <button type="button" class="tc-choice" data-cat="vr" style="--i:1" onclick="selectCategory('vr')"><span class="tc-dot">🥽</span><span class="tc-name">VR Experiences</span></button>
                 <button type="button" class="tc-choice" data-cat="cafe" style="--i:2" onclick="selectCategory('cafe')"><span class="tc-dot">☕</span><span class="tc-name">Board Game Cafe</span></button>
                 <button type="button" class="tc-choice" data-cat="enquiry" style="--i:3" onclick="selectCategory('enquiry')"><span class="tc-dot">💬</span><span class="tc-name">Contact Us</span></button>
               </div>
-              <div class="tc-line" aria-hidden="true"></div>
+            </div>
+            <div class="tc-view" role="group" aria-label="Browse escape rooms">
+              <button type="button" class="tc-view-opt" data-view="game" onclick="btbTicketView('game')"><span class="tc-view-ico">🚪</span><span><strong>By game</strong><small>Choose the room first</small></span></button>
+              <button type="button" class="tc-view-opt" data-view="date" onclick="btbTicketView('date')"><span class="tc-view-ico">📅</span><span><strong>By date</strong><small>See every time</small></span></button>
             </div>
 
             <div class="main-asterisks">* * * * * *</div>
@@ -7942,6 +7976,7 @@ init();
   var _goTo = window.goTo;
   window.goTo = function (screenId) {
     current = screenId;
+    document.body.dataset.screen = screenId;
     document.body.classList.toggle('on-s1', screenId === 's1');
     document.body.classList.toggle('compact-ticket', !FULL[screenId]);
     var r = _goTo.apply(this, arguments);
@@ -7954,6 +7989,21 @@ init();
     var t = document.querySelector('.ticket-wrapper');
     if (t && el && el.classList && el.classList.contains('screen') && el.id !== 's3review') return _ssiv.call(this, t);
     return _ssiv.apply(this, arguments);
+  };
+
+  // ---- Escape rooms: By game / By date buttons on the ticket follow the real ones ----
+  function syncView() {
+    var v = (typeof escapeView !== 'undefined' && escapeView) || 'game';
+    document.querySelectorAll('.tc-view-opt').forEach(function (b) {
+      var on = b.dataset.view === v; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  var _sev = window.setEscapeView;
+  window.setEscapeView = function () { var r = _sev.apply(this, arguments); syncView(); return r; };
+  window.btbTicketView = function (v) {
+    setEscapeView(v);
+    var el = document.getElementById(v === 'date' ? 'byDate' : 'byGame');
+    if (el) setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   };
 
   // ---- mini ticket: what's on the ticket, in one line ----
@@ -8020,6 +8070,7 @@ init();
   }
   function start() {
     var s1 = document.getElementById('s1');
+    document.body.dataset.screen = 's1'; syncView();
     document.body.classList.toggle('on-s1', !!(s1 && s1.classList.contains('active')));
     syncChoices(); tilt(); sendState();
     if (window.ResizeObserver) { var tw = document.querySelector('.ticket-wrapper'); if (tw) new ResizeObserver(function () { sendState(); }).observe(tw); }
