@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.64'; // v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
+const BUILD_VERSION = '1.7.65'; // v1.7.65: today box wording 'may be able to start' (was 'can start').
+// Previous build: 1.7.64 — v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
 // Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
 // Previous build: 1.7.61 — v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
@@ -5870,7 +5871,7 @@ function tonightBoxHtml(gameId, dateStr) {
   const g = games.find(x => x.id === gameId);
   const when = r.map(x => x.s === x.e ? `at ${tonightFmt(x.s)}` : `any time between ${tonightFmt(x.s)} and ${tonightFmt(x.e)}`).join(', or ');
   return `<div style="grid-column:1/-1;background:#ecfeff;border:2px solid #07b4c5;border-radius:12px;padding:12px 14px;margin-bottom:4px;line-height:1.45;color:#0e4f5c">
-    📞 <b>Still want to play today?</b> ${escapeHtml(g ? g.name : 'This game')} can start ${when} — these times aren't bookable online, so just
+    📞 <b>Still want to play today?</b> ${escapeHtml(g ? g.name : 'This game')} may be able to start ${when} — these times aren't bookable online, so just
     <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">call us on 022 053 7365</a> to book.</div>`;
 }
 // v1.7.64: optional per-game note shown above that game's times (booking config gameNotes, e.g. the Mini Escape Room)
