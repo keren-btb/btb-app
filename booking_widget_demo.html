@@ -2677,6 +2677,50 @@ body.has-game.compact-ticket #escapeGameList .game-card:hover { opacity: 1; tran
 body.has-game.compact-ticket #byGame > .sec-label:first-child::after { content: " · tap to change"; color: var(--text-muted); letter-spacing: .08em; }
 @media (max-width: 700px) { body.has-game.compact-ticket #escapeGameList { grid-auto-columns: 62%; } }
 
+/* ===== Details step: game name + change on the ticket; email and players move ONTO the ticket ===== */
+.tc-game-inline { display: none; }
+body[data-screen="s3"] #mainSub { display: inline-block; width: auto; }
+body[data-screen="s3"] .tc-game-inline { display: inline-flex; align-items: baseline; gap: 10px; margin-left: 10px; flex-wrap: wrap; }
+.tc-game-inline .tc-gname { font-family: var(--head-font); font-size: 22px; color: var(--forest); line-height: 1; }
+.tc-game-inline .tc-gname::before { content: "· "; color: var(--gold); }
+.tc-change {
+  appearance: none; border: 1.5px solid var(--teal); background: transparent; color: var(--teal-ink); border-radius: 99px;
+  font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 4px 11px; cursor: pointer;
+}
+.tc-change:hover { background: var(--teal); color: #fff; }
+.tc-change:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+body[data-screen="s3"] #s3 > .summary-bar, body[data-screen="s3"] #s3 > .sec-label { display: none; }
+
+.tc-details { display: none; }
+body[data-screen="s3"] .tc-details { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px 22px; margin-top: 12px; align-items: start; }
+.tc-details .email-first { margin: 0; background: transparent; border: 0; padding: 0; }
+.tc-details #playersField { margin: 0; }
+.tc-details .players-row { gap: 10px; }
+.tc-details .price-big { font-size: 24px; }
+.tc-circled { position: relative; padding: 10px 14px 8px; }
+.tc-scribble, .tc-about svg { background: transparent !important; }
+.tc-subrow { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 0; }
+.tc-circled > .field, .tc-circled > .email-first { position: relative; z-index: 1; }
+.tc-scribble { position: absolute; z-index: 2; inset: -6px -10px; width: calc(100% + 20px); height: calc(100% + 12px); pointer-events: none; overflow: visible; }
+.tc-scribble path { fill: none; stroke: #dc2626; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1400; stroke-dashoffset: 1400; transition: stroke .3s; }
+.tc-circled.draw .tc-scribble path { animation: tc-draw .9s ease-out forwards; }
+.tc-circled.done .tc-scribble path { stroke: #2a9d6f; stroke-dashoffset: 0; animation: none; opacity: .55; }
+@keyframes tc-draw { to { stroke-dashoffset: 0; } }
+.tc-hint { position: absolute; top: -12px; right: 10px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .03em;
+  padding: 2px 8px; border-radius: 4px; transform: rotate(3deg); box-shadow: 0 3px 8px rgba(0,0,0,.2); opacity: 0; transition: opacity .3s; white-space: nowrap; }
+.tc-circled.draw .tc-hint { opacity: 1; }
+.tc-circled.done .tc-hint { opacity: 0; }
+@media (max-width: 700px) { body[data-screen="s3"] .tc-details { grid-template-columns: 1fr; } }
+
+/* "Tell us about yourself" arrow at the top of the rest of the details */
+.tc-about { display: none; }
+body[data-screen="s3"] .tc-about { display: flex; align-items: center; gap: 10px; margin: 2px 0 12px; }
+.tc-about svg { width: 40px; height: 40px; flex: none; animation: tc-nudge2 1.4s ease-in-out infinite; }
+.tc-about svg path { fill: #dc2626; }
+.tc-about span { background: #dc2626; color: #fff; font-weight: 800; font-size: 14px; padding: 4px 11px; border-radius: 4px; transform: rotate(-2deg); box-shadow: 0 3px 8px rgba(0,0,0,.2); }
+@keyframes tc-nudge2 { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(5px) } }
+@media (prefers-reduced-motion: reduce) { .tc-about svg { animation: none; } .tc-circled.draw .tc-scribble path { animation: none; stroke-dashoffset: 0; } }
+
 /* ===== slim mini ticket that follows you (used when the booking page is on its own; the website draws its own) ===== */
 .mini-ticket {
   position: fixed; left: 50%; top: 10px; z-index: 900; transform: translate(-50%, -140%); transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
@@ -4119,6 +4163,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
             <!-- ===== SVG PLACEHOLDER: Replace this div with your inline SVG for "ESCAPE ROOMS" ===== -->
             <div class="main-sub" id="mainSub" onclick="goTo('s1', 1)">ESCAPE ROOMS</div>
+            <span class="tc-game-inline"><span class="tc-gname"></span><button type="button" class="tc-change" onclick="goBack()">Change</button></span>
             <div class="tc-wrap" aria-label="Choose one">
               <div class="tc-arrow" aria-hidden="true">
                 <svg viewBox="0 0 150 70"><path d="M6 52 C 40 62, 82 52, 112 30 L 104 22 L 144 14 L 128 52 L 121 42 C 88 66, 44 74, 4 62 Z" fill="#dc2626"/></svg>
@@ -8072,6 +8117,7 @@ init();
     if (screenId === 's1') document.body.classList.remove('has-game');
     document.body.classList.toggle('on-s1', screenId === 's1');
     document.body.classList.toggle('compact-ticket', !FULL[screenId]);
+    if (screenId === 's3') { buildDetails(); syncGameInline(); setTimeout(guide, 350); }
     var r = _goTo.apply(this, arguments);
     setTimeout(sendState, 60);
     syncBack();
@@ -8130,6 +8176,50 @@ init();
   };
   var _sev2 = window.setEscapeView;
   window.setEscapeView = function () { document.body.classList.remove('has-game'); return _sev2.apply(this, arguments); };
+
+  // ---- Details step: email + players on the ticket, each circled in red in turn ----
+  var SCRIBBLE = '<svg class="tc-scribble" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><path d="M150 6 C 60 2, 6 22, 8 52 C 10 86, 90 97, 168 94 C 250 91, 296 70, 292 42 C 288 14, 220 4, 140 9 C 110 11, 90 14, 70 20"/></svg>';
+  var detailsBuilt = false;
+  function buildDetails() {
+    if (detailsBuilt) return;
+    var em = document.querySelector('#s3 .email-first'), pl = document.getElementById('playersField');
+    var seats = document.querySelector('.ticket-main .main-seats');
+    if (!em || !pl || !seats) return;
+    var box = document.createElement('div'); box.className = 'tc-details';
+    var c1 = document.createElement('div'); c1.className = 'tc-circled tc-c-email'; c1.innerHTML = SCRIBBLE + '<span class="tc-hint">Start here!</span>';
+    var c2 = document.createElement('div'); c2.className = 'tc-circled tc-c-players'; c2.innerHTML = SCRIBBLE + '<span class="tc-hint">How many of you?</span>';
+    c1.appendChild(em); c2.appendChild(pl); box.appendChild(c1); box.appendChild(c2);
+    seats.parentNode.insertBefore(box, seats.nextSibling);
+    // put the game name + Change on the same line as "ESCAPE ROOMS"
+    var ms = document.getElementById('mainSub'), gi = document.querySelector('.tc-game-inline');
+    if (ms && gi && !ms.parentNode.classList.contains('tc-subrow')) {
+      var row2 = document.createElement('div'); row2.className = 'tc-subrow';
+      ms.parentNode.insertBefore(row2, ms); row2.appendChild(ms); row2.appendChild(gi);
+    }
+    // "Tell us about yourself" above the name boxes
+    var first = document.getElementById('fFirst'), row = first && first.closest('.field-row');
+    if (row && !document.querySelector('.tc-about')) {
+      var a = document.createElement('div'); a.className = 'tc-about';
+      a.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M17 3h6v22h8L20 38 9 25h8z"/></svg><span>Tell us about yourself</span>';
+      row.parentNode.insertBefore(a, row);
+    }
+    var inp = document.getElementById('fEmail');
+    if (inp) inp.addEventListener('input', guide); if (inp) inp.addEventListener('blur', guide);
+    pl.addEventListener('click', function () { c2.classList.add('touched'); guide(); });
+    detailsBuilt = true;
+  }
+  function emailOk() { var v = (document.getElementById('fEmail') || {}).value || ''; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()); }
+  function guide() {
+    var c1 = document.querySelector('.tc-c-email'), c2 = document.querySelector('.tc-c-players'); if (!c1 || !c2) return;
+    var ok = emailOk();
+    c1.classList.toggle('done', ok); c1.classList.toggle('draw', !ok);
+    var pDone = c2.classList.contains('touched');
+    c2.classList.toggle('draw', ok && !pDone); c2.classList.toggle('done', ok && pDone);
+  }
+  function syncGameInline() {
+    var g = document.querySelector('.tc-gname'); if (g) g.textContent = (typeof selGame !== 'undefined' && selGame) ? selGame.name : '';
+    var ch = document.querySelector('.tc-change'); if (ch) ch.style.display = (typeof lockedBooking !== 'undefined' && lockedBooking) ? 'none' : '';
+  }
 
   // ---- mini ticket: what's on the ticket, in one line ----
   function txt(id) { var e = document.getElementById(id); return e ? e.textContent.replace(/^\s*[–-]\s*/, '').trim() : ''; }
