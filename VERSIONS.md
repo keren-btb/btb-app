@@ -128,6 +128,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.92 — 2026-11-27 — Error log fixes: opening the app with no internet (or while Supabase is down) no longer signs you out — the background login check only signs out if Supabase says the login is bad (401/403). Renewing the login while Supabase is down (5xx) now waits a minute and tries again, like a dropped connection (26 Nov outage signed people out). Nothing removed.
 - v16.4.91 — 2026-11-27 — Settings has a "Website FAQs" button (admins/managers) that opens the new site_faqs.html. Nothing removed.
 - v16.4.90 — 2026-11-27 — Settings has a "Website reviews" button (admins/managers) that opens the new site_reviews.html. Nothing removed.
 - v16.4.89 — 2026-11-26 — Settings has a "Check booking slots" button (admins/managers) that opens the booking page's Slot checker (needs booking_widget v1.7.58). Nothing removed.
@@ -441,6 +442,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.2.4 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session', also fixes a token-refresh bug where refreshAuthToken() was saving to the wrong key 'btb_user' instead of 'btb_inbox_user') + fixed login screen briefly flashing on load when already logged in
 
 ## task_hub.html
+- v2.2.3 — 2026-11-27 — Error log fix ('JWT expired' on Today): coming back to the tab now renews the login before reloading Today; any 'login expired' answer renews it and tries once more; no internet or Supabase down no longer signs you out (tries again in a minute). Nothing removed.
 - v2.2.2 — 2026-11-26 — Fixed rooms going back to "Ready" the next day after being marked "Not reset". The room board only looked at today's reset jobs, so a sent-back room (or one not reset after the last game) showed Ready again next morning even though its job was still open. Now any open reset job for the room from today or earlier keeps it on NEEDS RESET, with "Waiting since <date>" and every send-back note shown. Finishing a reset makes the room ready: its other open reset jobs are marked skipped with a note ("Covered by reset done by … at …"). Nothing deleted.
 - v2.2.1 — 2026-11-24 — Green "✓ Fixed" button on each open / being-fixed issue card (Issues list and Today's jobs). Tapping it asks for optional comments ("What was done") and cost, then marks the issue Fixed with who and when — same result as setting Status to Fixed in the full issue. Tapping the rest of the card still opens the full issue. Nothing removed.
 - v2.2.0 — 2026-11-23 — Room board shows every in-house escape room; rooms with no reset checklist get "Add reset checklist" (starter list with the maintenance question). "Not reset" on a ready room: what's wrong + who should fix it (notified) → room shows NEEDS RESET with the reason. Finished checklists can be reopened (Edit answers).

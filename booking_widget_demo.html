@@ -7721,6 +7721,7 @@ init();
   var _pps = window.populatePrevGameSelect;
   window.populatePrevGameSelect = function () {
     var r = _pps.apply(this, arguments);
+    if (params.get('contact') === '1') { setTimeout(function () { selectCategory('enquiry'); }, 0); return r; } // ?contact=1 opens Send us a message
     var gid = params.get('game');
     if (gid && params.get('locked') !== '1') {
       var g = games.find(function (x) { return x.id === gid && x.bookable !== false; });
