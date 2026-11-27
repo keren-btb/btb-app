@@ -2496,6 +2496,65 @@ html.embed .lcol, html.embed .hdr { display: none !important; }
 html.embed .page { box-shadow: none; border: 0; background: transparent; padding: 26px 6px 10px; }
 html.embed .ticket-stub::before, html.embed .ticket-stub::after { background: var(--embed-bg, #faf7f0); }
 </style>
+<style id="btbTicketChoices">
+/* ===== DEMO: step 1 lives on the ticket — 4 bobbing circles + big red "Choose one!" arrow ===== */
+html, body { overflow-x: hidden; }                               /* no sideways scrollbar from the tilted ticket */
+.ticket-main { position: relative; overflow: visible; }
+.tc-wrap { display: none; position: relative; margin: 6px 0 14px; }
+body.on-s1 .tc-wrap { display: block; }
+body.on-s1 .ticket-main > .main-asterisks, body.on-s1 #mainSub { display: none; }
+body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .cat-circles { display: none; }
+.tc-row { display: flex; gap: clamp(8px, 2vw, 22px); align-items: flex-start; flex-wrap: nowrap; }
+.tc-choice {
+  appearance: none; background: none; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  gap: 6px; padding: 0; font: inherit; color: var(--forest); width: clamp(64px, 9vw, 92px);
+  animation: tc-bob 3.2s ease-in-out infinite; animation-delay: calc(var(--i) * -0.8s);
+}
+.tc-choice .tc-dot {
+  align-items: center; background: #fffdf8; border: 2px solid var(--cream); border-radius: 50%; box-shadow: 0 8px 18px rgba(31,37,31,.14);
+  display: flex; font-size: clamp(26px, 3.4vw, 34px); height: clamp(58px, 8vw, 78px); justify-content: center; width: clamp(58px, 8vw, 78px);
+  transition: transform .2s cubic-bezier(.2,.9,.3,1.4), border-color .2s, box-shadow .2s;
+}
+.tc-choice .tc-name { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: center; line-height: 1.15; }
+.tc-choice:hover .tc-dot, .tc-choice:focus-visible .tc-dot { transform: scale(1.14) rotate(-6deg); border-color: var(--teal); box-shadow: 0 12px 26px rgba(7,163,179,.28); }
+.tc-choice:focus-visible { outline: none; }
+.tc-choice:focus-visible .tc-dot { outline: 3px solid var(--teal); outline-offset: 3px; }
+.tc-choice:active .tc-dot { transform: scale(.94); }
+@keyframes tc-bob { 0%, 100% { transform: translateY(0) rotate(0) } 25% { transform: translateY(-5px) rotate(-2deg) } 75% { transform: translateY(3px) rotate(1.5deg) } }
+
+/* the big red arrow, coming from the photo side of the ticket */
+.tc-arrow {
+  position: absolute; left: -128px; top: 4px; width: 140px; pointer-events: none; z-index: 5;
+  animation: tc-point 1.6s ease-in-out infinite; transform-origin: 20% 80%;
+}
+.tc-arrow svg { display: block; width: 100%; height: auto; background: transparent !important; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+.tc-arrow svg path { fill: #dc2626 !important; }
+.tc-arrow-label {
+  position: absolute; left: -6px; top: -10px; color: #fff; background: #dc2626; font-family: 'DM Sans', sans-serif; font-weight: 800;
+  font-size: 15px; letter-spacing: .02em; padding: 4px 10px; border-radius: 4px; transform: rotate(-8deg); white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0,0,0,.3);
+}
+@keyframes tc-point { 0%, 100% { transform: translate(0,0) rotate(0) } 50% { transform: translate(9px,-3px) rotate(-3deg) } }
+@media (max-width: 700px) {
+  .tc-row { justify-content: space-between; gap: 4px; }
+  .tc-choice { width: 23%; }
+  .tc-arrow { position: relative; left: auto; top: auto; width: auto; display: flex; align-items: center; gap: 8px; margin: 0 0 8px 4px; animation: tc-nudge 1.4s ease-in-out infinite; }
+  .tc-arrow svg { width: 34px; transform: rotate(78deg); }
+  .tc-arrow-label { position: static; font-size: 14px; transform: rotate(-3deg); }
+  @keyframes tc-nudge { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(4px) } }
+}
+
+/* ===== the ticket reacts more when you hover: lifts, tilts towards the mouse ===== */
+.ticket-wrapper { transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; will-change: transform; }
+.ticket-wrapper:hover {
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-8px) rotate(.4deg) scale(1.015);
+  box-shadow: 30px 40px 80px rgba(31,37,31,.28), 0 4px 10px rgba(31,37,31,.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tc-choice, .tc-arrow { animation: none; }
+  .ticket-wrapper:hover { transform: translateY(-4px); }
+}
+</style>
 
 </head>
 <body>
@@ -3905,6 +3964,18 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
             <!-- ===== SVG PLACEHOLDER: Replace this div with your inline SVG for "ESCAPE ROOMS" ===== -->
             <div class="main-sub" id="mainSub" onclick="goTo('s1', 1)">ESCAPE ROOMS</div>
+            <div class="tc-wrap" aria-label="Choose one">
+              <div class="tc-arrow" aria-hidden="true">
+                <svg viewBox="0 0 150 70"><path d="M6 52 C 40 62, 82 52, 112 30 L 104 22 L 144 14 L 128 52 L 121 42 C 88 66, 44 74, 4 62 Z" fill="#dc2626"/></svg>
+                <span class="tc-arrow-label">Choose one!</span>
+              </div>
+              <div class="tc-row">
+                <button type="button" class="tc-choice" data-cat="escape" style="--i:0" onclick="selectCategory('escape')"><span class="tc-dot">🚪</span><span class="tc-name">Escape Rooms</span></button>
+                <button type="button" class="tc-choice" data-cat="vr" style="--i:1" onclick="selectCategory('vr')"><span class="tc-dot">🥽</span><span class="tc-name">VR Experiences</span></button>
+                <button type="button" class="tc-choice" data-cat="cafe" style="--i:2" onclick="selectCategory('cafe')"><span class="tc-dot">☕</span><span class="tc-name">Board Game Cafe</span></button>
+                <button type="button" class="tc-choice" data-cat="enquiry" style="--i:3" onclick="selectCategory('enquiry')"><span class="tc-dot">💬</span><span class="tc-name">Contact Us</span></button>
+              </div>
+            </div>
 
             <div class="main-asterisks">* * * * * *</div>
 
@@ -7814,6 +7885,55 @@ init();
 
   document.addEventListener('DOMContentLoaded', paintPhoto);
   if (document.readyState !== 'loading') paintPhoto();
+})();
+</script>
+<script>
+// DEMO: step 1 on the ticket (circles + arrow), ticket tilt on hover, category name on the ticket after choosing.
+(function () {
+  var NAMES = { escape: 'ESCAPE ROOMS', vr: 'VR EXPERIENCES', cafe: 'BOARD GAME CAFE', enquiry: 'CONTACT US' };
+  function syncChoices() {
+    // show the same categories as the step 1 circles (empty categories are hidden there)
+    document.querySelectorAll('.tc-choice').forEach(function (b) {
+      var src = document.getElementById('catTitle-' + b.dataset.cat);
+      var circle = src && src.closest('.cat-circle');
+      b.style.display = circle && circle.style.display === 'none' ? 'none' : '';
+      if (src) b.querySelector('.tc-name').textContent = src.textContent;
+      var tip = document.getElementById('catTooltip-' + b.dataset.cat);
+      if (tip) b.title = tip.textContent;
+    });
+  }
+  var _goTo = window.goTo;
+  window.goTo = function (screenId) {
+    var r = _goTo.apply(this, arguments);
+    document.body.classList.toggle('on-s1', screenId === 's1');
+    return r;
+  };
+  var _sel = window.selectCategory;
+  window.selectCategory = function (cat) {
+    var ms = document.getElementById('mainSub');
+    if (ms && NAMES[cat]) ms.textContent = NAMES[cat];
+    return _sel.apply(this, arguments);
+  };
+  var _abt = window.applyBookingText;
+  window.applyBookingText = function () { var r = _abt.apply(this, arguments); syncChoices(); return r; };
+
+  // tilt the ticket towards the mouse
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function tilt() {
+    var t = document.querySelector('.ticket-wrapper'); if (!t || reduce) return;
+    t.addEventListener('mousemove', function (e) {
+      var r = t.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      t.style.setProperty('--ry', (x * 6).toFixed(2) + 'deg'); t.style.setProperty('--rx', (-y * 5).toFixed(2) + 'deg');
+    });
+    t.addEventListener('mouseleave', function () { t.style.setProperty('--ry', '0deg'); t.style.setProperty('--rx', '0deg'); });
+  }
+  function start() {
+    var s1 = document.getElementById('s1');
+    document.body.classList.toggle('on-s1', !!(s1 && s1.classList.contains('active')));
+    syncChoices(); tilt();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 </script>
 
