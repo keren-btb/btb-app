@@ -7745,6 +7745,15 @@ init();
     new ResizeObserver(sendHeight).observe(document.documentElement);
     window.addEventListener('load', sendHeight);
     // The page's own "scroll to the next step" moves the WEBSITE instead, since this frame never scrolls
+    // Anything that scrolls an element into view (the dates, the details form…) asks the website to do it,
+    // so the website can allow for its own top bar. 'nearest' (e.g. inside a dropdown list) is left alone.
+    var _siv = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (opt) {
+      var block = (opt && typeof opt === 'object' && opt.block) || 'start';
+      if (block === 'nearest') return _siv.apply(this, arguments);
+      var r = this.getBoundingClientRect();
+      try { parent.postMessage({ type: 'btb-widget-scroll', top: r.top + window.scrollY, height: r.height, block: block }, '*'); } catch (e) { _siv.apply(this, arguments); }
+    };
     var _scrollTo = window.scrollTo.bind(window);
     window.scrollTo = function (a, b) {
       var top = (a && typeof a === 'object') ? a.top : b;
