@@ -128,6 +128,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.91 — 2026-11-27 — Settings has a "Website FAQs" button (admins/managers) that opens the new site_faqs.html. Nothing removed.
 - v16.4.90 — 2026-11-27 — Settings has a "Website reviews" button (admins/managers) that opens the new site_reviews.html. Nothing removed.
 - v16.4.89 — 2026-11-26 — Settings has a "Check booking slots" button (admins/managers) that opens the booking page's Slot checker (needs booking_widget v1.7.58). Nothing removed.
 - v16.4.88 — 2026-11-26 — New booking heading now shows the day the booking will be saved on, e.g. "New booking — Sat 28 Nov" (green "(today)", or red "(past date!)"), and updates if you tap another day. Grey sample text (Sarah Robinson, 021 123 4567, etc.) removed from the New booking and New package forms. Today's booking cards show a "▶ Run game" button from 30 minutes before the start until the game ends (or is marked done), opening that game in Control Room. Nothing removed.
@@ -315,6 +316,9 @@ Newest entry per file goes at the top of that file's list.
 - v12 — 2026-07-29 — Code quality: replaced two hardcoded "300 seconds" timer warning thresholds with a single named constant (TIMER_WARNING_THRESHOLD_SEC, kept in sync with btb_app.html's copy); no behaviour change
 - v11 — 2026-07-29 — Security fix: escaped game name and customer name before inserting into innerHTML in the All Timers panel and booking picker list, closing a stored-XSS risk
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
+
+## site_faqs.html
+- v1.0.0 — 2026-11-27 — NEW page: the website's FAQs, edited here instead of in the website code. Add a question (question, answer, optional link words + address), Change, move Up/Down, Show/Hide switch, Delete (asks first). The website reads only shown ones, in this order, via public_site_faqs() (sql/2026-11-27_site_faqs.sql, applied with Keren's OK; started with the 11 FAQs already on the new site). Admin / manager / owner only (enforced by the database). Nothing removed.
 
 ## site_reviews.html
 - v1.0.0 — 2026-11-27 — NEW page: Google reviews for the website (copy-and-paste version). Paste a review from Google and it fills in name, stars, rough date (from "3 weeks ago"), room and words (your own reply is left out) for you to check and Save. Each review has a Show / Hide switch, a pin (first on the website), Change and Delete (asks first). The website shows only reviews switched to Show. Admin / manager / owner only (enforced by the database). Needs sql/2026-11-27_site_reviews.sql run first (new table site_reviews + public_site_reviews() for the website; starts with the 3 reviews already on the new site). Later: automatic import once Google approves Business Profile API access.

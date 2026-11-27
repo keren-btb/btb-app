@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Website FAQs</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#07b4c5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#15803d;--red:#dc2626;--amber:#b45309;--gold:#f59e0b;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-input{width:100%;font-size:16px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:inherit}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.wrap{display:none;max-width:900px;margin:0 auto;padding:0 0 60px}
+header.topbar{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.topbar a{color:#8a9bb5;font-size:12px;text-decoration:none}
+.topbar-title{color:#fff;font-size:16px;font-weight:700;flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px}
+.btn:hover{border-color:var(--teal)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-danger{color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.content{padding:14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:4px}
+.help{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+label.f{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.in{width:100%;font-size:16px;font-family:inherit;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.in:focus{outline:none;border-color:var(--teal)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.45}
+.grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.grid3{grid-template-columns:1fr}}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.msg{font-size:13px;margin-top:8px;min-height:18px}.err{color:var(--red)}.ok{color:var(--green)}
+.grid2{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.fq{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}
+.fq.hidden{background:#f9fafb;opacity:.7}
+.fq .num{font-weight:800;color:var(--teal2);min-width:22px;text-align:right;padding-top:2px}
+.fq .q{font-weight:700;font-size:15px}
+.fq .a{margin-top:4px;line-height:1.5;white-space:pre-wrap;color:#374151}
+.fq .lk{margin-top:4px;font-size:12px;color:var(--teal2)}
+.fq .acts{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.fq .small{display:flex;gap:4px}
+.fq .small .btn{min-height:32px;padding:5px 9px;font-size:12px}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:700;user-select:none}
+.switch input{display:none}
+.switch .tr{width:44px;height:26px;border-radius:99px;background:#d1d5db;position:relative;transition:background .2s}
+.switch .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.switch input:checked + .tr{background:var(--green)}
+.switch input:checked + .tr::after{left:21px}
+.empty{text-align:center;color:var(--muted);padding:26px}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div style="color:var(--teal);font-size:22px;font-weight:800;margin-bottom:20px"><i class="ti ti-help-circle"></i> Website FAQs</div>
+  <div class="login-card">
+    <input class="login-input" id="loginEmail" placeholder="firstname" autocapitalize="off">
+    <input class="login-input" id="loginPass" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button><div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <a href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <div class="topbar-title"><i class="ti ti-help-circle"></i> Website FAQs <span id="ver" style="font-size:10px;color:#8a9bb5;font-weight:400"></span></div>
+    <a class="btn" style="color:var(--text)" href="https://btb-app.pages.dev/test/new-site/demo/#faq" target="_blank" rel="noreferrer"><i class="ti ti-external-link"></i> See on website</a>
+  </header>
+  <div class="content">
+    <div class="card" id="addCard">
+      <h2 id="formTitle">Add a question</h2>
+      <p class="help">These are the questions in the FAQs on the website, in this order. Only ones switched to <b>Show</b> appear there. Changes show on the website straight away (refresh the page).</p>
+      <label class="f" for="fQ">Question</label>
+      <input class="in" id="fQ" autocomplete="off" maxlength="160">
+      <label class="f" for="fA">Answer</label>
+      <textarea class="in" id="fA" maxlength="1200"></textarea>
+      <div class="grid2">
+        <div><label class="f" for="fLL">Link words (optional)</label><input class="in" id="fLL" placeholder="e.g. Open in Google Maps" maxlength="60"></div>
+        <div><label class="f" for="fLU">Link address (optional)</label><input class="in" id="fLU" placeholder="https://…" inputmode="url"></div>
+      </div>
+      <div class="row">
+        <label class="switch"><input type="checkbox" id="fShow" checked><span class="tr"></span> Show on website</label>
+        <span style="flex:1"></span>
+        <button class="btn" id="btnCancel" style="display:none" onclick="resetForm()">Cancel</button>
+        <button class="btn btn-primary" id="btnSave" onclick="save()"><i class="ti ti-device-floppy"></i> Add question</button>
+      </div>
+      <div class="msg" id="formMsg"></div>
+    </div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+<script>
+// BtB error logger (same as the other pages) — handled errors and failure pop-ups go to Settings > Errors
+(function(){
+  var PAGE='site_faqs.html',EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0,seen={};
+  function send(level,source,msg,stack){try{msg=String(msg||'').slice(0,2000);var k=source+'|'+msg;if(seen[k]||sent>=20)return;seen[k]=1;sent++;
+    var tok=KEY;try{if(currentUser&&currentUser.token)tok=currentUser.token}catch(e){}
+    fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:JSON.stringify({level:level,source:source,message:msg,stack:stack?String(stack).slice(0,8000):null,page:PAGE,url:location.origin+location.pathname,context:{},user_agent:navigator.userAgent.slice(0,400),app_version:(typeof BUILD_VERSION!=='undefined'?BUILD_VERSION:null)}),keepalive:true}).catch(function(){})}catch(e){}}
+  window.addEventListener('error',function(e){send('error','window.onerror',e.message,e.error&&e.error.stack)});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;send('error','promise',(r&&r.message)||String(r),r&&r.stack)});
+  window.btbLogError=function(s,err){send('error',s,(err&&err.message)||String(err),err&&err.stack)};
+  try{var ce=console.error;console.error=function(){try{ce.apply(console,arguments)}catch(x){}try{var p=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:(typeof x==='string'?x:'')}).filter(Boolean);if(p.length)send('error','console.error',p.join(' '))}catch(x){}}}catch(x){}
+})();
+</script>
+<script>
+// site_faqs.html v1.0.0 — 2026-11-27: the website's FAQs, edited here instead of in the website code.
+// Add / change / move up-down / Show-Hide / delete. The website reads shown ones via public_site_faqs()
+// (sql/2026-11-27_site_faqs.sql). Admin / manager / owner only (enforced by the database).
+const BUILD_VERSION='1.0.0';
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+let currentUser=null,tokenTimer=null,faqs=[],editId=null;
+const H=()=>({'Content-Type':'application/json','Authorization':`Bearer ${currentUser?.token||SB_ANON}`,'apikey':SB_ANON});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),'Prefer':'return=representation',...(opts.headers||{})}});
+  const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||t||('Error '+r.status));return d;
+}
+async function edge(action,params){
+  const r=await fetch(`${SB_URL}/functions/v1/btb-admin`,{method:'POST',headers:H(),body:JSON.stringify({action,...params})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('Error '+r.status));return d;
+}
+function cleanUrl(u){u=(u||'').trim();if(!u)return null;if(/^(https?:\/\/|\/|tel:|mailto:)/i.test(u))return u;if(/^www\./i.test(u)||/^[\w-]+\.[\w.-]+/.test(u))return 'https://'+u;return false}
+function resetForm(){
+  editId=null;['fQ','fA','fLL','fLU'].forEach(id=>document.getElementById(id).value='');document.getElementById('fShow').checked=true;
+  document.getElementById('formTitle').textContent='Add a question';document.getElementById('btnCancel').style.display='none';
+  document.getElementById('btnSave').innerHTML='<i class="ti ti-device-floppy"></i> Add question';
+}
+async function save(){
+  const msg=document.getElementById('formMsg');msg.textContent='';
+  const url=cleanUrl(document.getElementById('fLU').value),label=document.getElementById('fLL').value.trim();
+  const row={question:document.getElementById('fQ').value.trim(),answer:document.getElementById('fA').value.trim(),
+    link_label:url?(label||'Find out more'):null,link_url:url||null,show_on_website:document.getElementById('fShow').checked};
+  if(!row.question){msg.innerHTML='<span class="err">Please type the question.</span>';return}
+  if(!row.answer){msg.innerHTML='<span class="err">Please type the answer.</span>';return}
+  if(url===false){msg.innerHTML='<span class="err">The link address should start with https:// (or leave it empty).</span>';return}
+  if(label&&!url){msg.innerHTML='<span class="err">Add the link address too, or clear the link words.</span>';return}
+  const b=document.getElementById('btnSave');b.disabled=true;
+  try{
+    if(editId)await api(`site_faqs?id=eq.${editId}`,{method:'PATCH',body:JSON.stringify(row)});
+    else{row.sort_order=(faqs.reduce((m,f)=>Math.max(m,f.sort_order),0)||0)+10;await api('site_faqs',{method:'POST',body:JSON.stringify(row)})}
+    const was=editId;resetForm();msg.innerHTML=`<span class="ok">${was?'Saved':'Added at the bottom'} ✓</span>`;await load();
+  }catch(e){msg.innerHTML=`<span class="err">Couldn't save: ${esc(e.message)}</span>`;btbLogError('save faq',e)}
+  finally{b.disabled=false}
+}
+function edit(id){
+  const f=faqs.find(x=>x.id===id);if(!f)return;editId=id;
+  document.getElementById('fQ').value=f.question;document.getElementById('fA').value=f.answer;
+  document.getElementById('fLL').value=f.link_label||'';document.getElementById('fLU').value=f.link_url||'';document.getElementById('fShow').checked=f.show_on_website;
+  document.getElementById('formTitle').textContent='Change this question';document.getElementById('btnCancel').style.display='';
+  document.getElementById('btnSave').innerHTML='<i class="ti ti-device-floppy"></i> Save changes';document.getElementById('formMsg').textContent='';
+  document.getElementById('addCard').scrollIntoView({behavior:'smooth'});document.getElementById('fA').focus();
+}
+async function patch(id,ch){
+  const f=faqs.find(x=>x.id===id);const before={...f};Object.assign(f,ch);render();
+  try{await api(`site_faqs?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(ch)})}
+  catch(e){Object.assign(f,before);render();alert("Couldn't save that change: "+e.message);btbLogError('patch faq',e)}
+}
+async function move(id,dir){
+  const i=faqs.findIndex(x=>x.id===id),j=i+dir;if(i<0||j<0||j>=faqs.length)return;
+  const a=faqs[i],b=faqs[j];[faqs[i],faqs[j]]=[b,a];
+  // renumber everything 10,20,30… so the order is always clean
+  const changes=faqs.map((f,k)=>({f,n:(k+1)*10})).filter(x=>x.f.sort_order!==x.n);
+  changes.forEach(x=>x.f.sort_order=x.n);render();
+  try{for(const x of changes)await api(`site_faqs?id=eq.${x.f.id}`,{method:'PATCH',body:JSON.stringify({sort_order:x.n}),headers:{'Prefer':'return=minimal'}})}
+  catch(e){alert("Couldn't save the new order: "+e.message);btbLogError('move faq',e);load()}
+}
+async function del(id){
+  const f=faqs.find(x=>x.id===id);if(!f)return;
+  if(!confirm(`Delete this question for good?\n\n"${f.question}"\n\n(To just take it off the website, switch it to Hide instead.)`))return;
+  try{await api(`site_faqs?id=eq.${id}`,{method:'DELETE'});faqs=faqs.filter(x=>x.id!==id);render()}
+  catch(e){alert("Couldn't delete: "+e.message);btbLogError('delete faq',e)}
+}
+async function load(){
+  try{faqs=await api('site_faqs?select=*&order=sort_order,created_at')||[];render()}
+  catch(e){document.getElementById('list').innerHTML=`<div class="empty err">Couldn't load the FAQs: ${esc(e.message)}</div>`;btbLogError('load faqs',e)}
+}
+function render(){
+  let n=0;
+  document.getElementById('list').innerHTML=faqs.length?faqs.map((f,i)=>`
+    <div class="fq ${f.show_on_website?'':'hidden'}">
+      <div class="num">${f.show_on_website?++n:'–'}</div>
+      <div>
+        <div class="q">${esc(f.question)}</div>
+        <div class="a">${esc(f.answer)}</div>
+        ${f.link_url?`<div class="lk"><i class="ti ti-link"></i> ${esc(f.link_label||'Link')} → ${esc(f.link_url)}</div>`:''}
+      </div>
+      <div class="acts">
+        <label class="switch"><input type="checkbox" ${f.show_on_website?'checked':''} onchange="patch('${f.id}',{show_on_website:this.checked})"><span class="tr"></span>${f.show_on_website?'Show':'Hide'}</label>
+        <div class="small">
+          <button class="btn" title="Move up" ${i===0?'disabled':''} onclick="move('${f.id}',-1)"><i class="ti ti-arrow-up"></i></button>
+          <button class="btn" title="Move down" ${i===faqs.length-1?'disabled':''} onclick="move('${f.id}',1)"><i class="ti ti-arrow-down"></i></button>
+        </div>
+        <div class="small">
+          <button class="btn" title="Change" onclick="edit('${f.id}')"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-danger" title="Delete" onclick="del('${f.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="empty">No questions yet. Add one above.</div>';
+}
+
+// ───────── LOGIN (same shared session as the other staff pages) ─────────
+function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)return;tokenTimer=setTimeout(refreshToken,Math.max(5000,currentUser.expiresAt-Date.now()-120000))}
+async function refreshToken(){
+  if(!currentUser?.refreshToken)return;
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
+  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();if(!r.ok){err.textContent=d.error_description||'Login failed.';return}
+    currentUser={id:d.user.id,email,token:d.access_token,refreshToken:d.refresh_token,expiresAt:Date.now()+(d.expires_in||3600)*1000};
+    const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));start()}
+  catch(e){err.textContent='Connection error.'}
+}
+function doLogout(){clearTimeout(tokenTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active')}
+async function start(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  document.getElementById('ver').textContent='v'+BUILD_VERSION;scheduleRefresh();await load();
+}
+window.addEventListener('DOMContentLoaded',async()=>{
+  const s=localStorage.getItem('btb_staff_session');if(!s)return;
+  try{currentUser=JSON.parse(s);if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<300000){await refreshToken();if(!currentUser)return}
+    start()}catch(e){doLogout()}
+});
+</script>
+</body>
+</html>
