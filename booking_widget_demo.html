@@ -2621,6 +2621,49 @@ body.compact-ticket .confirm-arrow-hint { display: none !important; }
   body.compact-ticket .screens { padding: 16px 12px 22px; }
 }
 
+/* Back button lives on the ticket photo (top-left) from step 2 on; the old one inside the steps is hidden */
+.tc-back { display: none; }
+body.compact-ticket .tc-back {
+  display: inline-flex; align-items: center; gap: 6px; position: absolute; top: 12px; left: 14px; z-index: 4;
+  background: rgba(248,243,233,.94); color: var(--forest); border: 0; border-radius: 99px; padding: 7px 13px 7px 10px; min-height: 34px;
+  font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .04em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  transition: transform .2s cubic-bezier(.2,.9,.3,1.4), background .2s;
+}
+body.compact-ticket .tc-back:hover { transform: translateX(-3px); background: #fff; }
+body.compact-ticket .tc-back:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+body.compact-ticket .stub-content { padding-top: 30px; }
+body.compact-ticket .screen > .back-link { display: none; }
+
+/* no gap between the ticket and the dates / rooms */
+body.compact-ticket .screens { padding-top: 12px; }
+body.compact-ticket .screen { padding-top: 0; }
+body.compact-ticket .screen .sec-label { margin-top: 4px; margin-bottom: 8px; }
+body.compact-ticket #byGame > .sec-label:first-child, body.compact-ticket #byDate > .sec-label:first-child { margin-top: 0; }
+
+/* DATE / TIME / PLAYERS boxes only show once they're filled in */
+.seat-box.is-tbc { display: none; }
+.main-seats.all-tbc { display: none; }
+
+/* rooms side by side, like posters (swipe sideways on a phone) */
+body.compact-ticket #escapeGameList {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 12px; overflow-x: auto;
+  padding: 6px 2px 14px; scroll-snap-type: x mandatory; margin-bottom: 6px;
+}
+body.compact-ticket #escapeGameList .game-card { flex-direction: column; min-height: 0; scroll-snap-align: start; }
+body.compact-ticket #escapeGameList .game-card .game-photo { width: 100%; aspect-ratio: 4 / 5; border-radius: 10px 10px 0 0; }
+body.compact-ticket #escapeGameList .game-photo-placeholder { min-height: 0; height: 100%; font-size: 44px; }
+body.compact-ticket #escapeGameList .game-info { padding: 10px 12px 4px; }
+body.compact-ticket #escapeGameList .game-name { font-size: 18px; line-height: 1.15; }
+body.compact-ticket #escapeGameList .game-stats { flex-direction: row; border-left: 0; border-top: 1px dashed var(--border-color); padding: 8px 12px 10px; gap: 14px; }
+body.compact-ticket #escapeGameList .game-stat { font-size: 13px; gap: 5px; }
+body.compact-ticket #escapeGameList .game-stat-icon { font-size: 14px; }
+body.compact-ticket #escapeGameList .tooltip-icon { top: 8px; right: 8px; }
+body.compact-ticket #escapeGameList .game-card:hover { transform: translateY(-5px) rotate(-.8deg); }
+@media (max-width: 700px) {
+  body.compact-ticket #escapeGameList { grid-auto-columns: 46%; margin-right: -12px; padding-right: 12px; }
+  body.compact-ticket .tc-back { top: 10px; left: 12px; }
+}
+
 /* ===== slim mini ticket that follows you (used when the booking page is on its own; the website draws its own) ===== */
 .mini-ticket {
   position: fixed; left: 50%; top: 10px; z-index: 900; transform: translate(-50%, -140%); transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
@@ -2699,6 +2742,7 @@ html.embed .mini-ticket { display: none; }
           <!-- STUB (left side) -->
           <div class="ticket-stub">
             <div class="stub-photo" id="stubPhoto" aria-hidden="true"></div>
+            <button type="button" class="tc-back" onclick="btbTicketBack()">← Back</button>
             <div class="stub-teal-stripe"></div>
             <div class="stub-content">
               <div class="stub-code-group">
@@ -8016,8 +8060,24 @@ init();
     document.body.classList.toggle('compact-ticket', !FULL[screenId]);
     var r = _goTo.apply(this, arguments);
     setTimeout(sendState, 60);
+    syncBack();
     return r;
   };
+  // the Back button on the ticket photo does whatever the step's own back link does (and uses its words)
+  function activeBack() { var sc = document.querySelector('.screen.active'); return sc && sc.querySelector(':scope > .back-link'); }
+  function syncBack() {
+    var b = document.querySelector('.tc-back'); if (!b) return;
+    var bl = activeBack();
+    b.style.visibility = bl ? '' : 'hidden';
+    if (bl) b.textContent = bl.textContent.trim() || '← Back';
+  }
+  window.btbTicketBack = function () { var bl = activeBack(); if (bl) bl.click(); };
+  // DATE / TIME / PLAYERS boxes only once filled in
+  function syncSeats() {
+    var boxes = document.querySelectorAll('.main-seats .seat-box'), all = true;
+    boxes.forEach(function (b) { var t = /TBC/i.test(b.textContent); b.classList.toggle('is-tbc', t); if (!t) all = false; });
+    var ms = document.querySelector('.main-seats'); if (ms) ms.classList.toggle('all-tbc', all);
+  }
   // Moving to a new step scrolls to the TICKET (with the step right under it), not past it
   var _ssiv = window.scrollScreenIntoView;
   window.scrollScreenIntoView = function (el) {
@@ -8082,7 +8142,7 @@ init();
     mini.classList.toggle('show', !!(mini._active && gone));
   }
   var _utp2 = window.updateTicketPreview;
-  window.updateTicketPreview = function () { var r = _utp2.apply(this, arguments); setTimeout(sendState, 0); return r; };
+  window.updateTicketPreview = function () { var r = _utp2.apply(this, arguments); syncSeats(); setTimeout(sendState, 0); return r; };
   var _sel = window.selectCategory;
   window.selectCategory = function (cat) {
     var ms = document.getElementById('mainSub');
@@ -8107,7 +8167,7 @@ init();
     var s1 = document.getElementById('s1');
     document.body.dataset.screen = 's1'; syncView();
     document.body.classList.toggle('on-s1', !!(s1 && s1.classList.contains('active')));
-    syncChoices(); tilt(); sendState();
+    syncChoices(); tilt(); syncSeats(); syncBack(); sendState();
     if (window.ResizeObserver) { var tw = document.querySelector('.ticket-wrapper'); if (tw) new ResizeObserver(function () { sendState(); }).observe(tw); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
