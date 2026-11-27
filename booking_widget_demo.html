@@ -4912,7 +4912,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.67-theme-demo'; // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step). // DEMO copy — see top of file. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
+const BUILD_VERSION = '1.7.68-theme-demo'; // v1.7.68: messages to the page around the booking box only go to our own site. // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step). // DEMO copy — see top of file. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
 // Previous build: 1.7.64 — v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
 // Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
@@ -7900,6 +7900,8 @@ init();
 
 
 <script>
+window.BTB_PARENT_ORIGIN = window.BTB_PARENT_ORIGIN || (function () { try { var o = new URL(document.referrer).origin; if (/^https:\/\/(www\.)?btbescaperooms\.co\.nz$/.test(o) || o === 'https://btb-app.pages.dev' || /^https:\/\/[a-z0-9-]+\.btb-app\.pages\.dev$/.test(o) || /^http:\/\/localhost(:\d+)?$/.test(o)) return o; } catch (e) {} return location.origin; })(); // only our own site gets the widget's messages
+
 // ============================================================
 // DEMO v1.8.0-demo additions (look + small helpers only — booking rules untouched)
 //  1. Room photo on the ticket stub (uses the game's photo from Settings > Games,
@@ -7995,7 +7997,7 @@ init();
   if (EMBED) {
     var sendHeight = function () {
       var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
-      try { parent.postMessage({ type: 'btb-widget-height', height: h }, '*'); } catch (e) {}
+      try { parent.postMessage({ type: 'btb-widget-height', height: h }, window.BTB_PARENT_ORIGIN || location.origin); } catch (e) {}
     };
     new ResizeObserver(sendHeight).observe(document.documentElement);
     window.addEventListener('load', sendHeight);
@@ -8007,12 +8009,12 @@ init();
       var block = (opt && typeof opt === 'object' && opt.block) || 'start';
       if (block === 'nearest') return _siv.apply(this, arguments);
       var r = this.getBoundingClientRect();
-      try { parent.postMessage({ type: 'btb-widget-scroll', top: r.top + window.scrollY, height: r.height, block: block }, '*'); } catch (e) { _siv.apply(this, arguments); }
+      try { parent.postMessage({ type: 'btb-widget-scroll', top: r.top + window.scrollY, height: r.height, block: block }, window.BTB_PARENT_ORIGIN || location.origin); } catch (e) { _siv.apply(this, arguments); }
     };
     var _scrollTo = window.scrollTo.bind(window);
     window.scrollTo = function (a, b) {
       var top = (a && typeof a === 'object') ? a.top : b;
-      if (typeof top === 'number') { try { parent.postMessage({ type: 'btb-widget-scroll', top: top }, '*'); } catch (e) {} }
+      if (typeof top === 'number') { try { parent.postMessage({ type: 'btb-widget-scroll', top: top }, window.BTB_PARENT_ORIGIN || location.origin); } catch (e) {} }
       else _scrollTo(a, b);
     };
   }
@@ -8238,7 +8240,7 @@ init();
     var s = state(), t = document.querySelector('.ticket-wrapper');
     if (document.documentElement.classList.contains('embed')) {
       var r = t ? t.getBoundingClientRect() : { top: 0, bottom: 0 };
-      try { parent.postMessage({ type: 'btb-ticket', state: s, ticketTop: r.top + window.scrollY, ticketBottom: r.bottom + window.scrollY }, '*'); } catch (e) {}
+      try { parent.postMessage({ type: 'btb-ticket', state: s, ticketTop: r.top + window.scrollY, ticketBottom: r.bottom + window.scrollY }, window.BTB_PARENT_ORIGIN || location.origin); } catch (e) {}
       return;
     }
     if (!mini) {

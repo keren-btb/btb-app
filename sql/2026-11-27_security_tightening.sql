@@ -208,3 +208,14 @@ create policy managers_delete_game_photos on storage.objects for delete to authe
 -- table"), which ignores security rules. Tested as the public role: booking slots, settings (4 public
 -- keys), games, staff flags, availability, room pages, error logging and voucher requests still work;
 -- clients is now blocked outright.
+
+-- ---------- 2026-11-28 09:00 remaining findings (applied) ----------
+-- Speed: 72 indexes added for links between tables (create index if not exists idx_<table>_<column>),
+--   and 27 staff rules rewritten to check the login once per request: auth.uid() -> (select auth.uid()).
+--   Same logic, done with ALTER POLICY (nothing dropped).
+-- Gift voucher requests from the public: new trigger guard_public_voucher_request() — code must look like
+--   BTB-XXXXXX (the page's own format) and not already exist; payment/used fields forced empty;
+--   max 30 public requests per hour. Tested: a normal request saves, a made-up code like FREEBIE is refused.
+-- Checked, no change needed: respond_booking_request() only lets owners accept on someone else's behalf.
+-- Not changed: pg_net sits in the public schema. Supabase can't move it without removing and re-adding it,
+--   which would briefly stop booking emails; it's harmless where it is.
