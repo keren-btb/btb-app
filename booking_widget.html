@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.62'; // v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
+const BUILD_VERSION = '1.7.63'; // v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
+// Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
 // Previous build: 1.7.61 — v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
 // Previous build: 1.7.60 — v1.7.60: any slot starting within the call-to-book cutoff (3h) shows 'Call us', even if a trusted opener is free.
 // Previous build: 1.7.59 — v1.7.59: request-only times (booking config requestOnlyTimes, set for Tue–Fri 8pm): never a straight booking — Request if someone could run it (Call us inside the request window), Full if nobody can. Slot checker explains it.
@@ -5329,8 +5330,9 @@ function renderSlotCheck(loggedIn) {
     html += `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-bottom:14px">
       <div style="font-size:16px;font-weight:800;margin-bottom:8px">${escapeHtml(dayLbl)}</div>`;
     shown.forEach(g => {
-      const slots = getSlotsForGame(g.id, d.getDay()).slice().sort();
-      if (!slots.length) return;
+      const slots = getSlotsForGame(g.id, d.getDay()).filter(t => !isPastSlot(ds, t)).sort();
+      const twc = tonightWindows(g.id, ds);
+      if (!slots.length && !twc.length) return;
       const tw = tonightWindows(g.id, ds);
       html += `<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapeHtml(g.name)}${tw.length ? ` <span style="font-weight:600;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:99px;padding:1px 8px;margin-left:6px">📞 Call-to-book today: ${tw.map(x => x.s === x.e ? tonightFmt(x.s) : tonightFmt(x.s) + '–' + tonightFmt(x.e)).join(', ')}</span>` : ''}</div><div style="display:flex;flex-wrap:wrap;gap:5px">`;
       slots.forEach(t => {
@@ -5658,14 +5660,15 @@ function renderGameDates() {
     const ds = toDateStr(d);
     const isPast = d < today;
     if (isPast) continue;   // v1.7.39: don't show days that have already gone
-    const slots = getSlotsForGame(selGame.id, d.getDay());
-    if (!slots.length) continue;
+    const slots = getSlotsForGame(selGame.id, d.getDay()).filter(t => !isPastSlot(ds, t)); // v1.7.63
+    const tBoxW = tonightBoxHtml(selGame.id, ds);
+    if (!slots.length && !tBoxW) continue;
     const dayName = DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
     html += '<div style="margin-bottom:18px">';
     html += '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;';
     html += 'color:' + (isPast ? 'var(--text-muted)' : 'var(--text-primary)') + ';margin-bottom:8px;padding-bottom:6px;';
     html += 'border-bottom:1px solid var(--border-color)">' + dayName + '</div>';
-    html += '<div class="slot-grid">' + tonightBoxHtml(selGame.id, ds); // v1.7.62
+    html += '<div class="slot-grid">' + tBoxW; // v1.7.62
     [...slots].sort().forEach(function(t) {
       const status = isPast ? 'past' : getSlotStatus(selGame.id, ds, t);
       const statusLabels = { available: 'Available', call: 'Call us', booked: 'Full', past: 'Past' };
@@ -5705,8 +5708,9 @@ function selectDateFirst(ds, el) {
   const escapGames = games.filter(g => g.category === 'escape' && g.bookable !== false);
   const d = new Date(ds + 'T12:00');
   document.getElementById('dateGamesList').innerHTML = escapGames.map(g => {
-    const slots = getSlotsForGame(g.id, d.getDay());
-    if (!slots.length) return '';
+    const slots = getSlotsForGame(g.id, d.getDay()).filter(t => !isPastSlot(ds, t));
+    const tBox = tonightBoxHtml(g.id, ds);
+    if (!slots.length && !tBox) return '';
     const slotBtns = slots.sort().map(t => slotBtnHtml(g.id, ds, t, true)).join('');
     return `<div class="dg-section">
         <div class="dg-header">
@@ -5714,9 +5718,9 @@ function selectDateFirst(ds, el) {
           <div class="dg-name">${g.name} <span style="font-size:11px;color:var(--text-muted);font-weight:400">${g.duration}min</span></div>
           <div class="dg-price">${gamePriceLabel(g)}</div>
         </div>
-        <div class="dg-slots"><div class="slot-grid">${tonightBoxHtml(g.id, ds)}${slotBtns}</div></div>
+        <div class="dg-slots"><div class="slot-grid">${tBox}${slotBtns}</div></div>
       </div>`;
-  }).join('');
+  }).join('') || `<div style="padding:24px;text-align:center;color:var(--text-muted)">No more times today — please choose another date, or call us on <a href="tel:0220537365" style="color:inherit">022 053 7365</a>.</div>`; // v1.7.63
   const dateGamesWrapEl = document.getElementById('dateGamesWrap');
   setTimeout(() => dateGamesWrapEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
@@ -5867,12 +5871,16 @@ function tonightBoxHtml(gameId, dateStr) {
 }
 function tonightFmt(m) { return fmt12(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')).replace(':00 ', ' ').toLowerCase().replace(' ', ''); }
 
+// v1.7.63: times that have already started today are hidden everywhere (customers and Slot checker)
+function isPastSlot(dateStr, slotTime) { return new Date(dateStr + 'T' + slotTime + ':00') < nzNow(); }
 function renderSlots(gridId, gameId, dateStr) {
   const d = new Date(dateStr + 'T12:00');
-  const slots = getSlotsForGame(gameId, d.getDay());
+  const allSlots = getSlotsForGame(gameId, d.getDay());
+  const slots = allSlots.filter(t => !isPastSlot(dateStr, t));
   const el = document.getElementById(gridId);
   if (!slots.length) {
-    el.innerHTML = '<div class="empty" style="grid-column:1/-1">No slots on this day.</div>';
+    const box = tonightBoxHtml(gameId, dateStr);
+    el.innerHTML = box || `<div class="empty" style="grid-column:1/-1">${allSlots.length ? 'No more times today.' : 'No slots on this day.'}</div>`;
     return;
   }
   el.innerHTML = tonightBoxHtml(gameId, dateStr) + slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join(''); // v1.7.61: 'Play tonight?' box first
