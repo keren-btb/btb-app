@@ -2524,7 +2524,7 @@ body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .c
 
 /* the big red arrow, coming from the photo side of the ticket */
 .tc-arrow {
-  position: absolute; left: -128px; top: 4px; width: 140px; pointer-events: none; z-index: 5;
+  position: absolute; left: -128px; top: 26px; width: 140px; pointer-events: none; z-index: 5;
   animation: tc-point 1.6s ease-in-out infinite; transform-origin: 20% 80%;
 }
 .tc-arrow svg { display: block; width: 100%; height: auto; background: transparent !important; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
@@ -2544,6 +2544,39 @@ body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .c
   @keyframes tc-nudge { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(4px) } }
 }
 
+/* red line under the circles with a light running along it */
+.tc-line { height: 3px; margin: 12px 4px 0; background: #dc2626; border-radius: 3px; position: relative; overflow: hidden; }
+.tc-line::after {
+  content: ""; position: absolute; top: -3px; bottom: -3px; width: 90px; left: -90px;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,220,220,.6) 35%, transparent 70%);
+  animation: tc-run 2.2s cubic-bezier(.45,0,.55,1) infinite;
+}
+@keyframes tc-run { 0% { left: -90px } 70%, 100% { left: 100% } }
+
+/* ===== after step 1 the ticket shrinks, so it can stay on screen with the next step ===== */
+body.compact-ticket .main-details, body.compact-ticket .barcode-vertical, body.compact-ticket .ticket-main > .main-asterisks { display: none; }
+body.compact-ticket .main-title svg { max-height: 64px; width: auto; }
+body.compact-ticket .ticket-main { padding-top: 14px; padding-bottom: 14px; }
+body.compact-ticket .ticket-stub { min-height: 0; }
+body.compact-ticket .main-seats { margin-top: 8px; }
+body.compact-ticket #mainSub { font-size: 90%; margin: 2px 0 0; }
+@media (max-width: 700px) { body.compact-ticket .ticket-stub { min-height: 120px; } }
+
+/* ===== slim mini ticket that follows you (used when the booking page is on its own; the website draws its own) ===== */
+.mini-ticket {
+  position: fixed; left: 50%; top: 10px; z-index: 900; transform: translate(-50%, -140%); transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
+  display: flex; align-items: stretch; width: min(560px, calc(100% - 20px)); min-height: 56px; background: #fbf7ee; border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(31,37,31,.28); overflow: hidden; cursor: pointer; border: 0; padding: 0; font: inherit; text-align: left; color: var(--forest);
+}
+.mini-ticket.show { transform: translate(-50%, 0); }
+.mini-ticket .mt-photo { width: 74px; flex: none; background: #17261f center/cover; border-right: 2px dashed rgba(36,37,31,.25); position: relative; }
+.mini-ticket .mt-photo::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--teal); }
+.mini-ticket .mt-body { padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 1; }
+.mini-ticket .mt-game { font-family: var(--head-font); font-size: 18px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-ticket .mt-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-ticket .mt-up { align-self: center; padding: 0 14px; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--teal-ink); white-space: nowrap; }
+html.embed .mini-ticket { display: none; }
+
 /* ===== the ticket reacts more when you hover: lifts, tilts towards the mouse ===== */
 .ticket-wrapper { transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; will-change: transform; }
 .ticket-wrapper:hover {
@@ -2551,7 +2584,8 @@ body.on-s1 #s1 > .sec-label, body.on-s1 #s1 > .step-divider, body.on-s1 #s1 > .c
   box-shadow: 30px 40px 80px rgba(31,37,31,.28), 0 4px 10px rgba(31,37,31,.12);
 }
 @media (prefers-reduced-motion: reduce) {
-  .tc-choice, .tc-arrow { animation: none; }
+  .tc-choice, .tc-arrow, .tc-line::after { animation: none; }
+  .mini-ticket { transition: none; }
   .ticket-wrapper:hover { transform: translateY(-4px); }
 }
 </style>
@@ -3975,6 +4009,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
                 <button type="button" class="tc-choice" data-cat="cafe" style="--i:2" onclick="selectCategory('cafe')"><span class="tc-dot">☕</span><span class="tc-name">Board Game Cafe</span></button>
                 <button type="button" class="tc-choice" data-cat="enquiry" style="--i:3" onclick="selectCategory('enquiry')"><span class="tc-dot">💬</span><span class="tc-name">Contact Us</span></button>
               </div>
+              <div class="tc-line" aria-hidden="true"></div>
             </div>
 
             <div class="main-asterisks">* * * * * *</div>
@@ -7902,12 +7937,67 @@ init();
       if (tip) b.title = tip.textContent;
     });
   }
+  var FULL = { s0: 1, s1: 1, s3review: 1, s4: 1 };       // screens that show the full-size ticket
+  var current = 's1';
   var _goTo = window.goTo;
   window.goTo = function (screenId) {
-    var r = _goTo.apply(this, arguments);
+    current = screenId;
     document.body.classList.toggle('on-s1', screenId === 's1');
+    document.body.classList.toggle('compact-ticket', !FULL[screenId]);
+    var r = _goTo.apply(this, arguments);
+    setTimeout(sendState, 60);
     return r;
   };
+  // Moving to a new step scrolls to the TICKET (with the step right under it), not past it
+  var _ssiv = window.scrollScreenIntoView;
+  window.scrollScreenIntoView = function (el) {
+    var t = document.querySelector('.ticket-wrapper');
+    if (t && el && el.classList && el.classList.contains('screen') && el.id !== 's3review') return _ssiv.call(this, t);
+    return _ssiv.apply(this, arguments);
+  };
+
+  // ---- mini ticket: what's on the ticket, in one line ----
+  function txt(id) { var e = document.getElementById(id); return e ? e.textContent.replace(/^\s*[–-]\s*/, '').trim() : ''; }
+  function state() {
+    var photo = document.getElementById('stubPhoto');
+    var game = (typeof selGame !== 'undefined' && selGame) ? selGame.name : '';
+    var bits = [txt('ticketDate'), txt('ticketTime'), txt('ticketPlayers')].filter(function (x) { return x && !/^TBC$/i.test(x); });
+    var players = txt('ticketPlayers');
+    if (players && !/^TBC$/i.test(players)) bits[bits.length - 1] = players + (/\d$/.test(players) ? ' players' : '');
+    return {
+      active: current !== 's1' && current !== 's0',
+      game: game || (document.getElementById('mainSub') || {}).textContent || 'Your booking',
+      meta: bits.join(' · ') || 'Pick a time to fill in your ticket',
+      photo: photo ? photo.dataset.src || '' : ''
+    };
+  }
+  var mini = null;
+  function sendState() {
+    var s = state(), t = document.querySelector('.ticket-wrapper');
+    if (document.documentElement.classList.contains('embed')) {
+      var r = t ? t.getBoundingClientRect() : { top: 0, bottom: 0 };
+      try { parent.postMessage({ type: 'btb-ticket', state: s, ticketTop: r.top + window.scrollY, ticketBottom: r.bottom + window.scrollY }, '*'); } catch (e) {}
+      return;
+    }
+    if (!mini) {
+      mini = document.createElement('button'); mini.type = 'button'; mini.className = 'mini-ticket'; mini.setAttribute('aria-label', 'Back to your ticket');
+      mini.innerHTML = '<span class="mt-photo"></span><span class="mt-body"><span class="mt-game"></span><span class="mt-meta"></span></span><span class="mt-up">↑ TICKET</span>';
+      mini.onclick = function () { var w = document.querySelector('.ticket-wrapper'); if (w) window.scrollTo({ top: w.getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth' }); };
+      document.body.appendChild(mini);
+      window.addEventListener('scroll', showMini, { passive: true });
+    }
+    mini.querySelector('.mt-game').textContent = s.game;
+    mini.querySelector('.mt-meta').textContent = s.meta;
+    mini.querySelector('.mt-photo').style.backgroundImage = s.photo ? 'url("' + s.photo.replace(/"/g, '%22') + '")' : '';
+    mini._active = s.active; showMini();
+  }
+  function showMini() {
+    if (!mini) return; var t = document.querySelector('.ticket-wrapper');
+    var gone = t && t.getBoundingClientRect().bottom < 0;
+    mini.classList.toggle('show', !!(mini._active && gone));
+  }
+  var _utp2 = window.updateTicketPreview;
+  window.updateTicketPreview = function () { var r = _utp2.apply(this, arguments); setTimeout(sendState, 0); return r; };
   var _sel = window.selectCategory;
   window.selectCategory = function (cat) {
     var ms = document.getElementById('mainSub');
@@ -7931,7 +8021,8 @@ init();
   function start() {
     var s1 = document.getElementById('s1');
     document.body.classList.toggle('on-s1', !!(s1 && s1.classList.contains('active')));
-    syncChoices(); tilt();
+    syncChoices(); tilt(); sendState();
+    if (window.ResizeObserver) { var tw = document.querySelector('.ticket-wrapper'); if (tw) new ResizeObserver(function () { sendState(); }).observe(tw); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
