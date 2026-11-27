@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Box — Website reviews</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#07b4c5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html{-webkit-text-size-adjust:100%}
+:root{--navy:#1a1035;--teal:#07b4c5;--teal2:#059aaa;--green:#15803d;--red:#dc2626;--amber:#b45309;--gold:#f59e0b;--border:#e5e7eb;--text:#111827;--muted:#6b7280}
+body{background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--text);min-height:100vh}
+.login-screen{display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.login-screen.active{display:flex}
+.login-card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px}
+.login-input{width:100%;font-size:16px;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-family:inherit}
+.login-btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.wrap{display:none;max-width:900px;margin:0 auto;padding:0 0 60px}
+header.topbar{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.topbar a{color:#8a9bb5;font-size:12px;text-decoration:none}
+.topbar-title{color:#fff;font-size:16px;font-weight:700;flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px}
+.btn:hover{border-color:var(--teal)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-danger{color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.content{padding:14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:4px}
+.help{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+label.f{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px}
+.in{width:100%;font-size:16px;font-family:inherit;background:#f9fafb;border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.in:focus{outline:none;border-color:var(--teal)}
+textarea.in{min-height:90px;resize:vertical;line-height:1.45}
+.grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.grid3{grid-template-columns:1fr}}
+.stars{display:flex;gap:2px}
+.stars button{background:none;border:0;font-size:26px;line-height:1;cursor:pointer;color:#d1d5db;padding:2px}
+.stars button.on{color:var(--gold)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.msg{font-size:13px;margin-top:8px;min-height:18px}.err{color:var(--red)}.ok{color:var(--green)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.tabs button{border:1px solid var(--border);background:#fff;border-radius:99px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;min-height:34px}
+.tabs button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.rv{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto;gap:10px}
+.rv.hidden{background:#f9fafb;opacity:.75}
+.rv .who{font-weight:700}
+.rv .meta{font-size:12px;color:var(--muted);margin-top:1px}
+.rv .st{color:var(--gold);letter-spacing:1px}
+.rv .txt{margin-top:6px;line-height:1.5;white-space:pre-wrap}
+.rv .acts{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.rv .small{display:flex;gap:4px}
+.rv .small .btn{min-height:32px;padding:5px 9px;font-size:12px}
+.pin{font-size:11px;font-weight:700;color:var(--teal2);margin-left:6px}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:700;user-select:none}
+.switch input{display:none}
+.switch .tr{width:44px;height:26px;border-radius:99px;background:#d1d5db;position:relative;transition:background .2s}
+.switch .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.switch input:checked + .tr{background:var(--green)}
+.switch input:checked + .tr::after{left:21px}
+.empty{text-align:center;color:var(--muted);padding:26px}
+.count{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="login-screen active" id="loginScreen">
+  <div style="color:var(--teal);font-size:22px;font-weight:800;margin-bottom:20px"><i class="ti ti-star"></i> Website reviews</div>
+  <div class="login-card">
+    <input class="login-input" id="loginEmail" placeholder="firstname" autocapitalize="off">
+    <input class="login-input" id="loginPass" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign in</button><div class="login-error" id="loginError"></div>
+  </div>
+</div>
+<div class="wrap" id="appWrap">
+  <header class="topbar">
+    <a href="btb_app.html"><i class="ti ti-chevron-left"></i> BtB App</a>
+    <div class="topbar-title"><i class="ti ti-star"></i> Website reviews <span id="ver" style="font-size:10px;color:#8a9bb5;font-weight:400"></span></div>
+  </header>
+  <div class="content">
+    <div class="card" id="addCard">
+      <h2 id="formTitle">Add a review</h2>
+      <p class="help">Open your Google reviews, copy one review (name, stars, date and words) and paste it in the box. I'll fill in the boxes below for you. Check them, then Save. Only reviews switched to <b>Show</b> appear on the website.</p>
+      <label class="f" for="paste">Paste a Google review here</label>
+      <textarea class="in" id="paste" placeholder="Paste the whole review here…" oninput="fromPaste()"></textarea>
+      <div class="grid3">
+        <div><label class="f" for="fName">Name</label><input class="in" id="fName" autocomplete="off"></div>
+        <div><label class="f" for="fDate">Date (roughly is fine)</label><input class="in" id="fDate" type="date"></div>
+        <div><label class="f" for="fRoom">Room (optional)</label>
+          <select class="in" id="fRoom"><option value="">—</option><option>Sherlock</option><option>Saving Christmas</option><option>Gregg in the Box</option><option>The Cube</option><option>Pirate’s Cove</option><option>Mini Escape Room</option><option>VR chairs</option><option>Board games</option></select></div>
+      </div>
+      <label class="f">Stars</label>
+      <div class="stars" id="fStars" role="radiogroup" aria-label="Stars"></div>
+      <label class="f" for="fText">Review words (as shown on the website)</label>
+      <textarea class="in" id="fText"></textarea>
+      <div class="row">
+        <label class="switch"><input type="checkbox" id="fShow" checked><span class="tr"></span> Show on website</label>
+        <span style="flex:1"></span>
+        <button class="btn" id="btnCancel" style="display:none" onclick="resetForm()">Cancel</button>
+        <button class="btn btn-primary" id="btnSave" onclick="save()"><i class="ti ti-device-floppy"></i> Save review</button>
+      </div>
+      <div class="msg" id="formMsg"></div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+// BtB error logger (same as the other pages) — handled errors and failure pop-ups go to Settings > Errors
+(function(){
+  var PAGE='site_reviews.html',EP='https://dcksohetvlonijtcbjwe.supabase.co/rest/v1/error_logs',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+  var sent=0,seen={};
+  function send(level,source,msg,stack){try{msg=String(msg||'').slice(0,2000);var k=source+'|'+msg;if(seen[k]||sent>=20)return;seen[k]=1;sent++;
+    var tok=KEY;try{if(currentUser&&currentUser.token)tok=currentUser.token}catch(e){}
+    fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+tok,'Prefer':'return=minimal'},body:JSON.stringify({level:level,source:source,message:msg,stack:stack?String(stack).slice(0,8000):null,page:PAGE,url:location.origin+location.pathname,context:{},user_agent:navigator.userAgent.slice(0,400),app_version:(typeof BUILD_VERSION!=='undefined'?BUILD_VERSION:null)}),keepalive:true}).catch(function(){})}catch(e){}}
+  window.addEventListener('error',function(e){send('error','window.onerror',e.message,e.error&&e.error.stack)});
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason;send('error','promise',(r&&r.message)||String(r),r&&r.stack)});
+  window.btbLogError=function(s,err){send('error',s,(err&&err.message)||String(err),err&&err.stack)};
+  try{var ce=console.error;console.error=function(){try{ce.apply(console,arguments)}catch(x){}try{var p=[].slice.call(arguments).map(function(x){return x&&x.message?x.message:(typeof x==='string'?x:'')}).filter(Boolean);if(p.length)send('error','console.error',p.join(' '))}catch(x){}}}catch(x){}
+})();
+</script>
+<script>
+// site_reviews.html v1.0.0 — 2026-11-27: Google reviews for the website, copy-and-paste version.
+// Paste a review → it fills in name / stars / date / words → Save. Each review has a Show / Hide switch;
+// the website reads only the shown ones (public_site_reviews(), see sql/2026-11-27_site_reviews.sql).
+// Admin / manager / owner only (enforced by the database). Later: automatic import via Google's Business Profile API.
+const BUILD_VERSION='1.0.0';
+const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
+const SB_AUTH=`${SB_URL}/auth/v1`;
+let currentUser=null,tokenTimer=null,reviews=[],tab='all',editId=null,stars=5;
+const H=()=>({'Content-Type':'application/json','Authorization':`Bearer ${currentUser?.token||SB_ANON}`,'apikey':SB_ANON});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nzToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland'}).format(new Date());
+const fmtD=d=>d?new Date(String(d).slice(0,10)+'T12:00').toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'no date';
+async function api(path,opts={}){
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{...opts,headers:{...H(),'Prefer':'return=representation',...(opts.headers||{})}});
+  const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((d&&(d.message||d.hint))||t||('Error '+r.status));return d;
+}
+async function edge(action,params){
+  const r=await fetch(`${SB_URL}/functions/v1/btb-admin`,{method:'POST',headers:H(),body:JSON.stringify({action,...params})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('Error '+r.status));return d;
+}
+
+// ───────── PASTE HELPER: turns a copied Google review into the boxes ─────────
+// Google reviews copy in different shapes, so this is a best guess the person checks before saving.
+function agoToDate(s){
+  const m=s.match(/\b(a|an|one|\d+)\s+(day|week|month|year)s?\s+ago\b/i);if(!m)return null;
+  const n=/^\d+$/.test(m[1])?+m[1]:1;const d=new Date(nzToday()+'T12:00');
+  const u=m[2].toLowerCase();if(u==='day')d.setDate(d.getDate()-n);if(u==='week')d.setDate(d.getDate()-7*n);
+  if(u==='month')d.setMonth(d.getMonth()-n);if(u==='year')d.setFullYear(d.getFullYear()-n);
+  return d.toISOString().slice(0,10);
+}
+const JUNK=/^(local guide|\d+\s+reviews?|\d+\s+photos?|·|like|share|more|new|edited|helpful|report review|\d+ (reviews?|photos?)( · \d+ (reviews?|photos?))?|response from the owner.*|visited in .*|.*\bago\b.*|\d(\.\d)?\/5|[★☆]+)$/i;
+function fromPaste(){
+  const raw=document.getElementById('paste').value;if(!raw.trim())return;
+  let txt=raw.split(/\n\s*Response from the owner/i)[0];          // never take your own reply as the review
+  const lines=txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  // stars: "5/5", "Rated 5.0 out of 5", "★★★★★"
+  let st=null;const sm=txt.match(/(\d)(?:\.0)?\s*(?:\/\s*5|out of 5|stars?)/i)||[];if(sm[1])st=+sm[1];
+  const bs=txt.match(/★{1,5}/);if(!st&&bs)st=bs[0].length;
+  const date=agoToDate(txt);
+  // name: first short line that isn't Google clutter
+  let name='',rest=[...lines];
+  if(rest.length>1&&rest[0].length<=40&&!JUNK.test(rest[0])){name=rest.shift()}
+  const body=rest.filter(l=>!JUNK.test(l)&&!/^\s*(local guide)\b/i.test(l)&&!/^\d+\s+reviews?\s*·?\s*\d*\s*photos?$/i.test(l)&&!/^(Rated|[★☆])/i.test(l)).join('\n').trim();
+  if(name)document.getElementById('fName').value=name;
+  if(date)document.getElementById('fDate').value=date;
+  if(st)setStars(st);
+  if(body)document.getElementById('fText').value=body.replace(/\s*…?\s*More$/,'');
+  const rooms=[['Saving Christmas',/saving christmas|christmas room/i],['Sherlock',/sherlock/i],['Gregg in the Box',/gregg/i],['The Cube',/\bthe cube\b/i],['Pirate’s Cove',/pirate/i],['Mini Escape Room',/mini escape/i],['VR chairs',/\bvr\b|virtual reality/i],['Board games',/board game/i]];
+  const hit=rooms.find(([,re])=>re.test(body));if(hit&&!document.getElementById('fRoom').value)document.getElementById('fRoom').value=hit[0];
+  document.getElementById('formMsg').innerHTML='<span class="ok">Filled in from your paste. Check the boxes, then Save.</span>';
+}
+
+function setStars(n){stars=n;document.getElementById('fStars').innerHTML=[1,2,3,4,5].map(i=>`<button type="button" class="${i<=n?'on':''}" role="radio" aria-checked="${i===n}" aria-label="${i} star${i>1?'s':''}" onclick="setStars(${i})">★</button>`).join('')}
+
+function resetForm(){
+  editId=null;['paste','fName','fText'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fDate').value='';document.getElementById('fRoom').value='';document.getElementById('fShow').checked=true;setStars(5);
+  document.getElementById('formTitle').textContent='Add a review';document.getElementById('btnCancel').style.display='none';
+  document.getElementById('btnSave').innerHTML='<i class="ti ti-device-floppy"></i> Save review';
+}
+async function save(){
+  const msg=document.getElementById('formMsg');msg.textContent='';
+  const row={reviewer_name:document.getElementById('fName').value.trim(),rating:stars,review_text:document.getElementById('fText').value.trim(),
+    review_date:document.getElementById('fDate').value||null,room:document.getElementById('fRoom').value||null,show_on_website:document.getElementById('fShow').checked};
+  if(!row.reviewer_name){msg.innerHTML='<span class="err">Please add the name.</span>';return}
+  if(!row.review_text){msg.innerHTML='<span class="err">Please add the review words.</span>';return}
+  if(!editId){const dup=reviews.find(r=>r.reviewer_name.toLowerCase()===row.reviewer_name.toLowerCase()&&r.review_text.slice(0,40)===row.review_text.slice(0,40));
+    if(dup&&!confirm('This looks like a review you already added. Add it again anyway?'))return}
+  const b=document.getElementById('btnSave');b.disabled=true;
+  try{
+    if(editId)await api(`site_reviews?id=eq.${editId}`,{method:'PATCH',body:JSON.stringify(row)});
+    else await api('site_reviews',{method:'POST',body:JSON.stringify(row)});
+    resetForm();msg.innerHTML='<span class="ok">Saved ✓</span>';await load();
+  }catch(e){msg.innerHTML=`<span class="err">Couldn't save: ${esc(e.message)}</span>`;btbLogError('save review',e)}
+  finally{b.disabled=false}
+}
+function edit(id){
+  const r=reviews.find(x=>x.id===id);if(!r)return;editId=id;
+  document.getElementById('paste').value='';document.getElementById('fName').value=r.reviewer_name;document.getElementById('fText').value=r.review_text;
+  document.getElementById('fDate').value=r.review_date||'';document.getElementById('fRoom').value=r.room||'';document.getElementById('fShow').checked=r.show_on_website;setStars(r.rating);
+  document.getElementById('formTitle').textContent='Change this review';document.getElementById('btnCancel').style.display='';
+  document.getElementById('btnSave').innerHTML='<i class="ti ti-device-floppy"></i> Save changes';document.getElementById('formMsg').textContent='';
+  document.getElementById('addCard').scrollIntoView({behavior:'smooth'});
+}
+async function patch(id,ch){
+  const r=reviews.find(x=>x.id===id);const before={...r};Object.assign(r,ch);render();
+  try{await api(`site_reviews?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(ch)})}
+  catch(e){Object.assign(r,before);render();alert("Couldn't save that change: "+e.message);btbLogError('patch review',e)}
+}
+async function del(id){
+  const r=reviews.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`Delete ${r.reviewer_name}'s review for good?\n\n(To just keep it off the website, switch it to Hide instead.)`))return;
+  try{await api(`site_reviews?id=eq.${id}`,{method:'DELETE'});reviews=reviews.filter(x=>x.id!==id);render()}
+  catch(e){alert("Couldn't delete: "+e.message);btbLogError('delete review',e)}
+}
+
+async function load(){
+  try{reviews=await api('site_reviews?select=*&order=pinned.desc,review_date.desc.nullslast,created_at.desc')||[];render()}
+  catch(e){
+    const m=String(e.message||'');
+    document.getElementById('list').innerHTML=`<div class="empty err">${/site_reviews|relation|schema cache/i.test(m)?'The reviews table isn\'t set up yet. Run sql/2026-11-27_site_reviews.sql in Supabase first.':'Couldn\'t load reviews: '+esc(m)}</div>`;
+    btbLogError('load reviews',e)}
+}
+function render(){
+  const shown=reviews.filter(r=>r.show_on_website).length,hidden=reviews.length-shown;
+  document.getElementById('tabs').innerHTML=[['all',`All (${reviews.length})`],['shown',`On website (${shown})`],['hidden',`Hidden (${hidden})`]]
+    .map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';render()">${l}</button>`).join('');
+  const list=reviews.filter(r=>tab==='all'||(tab==='shown'?r.show_on_website:!r.show_on_website));
+  document.getElementById('list').innerHTML=list.length?list.map(r=>`
+    <div class="rv ${r.show_on_website?'':'hidden'}">
+      <div>
+        <div class="who">${esc(r.reviewer_name)} <span class="st">${'★'.repeat(r.rating)}<span style="color:#d1d5db">${'★'.repeat(5-r.rating)}</span></span>${r.pinned?'<span class="pin">📌 First on website</span>':''}</div>
+        <div class="meta">${fmtD(r.review_date)}${r.room?' · '+esc(r.room):''}</div>
+        <div class="txt">${esc(r.review_text)}</div>
+      </div>
+      <div class="acts">
+        <label class="switch" title="Show on website"><input type="checkbox" ${r.show_on_website?'checked':''} onchange="patch('${r.id}',{show_on_website:this.checked})"><span class="tr"></span>${r.show_on_website?'Show':'Hide'}</label>
+        <div class="small">
+          <button class="btn" title="Put this first on the website" onclick="patch('${r.id}',{pinned:${!r.pinned}})"><i class="ti ti-pin${r.pinned?'-filled':''}"></i></button>
+          <button class="btn" title="Change" onclick="edit('${r.id}')"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-danger" title="Delete" onclick="del('${r.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join(''):`<div class="empty">${tab==='hidden'?'No hidden reviews.':'No reviews yet. Paste one above.'}</div>`;
+}
+
+// ───────── LOGIN (same shared session as the other staff pages) ─────────
+function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)return;tokenTimer=setTimeout(refreshToken,Math.max(5000,currentUser.expiresAt-Date.now()-120000))}
+async function refreshToken(){
+  if(!currentUser?.refreshToken)return;
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
+    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
+  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+}
+async function doLogin(){
+  let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
+  const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
+  try{const r=await fetch(`${SB_AUTH}/token?grant_type=password`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({email,password:pass})});
+    const d=await r.json();if(!r.ok){err.textContent=d.error_description||'Login failed.';return}
+    currentUser={id:d.user.id,email,token:d.access_token,refreshToken:d.refresh_token,expiresAt:Date.now()+(d.expires_in||3600)*1000};
+    const role=await edge('get_my_role',{}).catch(()=>null);if(role){currentUser.name=role.name;currentUser.role=role.role}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));start()}
+  catch(e){err.textContent='Connection error.'}
+}
+function doLogout(){clearTimeout(tokenTimer);currentUser=null;localStorage.removeItem('btb_staff_session');document.getElementById('appWrap').style.display='none';document.getElementById('loginScreen').classList.add('active')}
+async function start(){
+  document.getElementById('loginScreen').classList.remove('active');document.getElementById('appWrap').style.display='block';
+  document.getElementById('ver').textContent='v'+BUILD_VERSION;scheduleRefresh();setStars(5);await load();
+}
+window.addEventListener('DOMContentLoaded',async()=>{
+  setStars(5);
+  const s=localStorage.getItem('btb_staff_session');if(!s)return;
+  try{currentUser=JSON.parse(s);if(!currentUser.refreshToken){doLogout();return}
+    if((currentUser.expiresAt||0)-Date.now()<300000){await refreshToken();if(!currentUser)return}
+    start()}catch(e){doLogout()}
+});
+</script>
+</body>
+</html>
