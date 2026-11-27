@@ -4912,7 +4912,7 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.65-theme-demo'; // DEMO copy — see top of file. // v1.7.65: today box wording 'may be able to start' (was 'can start').
+const BUILD_VERSION = '1.7.67-theme-demo'; // v1.7.67: customer lookup uses public_get_client_id (one find-or-add step). // DEMO copy — see top of file. // v1.7.66: a game with max players 50+ shows its players as "3+" (no top limit) instead of "3–99". Previous build: 1.7.65 — v1.7.65: today box wording 'may be able to start' (was 'can start').
 // Previous build: 1.7.64 — v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
 // Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
@@ -6131,6 +6131,8 @@ function selectCategory(cat) {
 function gameCardHtml(g, idPrefix, clickFn) {
   const min = g.minPlayers ?? 1;
   const max = g.maxPlayers ?? '–';
+  // v1.7.66: a max of 50+ means "no limit" (e.g. VR Hour) — shown as "3+" instead of "3–99"
+  const playersText = (typeof g.maxPlayers === 'number' && g.maxPlayers >= 50) ? `${min}+` : `${min}–${max}`;
   const photo = g.photoUrl
     ? `<img src="${g.photoUrl}" alt="${g.name}">`
     : `<div class="game-photo-placeholder">${g.icon || '🚪'}</div>`;
@@ -6146,7 +6148,7 @@ function gameCardHtml(g, idPrefix, clickFn) {
           <div class="game-price">${gamePriceLabel(g)}</div>
         </div>
         <div class="game-stats">
-          <div class="game-stat" title="Players"><span class="game-stat-icon">👥</span><span>${min}–${max}</span></div>
+          <div class="game-stat" title="Players"><span class="game-stat-icon">👥</span><span>${playersText}</span></div>
           <div class="game-stat" title="Duration"><span class="game-stat-icon">⏱️</span><span>${g.duration} min</span></div>
         </div>
       </div>`;
@@ -7072,25 +7074,12 @@ async function submitBooking() {
 
     let clientId = null;
     if (email) {
-      const cr = await fetch(
-        `${SB_URL}/rest/v1/rpc/public_find_client_id`, { method: 'POST', headers: SB_H, body: JSON.stringify({ p_email: email, p_phone: null }) }
-      );
-      const foundId = await cr.json();
-      if (foundId) {
-        clientId = foundId;
-      } else {
-        const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-          method: 'POST',
-          headers: SB_H,
-          body: JSON.stringify({
-            p_first_name: first,
-            p_last_name: last,
-            p_email: email,
-            p_phone: phone,
-          })
-        });
-        clientId = await nr.json();
-      }
+      // v1.7.67: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+      const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+        method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source: 'online' })
+      });
+      if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+      clientId = await cr.json();
     }
 
     const bookingData = {
@@ -7476,21 +7465,12 @@ async function submitGroupRequest() {
 
   try {
     let clientId = null;
-    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
-      method: 'POST', headers: SB_H, body: JSON.stringify({ p_email: email, p_phone: phone || null })
+    // v1.7.67: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source: 'online' })
     });
     if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
-    const foundId = await cr.json();
-    if (foundId) {
-      clientId = foundId;
-    } else {
-      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-        method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source: 'online' })
-      });
-      if (!nr.ok) throw new Error('Client creation failed: ' + await nr.text());
-      clientId = await nr.json();
-    }
+    clientId = await cr.json();
 
     const noteText = `${first} ${last} · ${ref} · Group request: ${roomsLabel} · Players: ${playersLabel}`
       + (companyName ? ` · Company: ${companyName}` : '')
@@ -7616,19 +7596,12 @@ try {
     const last = nameParts.slice(1).join(' ') || null;
 
     let clientId = null;
-    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
-      method: 'POST', headers: SB_H,
-      body: JSON.stringify({ p_email: contactEmail || null, p_phone: contactPhone || null })
+    // v1.7.67: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'enquiry' })
     });
-    const foundId = await cr.json();
-    if (foundId) { clientId = foundId; }
-    else {
-      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-        method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'enquiry' })
-      });
-      clientId = await nr.json();
-    }
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+    clientId = await cr.json();
 
     // Save to game_bookings as an enquiry
     const br = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
@@ -7724,21 +7697,12 @@ async function submitWaitlist() {
     const last = nameParts.slice(1).join(' ') || null;
 
     let clientId = null;
-    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
-      method: 'POST', headers: SB_H,
-      body: JSON.stringify({ p_email: contactEmail || null, p_phone: contactPhone || null })
+    // v1.7.67: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'waitlist' })
     });
     if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
-    const foundId = await cr.json();
-    if (foundId) { clientId = foundId; }
-    else {
-      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-        method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: contactEmail || null, p_phone: contactPhone || null, p_source: 'waitlist' })
-      });
-      if (!nr.ok) throw new Error('Client creation failed: ' + await nr.text());
-      clientId = await nr.json();
-    }
+    clientId = await cr.json();
 
     // Save to game_bookings as a waitlist entry — same slot, same date, so it
     // shows on the calendar for staff to action if that time frees up.
@@ -7821,20 +7785,12 @@ try {
     let clientId = null;
     // Uses the public_find_client_id RPC rather than a direct SELECT on
     // clients — same reasoning as the main booking submission above.
-    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
-      method: 'POST',
-      headers: SB_H,
-      body: JSON.stringify({ p_email: email || null, p_phone: phone || null })
+    // v1.7.67: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null, p_source: 'enquiry' })
     });
-    const foundId = await cr.json();
-    if (foundId) { clientId = foundId; } else {
-      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-        method: 'POST',
-        headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last || null, p_email: email || null, p_phone: phone || null, p_source: 'enquiry' })
-      });
-      clientId = await nr.json();
-    }
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+    clientId = await cr.json();
     const r = await fetch(`${SB_URL}/rest/v1/game_bookings`, {
       method: 'POST',
       headers: { ...SB_H, 'Prefer': 'return=minimal' },

@@ -242,7 +242,7 @@ body{
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_H  = {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY};
-const BUILD_VERSION = '1.1.9'; // v1.1.9: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.1.8: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
+const BUILD_VERSION = '1.1.10'; // v1.1.10: customer lookup uses public_get_client_id (one find-or-add step) so the page can no longer be used to test whether an email or phone belongs to a customer. Nothing visible changes. | // v1.1.9: Error logging. Uncaught errors and failed background tasks on this page are now saved to the Supabase error_logs table so they show up in the app under Settings > Errors (page name, build version, time, device; at most 20 per page load, duplicates skipped). Nothing visible changes for customers and no customer details are sent. Nothing existing was changed or removed. | v1.1.8: Suite-wide mobile viewport fix — body now uses 100dvh instead of 100vh so it doesn't get clipped behind the browser's address bar on phones.
 // v1.1.6 — Fixed Android text-size-adjust bug: the installed (standalone) PWA rendered noticeably larger/zoomed compared to a normal browser tab, cutting off content on the right (Android font-boosting behaves differently in standalone mode). Added text-size-adjust:100% to disable it.
 // v1.1.4 — Added phone number to the "having trouble loading" error screen
 //          so a customer has a fallback way to reach us if the page can't
@@ -411,19 +411,12 @@ async function submitRequest() {
     const nameParts = name.split(' ');
     const first = nameParts[0] || name;
     const last = nameParts.slice(1).join(' ') || null;
-    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_find_client_id`, {
-      method: 'POST', headers: SB_H, body: JSON.stringify({ p_email: email, p_phone: phone })
+    // v1.1.10: one step finds or adds the customer (the old lookup told anyone whether an email was a customer)
+    const cr = await fetch(`${SB_URL}/rest/v1/rpc/public_get_client_id`, {
+      method: 'POST', headers: SB_H, body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source:'voucher' })
     });
-    const foundId = await cr.json();
-    if (foundId) {
-      clientId = foundId;
-    } else {
-      const nr = await fetch(`${SB_URL}/rest/v1/rpc/public_create_client`, {
-        method: 'POST', headers: SB_H,
-        body: JSON.stringify({ p_first_name: first, p_last_name: last, p_email: email, p_phone: phone, p_source:'voucher' })
-      });
-      clientId = await nr.json();
-    }
+    if (!cr.ok) throw new Error('Client lookup failed: ' + await cr.text());
+    clientId = await cr.json();
 
     const r = await fetch(`${SB_URL}/rest/v1/vouchers`, {
       method: 'POST',
