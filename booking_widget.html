@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.63'; // v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
+const BUILD_VERSION = '1.7.64'; // v1.7.64: optional per-game note above a game's times (booking config gameNotes — used for the Mini Escape Room); the 'today' call-to-book box never goes past a game's last start time that day.
+// Previous build: 1.7.63 — v1.7.63: times that have already started today are hidden (booking page and Slot checker); a game/day with nothing left is left out unless the call-to-book box applies.
 // Previous build: 1.7.62 — v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
 // Previous build: 1.7.61 — v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
 // Previous build: 1.7.60 — v1.7.60: any slot starting within the call-to-book cutoff (3h) shows 'Call us', even if a trusted opener is free.
@@ -5668,7 +5669,7 @@ function renderGameDates() {
     html += '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;';
     html += 'color:' + (isPast ? 'var(--text-muted)' : 'var(--text-primary)') + ';margin-bottom:8px;padding-bottom:6px;';
     html += 'border-bottom:1px solid var(--border-color)">' + dayName + '</div>';
-    html += '<div class="slot-grid">' + tBoxW; // v1.7.62
+    html += '<div class="slot-grid">' + gameNoteHtml(selGame.id) + tBoxW; // v1.7.62/64
     [...slots].sort().forEach(function(t) {
       const status = isPast ? 'past' : getSlotStatus(selGame.id, ds, t);
       const statusLabels = { available: 'Available', call: 'Call us', booked: 'Full', past: 'Past' };
@@ -5718,7 +5719,7 @@ function selectDateFirst(ds, el) {
           <div class="dg-name">${g.name} <span style="font-size:11px;color:var(--text-muted);font-weight:400">${g.duration}min</span></div>
           <div class="dg-price">${gamePriceLabel(g)}</div>
         </div>
-        <div class="dg-slots"><div class="slot-grid">${tBox}${slotBtns}</div></div>
+        <div class="dg-slots"><div class="slot-grid">${gameNoteHtml(g.id)}${tBox}${slotBtns}</div></div>
       </div>`;
   }).join('') || `<div style="padding:24px;text-align:center;color:var(--text-muted)">No more times today — please choose another date, or call us on <a href="tel:0220537365" style="color:inherit">022 053 7365</a>.</div>`; // v1.7.63
   const dateGamesWrapEl = document.getElementById('dateGamesWrap');
@@ -5845,7 +5846,10 @@ function tonightWindows(gameId, dateStr) {
   let start = Math.ceil((nowMin + lead) / TONIGHT_STEP_MIN) * TONIGHT_STEP_MIN;
   const len = gameLength(gameId);
   const oh = (bookingConfig.openingHours || []).find(h => h.day === now.getDay());
-  const closeMin = oh && oh.close ? hmToMins(oh.close) : 22 * 60;
+  let closeMin = oh && oh.close ? hmToMins(oh.close) : 22 * 60;
+  // v1.7.64: never later than the game's own last start time that day (e.g. Mini Escape Room stops before 5pm)
+  const daySlots = getSlotsForGame(gameId, now.getDay());
+  if (daySlots.length) closeMin = Math.min(closeMin, Math.max(...daySlots.map(hmToMins)) + len);
   const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const ok = [];
   for (let m = start; m + len <= closeMin; m += TONIGHT_STEP_MIN) {
@@ -5869,6 +5873,12 @@ function tonightBoxHtml(gameId, dateStr) {
     📞 <b>Still want to play today?</b> ${escapeHtml(g ? g.name : 'This game')} can start ${when} — these times aren't bookable online, so just
     <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">call us on 022 053 7365</a> to book.</div>`;
 }
+// v1.7.64: optional per-game note shown above that game's times (booking config gameNotes, e.g. the Mini Escape Room)
+function gameNoteHtml(gameId) {
+  const t = ((bookingConfig.gameNotes || {})[gameId] || '').trim();
+  if (!t) return '';
+  return `<div style="grid-column:1/-1;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:10px 14px;margin-bottom:4px;line-height:1.45;color:#7c2d12">${escapeHtml(t).replace(/(\d{3} ?\d{3} ?\d{4})/, m => `<a href="tel:${m.replace(/ /g, '')}" style="color:#c2410c;font-weight:700;white-space:nowrap">${m}</a>`)}</div>`;
+}
 function tonightFmt(m) { return fmt12(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')).replace(':00 ', ' ').toLowerCase().replace(' ', ''); }
 
 // v1.7.63: times that have already started today are hidden everywhere (customers and Slot checker)
@@ -5880,10 +5890,10 @@ function renderSlots(gridId, gameId, dateStr) {
   const el = document.getElementById(gridId);
   if (!slots.length) {
     const box = tonightBoxHtml(gameId, dateStr);
-    el.innerHTML = box || `<div class="empty" style="grid-column:1/-1">${allSlots.length ? 'No more times today.' : 'No slots on this day.'}</div>`;
+    el.innerHTML = gameNoteHtml(gameId) + (box || `<div class="empty" style="grid-column:1/-1">${allSlots.length ? 'No more times today.' : 'No slots on this day.'}</div>`);
     return;
   }
-  el.innerHTML = tonightBoxHtml(gameId, dateStr) + slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join(''); // v1.7.61: 'Play tonight?' box first
+  el.innerHTML = gameNoteHtml(gameId) + tonightBoxHtml(gameId, dateStr) + slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join(''); // v1.7.61: 'Play tonight?' box first
 }
 
 function selectSlot(gameId, dateStr, slotTime) {
