@@ -128,6 +128,7 @@ Newest entry per file goes at the top of that file's list.
 - v16.4.6 — 2026-08-03 — Added .time-group-wrapper / .time-group-label styles for the new same-time booking grouping, then thickened the connecting line (4px→8px) and enlarged the shared time label (13px→17px, bold) for better readability
 
 ## btb_app.html
+- v16.4.94 — 2026-11-27 — Settings tidied: the top buttons are now cards, 3 in a row like the POS group (Reports, Task Hub, Control Room, and for admins/managers Invoices, Receipts, Email templates, Errors). Staff Portal and Clients taken off the top buttons as Keren asked (both are still in the header). New pink "Website" group (admins/managers) with Reviews, Room pages, FAQs and Check booking slots, moved out of the top buttons. btb_app.css v16.4.94. Nothing else removed.
 - v16.4.93 — 2026-11-27 — Settings has a "Website rooms" button (admins/managers) that opens the new site_rooms.html. Nothing removed.
 - v16.4.92 — 2026-11-27 — Error log fixes: opening the app with no internet (or while Supabase is down) no longer signs you out — the background login check only signs out if Supabase says the login is bad (401/403). Renewing the login while Supabase is down (5xx) now waits a minute and tries again, like a dropped connection (26 Nov outage signed people out). Nothing removed.
 - v16.4.91 — 2026-11-27 — Settings has a "Website FAQs" button (admins/managers) that opens the new site_faqs.html. Nothing removed.

@@ -232,6 +232,11 @@ body{background:#e5e7eb;min-height:100vh;min-height:100dvh;display:flex;justify-
 .bar-fill{height:7px;border-radius:99px}
 .settings-menu{height:100%;overflow-y:auto;max-height:72vh;max-width:620px;margin:0 auto;padding:0 10px;box-sizing:border-box}
 .settings-quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;padding:12px 0 14px}
+/* v16.4.94: quick buttons as cards, 3 in a row (same look as the POS group cards) */
+.settings-grid.settings-quick{grid-template-columns:1fr 1fr 1fr;padding:12px 0 14px}
+.settings-quick .settings-card{min-width:0;width:100%}
+.settings-quick .settings-card-label{display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:wrap}
+#settingsGroupWebsite .settings-group-title{background:linear-gradient(135deg,#ec4899 0%,#db2777 100%)}
 .sq-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#fff;border:1px solid #d1d5db;border-radius:10px;padding:10px 8px;font-size:13px;font-weight:600;color:#1a1035;cursor:pointer;font-family:inherit;white-space:nowrap}
 .sq-btn i{color:#07b4c5;font-size:17px}
 .sq-btn:hover{border-color:#07b4c5;background:#f0fafb}
