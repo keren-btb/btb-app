@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.61'; // v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
+const BUILD_VERSION = '1.7.62'; // v1.7.62: the today box now also shows on the escape-room 'pick a date' and 'pick a game' screens (v1.7.61 only had it on VR/cafe), clearer customer wording; Slot checker shows it next to the game name.
+// Previous build: 1.7.61 — v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
 // Previous build: 1.7.60 — v1.7.60: any slot starting within the call-to-book cutoff (3h) shows 'Call us', even if a trusted opener is free.
 // Previous build: 1.7.59 — v1.7.59: request-only times (booking config requestOnlyTimes, set for Tue–Fri 8pm): never a straight booking — Request if someone could run it (Call us inside the request window), Full if nobody can. Slot checker explains it.
 // Previous build: 1.7.58 — v1.7.58: staff Slot checker (?check=1): next 7 open days, every game and time with the same status customers see, tap for who could run it and why. Customers see no change.
@@ -5330,14 +5331,14 @@ function renderSlotCheck(loggedIn) {
     shown.forEach(g => {
       const slots = getSlotsForGame(g.id, d.getDay()).slice().sort();
       if (!slots.length) return;
-      html += `<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapeHtml(g.name)}</div><div style="display:flex;flex-wrap:wrap;gap:5px">`;
+      const tw = tonightWindows(g.id, ds);
+      html += `<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">${escapeHtml(g.name)}${tw.length ? ` <span style="font-weight:600;color:#0e7490;background:#ecfeff;border:1px solid #67e8f9;border-radius:99px;padding:1px 8px;margin-left:6px">📞 Call-to-book today: ${tw.map(x => x.s === x.e ? tonightFmt(x.s) : tonightFmt(x.s) + '–' + tonightFmt(x.e)).join(', ')}</span>` : ''}</div><div style="display:flex;flex-wrap:wrap;gap:5px">`;
       slots.forEach(t => {
         let st = 'booked'; try { st = getSlotStatus(g.id, ds, t); } catch (e) { console.error(e); }
         const c = CHK_COL[st] || ['#fee2e2', '#b91c1c', st];
         html += `<button onclick="chkDetail('${g.id}','${ds}','${t}')" style="background:${c[0]};color:${c[1]};border:1px solid ${c[1]}33;border-radius:8px;padding:6px 9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">${fmt12(t).replace(':00 ', ' ')} · ${c[2]}</button>`;
       });
-      const tw = tonightWindows(g.id, ds);
-      html += `</div>${tw.length ? `<div style="font-size:12px;color:#0e7490;margin-top:4px">📞 Play tonight box: ${tw.map(x => x.s === x.e ? tonightFmt(x.s) : tonightFmt(x.s) + '–' + tonightFmt(x.e)).join(', ')}</div>` : ''}<div id="chk-${g.id}-${ds}" style="display:none"></div></div>`;
+      html += `</div><div id="chk-${g.id}-${ds}" style="display:none"></div></div>`;
     });
     html += `<details style="margin-top:6px"><summary style="cursor:pointer;color:#0e7490;font-weight:600">Bookings this day (${dayBks.length})</summary>
       ${dayBks.length ? dayBks.map(b => { const ids = chkIds(b); return `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6">${fmt12((b.slot_time || '').slice(0, 5))} — ${escapeHtml(chkGameName(b.game_id))}${b.play_location === 'hire' ? ' 🚚 hired out' : ''}${b.status === 'requested' ? ' 🙋 request' : ''}${b.status === 'completed' ? ' ✓ done' : ''} · ${ids.length ? ids.map(i => escapeHtml(chkName(i))).join(', ') : '<span style="color:#dc2626">no GM yet</span>'}</div>`; }).join('') : '<div style="color:#9ca3af;padding:4px 0">None</div>'}
@@ -5664,7 +5665,7 @@ function renderGameDates() {
     html += '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;';
     html += 'color:' + (isPast ? 'var(--text-muted)' : 'var(--text-primary)') + ';margin-bottom:8px;padding-bottom:6px;';
     html += 'border-bottom:1px solid var(--border-color)">' + dayName + '</div>';
-    html += '<div class="slot-grid">';
+    html += '<div class="slot-grid">' + tonightBoxHtml(selGame.id, ds); // v1.7.62
     [...slots].sort().forEach(function(t) {
       const status = isPast ? 'past' : getSlotStatus(selGame.id, ds, t);
       const statusLabels = { available: 'Available', call: 'Call us', booked: 'Full', past: 'Past' };
@@ -5713,7 +5714,7 @@ function selectDateFirst(ds, el) {
           <div class="dg-name">${g.name} <span style="font-size:11px;color:var(--text-muted);font-weight:400">${g.duration}min</span></div>
           <div class="dg-price">${gamePriceLabel(g)}</div>
         </div>
-        <div class="dg-slots"><div class="slot-grid">${slotBtns}</div></div>
+        <div class="dg-slots"><div class="slot-grid">${tonightBoxHtml(g.id, ds)}${slotBtns}</div></div>
       </div>`;
   }).join('');
   const dateGamesWrapEl = document.getElementById('dateGamesWrap');
@@ -5861,8 +5862,8 @@ function tonightBoxHtml(gameId, dateStr) {
   const g = games.find(x => x.id === gameId);
   const when = r.map(x => x.s === x.e ? `at ${tonightFmt(x.s)}` : `any time between ${tonightFmt(x.s)} and ${tonightFmt(x.e)}`).join(', or ');
   return `<div style="grid-column:1/-1;background:#ecfeff;border:2px solid #07b4c5;border-radius:12px;padding:12px 14px;margin-bottom:4px;line-height:1.45;color:#0e4f5c">
-    📞 <b>Want to play tonight?</b> We can start ${escapeHtml(g ? g.name : 'a game')} ${when}.
-    <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">Call us on 022 053 7365</a></div>`;
+    📞 <b>Still want to play today?</b> ${escapeHtml(g ? g.name : 'This game')} can start ${when} — these times aren't bookable online, so just
+    <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">call us on 022 053 7365</a> to book.</div>`;
 }
 function tonightFmt(m) { return fmt12(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')).replace(':00 ', ' ').toLowerCase().replace(' ', ''); }
 
