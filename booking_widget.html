@@ -4368,7 +4368,8 @@ m-418 -30 c0 -5 -5 -11 -11 -13 -6 -2 -11 4 -11 13 0 9 5 15 11 13 6 -2 11 -8
 
 // === CONFIG ===
 const SB_URL = 'https://dcksohetvlonijtcbjwe.supabase.co';
-const BUILD_VERSION = '1.7.60'; // v1.7.60: any slot starting within the call-to-book cutoff (3h) shows 'Call us', even if a trusted opener is free.
+const BUILD_VERSION = '1.7.61'; // v1.7.61: 'Want to play tonight?' box on today's times — shows when a game could still start (every 15 min, from 30 min after now) with someone free, room free and finishing by closing time; asks the customer to call 022 053 7365. Slot checker shows it too.
+// Previous build: 1.7.60 — v1.7.60: any slot starting within the call-to-book cutoff (3h) shows 'Call us', even if a trusted opener is free.
 // Previous build: 1.7.59 — v1.7.59: request-only times (booking config requestOnlyTimes, set for Tue–Fri 8pm): never a straight booking — Request if someone could run it (Call us inside the request window), Full if nobody can. Slot checker explains it.
 // Previous build: 1.7.58 — v1.7.58: staff Slot checker (?check=1): next 7 open days, every game and time with the same status customers see, tap for who could run it and why. Customers see no change.
 // Previous build: 1.7.57 — // v1.7.57: if the database can't be reached (12s timeout), the error screen shows a backup booking request form that emails the owners via Cloudflare (no Supabase needed). // v1.7.56: prices show as $52.50, not $52.5. // v1.7.55: the ticket stub date shows the chosen date (or today) instead of a fixed 27-Jul-26. // v1.7.54: Board Game Cafe takes up to 5 bookings at once (bookingConfig.cafeMaxTables), all hosted by one staff member. // v1.7.53: staff marked inactive are never offered (needs the 2026-11-24 public_staff_mode SQL; works without it). // v1.7.52: a GM going out with a hire counts as busy from drop-off to pick-up (was only the game time). // v1.7.51: requests and games finished today are loaded, so a request keeps holding its slot after a reload; slots where a casual could take a request no longer show Full by mistake; bookings are re-checked against the latest bookings just before saving. // v1.7.50: If the database turns a booking away because someone else took the room or game master a moment earlier (SLOT_TAKEN), the customer sees 'Sorry, this time was just taken' and the times are refreshed, instead of a general error. Previous build: 1.7.49 — v1.7.49: 'Request' slots — when nobody is free or rostered but a trained casual has marked themselves free for the whole game, and the game is at least 24 hours away (setting requestMinHoursAhead), the slot shows '🙋 Request'. The customer books as normal but it is saved as a request (status 'requested'), with no deposit tick; the confirmation screen says we're finding a game master. Requests hold the slot and use up one free person each. The server then asks the casuals and emails the customer. Previous build: 1.7.48 — v1.7.48: A rostered casual whose shift covers the start of a game but ends before it finishes (by no more than the 'shift overrun' setting, default 60 min, 0 = off) now makes the slot 'Call us' instead of unavailable — so we can ask them to stay on. Only when nobody is free for the whole game. Previous build: 1.7.47 — v1.7.47: 'Invoice me' is offered for every booking (not only company occasions). Each booking gets a private link token; the confirmation screen has a button to the invoice details page (big if they chose Invoice me).
@@ -5335,7 +5336,8 @@ function renderSlotCheck(loggedIn) {
         const c = CHK_COL[st] || ['#fee2e2', '#b91c1c', st];
         html += `<button onclick="chkDetail('${g.id}','${ds}','${t}')" style="background:${c[0]};color:${c[1]};border:1px solid ${c[1]}33;border-radius:8px;padding:6px 9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">${fmt12(t).replace(':00 ', ' ')} · ${c[2]}</button>`;
       });
-      html += `</div><div id="chk-${g.id}-${ds}" style="display:none"></div></div>`;
+      const tw = tonightWindows(g.id, ds);
+      html += `</div>${tw.length ? `<div style="font-size:12px;color:#0e7490;margin-top:4px">📞 Play tonight box: ${tw.map(x => x.s === x.e ? tonightFmt(x.s) : tonightFmt(x.s) + '–' + tonightFmt(x.e)).join(', ')}</div>` : ''}<div id="chk-${g.id}-${ds}" style="display:none"></div></div>`;
     });
     html += `<details style="margin-top:6px"><summary style="cursor:pointer;color:#0e7490;font-weight:600">Bookings this day (${dayBks.length})</summary>
       ${dayBks.length ? dayBks.map(b => { const ids = chkIds(b); return `<div style="padding:4px 0;border-bottom:1px solid #f3f4f6">${fmt12((b.slot_time || '').slice(0, 5))} — ${escapeHtml(chkGameName(b.game_id))}${b.play_location === 'hire' ? ' 🚚 hired out' : ''}${b.status === 'requested' ? ' 🙋 request' : ''}${b.status === 'completed' ? ' ✓ done' : ''} · ${ids.length ? ids.map(i => escapeHtml(chkName(i))).join(', ') : '<span style="color:#dc2626">no GM yet</span>'}</div>`; }).join('') : '<div style="color:#9ca3af;padding:4px 0">None</div>'}
@@ -5826,6 +5828,44 @@ function slotBtnHtml(gameId, dateStr, slotTime, withGame = false) {
     </div>`;
 }
 
+
+// v1.7.61: "Play tonight?" — for TODAY only, the start times (every 15 min, from now + lead time) at which this game
+// could still run: room free (incl. reset), someone trained free for the whole game (same rules as the slots),
+// and finishing by closing time. Returns ranges like [{s:1050,e:1110}] in minutes after midnight.
+const TONIGHT_LEAD_MIN = 30, TONIGHT_STEP_MIN = 15;
+function tonightWindows(gameId, dateStr) {
+  if (dateStr !== nzToday()) return [];
+  const now = nzNow(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const lead = Number(bookingConfig.tonightLeadMinutes ?? TONIGHT_LEAD_MIN) || TONIGHT_LEAD_MIN;
+  let start = Math.ceil((nowMin + lead) / TONIGHT_STEP_MIN) * TONIGHT_STEP_MIN;
+  const len = gameLength(gameId);
+  const oh = (bookingConfig.openingHours || []).find(h => h.day === now.getDay());
+  const closeMin = oh && oh.close ? hmToMins(oh.close) : 22 * 60;
+  const hm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const ok = [];
+  for (let m = start; m + len <= closeMin; m += TONIGHT_STEP_MIN) {
+    const t = hm(m);
+    let st = 'booked', pool = { fullyAvailable: [] };
+    try { st = getSlotStatusBase(gameId, dateStr, t); } catch (e) {}
+    if (st === 'booked' || st === 'past') continue;
+    try { pool = getQualifiedStaffPool(gameId, dateStr, t); } catch (e) {}
+    if (pool.fullyAvailable.length > 0) ok.push(m);
+  }
+  const ranges = [];
+  ok.forEach(m => { const r = ranges[ranges.length - 1]; if (r && m - r.e === TONIGHT_STEP_MIN) r.e = m; else ranges.push({ s: m, e: m }); });
+  return ranges;
+}
+function tonightBoxHtml(gameId, dateStr) {
+  const r = tonightWindows(gameId, dateStr);
+  if (!r.length) return '';
+  const g = games.find(x => x.id === gameId);
+  const when = r.map(x => x.s === x.e ? `at ${tonightFmt(x.s)}` : `any time between ${tonightFmt(x.s)} and ${tonightFmt(x.e)}`).join(', or ');
+  return `<div style="grid-column:1/-1;background:#ecfeff;border:2px solid #07b4c5;border-radius:12px;padding:12px 14px;margin-bottom:4px;line-height:1.45;color:#0e4f5c">
+    📞 <b>Want to play tonight?</b> We can start ${escapeHtml(g ? g.name : 'a game')} ${when}.
+    <a href="tel:0220537365" style="color:#0e7490;font-weight:700;white-space:nowrap">Call us on 022 053 7365</a></div>`;
+}
+function tonightFmt(m) { return fmt12(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')).replace(':00 ', ' ').toLowerCase().replace(' ', ''); }
+
 function renderSlots(gridId, gameId, dateStr) {
   const d = new Date(dateStr + 'T12:00');
   const slots = getSlotsForGame(gameId, d.getDay());
@@ -5834,7 +5874,7 @@ function renderSlots(gridId, gameId, dateStr) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1">No slots on this day.</div>';
     return;
   }
-  el.innerHTML = slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join('');
+  el.innerHTML = tonightBoxHtml(gameId, dateStr) + slots.sort().map(t => slotBtnHtml(gameId, dateStr, t)).join(''); // v1.7.61: 'Play tonight?' box first
 }
 
 function selectSlot(gameId, dateStr, slotTime) {
