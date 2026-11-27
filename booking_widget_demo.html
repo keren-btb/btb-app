@@ -2664,6 +2664,19 @@ body.compact-ticket #escapeGameList .game-card:hover { transform: translateY(-5p
   body.compact-ticket .tc-back { top: 10px; left: 12px; }
 }
 
+/* once a room is picked, the posters shrink to a small strip so the dates sit right under the ticket */
+body.has-game.compact-ticket #escapeGameList { grid-auto-columns: minmax(170px, 1fr); gap: 8px; padding: 2px 2px 8px; }
+body.has-game.compact-ticket #escapeGameList .game-card { flex-direction: row; align-items: center; }
+body.has-game.compact-ticket #escapeGameList .game-card .game-photo { width: 52px; height: 52px; aspect-ratio: auto; border-radius: 8px; margin: 6px 0 6px 6px; flex: none; }
+body.has-game.compact-ticket #escapeGameList .game-info { padding: 6px 10px; }
+body.has-game.compact-ticket #escapeGameList .game-name { font-size: 15px; }
+body.has-game.compact-ticket #escapeGameList .game-price, body.has-game.compact-ticket #escapeGameList .game-stats,
+body.has-game.compact-ticket #escapeGameList .tooltip-icon { display: none; }
+body.has-game.compact-ticket #escapeGameList .game-card:not(.selected) { opacity: .7; }
+body.has-game.compact-ticket #escapeGameList .game-card:hover { opacity: 1; transform: translateY(-2px); }
+body.has-game.compact-ticket #byGame > .sec-label:first-child::after { content: " · tap to change"; color: var(--text-muted); letter-spacing: .08em; }
+@media (max-width: 700px) { body.has-game.compact-ticket #escapeGameList { grid-auto-columns: 62%; } }
+
 /* ===== slim mini ticket that follows you (used when the booking page is on its own; the website draws its own) ===== */
 .mini-ticket {
   position: fixed; left: 50%; top: 10px; z-index: 900; transform: translate(-50%, -140%); transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
@@ -8056,6 +8069,7 @@ init();
   window.goTo = function (screenId) {
     current = screenId;
     document.body.dataset.screen = screenId;
+    if (screenId === 's1') document.body.classList.remove('has-game');
     document.body.classList.toggle('on-s1', screenId === 's1');
     document.body.classList.toggle('compact-ticket', !FULL[screenId]);
     var r = _goTo.apply(this, arguments);
@@ -8100,6 +8114,22 @@ init();
     var el = document.getElementById(v === 'date' ? 'byDate' : 'byGame');
     if (el) setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   };
+
+  // ---- picking a room (or arriving with one already picked from the website):
+  // shrink the posters, and keep the TICKET in view with the dates right under it ----
+  var _seg = window.selectEscapeGame;
+  window.selectEscapeGame = function (id) {
+    var r = _seg.apply(this, arguments);
+    document.body.classList.add('has-game');
+    var wide = window.innerWidth > 700;
+    setTimeout(function () {
+      var t = document.querySelector('.ticket-wrapper');
+      if (wide && t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); // laptop: ticket + dates fit together
+    }, 120);
+    return r;
+  };
+  var _sev2 = window.setEscapeView;
+  window.setEscapeView = function () { document.body.classList.remove('has-game'); return _sev2.apply(this, arguments); };
 
   // ---- mini ticket: what's on the ticket, in one line ----
   function txt(id) { var e = document.getElementById(id); return e ? e.textContent.replace(/^\s*[–-]\s*/, '').trim() : ''; }
