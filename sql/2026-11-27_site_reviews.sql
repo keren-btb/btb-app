@@ -3,7 +3,7 @@
 -- Each one has a Show / Hide switch; the website only ever gets the shown ones,
 -- through public_site_reviews(), which returns just name, stars, text, date and the room.
 -- The table itself is NOT readable with the public key.
--- Run this once in Supabase > SQL Editor. STATUS: not run yet.
+-- STATUS: applied 2026-11-27 8pm by Claude with Keren's OK (migration "site_reviews"). Safe to re-run.
 
 create table if not exists public.site_reviews (
   id uuid primary key default gen_random_uuid(),
