@@ -652,8 +652,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <input class="field-input" type="text" id="profileName" disabled>
       </div>
       <div class="field">
-        <div class="field-label">Email</div>
+        <div class="field-label">Login email</div>
         <input class="field-input" type="email" id="profileEmail" disabled>
+      </div>
+      <div class="field">
+        <div class="field-label">Personal email</div>
+        <input class="field-input" type="email" id="profilePersonalEmail" placeholder="your own email">
       </div>
       <div class="field-2col">
         <div class="field">
@@ -966,7 +970,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- Profile section -->
     <div class="sec-title">Profile</div>
     <div class="field"><div class="field-label">Name <span class="req">*</span></div><input class="field-input" type="text" id="adminStaffName"></div>
-    <div class="field"><div class="field-label">Email</div><input class="field-input" type="email" id="adminStaffEmail"></div>
+    <div class="field"><div class="field-label">Login email</div><input class="field-input" type="email" id="adminStaffEmail"><div style="font-size:11px;color:#9ca3af;margin-top:2px">Changing this here does not change what they log in with.</div></div>
+    <div class="field"><div class="field-label">Personal email</div><input class="field-input" type="email" id="adminStaffPersonalEmail" placeholder="their own email"></div>
     <div class="field-2col">
       <div class="field"><div class="field-label">Phone</div><input class="field-input" type="tel" id="adminStaffPhone"></div>
       <div class="field"><div class="field-label">Date of birth</div><input class="field-input" type="date" id="adminStaffDob"></div>
@@ -1201,7 +1206,7 @@ const H = (k) => {
 
 // BUILD VERSION — bump this every time this file is shipped, so you can confirm
 // in the header (and browser console) which copy you're actually looking at.
-const BUILD_VERSION = '1.9.47'; // v1.9.47: Roster — each shift / free-time box grows to hold the games inside it, with start–finish times; a game outside all of the person's boxes shows in red ('⚠ … — outside free time/shift'). // v1.9.46: Roster 'Needs cover' treats a GM going out with a hire as away from drop-off to pick-up. // v1.9.45: GM ticks on booking requests (My Week, Roster) accept them properly; 'Accept for' lists people trained for the game first and asks before accepting for someone untrained; claiming a shift someone has just taken says so. // v1.9.44: Step 6 tidy-up (hidden, nothing deleted): Home 'My availability this week' card (old Morning/Midday/Evening routine), the Staff panel's old Availability grid, 'Fine-tune individual slots' and 'Recurring away blocks', and Roster's 'Old routine grid' button. Free times now live only in My Week. Previous build: 1.9.43 — v1.9.43: Booking requests — Home shows '🙋 Booking requests' for anyone asked to run a requested game (Accept / Decline; first to accept gets the shift and the customer gets their confirmation). Owners see every waiting request, who was asked and their answers, the answer-by time, and can accept for anyone. Roster: requested bookings show as 'Request' and Needs cover offers 'accept for' buttons. Previous build: 1.9.42 — v1.9.42: New Roster tab — whole week on a computer, one day on a phone: each person's free times (green, owners only) and shifts (blue), bookings and open shifts per day, 'Needs cover' list of bookings with no GM and who is free/on shift and trained; tap to give a shift (confirmed straight away, phone notification), tap a shift to change/unassign/delete; can also make someone the GM. Old Morning/Midday/Evening grid still available via 'Old routine grid'. Previous build: 1.9.41 — v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
+const BUILD_VERSION = '1.9.48'; // v1.9.48: 'Personal email' box on My Profile and in the admin staff details (Email renamed 'Login email'); no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out and a 'JWT expired' answer is renewed and retried once. | v1.9.47: Roster — each shift / free-time box grows to hold the games inside it, with start–finish times; a game outside all of the person's boxes shows in red ('⚠ … — outside free time/shift'). // v1.9.46: Roster 'Needs cover' treats a GM going out with a hire as away from drop-off to pick-up. // v1.9.45: GM ticks on booking requests (My Week, Roster) accept them properly; 'Accept for' lists people trained for the game first and asks before accepting for someone untrained; claiming a shift someone has just taken says so. // v1.9.44: Step 6 tidy-up (hidden, nothing deleted): Home 'My availability this week' card (old Morning/Midday/Evening routine), the Staff panel's old Availability grid, 'Fine-tune individual slots' and 'Recurring away blocks', and Roster's 'Old routine grid' button. Free times now live only in My Week. Previous build: 1.9.43 — v1.9.43: Booking requests — Home shows '🙋 Booking requests' for anyone asked to run a requested game (Accept / Decline; first to accept gets the shift and the customer gets their confirmation). Owners see every waiting request, who was asked and their answers, the answer-by time, and can accept for anyone. Roster: requested bookings show as 'Request' and Needs cover offers 'accept for' buttons. Previous build: 1.9.42 — v1.9.42: New Roster tab — whole week on a computer, one day on a phone: each person's free times (green, owners only) and shifts (blue), bookings and open shifts per day, 'Needs cover' list of bookings with no GM and who is free/on shift and trained; tap to give a shift (confirmed straight away, phone notification), tap a shift to change/unassign/delete; can also make someone the GM. Old Morning/Midday/Evening grid still available via 'Old routine grid'. Previous build: 1.9.41 — v1.9.41: Casual My Week shows only bookings they are running plus other bookings during their own shifts (grey); bookings outside their shifts are not shown. Previous build: 1.9.40 — v1.9.40: My Week for everyone — casual staff see their own week (own free times, own shifts, own calendar items) and can add/change free times and confirm their week; other bookings show as plain 'Booked' blocks (no customer details, no GM changes). Owners now see everyone (not just calendar-mode staff) and each person's shifts. Booking page unchanged — it does not use casual free times yet. Previous build: 1.9.39 — v1.9.39: Phone layout — menu opens from the ☰ button over the page and closes after choosing; compact header; Shifts admin stacks; timesheet and clock tables scroll sideways.
 
 // Previous build: 1.9.38 — // v1.9.38: My Week shows BtB meetings for the people going; new 'Jobs & problems' phone notification setting (My Profile).
 // Previous build: 1.9.37 — // v1.9.37: Timesheets — approvals, queries, admin time edits, "approve direct" and staff notes now check they really saved and show an error if not (before they could fail silently and still look approved). A session left clocked in from an earlier day now shows "Still clocked in from…" with a "Fix finish time" button (staff can put in the real finish time) instead of being invisible, and you can't clock in again on top of it. Clock-out before clock-in (negative hours) is refused. Timesheet CSV export shows clock times in NZ time (was UTC).
@@ -2827,19 +2832,52 @@ async function refreshAuthToken() {
       body: JSON.stringify({ refresh_token: currentUser.refreshToken })
     });
     const data = await r.json();
-    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    if (!r.ok || !data.access_token) { const err = new Error(data.error_description || 'Refresh failed'); err.status = r.status; throw err; }
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
     localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
+    return true;
   } catch(e) {
     // Refresh token itself is invalid/expired — the session has genuinely
     // ended, so sign out cleanly instead of leaving requests silently failing.
+    // v1.9.48: no internet for a moment or Supabase down — stay signed in and try again in a minute.
+    // Only a 400/401 (the refresh token really is no good) signs you out.
+    if (e instanceof TypeError || (e.status && e.status !== 400 && e.status !== 401)) {
+      console.warn('Token refresh could not reach the server — will try again in 1 minute:', e.message);
+      clearTimeout(tokenRefreshTimer);
+      tokenRefreshTimer = setTimeout(refreshAuthToken, 60000);
+      return false;
+    }
     console.error('Token refresh failed — signing out:', e);
     doLogout();
+    return false;
   }
 }
+// LOGIN RENEWAL SAFETY NET (v1.9.48): phones and sleeping laptops pause the renewal timer, so the login could run out
+// and saves were refused with 'JWT expired'. Every request to Supabase made with your login now renews the login first
+// if it has run out (or is about to), and if Supabase still answers 401 it renews once and sends the request again.
+let _renewing=null;
+function renewLoginOnce(){if(!_renewing)_renewing=Promise.resolve(refreshAuthToken()).finally(()=>{_renewing=null});return _renewing}
+const _btbFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  const url=typeof input==='string'?input:(input&&input.url)||'';
+  const hd=init&&init.headers&&typeof init.headers==='object'&&!(init.headers instanceof Headers)?init.headers:null;
+  const auth=hd&&(hd.Authorization||hd.authorization);
+  const mine=!!(currentUser&&currentUser.token&&url.startsWith(SB_URL)&&!url.includes('/auth/v1/')&&auth===`Bearer ${currentUser.token}`);
+  if(!mine)return _btbFetch(input,init);
+  const withToken=()=>({...init,headers:{...hd,Authorization:`Bearer ${currentUser.token}`}});
+  if(currentUser.refreshToken&&(currentUser.expiresAt||0)-Date.now()<60000){try{await renewLoginOnce()}catch(e){}}
+  if(!currentUser)return _btbFetch(input,init);
+  let r=await _btbFetch(input,withToken());
+  if(r.status===401&&currentUser&&currentUser.refreshToken){
+    let again=true;try{const t=await r.clone().text();again=/JWT|expired|PGRST30/i.test(t)||!t}catch(e){}
+    if(again&&await renewLoginOnce().catch(()=>false)&&currentUser)r=await _btbFetch(input,withToken());
+  }
+  return r;
+};
+
 
 function parseAllowedTabs(raw) {
   if (!raw) return ['calendar'];
@@ -3082,6 +3120,7 @@ function loadProfile() {
   set('profileName', s.name);
   set('profileEmail', s.email);
   set('profilePhone', s.phone);
+  set('profilePersonalEmail', s.personal_email); // v1.9.48
   set('profileDob', s.date_of_birth);
   set('profileAddress', s.address);
   set('profileEmergencyName', s.emergency_contact);
@@ -4595,6 +4634,7 @@ async function openStaffDetail(staffId) {
   set('adminStaffName', s.name);
   set('adminStaffEmail', s.email);
   set('adminStaffPhone', s.phone);
+  set('adminStaffPersonalEmail', s.personal_email); // v1.9.48
   set('adminStaffDob', s.date_of_birth);
   set('adminStaffHireDate', s.hire_date);
   set('adminStaffAddress', s.address);
@@ -4959,6 +4999,7 @@ async function saveAdminStaff() {
     name:              document.getElementById('adminStaffName')?.value.trim() || s.name,
     email:             document.getElementById('adminStaffEmail')?.value.trim() || null,
     phone:             document.getElementById('adminStaffPhone')?.value.trim() || null,
+    personal_email:    document.getElementById('adminStaffPersonalEmail')?.value.trim() || null, // v1.9.48
     date_of_birth:     document.getElementById('adminStaffDob')?.value || null,
     hire_date:         document.getElementById('adminStaffHireDate')?.value || null,
     address:           document.getElementById('adminStaffAddress')?.value.trim() || null,
@@ -5093,6 +5134,7 @@ async function saveProfile() {
   msgEl.className='msg'; msgEl.textContent='Saving…';
   const updates = {
     phone:             document.getElementById('profilePhone')?.value.trim()||null,
+    personal_email:    document.getElementById('profilePersonalEmail')?.value.trim()||null, // v1.9.48
     address:           document.getElementById('profileAddress')?.value.trim()||null,
     emergency_contact: document.getElementById('profileEmergencyName')?.value.trim()||null,
     emergency_phone:   document.getElementById('profileEmergencyPhone')?.value.trim()||null,
