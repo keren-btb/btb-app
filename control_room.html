@@ -422,7 +422,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 25; // v25: NOT RESET warning clears when the room was reset from Task Hub's room board (any reset of the room finished after the previous game started counts); no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out and a 'JWT expired' answer is renewed and retried once. // v24: opening Control Room on its own jumps to your own game that's on now or next today (Change Session to pick another); 'Players in room' is one small line. // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+        const BUILD_VERSION = 26; // v26: NOT RESET check uses the booking times list (works for Gamemaster Own, who only see their own bookings); page access check (btb_access.js): opening this page by link now also needs the right tick/role in Settings > Logins & Roles — otherwise a 'No access' screen shows (admins always get in; does nothing if the internet/Supabase is down). | v25: NOT RESET warning clears when the room was reset from Task Hub's room board (any reset of the room finished after the previous game started counts); no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out and a 'JWT expired' answer is renewed and retried once. // v24: opening Control Room on its own jumps to your own game that's on now or next today (Change Session to pick another); 'Players in room' is one small line. // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
 
 
         // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
@@ -1194,8 +1194,12 @@ async function resetTimer(){
                 // v23: the room's last game before this one, even if it was on an earlier day
                 // (only games since this reset checklist was set up, so old games from before Task Hub don't count)
                 const since = t.created_at ? new Date(t.created_at).toLocaleDateString('en-CA', {timeZone:'Pacific/Auckland'}) : booking.booking_date;
-                const br = await fetch(`${SB_URL}/rest/v1/game_bookings?game_id=eq.${encodeURIComponent(booking.game_id)}&booking_date=gte.${since}&or=(booking_date.lt.${booking.booking_date},and(booking_date.eq.${booking.booking_date},slot_time.lt."${booking.slot_time}"))&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,game_name,booking_date,slot_time&order=booking_date.desc,slot_time.desc&limit=1`, {headers:H()});
-                const prev = br.ok ? (await br.json())[0] : null;
+                // v26: from the booking times list (all bookings, no customer details) — Gamemaster Own logins can only read their own bookings
+                const br = await fetch(`${SB_URL}/rest/v1/rpc/staff_booking_slots`, {method:'POST', headers:{...H(), 'Content-Type':'application/json'}, body: JSON.stringify({p_from: since, p_to: booking.booking_date})});
+                const bt = String(booking.slot_time || '').slice(0,8);
+                const prev = br.ok ? ((await br.json()) || []).filter(g => g.game_id === booking.game_id && ['confirmed','completed'].includes(g.status) && (g.play_location || 'in_house') === 'in_house'
+                    && g.id !== booking.id && (g.booking_date < booking.booking_date || (g.booking_date === booking.booking_date && String(g.slot_time || '').slice(0,8) < bt)))
+                    .sort((x, y) => String(y.booking_date + ' ' + y.slot_time).localeCompare(String(x.booking_date + ' ' + x.slot_time)))[0] || null : null;
                 if (!prev || currentBooking !== booking) return;
                 const rr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&booking_id=eq.${prev.id}&select=id,status`, {headers:H()});
                 const run = rr.ok ? (await rr.json())[0] : null;
@@ -1289,5 +1293,6 @@ async function resetTimer(){
             document.getElementById("photo-mode-canvas").classList.add("hidden");
         }
     </script>
+<script>window.BTB_ACCESS={tab:'control_room'};</script><script src="btb_access.js?v=1.0.0"></script>
 </body>
-</html>
+</html>

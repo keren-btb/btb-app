@@ -536,7 +536,7 @@ tr:last-child td{border-bottom:none}
 // individual checklist for that client's own open to-dos, above the message
 // thread. The bulk "Clear to-dos" button in the panel header is unchanged
 // and still available as a convenience for clearing everything at once.
-const BUILD_VERSION = '1.5.13'; // v1.5.13: no longer signs you out when the internet drops or Supabase is down (only when Supabase says the login is no good); login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. | v1.5.12: 'Abandoned booking' to-dos can't be made twice when two Clients pages are open, and a to-do that fails to save is tried again next time; a new client's enquiry note says so if it couldn't be saved. // v1.5.11: Profile opens in its own tab (Profile & bookings). Open to-dos show once at the top (with when/how they came in) instead of also in the history. Saves are checked (to-do tick/edit/assign, status, log a call). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
+const BUILD_VERSION = '1.5.14'; // v1.5.14: page access check (btb_access.js): opening this page by link now also needs the right tick/role in Settings > Logins & Roles — otherwise a 'No access' screen shows (admins always get in; does nothing if the internet/Supabase is down). Gamemaster Own only see their own clients (database rule). | v1.5.13: no longer signs you out when the internet drops or Supabase is down (only when Supabase says the login is no good); login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. | v1.5.12: 'Abandoned booking' to-dos can't be made twice when two Clients pages are open, and a to-do that fails to save is tried again next time; a new client's enquiry note says so if it couldn't be saved. // v1.5.11: Profile opens in its own tab (Profile & bookings). Open to-dos show once at the top (with when/how they came in) instead of also in the history. Saves are checked (to-do tick/edit/assign, status, log a call). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
 
 // Previous build: 1.5.10 — // v1.5.10: The link back to the main app in the sidebar now says "BtB App" (was "Calendar"), the same as every other page.
 // Previous build: 1.5.9 — // v1.5.9: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
@@ -1312,8 +1312,8 @@ async function doLogin(){
     const data=await r.json();if(!r.ok){errEl.textContent=data.error_description||'Login failed.';return}
     const userId=data.user.id;const token=data.access_token;
     const userRole=await callEdgeFunction('get_my_role',{},token)
-      .catch(()=>({name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'}))
-      || {name:email.split('@')[0],role:'gamemaster',allowed_tabs:'["calendar"]'};
+      .catch(()=>({name:email.split('@')[0],role:'gamemaster_own',allowed_tabs:'["calendar"]'}))
+      || {name:email.split('@')[0],role:'gamemaster_own',allowed_tabs:'["calendar"]'};
     let staffId=userId;
     // BUGFIX (v1.3.3): H() falls back to the anon key here because
     // currentUser isn't set yet at this point in login — and the staff
@@ -1390,5 +1390,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
   }
 });
 </script>
+<script>window.BTB_ACCESS={tab:'leads'};</script><script src="btb_access.js?v=1.0.0"></script>
 </body>
 </html>

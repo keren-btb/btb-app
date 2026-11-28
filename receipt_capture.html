@@ -134,7 +134,7 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--teal);font-weight
 // Lines tagged "For resale" are the board games etc. that will go to the Check & price list (next step, not built yet).
 // Nothing is ever deleted: removed lines are marked removed, mistaken receipts are marked Void.
 // Admin / manager / owner only (enforced by the database).
-const BUILD_VERSION='1.1.2'; // v1.1.2: no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. // v1.1.1: 'Add to this' averages the cost price (weighted by stock) and warns if the sell price entered differs; adding a new product with the same name as an existing one asks for a label (e.g. 'worn box') so the two are told apart in the POS. Previous build: 1.1.0 — v1.1.0: Check tab — For resale items waiting to be checked; Add to stock (new product with cost, sell price, condition, who checked it), Add to an existing product (stock +qty), or Not selling (undo-able); similar product names shown to avoid duplicates. Previous build: 1.0.0 — v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
+const BUILD_VERSION='1.1.3'; // v1.1.3: page access check (btb_access.js): opening this page by link now also needs the right tick/role in Settings > Logins & Roles — otherwise a 'No access' screen shows (admins always get in; does nothing if the internet/Supabase is down). (admin/manager/owner) | v1.1.2: no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. // v1.1.1: 'Add to this' averages the cost price (weighted by stock) and warns if the sell price entered differs; adding a new product with the same name as an existing one asks for a label (e.g. 'worn box') so the two are told apart in the POS. Previous build: 1.1.0 — v1.1.0: Check tab — For resale items waiting to be checked; Add to stock (new product with cost, sell price, condition, who checked it), Add to an existing product (stock +qty), or Not selling (undo-able); similar product names shown to avoid duplicates. Previous build: 1.0.0 — v1.0.0: first version — manual entry (no automatic reading yet), receipts list, edit, void.
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -646,5 +646,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
     start()}catch(e){doLogout()}
 });
 </script>
+<script>window.BTB_ACCESS={roles:['admin','manager'],owners:true};</script><script src="btb_access.js?v=1.0.0"></script>
 </body>
 </html>

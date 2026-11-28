@@ -129,7 +129,7 @@ textarea.in{min-height:90px;resize:vertical;line-height:1.45}
 // Paste a review → it fills in name / stars / date / words → Save. Each review has a Show / Hide switch;
 // the website reads only the shown ones (public_site_reviews(), see sql/2026-11-27_site_reviews.sql).
 // Admin / manager / owner only (enforced by the database). Later: automatic import via Google's Business Profile API.
-const BUILD_VERSION='1.0.1'; // v1.0.1: no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once.
+const BUILD_VERSION='1.0.2'; // v1.0.2: page access check (btb_access.js): opening this page by link now also needs the right tick/role in Settings > Logins & Roles — otherwise a 'No access' screen shows (admins always get in; does nothing if the internet/Supabase is down). (admin/manager/owner) | v1.0.1: no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once.
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -312,5 +312,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
     start()}catch(e){doLogout()}
 });
 </script>
+<script>window.BTB_ACCESS={roles:['admin','manager'],owners:true};</script><script src="btb_access.js?v=1.0.0"></script>
 </body>
 </html>

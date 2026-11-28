@@ -149,7 +149,7 @@ header.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:
 })();
 </script>
 <script>
-const BUILD_VERSION = '1.1.1'; // v1.1.1: no longer signs you out when the internet drops or Supabase is down (only when Supabase says the login is no good); login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. | v1.1.0: Invoices card (admin / manager) — this customer's invoices with status, overdue and amount owing; tap one to open it.
+const BUILD_VERSION = '1.1.2'; // v1.1.2: page access check (btb_access.js): opening this page by link now also needs the right tick/role in Settings > Logins & Roles — otherwise a 'No access' screen shows (admins always get in; does nothing if the internet/Supabase is down). | v1.1.1: no longer signs you out when the internet drops or Supabase is down (only when Supabase says the login is no good); login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. | v1.1.0: Invoices card (admin / manager) — this customer's invoices with status, overdue and amount owing; tap one to open it.
 
 // Previous build: 1.0.9 — // v1.0.9: Bookings card — every booking for this client with totals, games played and amount booked; tap one to open that day in BtB App.
 
@@ -471,5 +471,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
   }
 });
 </script>
+<script>window.BTB_ACCESS={tab:'leads'};</script><script src="btb_access.js?v=1.0.0"></script>
 </body>
 </html>
