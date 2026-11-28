@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#1f3029">
+<meta name="theme-color" content="#1b2a45">
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(e){console.error('SW registration failed:',e);});}</script>
   <!-- BUILD v1.7.13: added Screen 0 (load-error state) for Finding 15 fix -->
   <!-- DEMO v1.8.0-demo (27 Nov 2026): copy of booking_widget.html with the new-website theme, photo ticket, hidden empty categories, ?game= and ?embed=1, email-first check. Live page is unchanged. -->
@@ -2267,8 +2267,8 @@ body {
      ============================================================ -->
 <style id="btbTheme2026">
 :root {
-  --forest: #20342b;
-  --forest-deep: #17261f;
+  --forest: #1b2a45;
+  --forest-deep: #131e33;
   --paper: #f2ecdf;
   --paper-light: #faf7f0;
   --cream: #e8ddc7;
@@ -2307,7 +2307,7 @@ body {
 
 /* ---------- left column (wide screens) becomes the forest "box office" panel ---------- */
 .lcol {
-  background: linear-gradient(180deg, rgba(23,38,31,.55), rgba(23,38,31,.96) 55%), var(--lcol-photo, none) center/cover, var(--forest-deep) !important;
+  background: linear-gradient(180deg, rgba(19,30,51,.55), rgba(19,30,51,.96) 55%), var(--lcol-photo, none) center/cover, var(--forest-deep) !important;
   color: #f8f3e9 !important;
   border: 0 !important;
 }
@@ -2346,7 +2346,7 @@ body {
 }
 .stub-photo::after {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(23,38,31,.25) 0%, rgba(23,38,31,.35) 35%, rgba(23,38,31,.94) 100%);
+  background: linear-gradient(180deg, rgba(19,30,51,.25) 0%, rgba(19,30,51,.35) 35%, rgba(19,30,51,.94) 100%);
 }
 /* notches where the ticket tears */
 .ticket-stub::before, .ticket-stub::after {
@@ -2750,7 +2750,7 @@ body[data-screen="s3"] .seat-box { padding-top: 10px; padding-bottom: 10px; }
   box-shadow: 0 14px 34px rgba(31,37,31,.28); overflow: hidden; cursor: pointer; border: 0; padding: 0; font: inherit; text-align: left; color: var(--forest);
 }
 .mini-ticket.show { transform: translate(-50%, 0); }
-.mini-ticket .mt-photo { width: 74px; flex: none; background: #17261f center/cover; border-right: 2px dashed rgba(36,37,31,.25); position: relative; }
+.mini-ticket .mt-photo { width: 74px; flex: none; background: #131e33 center/cover; border-right: 2px dashed rgba(36,37,31,.25); position: relative; }
 .mini-ticket .mt-photo::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--teal); }
 .mini-ticket .mt-body { padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 1; }
 .mini-ticket .mt-game { font-family: var(--head-font); font-size: 18px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
