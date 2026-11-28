@@ -7,11 +7,13 @@ Newest entry per file goes at the top of that file's list.
 ---
 
 ## receipt_capture.html
+- v1.1.2 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.1.1 — 2026-11-23 — Check tab: "Add to this" now sets the product's cost price to the average (weighted by stock on hand; takes the new cost if the product had none or 0 in stock) and shows the change before saving; warns if the sell price entered differs from the product's. "Checked — add to stock" with the same name as an existing product asks for a label (e.g. worn box) and saves it as "Name (label)" so the two copies are told apart in the POS. Each copy's real cost stays on its receipt item.
 - v1.1.0 — 2026-11-23 — New Check tab (purple count = For resale items waiting). Tap Check on an item: name in the shop, sell price, cost each (from the receipt), category, how many, condition / what was checked, and optional players, age, RRP and staff notes. "Checked — add to stock" makes the product (active, with cost price, condition, and who checked it and when). Similar product names are shown so you can "Add to this" instead (stock goes up by how many; its cost price is kept; inactive products are made active). "Not selling" records why (can be undone). Done list shows outcome, who and when. Products are only made once checked, so unchecked games never show in the POS or the shop (no POS change needed). Once checked, that item on the receipt is locked (can't be removed or retyped). Tabs shortened to New / Receipts / Check.
 - v1.0.0 — 2026-11-23 — New page (replaces EasyExpense for capture). Take or choose a photo of a receipt (shrunk to save space, stored in the private 'receipts' bucket), enter date, shop, total, how it was paid and GST (tax invoice with GST number / second-hand claim / none / not sure; GST to claim worked out as 3/23 of the total, editable). The GST type and number are filled in automatically from the last receipt from the same shop. Add what was bought: name, qty, cost each, and a type (For resale / Props / Expense / Other); "Split total evenly" shares an op-shop lump total across the items to the cent. Save draft or Save receipt (checks date, shop, total, item names; warns if items don't add up to the total or there's no photo). Receipts list with All / Drafts / Void and search; tap to edit; Void and Restore (nothing is deleted — removed items are marked removed). Own home-screen icon via manifest_receipts.json; back link to BtB App. Manual entry only for now — automatic reading needs an Anthropic API key. For-resale items don't reach products yet (Check & price screen is next). Error logger included.
 
 ## pos.html
+- v1.9.21 — 2026-11-28 — No longer signs you out when the internet drops or Supabase is down (refresh retries in a minute; session check only signs out on 401/403). Login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.9.20 — 2026-11-26 — When a booking or package becomes fully paid, a green "✓ Fully paid" box now offers to email the receipt (customer's email filled in and can be changed; packages use the email on file). It goes back after Send receipt or No thanks (phone closes the pop-up). Nothing removed.
 - v1.9.19 — 2026-11-26 — Ready to pay tidied: amount box full width, bigger payment-method buttons, and "↔ Split" now sits right next to the green Record button (it was a small grey button further down; while splitting there's a clear "✕ Close split — pay as one" button). When a booking or package becomes fully paid (Record, Full balance via bank, or the last person in a split) it shows "✓ Fully paid — going back…" and goes back by itself; on a phone it closes the pop-up. Header fits on one line on phones (version number hidden there). Nothing removed.
 - v1.9.18 — 2026-11-26 — Tapping the red "owing" badge on the calendar opens the booking here with Ready to pay already open (for a package, the whole package's Ready to pay). On phones, a booking opened from a calendar link now pops up instead of just showing the list. Nothing removed.
@@ -289,6 +291,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.3.2 — 2026-07-28 — Seeded from repo (code comment found was for earlier v1.3.0: "new staff-entered enquiries now also log" — may not reflect v1.3.2 changes)
 
 ## reports.html
+- v1.0.20 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once. Reports: if the role check can't reach the server, uses the role saved at login instead of signing out.
 - v1.0.19 — 2026-11-24 — Booking requests still waiting for a GM, waitlist entries and group placeholders no longer count as revenue or bookings (same as cancelled/enquiry/abandoned). No-shows are now recognised by the no-show tick, so they don't show as owing. Nothing removed.
 - v1.0.18 — 2026-11-23 — Deposits listed on the date received, with bank reference, when recorded.
 - v1.0.17 — 2026-11-23 — Phone layout: menu is a slim icon bar that opens over the page and closes after choosing.
@@ -308,6 +311,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.3 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## control_room.html
+- v25 — 2026-11-28 — NOT RESET warning clears when any reset of the room was finished after the previous game started (Task Hub room board resets). No sign-out on network/server trouble (refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v24 — 2026-11-26 — Opening Control Room on its own (not from a calendar link) now jumps straight to the logged-in game master's own game that's on now or next today; "← Change Session" still lets you pick another, and if you have no game today it shows the list as before. "Actual Players in Room" is now one small line ("Players in room − 8 +") as it's just a final check. Nothing removed.
 - v23 — 2026-11-26 — The big NOT RESET warning now also checks the room's last game on an earlier day (e.g. Saturday's first game warns if Wednesday's reset was never done — only games since the reset checklist was set up count), and rooms 'sent back' as not reset on an earlier day. Top bar fits on a phone (title and links on top, session badge on its own line), and the badge shows 'Sat 28 Nov' instead of '2026-11-28'. Nothing removed.
 - v22 — 2026-11-24 — All Timers reset/complete buttons now show an error if the save fails; timer saves that fail are written to the error log. Nothing removed.
@@ -327,12 +331,15 @@ Newest entry per file goes at the top of that file's list.
 - v10 — 2026-07-28 — Single sign-on (shared localStorage session key 'btb_staff_session') + fixed login screen briefly flashing on load when already logged in
 
 ## site_rooms.html
+- v1.0.1 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.0.0 — 2026-11-27 — NEW page: the website's room pages (the "case file" that opens when you tap a room photo), edited here instead of in the website code. Per room: name, small line, story (paragraphs), tip, fact box (add/remove facts), Great for list, booking button (words + which game it opens) or a call-us button, main photo (upload, or use the website's own) and spoiler photos (upload several, captions, move left/right, take off the page). Photos are shrunk before upload and stored in the public 'site-photos' bucket; nothing is deleted from it. Page on/off switch. The website reads shown rooms via public_site_rooms() (sql/2026-11-27_site_rooms.sql, applied with Keren's OK). Admin / manager / owner only (enforced by the database). Nothing removed.
 
 ## site_faqs.html
+- v1.0.1 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.0.0 — 2026-11-27 — NEW page: the website's FAQs, edited here instead of in the website code. Add a question (question, answer, optional link words + address), Change, move Up/Down, Show/Hide switch, Delete (asks first). The website reads only shown ones, in this order, via public_site_faqs() (sql/2026-11-27_site_faqs.sql, applied with Keren's OK; started with the 11 FAQs already on the new site). Admin / manager / owner only (enforced by the database). Nothing removed.
 
 ## site_reviews.html
+- v1.0.1 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.0.0 — 2026-11-27 — NEW page: Google reviews for the website (copy-and-paste version). Paste a review from Google and it fills in name, stars, rough date (from "3 weeks ago"), room and words (your own reply is left out) for you to check and Save. Each review has a Show / Hide switch, a pin (first on the website), Change and Delete (asks first). The website shows only reviews switched to Show. Admin / manager / owner only (enforced by the database). Needs sql/2026-11-27_site_reviews.sql run first (new table site_reviews + public_site_reviews() for the website; starts with the 3 reviews already on the new site). Later: automatic import once Google approves Business Profile API access.
 
 ## booking_widget.html
@@ -421,6 +428,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — 2026-07-28 — Seeded from repo (no changelog note found in code at this version)
 
 ## client_profile.html
+- v1.1.1 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.1.0 — 2026-11-23 — Invoices card (admin/manager) with status, overdue and amount owing.
 - v1.0.9 — 2026-11-23 — Bookings card: every booking for the client with games played and total booked; tap to open that day in BtB App.
 - v1.0.8 — 2026-11-22 — New "Package" button next to Book opens the hire package builder in btb_app.html for this client.
@@ -433,6 +441,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## clients.html
+- v1.5.13 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.5.12 — 2026-11-24 — "Abandoned booking" to-dos can't be made twice when two Clients pages are open at once, and one that fails to save is tried again next time. If a new client's enquiry details can't be added to their history, it now says so. Nothing removed.
 - v1.5.11 — 2026-11-23 — "Profile & bookings" opens in a new tab. Open to-dos shown once (top list, with when/how they arrived), not repeated in History; done to-dos marked in History. Saves checked (to-do tick/edit/assign, status, log a call — the box isn't cleared if it didn't save). clients.html?templates=1 opens Email templates. Email matching ignores capitals. Phone layout.
 - v1.5.10 — 2026-11-22 — Sidebar back link to the main app now says "BtB App" (was "Calendar"), same as every other page.
@@ -448,6 +457,7 @@ Newest entry per file goes at the top of that file's list.
 - (earlier history not logged here before today — VERSIONS.md didn't have a section for this file until now)
 
 ## clients_mobile.html
+- v1.3.9 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.3.8 — 2026-11-24 — Ticking a to-do, assigning it, editing a note and quick-adding a note now show an error if the save fails (a failed quick-add used to vanish silently). Nothing removed.
 - v1.3.7 — 2026-11-23 — "Clear to-dos" (was Mark resolved) only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
 - v1.3.6 — 2026-11-22 — Bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), same as every other page.
@@ -485,6 +495,7 @@ Newest entry per file goes at the top of that file's list.
 - v1.0.0 — (undated, pre-existing) — Initial build
 
 ## invoices.html
+- v1.6.2 — 2026-11-28 — No sign-out on network/server trouble (token refresh retries in a minute; session check only signs out on 401/403); login renewed before Supabase requests if it has run out; 401 'JWT expired' renewed and retried once.
 - v1.6.1 — 2026-11-24 — A deposit invoice paid in more than one go now adds up on the booking (before, only the last part was kept as the deposit). Asks before recording a payment that takes the invoice over its total. Nothing removed.
 - v1.6.0 — 2026-11-23 — 'Invoice' from a booking that already has one opens it (or lists them with 'Make another'), so duplicates aren't made by accident. (Removed an accidental duplicate draft INV-1176 for Chris Harrison; numbering reset so INV-1176 is next.)
 - v1.5.0 — 2026-11-23 — Invoice request for a booking with an existing unpaid invoice → offer to update that invoice with the customer's details.

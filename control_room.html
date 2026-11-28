@@ -345,7 +345,7 @@
         async function callEdgeFunction(action,params={},token=null){
           const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
           const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
-          if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+          if(!r.ok){const e=await r.json().catch(()=>({}));const err=new Error(e.error||`Edge function error ${r.status}`);err.status=r.status;throw err} // v25: keep the status
           return r.json();
         }
         let currentUser = null;
@@ -422,7 +422,7 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                 </button>`).join('');
         }
 
-        const BUILD_VERSION = 24; // v24: opening Control Room on its own jumps to your own game that's on now or next today (Change Session to pick another); 'Players in room' is one small line. // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
+        const BUILD_VERSION = 25; // v25: NOT RESET warning clears when the room was reset from Task Hub's room board (any reset of the room finished after the previous game started counts); no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out and a 'JWT expired' answer is renewed and retried once. // v24: opening Control Room on its own jumps to your own game that's on now or next today (Change Session to pick another); 'Players in room' is one small line. // v23: NOT RESET warning also checks the room's last game on an earlier day (since the reset checklist was set up) and 'sent back' rooms from earlier days; header fits on phones; session badge shows 'Sat 28 Nov'. // v22: the All Timers reset/complete buttons show an error if the save fails; timer saves that fail are written to the error log. // v21: NOT RESET warning also shows when a room was sent back as 'not reset' in Task Hub, with the reason.
 
 
         // Previous build: 20 — // v20: 'Someone else will reset it' sends that person a phone notification.
@@ -476,17 +476,49 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                     body: JSON.stringify({ refresh_token: currentUser.refreshToken })
                 });
                 const data = await r.json();
-                if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+                if (!r.ok || !data.access_token) { const err = new Error(data.error_description || 'Refresh failed'); err.status = r.status; throw err; }
                 currentUser.token = data.access_token;
                 currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
                 currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
                 localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
                 scheduleTokenRefresh();
+                return true;
             } catch(e) {
+                // v25: no internet for a moment or Supabase down — stay signed in and try again in a minute.
+                // Only a 400/401 (the refresh token really is no good) signs you out.
+                if (e instanceof TypeError || (e.status && e.status !== 400 && e.status !== 401)) {
+                    console.warn('Token refresh could not reach the server — will try again in 1 minute:', e.message);
+                    clearTimeout(tokenRefreshTimer);
+                    tokenRefreshTimer = setTimeout(refreshAuthToken, 60000);
+                    return false;
+                }
                 console.error('Token refresh failed — signing out:', e);
                 doLogout();
+                return false;
             }
         }
+        // LOGIN RENEWAL SAFETY NET (v25): phones and sleeping laptops pause the renewal timer, so the login could run out
+        // and saves were refused with 'JWT expired'. Every request to Supabase made with your login now renews the login first
+        // if it has run out (or is about to), and if Supabase still answers 401 it renews once and sends the request again.
+        let _renewing=null;
+        function renewLoginOnce(){if(!_renewing)_renewing=Promise.resolve(refreshAuthToken()).finally(()=>{_renewing=null});return _renewing}
+        const _btbFetch=window.fetch.bind(window);
+        window.fetch=async function(input,init){
+          const url=typeof input==='string'?input:(input&&input.url)||'';
+          const hd=init&&init.headers&&typeof init.headers==='object'&&!(init.headers instanceof Headers)?init.headers:null;
+          const auth=hd&&(hd.Authorization||hd.authorization);
+          const mine=!!(currentUser&&currentUser.token&&url.startsWith(SB_URL)&&!url.includes('/auth/v1/')&&auth===`Bearer ${currentUser.token}`);
+          if(!mine)return _btbFetch(input,init);
+          const withToken=()=>({...init,headers:{...hd,Authorization:`Bearer ${currentUser.token}`}});
+          if(currentUser.refreshToken&&(currentUser.expiresAt||0)-Date.now()<60000){try{await renewLoginOnce()}catch(e){}}
+          if(!currentUser)return _btbFetch(input,init);
+          let r=await _btbFetch(input,withToken());
+          if(r.status===401&&currentUser&&currentUser.refreshToken){
+            let again=true;try{const t=await r.clone().text();again=/JWT|expired|PGRST30/i.test(t)||!t}catch(e){}
+            if(again&&await renewLoginOnce().catch(()=>false)&&currentUser)r=await _btbFetch(input,withToken());
+          }
+          return r;
+        };
 
         // ── AUTH ──────────────────────────────────────────
         async function doLogin(){
@@ -553,6 +585,9 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
                         localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
                         showApp();
                     }).catch(err=>{
+                        // v25: only sign out when Supabase says the login is bad (401/403) — not when the internet drops
+                        if(err instanceof TypeError||!err.status||err.status>=500){console.warn('Session check could not reach the server — staying signed in:',err.message);return}
+                        if(err.status!==401&&err.status!==403){console.warn('Session check problem ('+err.status+') — staying signed in:',err.message);return}
                         console.error('Session validation failed — signing out:',err);
                         doLogout();
                     });
@@ -1165,6 +1200,15 @@ async function resetTimer(){
                 const rr = await fetch(`${SB_URL}/rest/v1/cl_runs?template_id=eq.${t.id}&booking_id=eq.${prev.id}&select=id,status`, {headers:H()});
                 const run = rr.ok ? (await rr.json())[0] : null;
                 if (run && run.status === 'done') return;
+                // v25: the room also counts as reset if ANY reset of it was finished after that game started
+                // (Task Hub's room board marks the game's own job 'skipped — covered by reset', which used to still warn)
+                const lr = await fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&game_id=eq.${encodeURIComponent(booking.game_id)}&status=eq.done&completed_at=not.is.null&select=completed_at&order=completed_at.desc&limit=1`, {headers:H()});
+                const last = lr.ok ? (await lr.json())[0] : null;
+                if (last) {
+                    const p = {}; new Intl.DateTimeFormat('en-CA', {timeZone:'Pacific/Auckland', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(new Date(last.completed_at)).forEach(x => p[x.type] = x.value);
+                    if (`${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}` >= `${prev.booking_date} ${String(prev.slot_time).slice(0,5)}`) return;
+                }
+                if (currentBooking !== booking) return;
                 const fmt = s => { const [h,m] = String(s).slice(0,5).split(':').map(Number); return `${h%12||12}:${String(m).padStart(2,'0')}${h>=12?'pm':'am'}`; };
                 document.getElementById('reset-warning-title').textContent = `⚠ ${String(booking.game_name||'ROOM').toUpperCase()} NOT RESET`;
                 const day = d => new Date(d+'T12:00:00').toLocaleDateString('en-NZ', {weekday:'short', day:'numeric', month:'short'});

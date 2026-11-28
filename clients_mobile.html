@@ -254,7 +254,7 @@ const EDGE_FN=`${SB_URL}/functions/v1/btb-admin`;
 async function callEdgeFunction(action,params={},token=null){
   const headers={'Content-Type':'application/json','Authorization':`Bearer ${token||SB_ANON}`,'apikey':SB_ANON};
   const r=await fetch(EDGE_FN,{method:'POST',headers,body:JSON.stringify({action,...params})});
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||`Edge function error ${r.status}`)}
+  if(!r.ok){const e=await r.json().catch(()=>({}));const err=new Error(e.error||`Edge function error ${r.status}`);err.status=r.status;throw err} // v1.3.9: keep the status
   return r.json();
 }
 
@@ -270,7 +270,7 @@ async function callEdgeFunction(action,params={},token=null){
 // resolved" button, matching clients.html's new per-client checklist. No
 // global cross-client To-Dos view here (kept to the desktop hub) and no new
 // client-creation change — this page stays view/reply/log-note only.
-const BUILD_VERSION = '1.3.8'; // v1.3.8: to-do ticks, assigning, note edits and quick-added notes now show an error if they don't save. // v1.3.7: Same as desktop — 'Clear to-dos' only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
+const BUILD_VERSION = '1.3.9'; // v1.3.9: no longer signs you out when the internet drops or Supabase is down (only when Supabase says the login is no good); login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once. | v1.3.8: to-do ticks, assigning, note edits and quick-added notes now show an error if they don't save. // v1.3.7: Same as desktop — 'Clear to-dos' only shows when there are open to-dos; open to-dos not repeated in the thread; clear is checked.
 
 // Previous build: 1.3.6 — // v1.3.6: The bottom-bar button back to the main app now says "BtB App" with a home icon (was "Calendar"), the same as every other page.
 // Previous build: 1.3.5 — // v1.3.5: New "Package" button next to Book — opens the hire package builder in btb_app.html for this client.
@@ -701,17 +701,50 @@ async function refreshAuthToken() {
       body: JSON.stringify({ refresh_token: currentUser.refreshToken })
     });
     const data = await r.json();
-    if (!r.ok || !data.access_token) throw new Error(data.error_description || 'Refresh failed');
+    if (!r.ok || !data.access_token) { const err = new Error(data.error_description || 'Refresh failed'); err.status = r.status; throw err; }
     currentUser.token = data.access_token;
     currentUser.refreshToken = data.refresh_token || currentUser.refreshToken;
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
     localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
+    return true;
   } catch(e) {
+    // v1.3.9: no internet for a moment or Supabase down — stay signed in and try again in a minute.
+    // Only a 400/401 (the refresh token really is no good) signs you out.
+    if (e instanceof TypeError || (e.status && e.status !== 400 && e.status !== 401)) {
+      console.warn('Token refresh could not reach the server — will try again in 1 minute:', e.message);
+      clearTimeout(tokenRefreshTimer);
+      tokenRefreshTimer = setTimeout(refreshAuthToken, 60000);
+      return false;
+    }
     console.error('Token refresh failed — signing out:', e);
     doLogout();
+    return false;
   }
 }
+// LOGIN RENEWAL SAFETY NET (v1.3.9): phones and sleeping laptops pause the renewal timer, so the login could run out
+// and saves were refused with 'JWT expired'. Every request to Supabase made with your login now renews the login first
+// if it has run out (or is about to), and if Supabase still answers 401 it renews once and sends the request again.
+let _renewing=null;
+function renewLoginOnce(){if(!_renewing)_renewing=Promise.resolve(refreshAuthToken()).finally(()=>{_renewing=null});return _renewing}
+const _btbFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  const url=typeof input==='string'?input:(input&&input.url)||'';
+  const hd=init&&init.headers&&typeof init.headers==='object'&&!(init.headers instanceof Headers)?init.headers:null;
+  const auth=hd&&(hd.Authorization||hd.authorization);
+  const mine=!!(currentUser&&currentUser.token&&url.startsWith(SB_URL)&&!url.includes('/auth/v1/')&&auth===`Bearer ${currentUser.token}`);
+  if(!mine)return _btbFetch(input,init);
+  const withToken=()=>({...init,headers:{...hd,Authorization:`Bearer ${currentUser.token}`}});
+  if(currentUser.refreshToken&&(currentUser.expiresAt||0)-Date.now()<60000){try{await renewLoginOnce()}catch(e){}}
+  if(!currentUser)return _btbFetch(input,init);
+  let r=await _btbFetch(input,withToken());
+  if(r.status===401&&currentUser&&currentUser.refreshToken){
+    let again=true;try{const t=await r.clone().text();again=/JWT|expired|PGRST30/i.test(t)||!t}catch(e){}
+    if(again&&await renewLoginOnce().catch(()=>false)&&currentUser)r=await _btbFetch(input,withToken());
+  }
+  return r;
+};
+
 
 async function loadAppData(){
   await Promise.all([loadInteractions(),loadClients(),loadEnquiryTemplates(),loadStaffList()]);
@@ -780,6 +813,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
         localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));
         showApp();
       }).catch(err=>{
+        // v1.3.9: only sign out when Supabase says the login is bad (401/403) — not when the internet drops
+        if(err instanceof TypeError||!err.status||err.status>=500){console.warn('Session check could not reach the server — staying signed in:',err.message);return}if(err.status!==401&&err.status!==403){console.warn('Session check problem ('+err.status+') — staying signed in:',err.message);return}
         console.error('Session validation failed — signing out:',err);
         doLogout();
       });

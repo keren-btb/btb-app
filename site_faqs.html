@@ -116,7 +116,7 @@ textarea.in{min-height:90px;resize:vertical;line-height:1.45}
 // site_faqs.html v1.0.0 — 2026-11-27: the website's FAQs, edited here instead of in the website code.
 // Add / change / move up-down / Show-Hide / delete. The website reads shown ones via public_site_faqs()
 // (sql/2026-11-27_site_faqs.sql). Admin / manager / owner only (enforced by the database).
-const BUILD_VERSION='1.0.0';
+const BUILD_VERSION='1.0.1'; // v1.0.1: no longer signs you out when the internet drops or Supabase is down; login renewed before requests if it has run out, and a 'JWT expired' answer is renewed and retried once.
 const SB_URL='https://dcksohetvlonijtcbjwe.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRja3NvaGV0dmxvbmlqdGNiandlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTQ1NzgsImV4cCI6MjA5NjQzMDU3OH0.M_oDB2e0upZUYZijNmigsmXtcKaAFx8iF-nn5FZUkzk';
 const SB_AUTH=`${SB_URL}/auth/v1`;
@@ -216,11 +216,37 @@ function scheduleRefresh(){clearTimeout(tokenTimer);if(!currentUser?.expiresAt)r
 async function refreshToken(){
   if(!currentUser?.refreshToken)return;
   try{const r=await fetch(`${SB_AUTH}/token?grant_type=refresh_token`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({refresh_token:currentUser.refreshToken})});
-    const d=await r.json();if(!r.ok||!d.access_token)throw new Error(d.error_description||'Refresh failed');
+    const d=await r.json();if(!r.ok||!d.access_token){const er=new Error(d.error_description||'Refresh failed');er.status=r.status;throw er}
     currentUser.token=d.access_token;currentUser.refreshToken=d.refresh_token||currentUser.refreshToken;currentUser.expiresAt=Date.now()+(d.expires_in||3600)*1000;
-    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh()}
-  catch(e){console.error('Token refresh failed — signing out:',e);doLogout()}
+    localStorage.setItem('btb_staff_session',JSON.stringify(currentUser));scheduleRefresh();return true}
+  catch(e){
+    // v1.0.1: no internet for a moment or Supabase down — stay signed in and try again in a minute (only a 400/401 signs you out)
+    if(e instanceof TypeError||(e.status&&e.status!==400&&e.status!==401)){console.warn('Token refresh could not reach the server — will try again in 1 minute:',e.message);clearTimeout(tokenTimer);tokenTimer=setTimeout(refreshToken,60000);return false}
+    console.error('Token refresh failed — signing out:',e);doLogout();return false}
 }
+// LOGIN RENEWAL SAFETY NET (v1.0.1): phones and sleeping laptops pause the renewal timer, so the login could run out
+// and saves were refused with 'JWT expired'. Every request to Supabase made with your login now renews the login first
+// if it has run out (or is about to), and if Supabase still answers 401 it renews once and sends the request again.
+let _renewing=null;
+function renewLoginOnce(){if(!_renewing)_renewing=Promise.resolve(refreshToken()).finally(()=>{_renewing=null});return _renewing}
+const _btbFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  const url=typeof input==='string'?input:(input&&input.url)||'';
+  const hd=init&&init.headers&&typeof init.headers==='object'&&!(init.headers instanceof Headers)?init.headers:null;
+  const auth=hd&&(hd.Authorization||hd.authorization);
+  const mine=!!(currentUser&&currentUser.token&&url.startsWith(SB_URL)&&!url.includes('/auth/v1/')&&auth===`Bearer ${currentUser.token}`);
+  if(!mine)return _btbFetch(input,init);
+  const withToken=()=>({...init,headers:{...hd,Authorization:`Bearer ${currentUser.token}`}});
+  if(currentUser.refreshToken&&(currentUser.expiresAt||0)-Date.now()<60000){try{await renewLoginOnce()}catch(e){}}
+  if(!currentUser)return _btbFetch(input,init);
+  let r=await _btbFetch(input,withToken());
+  if(r.status===401&&currentUser&&currentUser.refreshToken){
+    let again=true;try{const t=await r.clone().text();again=/JWT|expired|PGRST30/i.test(t)||!t}catch(e){}
+    if(again&&await renewLoginOnce().catch(()=>false)&&currentUser)r=await _btbFetch(input,withToken());
+  }
+  return r;
+};
+
 async function doLogin(){
   let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';
   const pass=document.getElementById('loginPass').value,err=document.getElementById('loginError');err.textContent='';
