@@ -9,7 +9,7 @@
     <path id="meeple" d="M50 0c16 0 26 12 26 26 0 8-3 14-8 19l30 12c8 3 10 13 4 19-5 5-13 4-18 1l-10-6 16 52c2 8-4 15-12 15H64l-14-30-14 30H22c-8 0-14-7-12-15l16-52-10 6c-5 3-13 4-18-1-6-6-4-16 4-19l30-12c-5-5-8-11-8-19C24 12 34 0 50 0z"/>
   </defs>
 
-  <rect width="1200" height="380" fill="#20342b"/>
+  <rect width="1200" height="380" fill="#1b2a45"/>
   <rect width="1200" height="380" fill="url(#grid)"/>
 
   <!-- confetti -->
@@ -70,7 +70,7 @@
       <ellipse cx="48" cy="92" rx="6" ry="3.5" fill="#faf7f0" opacity="0.45"/><ellipse cx="92" cy="92" rx="6" ry="3.5" fill="#faf7f0" opacity="0.45"/>
     </g>
     <g transform="rotate(0 70 220) translate(40 -8)">
-      <rect width="140" height="200" rx="12" fill="#faf7f0"/><rect x="10" y="10" width="120" height="180" rx="8" fill="none" stroke="#20342b" stroke-width="3"/>
+      <rect width="140" height="200" rx="12" fill="#faf7f0"/><rect x="10" y="10" width="120" height="180" rx="8" fill="none" stroke="#1b2a45" stroke-width="3"/>
       <path d="M70 46l32 52-32 52-32-52z" fill="#07b4c5"/>
       <!-- sunglasses -->
       <rect x="45" y="80" width="22" height="13" rx="5" fill="#24251f"/><rect x="73" y="80" width="22" height="13" rx="5" fill="#24251f"/>
@@ -136,7 +136,7 @@
 
   <!-- hex tile with sleepy token -->
   <g transform="translate(625 248)" filter="url(#sh)">
-    <path d="M44 0l44 25v50L44 100 0 75V25z" fill="#879688"/>
+    <path d="M44 0l44 25v50L44 100 0 75V25z" fill="#8790a0"/>
     <circle cx="44" cy="50" r="20" fill="#e8ddc7"/>
     <path d="M34 48q4 4 8 0M46 48q4 4 8 0" stroke="#24251f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
     <circle cx="44" cy="58" r="2.5" fill="#24251f"/>
