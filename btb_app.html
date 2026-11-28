@@ -396,7 +396,7 @@
     </div></div>
     <div id="pPersonalised" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pPersonalised')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Personalised Experiences</span></div><div class="panel-body"><p class="panel-sub">Offer paid add-ons shown when customers select a special occasion. Set price 0 for free.</p><div id="personalExpList"></div><div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-top:8px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:7px">Add experience</div><div class="add-row" style="flex-wrap:wrap;gap:7px"><input class="add-input" type="text" id="newExpLabel" placeholder="e.g. Decorations package"><input class="add-input-sm" type="number" id="newExpPrice" placeholder="$" min="0" style="width:55px"></div><input class="add-input" type="text" id="newExpDesc" placeholder="Short description (optional)" style="width:100%;margin-top:6px"><div style="margin-top:7px;font-size:11px;color:#6b7280;margin-bottom:4px">Show for occasion(s): <span style="color:#9ca3af">leave blank = all occasions</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="newExpOccasionPicker"></div><button class="add-btn" onclick="addPersonalisedExp()"><i class="ti ti-plus"></i> Add</button></div></div></div>
     <div id="pSurcharge" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pSurcharge')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Card Surcharge</span></div><div class="panel-body"><p class="panel-sub">Applied at checkout in POS for card payments. Stripe can also handle surcharges automatically.</p><div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px"><i class="ti ti-credit-card" style="color:#07b4c5"></i> Card surcharge</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="number" id="cardSurcharge" class="time-input" style="width:60px" min="0" max="10" step="0.1" value="0"><span style="font-size:12px;color:#374151">% added for card payments (0 = no surcharge)</span></div><button class="add-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="saveSurcharge()"><i class="ti ti-device-floppy"></i> Save</button><div id="surchargeMsg" style="font-size:12px;margin-top:6px;text-align:center"></div></div></div>
-    <div id="pRoles" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pRoles')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Logins & Roles</span></div><div class="panel-body"><p class="panel-sub">Create staff login accounts and control tab access.</p><div id="rolesList"></div><div style="margin-top:14px;border-top:2px solid #f3f4f6;padding-top:14px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Create new login</div><div class="form-row"><div class="form-label">Name</div><input class="add-input" type="text" id="newStaffName" placeholder="e.g. Alex"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Email</div><input class="add-input" type="email" id="newStaffEmail" placeholder="alex@btb.co.nz"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Temporary password</div><input class="add-input" type="text" id="newStaffPass" placeholder="Welcome123"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Role</div><select class="form-select" id="newStaffRole"><option value="gamemaster_own">Gamemaster Own — only their bookings</option><option value="gamemaster">Gamemaster — all calendar</option><option value="manager">Manager — all except Settings</option><option value="admin">Admin — everything</option></select></div><button class="add-btn" style="margin-top:10px;width:100%;justify-content:center" onclick="createLogin()"><i class="ti ti-plus"></i> Create login</button><div id="loginMsg" style="font-size:12px;margin-top:6px"></div></div></div></div>
+    <div id="pRoles" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pRoles')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Logins & Roles</span></div><div class="panel-body"><p class="panel-sub">Create staff login accounts and control tab access.</p><div id="rolesList"></div><div style="margin-top:14px;border-top:2px solid #f3f4f6;padding-top:14px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">Create new login</div><div class="form-row"><div class="form-label">Name</div><input class="add-input" type="text" id="newStaffName" placeholder="e.g. Alex Smith" oninput="fillLoginEmail()"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Login email</div><input class="add-input" type="email" id="newStaffEmail" placeholder="alex@btbescaperooms.co.nz" oninput="this.dataset.typed='1'"></div><div style="font-size:11px;color:#9ca3af;margin:2px 0 0">Fills in from the first name — they log in by typing just their first name.</div><div class="form-row" style="margin-top:6px"><div class="form-label">Personal email</div><input class="add-input" type="email" id="newStaffPersonalEmail" placeholder="their own email (optional)"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Temporary password</div><input class="add-input" type="text" id="newStaffPass" placeholder="Welcome123"></div><div class="form-row" style="margin-top:6px"><div class="form-label">Role</div><select class="form-select" id="newStaffRole"><option value="gamemaster_own">Gamemaster Own — only their bookings</option><option value="gamemaster">Gamemaster — all calendar</option><option value="manager">Manager — all except Settings</option><option value="admin">Admin — everything</option></select></div><button class="add-btn" style="margin-top:10px;width:100%;justify-content:center" onclick="createLogin()"><i class="ti ti-plus"></i> Create login</button><div id="loginMsg" style="font-size:12px;margin-top:6px"></div></div></div></div>
     <div id="pProducts" class="panel"><div class="panel-header"><button class="back-btn" onclick="closePanel('pProducts')"><i class="ti ti-chevron-left"></i> Back</button><span class="panel-title">Products</span></div><div class="panel-body">
       <!-- MENU STAGE -->
       <div id="prodStageMenu">
@@ -2367,7 +2367,8 @@ async function loadResetInfo(){
     const since=created>back60?created:back60;
     const gameIds=Object.keys(tbg);
     const [rr,pr]=await Promise.all([
-      fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&run_date=gte.${since}&run_date=lte.${today}&select=id,booking_id,game_id,status,completed_by,completed_at,mode,note,created_at,run_date&order=run_date.desc`,{headers:H()}),
+      // v16.4.99: also fetch resets FINISHED since then, even if the job itself is from an older day
+      fetch(`${SB_URL}/rest/v1/cl_runs?kind=eq.reset&or=(run_date.gte.${since},completed_at.gte.${since})&run_date=lte.${today}&select=id,booking_id,game_id,status,completed_by,completed_at,mode,note,created_at,run_date&order=run_date.desc`,{headers:H()}),
       gameIds.length?fetch(`${SB_URL}/rest/v1/game_bookings?game_id=in.(${gameIds.map(encodeURIComponent).join(',')})&booking_date=gte.${since}&booking_date=lt.${today}&status=in.(confirmed,completed)&play_location=eq.in_house&select=id,game_id,booking_date,slot_time,status`,{headers:H()}):Promise.resolve(null)]);
     const rs=await rr.json();if(!Array.isArray(rs))return;
     const ps=pr?await pr.json():[];
@@ -2375,12 +2376,18 @@ async function loadResetInfo(){
     // past games (before today) of rooms with a reset checklist, only those since each room's checklist was set up
     const pastGames=(Array.isArray(ps)?ps:[]).filter(g=>{const t=tbg[g.game_id];const c=t&&t.created_at?new Date(t.created_at).toLocaleDateString('en-CA',{timeZone:'Pacific/Auckland'}):since;return g.booking_date>=c})
       .map(g=>{const[y,m,d]=g.booking_date.split('-').map(Number);return{id:g.id,game_id:g.game_id,year:y,month:m,date:d,time:String(g.slot_time||'').slice(0,5),status:g.status,playLocation:'in_house'}});
-    resetInfo={templateByGame:tbg,runsByBooking:rbb,sentBackByGame:sb,pastGames};
+    // v16.4.99: every finished reset per room (newest first). Task Hub's "one reset makes the room ready" closes the
+    // other jobs as skipped, so the calendar must count ANY reset of the room finished after the previous game started.
+    const db={};rs.forEach(r=>{if(r.status==='done'&&r.completed_at&&r.game_id)(db[r.game_id]=db[r.game_id]||[]).push(r)});
+    Object.values(db).forEach(a=>a.sort((x,y)=>String(y.completed_at).localeCompare(String(x.completed_at))));
+    resetInfo={templateByGame:tbg,runsByBooking:rbb,sentBackByGame:sb,pastGames,doneByGame:db};
   }catch(e){console.error('Reset status load:',e)}
 }
 // v16.4.87: the game just before this one in the same room — today or an earlier day — if it has finished.
 // Shown on today's and future games (before, only today's games and only the same day were checked).
 function bkKey(x){return ymd(x.year,x.month,x.date)+' '+(x.time||'00:00')}
+// v16.4.99: a saved time (UTC) as 'YYYY-MM-DD HH:MM' in NZ time, so it can be compared with bkKey()
+function nzKeyOf(iso){try{const p={};new Intl.DateTimeFormat('en-CA',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(iso)).forEach(x=>p[x.type]=x.value);return`${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`}catch(e){return''}}
 function isTodayBk(b){return b.date===TODAY&&b.month===TODAY_M&&b.year===TODAY_Y}
 function isPastDayBk(b){return ymd(b.year,b.month,b.date)<ymd(TODAY_Y,TODAY_M,TODAY)}
 function previousFinished(b){
@@ -2408,7 +2415,10 @@ function resetChipHtml(b){
   const sbk=(resetInfo.sentBackByGame||{})[b.game_id];
   if(sbk&&!isPastDayBk(b)&&isNextForRoom(b))return`<div style="margin:4px 0" onclick="event.stopPropagation()"><span onclick="window.open('task_hub.html?run=${sbk.id}','_blank')" title="${escapeHtml(sbk.note||'')}" style="cursor:pointer;font-size:11px;font-weight:800;color:#fff;background:#dc2626;padding:3px 9px;border-radius:99px">⚠ Room not reset — ${escapeHtml((sbk.note||'').replace(/^Sent back by [^:]*: /,'').slice(0,50))}</span></div>`;
   const prev=previousFinished(b);if(!prev)return'';
-  const run=resetInfo.runsByBooking[prev.id];
+  let run=resetInfo.runsByBooking[prev.id];
+  // v16.4.99: the room also counts as reset if ANY reset of it was finished after the previous game started
+  // (e.g. done from Task Hub's room board, which marks this game's own job 'skipped — covered by reset')
+  if(!(run&&run.status==='done')){const pk=bkKey(prev);const later=((resetInfo.doneByGame||{})[b.game_id]||[]).find(r=>nzKeyOf(r.completed_at)>=pk);if(later)run=later}
   if(run&&run.status==='done'){
     if(!isTodayBk(b))return''; // v16.4.87: green 'Room ready' only on today's games
     const who=staff.find(s=>s.id===run.completed_by)?.name||'';
@@ -3406,8 +3416,14 @@ async function renderRolesList(){
     }).join('');
   }catch(e){el.innerHTML='<div class="empty-state">Error loading roles.</div>'}
 }
+// v16.4.99: login email fills in as firstname@btbescaperooms.co.nz (stops logins being made with a personal email)
+function fillLoginEmail(){
+  const el=document.getElementById('newStaffEmail');if(!el||el.dataset.typed)return;
+  const first=(document.getElementById('newStaffName').value.trim().split(/\s+/)[0]||'').toLowerCase().replace(/[^a-z0-9.-]/g,'');
+  el.value=first?first+'@btbescaperooms.co.nz':'';
+}
 async function createLogin(){
-  const name=document.getElementById('newStaffName').value.trim();const email=document.getElementById('newStaffEmail').value.trim();const pass=document.getElementById('newStaffPass').value.trim();const role=document.getElementById('newStaffRole').value;
+  const name=document.getElementById('newStaffName').value.trim();const email=document.getElementById('newStaffEmail').value.trim().toLowerCase();const personal=(document.getElementById('newStaffPersonalEmail')?.value||'').trim()||null;const pass=document.getElementById('newStaffPass').value.trim();const role=document.getElementById('newStaffRole').value;
   const msgEl=document.getElementById('loginMsg');
   if(!name||!email||!pass){msgEl.style.color='#dc2626';msgEl.textContent='Fill in all fields.';return}
   if(pass.length<6){msgEl.style.color='#dc2626';msgEl.textContent='Password must be 6+ chars.';return}
@@ -3415,10 +3431,18 @@ async function createLogin(){
   const tabs={admin:'["calendar","leads","pos","settings","task_hub"]',manager:'["calendar","leads","pos","task_hub"]',gamemaster:'["calendar","pos","task_hub"]',gamemaster_own:'["calendar","pos","task_hub"]'};
   try{
     const result=await callEdgeFunction('create_staff_login',{email,password:pass,name,role,allowed_tabs:tabs[role]||'["calendar"]'},currentUser?.token);
-    const sr=await fetch(`${SB_URL}/rest/v1/staff`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify({name,email,user_role_id:result.id,active:true})});
-    if(sr.ok){const ns=await sr.json();if(ns[0]){staff.push(ns[0]);renderPersonList()}}
-    msgEl.style.color='#15803d';msgEl.textContent=`✓ Login created for ${name}`;
-    document.getElementById('newStaffName').value='';document.getElementById('newStaffEmail').value='';document.getElementById('newStaffPass').value='';
+    // v16.4.99: if this person was already added in the Staff Portal (same name, active, no login yet), link the login
+    // to that staff record instead of making a second one with the same name (that's how two Seans happened)
+    let linked=null;
+    try{const er=await fetch(`${SB_URL}/rest/v1/staff?name=ilike.${encodeURIComponent(name)}&active=eq.true&user_role_id=is.null&select=id`,{headers:H()});const ex=er.ok?await er.json():[];if(ex.length===1)linked=ex[0].id}catch(e){}
+    const fields={name,email,user_role_id:result.id,active:true};if(personal)fields.personal_email=personal;
+    const sr=linked
+      ?await fetch(`${SB_URL}/rest/v1/staff?id=eq.${linked}`,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(fields)})
+      :await fetch(`${SB_URL}/rest/v1/staff`,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(fields)});
+    if(!sr.ok)throw new Error('the login was made but the staff record was not saved: '+await sr.text());
+    const ns=await sr.json();if(ns[0]){staff=staff.filter(x=>x.id!==ns[0].id);staff.push(ns[0]);renderPersonList()}
+    msgEl.style.color='#15803d';msgEl.textContent=`✓ Login created for ${name}${linked?' (linked to their existing staff record)':''} — they log in as ${email.split('@')[0]}`;
+    document.getElementById('newStaffName').value='';const ee=document.getElementById('newStaffEmail');ee.value='';delete ee.dataset.typed;document.getElementById('newStaffPass').value='';const pe=document.getElementById('newStaffPersonalEmail');if(pe)pe.value='';
     renderRolesList();
   }catch(e){msgEl.style.color='#dc2626';msgEl.textContent='Error: '+e.message}
 }
@@ -3607,6 +3631,7 @@ async function refreshAuthToken() {
     currentUser.expiresAt = Date.now() + ((data.expires_in || 3600) * 1000);
     localStorage.setItem('btb_staff_session', JSON.stringify(currentUser));
     scheduleTokenRefresh();
+    return true; // v16.4.99
   } catch(e) {
     // v16.4.84: no internet for a moment (e.g. laptop waking up) — don't sign out, try again in a minute
     // v16.4.92: Supabase itself down (5xx, or an odd answer) — same thing: stay signed in, try again in a minute.
@@ -3615,12 +3640,36 @@ async function refreshAuthToken() {
       console.warn('Token refresh could not reach the server — will try again in 1 minute:', e.message);
       clearTimeout(tokenRefreshTimer);
       tokenRefreshTimer = setTimeout(refreshAuthToken, 60000);
-      return;
+      return false;
     }
     console.error('Token refresh failed — signing out:', e);
     doLogout();
+    return false;
   }
 }
+// v16.4.99: LOGIN RENEWAL SAFETY NET. Phones and sleeping laptops pause the renewal timer, so the login could run out
+// and a save was refused with 'JWT expired' (lost change). Now every request to Supabase made with your login:
+// (1) renews the login first if it has run out or is about to, and (2) if Supabase still says 401 / expired,
+// renews once and sends the same request again. Requests with the public key and the login requests are not touched.
+let _renewing=null;
+function renewLoginOnce(){if(!_renewing)_renewing=refreshAuthToken().finally(()=>{_renewing=null});return _renewing}
+const _btbFetch=window.fetch.bind(window);
+window.fetch=async function(input,init){
+  const url=typeof input==='string'?input:(input&&input.url)||'';
+  const hd=init&&init.headers&&typeof init.headers==='object'&&!(init.headers instanceof Headers)?init.headers:null;
+  const auth=hd&&(hd.Authorization||hd.authorization);
+  const mine=!!(currentUser&&currentUser.token&&url.startsWith(SB_URL)&&!url.startsWith(SB_AUTH)&&auth===`Bearer ${currentUser.token}`);
+  if(!mine)return _btbFetch(input,init);
+  const withToken=()=>({...init,headers:{...hd,Authorization:`Bearer ${currentUser.token}`}});
+  if(currentUser.refreshToken&&(currentUser.expiresAt||0)-Date.now()<60000){try{await renewLoginOnce()}catch(e){}}
+  if(!currentUser)return _btbFetch(input,init);
+  let r=await _btbFetch(input,withToken());
+  if(r.status===401&&currentUser&&currentUser.refreshToken){
+    let again=true;try{const t=await r.clone().text();again=/JWT|expired|PGRST30/i.test(t)||!t}catch(e){}
+    if(again&&await renewLoginOnce().catch(()=>false)&&currentUser)r=await _btbFetch(input,withToken());
+  }
+  return r;
+};
 
 async function doLogin(){
   let email=document.getElementById('loginEmail').value.trim().toLowerCase();if(email&&!email.includes('@'))email+='@btbescaperooms.co.nz';const pass=document.getElementById('loginPass').value;const errEl=document.getElementById('loginError');errEl.textContent='';
@@ -4372,7 +4421,7 @@ async function saveShiftTimes() {
   } catch(e) { console.error('Error saving shift times:', e); }
 }
 
-const BUILD_VERSION = '16.4.98'; // v16.4.98: Settings — Email templates moved into Initial Setup; new Finance group (purple) with Reports, Invoices and Receipts. | v16.4.97: // v16.4.97: btb_app.html?date=…&booking=<id> opens that booking (time-request notifications now link straight to it). | v16.4.96: // v16.4.96: 'Ask for a time today' requests from the booking page show on the calendar (light blue, ⏰ TIME REQUEST) with Accept / Suggest a time / Decline — the customer is emailed each time. | // v16.4.95: Settings top cards — Staff Portal back (was taken off by mistake), Task Hub taken off (it is already a header tab). Previous build: 16.4.94 — v16.4.94: Settings tidied — top buttons are cards 3 in a row (Staff Portal and Clients taken off, they are in the header); new Website group with Reviews, Room pages, FAQs and Check booking slots. Previous build: 16.4.93 — v16.4.93: Settings has a 'Website rooms' button (admin/manager) opening site_rooms.html. Previous build: 16.4.92 — v16.4.92: no longer signs you out when the internet drops or Supabase is down while opening the app or renewing the login — only when Supabase says the login itself is no good (400/401/403). Previous build: 16.4.91 — v16.4.91: Settings has a 'Website FAQs' button (admin/manager) opening site_faqs.html. Previous build: 16.4.90 — v16.4.90: Settings has a 'Website reviews' button (admin/manager) opening site_reviews.html. Previous build: 16.4.89 — v16.4.89: Settings has a 'Check booking slots' button (admin/manager) opening the booking page's Slot checker (booking_widget.html?check=1, needs v1.7.58). Previous build: 16.4.88 — v16.4.88: New booking heading shows the day it will be booked on (with '(today)' or a red '(past date!)'); grey sample text removed from the New booking and New package forms; '▶ Run game' button on today's booking cards from 30 min before the start until the game ends, opening it in Control Room. Previous build: 16.4.87 — v16.4.87: the red 'Room not reset' chip now also checks the room's last game on an earlier day (up to 60 days back, only since its reset checklist was set up) and shows on future games too, like Control Room v23; a room 'sent back' as not reset shows on the room's next game; green 'Room ready' stays on today's games only. Previous build: 16.4.86 — v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
+const BUILD_VERSION = '16.4.99'; // v16.4.99: (1) Room reset chip — a reset finished in Task Hub (room board, or a 'sent back' job) now clears the red 'Room not reset' chip; any reset of the room finished after the previous game started counts. (2) Saves no longer fail with 'JWT expired' — the login is renewed first if it has run out (phone/laptop asleep) and a refused request is renewed and sent again once. (3) Create login: login email fills in as firstname@btbescaperooms.co.nz, new Personal email box, and if the person was already added in the Staff Portal the login links to that record instead of making a second one. | v16.4.98: Settings — Email templates moved into Initial Setup; new Finance group (purple) with Reports, Invoices and Receipts. | v16.4.97: // v16.4.97: btb_app.html?date=…&booking=<id> opens that booking (time-request notifications now link straight to it). | v16.4.96: // v16.4.96: 'Ask for a time today' requests from the booking page show on the calendar (light blue, ⏰ TIME REQUEST) with Accept / Suggest a time / Decline — the customer is emailed each time. | // v16.4.95: Settings top cards — Staff Portal back (was taken off by mistake), Task Hub taken off (it is already a header tab). Previous build: 16.4.94 — v16.4.94: Settings tidied — top buttons are cards 3 in a row (Staff Portal and Clients taken off, they are in the header); new Website group with Reviews, Room pages, FAQs and Check booking slots. Previous build: 16.4.93 — v16.4.93: Settings has a 'Website rooms' button (admin/manager) opening site_rooms.html. Previous build: 16.4.92 — v16.4.92: no longer signs you out when the internet drops or Supabase is down while opening the app or renewing the login — only when Supabase says the login itself is no good (400/401/403). Previous build: 16.4.91 — v16.4.91: Settings has a 'Website FAQs' button (admin/manager) opening site_faqs.html. Previous build: 16.4.90 — v16.4.90: Settings has a 'Website reviews' button (admin/manager) opening site_reviews.html. Previous build: 16.4.89 — v16.4.89: Settings has a 'Check booking slots' button (admin/manager) opening the booking page's Slot checker (booking_widget.html?check=1, needs v1.7.58). Previous build: 16.4.88 — v16.4.88: New booking heading shows the day it will be booked on (with '(today)' or a red '(past date!)'); grey sample text removed from the New booking and New package forms; '▶ Run game' button on today's booking cards from 30 min before the start until the game ends, opening it in Control Room. Previous build: 16.4.87 — v16.4.87: the red 'Room not reset' chip now also checks the room's last game on an earlier day (up to 60 days back, only since its reset checklist was set up) and shows on future games too, like Control Room v23; a room 'sent back' as not reset shows on the room's next game; green 'Room ready' stays on today's games only. Previous build: 16.4.86 — v16.4.86: tapping the red 'owing' badge (booking, package or hire card) opens POS with Ready to pay open; opening a booking's details scrolls them onto the screen; the 'Room not reset' chip and staff notes now run the full width of the card. Previous build: 16.4.85 — v16.4.85: overlap warning also counts booking requests; ticking a GM on a request accepts it properly (confirms, rosters, emails the customer); the Trusted opener button shows an error if the save is refused. // v16.4.84: Login fixes from the error log. (1) Logging in on Task Hub, Invoices or Receipts saved a session without the page permissions, so opening the BtB app afterwards crashed and signed you out ('Cannot read properties of undefined (reading includes)') — it now fetches the missing permissions first. (2) A short internet drop while renewing the login no longer signs you out — it tries again a minute later. Previous build: 16.4.83 — v16.4.83: Booking requests from the booking page (status 'requested') show on the calendar with a purple '🙋 REQUEST — finding a GM' badge and a dashed purple border until someone accepts. Previous build: 16.4.82 — v16.4.82: Profile menu (tap your initial, top right) now opens — it was being placed off-screen because the header is shifted with a CSS transform; the menu now moves to the page body when opened. Staff Portal quick button shows for every login (the staff portal itself still hides admin/owner parts). Previous build: 16.4.81 — v16.4.81: Settings > Booking Configuration has 'Casual shift overrun' (minutes, default 60, 0 = off): how far a game may run past a casual's shift end and still show 'Call us' on the booking page. Previous build: 16.4.80 — v16.4.80: Settings has a Receipts button (admin/manager) next to Invoices, opening receipt_capture.html. Previous build: 16.4.79 — v16.4.79: An at-BtB package is ONE card on the calendar (like a hire package): PACKAGE header with time(s), number of games, customer, players, total and one amount owing, plus a package ⋯ menu (Confirmation email, Invoice, Go to POS, Call, Email); each game sits inside with its own players, GMs, notes and ⋯ menu.
 
 
 // Previous build: 16.4.78 — // v16.4.78: ⋯ > Confirmation email on every booking — shows exactly what the customer will get (a package = one combined email) and a Send button (also works when 'Don't send confirmation email' was ticked, and can re-send).
